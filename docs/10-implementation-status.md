@@ -122,8 +122,9 @@ feature that was otherwise in scope is simply available.
 | FR-CU-05 | Done | Outside-window and unsupported are distinct messages. |
 | FR-CU-06 | Not implemented | Dedicated catch-up browse view. |
 | FR-REC-01..03 | Done | Instant, scheduled from the guide, configurable padding. |
-| FR-REC-04 / 06 | Not implemented | Series recording and repeat rules. |
-| FR-REC-05 | Done | The missing-series-metadata warning is shown before scheduling. |
+| FR-REC-04 | Done | Records every episode the guide lists, and each guide refresh claims newly published ones 14 days ahead. |
+| FR-REC-06 | Not implemented | Repeat rules (channel + weekday + window) as a fallback when the guide has no series data. |
+| FR-REC-05 | Done | A series recording is refused outright when the guide carries no series metadata, with the reason stated. |
 | FR-REC-07 | Partial | `RecordingScheduler.schedule` accepts a manual timer; no UI form. |
 | FR-REC-08 | Partial | Concurrency limit enforced; provider connection limit is not cross-checked. |
 | FR-REC-09 | Partial | Internal and SAF trees, which covers USB; no SMB. |
@@ -135,7 +136,7 @@ feature that was otherwise in scope is simply available.
 | FR-REC-18 | Done | Reconnect and continue, gaps counted and reported. |
 | FR-REC-19 | Done | Every recording ends in a visible result record. |
 | FR-REC-20 | Partial | Play, delete and browse; no rename, mark-watched, share, filter or sort. |
-| FR-REC-21 | Partial | View and cancel individually; no series cancel UI. |
+| FR-REC-21 | Partial | View and cancel individually; `cancelSeries` exists but has no UI entry point. |
 | FR-NET-01 | Done | Global and per playlist, with presets. |
 | FR-NET-02 | Partial | Stored and sent per playlist; no header-editing UI. |
 | FR-NET-03 | Done | Parsed and applied per channel. |

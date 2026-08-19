@@ -10,6 +10,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.Outcome
+import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import java.util.concurrent.TimeUnit
 
 /**
@@ -46,6 +47,15 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 val refreshed = dao.playlist(playlist.id) ?: return@forEach
                 if (epg.refreshGuide(refreshed) is Outcome.Err) anyFailure = true
             }
+        }
+
+        // FR-REC-04: a series recording covers episodes the guide had not published when the
+        // user asked for it, so every refresh extends the schedule forward.
+        val recordings = ServiceLocator.recordings
+        recordings.activeSeries().forEach { (channelId, keys) ->
+            val channel = dao.channel(channelId) ?: return@forEach
+            val upcoming = epg.programmesFor(channel, now, now + SERIES_LOOKAHEAD_MILLIS)
+            keys.forEach { key -> recordings.extendSeries(channel, upcoming, key) }
         }
 
         // Housekeeping that has to happen somewhere and must not depend on the UI being open.

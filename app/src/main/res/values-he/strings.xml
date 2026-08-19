@@ -138,6 +138,7 @@
     <string name="rec_completed">הושלמו</string>
     <string name="rec_record_now">הקלט עכשיו</string>
     <string name="rec_record_programme">הקלט את התוכנית הזו</string>
+    <string name="rec_record_series">הקלט סדרה</string>
     <string name="rec_manual_timer">טיימר ידני</string>
     <string name="rec_padding">ריפוד: %1$d דק\' לפני, %2$d דק\' אחרי</string>
     <string name="rec_destination">תיקיית ההקלטות</string>

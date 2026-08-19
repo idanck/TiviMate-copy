@@ -23,6 +23,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
@@ -74,6 +76,17 @@ fun MobileRoot(
     val prefs by vm.settingsState.collectAsState()
     var tab by remember { mutableStateOf(MobileTab.LIVE) }
     var details by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
+    // Loaded when the details dialog opens so a series recording can claim the episodes the
+    // guide already lists, without querying on every recomposition.
+    var upcoming by remember { mutableStateOf<List<Programme>>(emptyList()) }
+
+    LaunchedEffect(details?.first?.id) {
+        val channel = details?.first
+        upcoming = if (channel == null) emptyList() else {
+            val now = System.currentTimeMillis()
+            vm.programmesFor(channel, now, now + SERIES_LOOKAHEAD_MILLIS)
+        }
+    }
     var addingSource by remember { mutableStateOf(false) }
     // Landscape hides the bottom bar, so a tap on the video brings the channel list back.
     var landscapeOverlay by remember { mutableStateOf(false) }
@@ -228,6 +241,7 @@ fun MobileRoot(
                 onCatchup = { vm.playCatchup(channel, programme) },
                 onFavourite = { vm.toggleFavourite(channel) },
                 onMessage = { text -> vm.post(UiMessage(text = text)) },
+                upcoming = upcoming,
             )
         }
     }

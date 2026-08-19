@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.StatFs
+import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
@@ -13,6 +14,9 @@ import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.prefs.Settings
 import java.io.File
+
+/** How far ahead a series recording claims episodes from the guide. */
+const val SERIES_LOOKAHEAD_MILLIS = 14L * 24 * 60 * 60 * 1000
 
 /** Why a schedule request could not be honoured, so the UI can say something specific. */
 sealed class ScheduleResult {
@@ -76,22 +80,80 @@ class RecordingScheduler(
         if (canScheduleExact()) ScheduleResult.Warning.DEVICE_MUST_STAY_ON
         else ScheduleResult.Warning.EXACT_ALARMS_UNAVAILABLE
 
-    fun scheduleProgramme(channel: Channel, programme: Programme): ScheduleResult {
-        val s = settings.state.value
-        val start = programme.startUtc - s.recordingPreRollMinutes * 60_000L
-        val end = programme.endUtc + s.recordingPostRollMinutes * 60_000L
-        val warnings = buildList {
-            if (!programme.hasSeriesMetadata) add(ScheduleResult.Warning.NO_SERIES_METADATA)
+    fun scheduleProgramme(channel: Channel, programme: Programme): ScheduleResult = schedule(
+        channel = channel,
+        title = programme.title,
+        startUtc = programme.startUtc - settings.state.value.recordingPreRollMinutes * 60_000L,
+        endUtc = programme.endUtc + settings.state.value.recordingPostRollMinutes * 60_000L,
+        seriesKey = null,
+    )
+
+    /**
+     * FR-REC-04/05: records every future episode the guide currently lists, and stores the
+     * series key so [extendSeries] can pick up episodes published later.
+     *
+     * When the guide carries no series metadata this is refused outright with
+     * [ScheduleResult.Warning.NO_SERIES_METADATA]. That is the whole point: the documented
+     * failure of the benchmark is accepting a series recording and then silently recording
+     * nothing, so saying no here — before the user walks away expecting files — is the
+     * feature.
+     *
+     * @param upcoming future programmes for this channel, already offset-corrected.
+     */
+    fun scheduleSeries(channel: Channel, programme: Programme, upcoming: List<Programme>): ScheduleResult {
+        if (!programme.hasSeriesMetadata) {
+            return ScheduleResult.Rejected(ScheduleResult.Warning.NO_SERIES_METADATA)
         }
-        return schedule(
+        val key = seriesKeyFor(channel, programme)
+        val first = schedule(
             channel = channel,
             title = programme.title,
-            startUtc = start,
-            endUtc = end,
-            seriesKey = programme.episodeId?.let { "${channel.id}:${programme.title}" },
-            extraWarnings = warnings,
+            startUtc = programme.startUtc - settings.state.value.recordingPreRollMinutes * 60_000L,
+            endUtc = programme.endUtc + settings.state.value.recordingPostRollMinutes * 60_000L,
+            seriesKey = key,
         )
+        if (first is ScheduleResult.Scheduled) {
+            extendSeries(channel, upcoming.filter { it.startUtc > programme.startUtc }, key)
+        }
+        return first
     }
+
+    /**
+     * Schedules episodes of an already-requested series that the guide has published since.
+     * Called after every guide refresh.
+     *
+     * @return how many new episodes were scheduled.
+     */
+    fun extendSeries(channel: Channel, upcoming: List<Programme>, seriesKey: String): Int {
+        val canonicalTitle = seriesKey.substringAfter(':')
+        val existing = dao.recordings().filter { it.channelId == channel.id }
+        var added = 0
+        upcoming.forEach { programme ->
+            if (TextNormalizer.canonical(programme.title) != canonicalTitle) return@forEach
+            // An episode already scheduled, recorded or explicitly cancelled is left alone.
+            if (existing.any { it.startUtc <= programme.startUtc && it.endUtc >= programme.endUtc }) return@forEach
+            val result = schedule(
+                channel = channel,
+                title = programme.title,
+                startUtc = programme.startUtc - settings.state.value.recordingPreRollMinutes * 60_000L,
+                endUtc = programme.endUtc + settings.state.value.recordingPostRollMinutes * 60_000L,
+                seriesKey = seriesKey,
+            )
+            if (result is ScheduleResult.Scheduled) added++
+        }
+        return added
+    }
+
+    /** The key that ties every episode of one series on one channel together. */
+    fun seriesKeyFor(channel: Channel, programme: Programme): String =
+        "${channel.id}:${TextNormalizer.canonical(programme.title)}"
+
+    /** Series the user has asked for, as channel id to key. */
+    fun activeSeries(): Map<Long, Set<String>> =
+        dao.recordings()
+            .mapNotNull { r -> r.seriesKey?.let { r.channelId to it } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, keys) -> keys.toSet() }
 
     /** FR-REC-01: record the rest of what is on now, or a caller-chosen duration. */
     fun recordNow(channel: Channel, title: String, endUtc: Long): ScheduleResult {

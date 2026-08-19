@@ -40,6 +40,8 @@ fun ProgrammeDetailsDialog(
     onCatchup: () -> Unit,
     onFavourite: () -> Unit,
     onMessage: (String) -> Unit,
+    /** Later programmes on this channel, so a series recording can claim them immediately. */
+    upcoming: List<Programme> = emptyList(),
 ) {
     val now = System.currentTimeMillis()
     val inPast = programme.endUtc < now
@@ -86,13 +88,6 @@ fun ProgrammeDetailsDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (!programme.hasSeriesMetadata) {
-                    Text(
-                        text = stringResource(R.string.rec_no_series_metadata),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 Text(
                     text = stringResource(R.string.rec_uses_connection),
                     style = MaterialTheme.typography.bodySmall,
@@ -118,6 +113,12 @@ fun ProgrammeDetailsDialog(
                 }) {
                     Text(stringResource(R.string.action_record))
                 }
+                TextButton(onClick = {
+                    onMessage(scheduleSeries(channel, programme, upcoming))
+                    onDismiss()
+                }) {
+                    Text(stringResource(R.string.rec_record_series))
+                }
             }
         },
         dismissButton = {
@@ -131,14 +132,21 @@ fun ProgrammeDetailsDialog(
 }
 
 /** Schedules and returns the sentence to show the user, warnings included. */
-private fun scheduleRecording(channel: Channel, programme: Programme): String {
+private fun scheduleRecording(channel: Channel, programme: Programme): String =
+    describe(ServiceLocator.recordings.scheduleProgramme(channel, programme), programme.title)
+
+/** FR-REC-04/05: a series the guide cannot describe is refused, not silently accepted. */
+private fun scheduleSeries(channel: Channel, programme: Programme, upcoming: List<Programme>): String =
+    describe(ServiceLocator.recordings.scheduleSeries(channel, programme, upcoming), programme.title)
+
+private fun describe(result: ScheduleResult, title: String): String {
     val context = ServiceLocator.appContext
-    return when (val result = ServiceLocator.recordings.scheduleProgramme(channel, programme)) {
+    return when (result) {
         is ScheduleResult.Rejected -> context.getString(warningString(result.reason))
         is ScheduleResult.Scheduled -> buildString {
             append(context.getString(R.string.rec_state_scheduled))
             append(": ")
-            append(programme.title)
+            append(title)
             result.warnings.forEach { warning ->
                 append("\n")
                 append(context.getString(warningString(warning)))

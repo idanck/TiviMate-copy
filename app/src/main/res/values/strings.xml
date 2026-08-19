@@ -156,6 +156,7 @@
     <string name="rec_completed">Completed</string>
     <string name="rec_record_now">Record now</string>
     <string name="rec_record_programme">Record this programme</string>
+    <string name="rec_record_series">Record series</string>
     <string name="rec_manual_timer">Manual timer</string>
     <string name="rec_padding">Padding: %1$d min before, %2$d min after</string>
     <string name="rec_destination">Recording folder</string>

@@ -29,6 +29,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.describe
@@ -65,6 +66,17 @@ fun TvRoot(
     val status by vm.playbackStatus.collectAsState()
     val prefs by vm.settingsState.collectAsState()
     var details by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
+    // Loaded when the details dialog opens so a series recording can claim the episodes the
+    // guide already lists, without querying on every recomposition.
+    var upcoming by remember { mutableStateOf<List<Programme>>(emptyList()) }
+
+    LaunchedEffect(details?.first?.id) {
+        val channel = details?.first
+        upcoming = if (channel == null) emptyList() else {
+            val now = System.currentTimeMillis()
+            vm.programmesFor(channel, now, now + SERIES_LOOKAHEAD_MILLIS)
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black)) {
         PlayerSurface(
@@ -172,6 +184,7 @@ fun TvRoot(
                 onCatchup = { vm.playCatchup(channel, programme); onOverlayChange(TvOverlay.NONE) },
                 onFavourite = { vm.toggleFavourite(channel) },
                 onMessage = { text -> vm.post(com.tivicopy.player.ui.UiMessage(text = text)) },
+                upcoming = upcoming,
             )
         }
     }
