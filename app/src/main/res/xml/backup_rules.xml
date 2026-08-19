@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Settings and the channel database may be backed up; the Keystore-wrapped credential blobs
+  cannot be decrypted on another device, so they are excluded rather than restored as garbage.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="settings.xml" />
+    <exclude domain="database" path="tivicopy.db" />
+    <exclude domain="database" path="tivicopy.db-wal" />
+    <exclude domain="database" path="tivicopy.db-shm" />
+</full-backup-content>

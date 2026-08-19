@@ -1,7 +1,7 @@
-# TiviMate-copy — IPTV Player for Android & Google TV
+# TiviCopy — IPTV Player for Android & Google TV
 
-Requirements repository for an **independent IPTV player application** targeting Android
-phones/tablets and Android TV / Google TV.
+An **independent IPTV player application** for Android phones/tablets and Android TV /
+Google TV, together with the requirements it was built from.
 
 TiviMate is used here only as a **functional benchmark**: the docs describe *what an IPTV
 player of this class must do*, restated in original wording so they can be implemented
@@ -21,7 +21,8 @@ branding are reproduced or reused in this repository or in the resulting app.
 ## Repository layout
 
 ```
-docs/         Functional analysis, split by area
+app/          The Android application (Kotlin, Jetpack Compose, Media3)
+docs/         Functional analysis, split by area, plus ADRs
 requirements/ Numbered, testable requirements (FR / NFR) + roadmap
 ```
 
@@ -39,6 +40,8 @@ requirements/ Numbered, testable requirements (FR / NFR) + roadmap
 | `docs/09-sources-and-confidence.md` | Where the analysis came from + confidence levels |
 | `requirements/functional-requirements.md` | FR-* — numbered, testable, prioritized |
 | `requirements/non-functional-requirements.md` | NFR-* — performance, reliability, compatibility, privacy |
+| `docs/10-implementation-status.md` | **What is actually implemented**, requirement by requirement |
+| `docs/adr/` | Architecture decision records |
 | `requirements/roadmap.md` | Phased delivery plan (MVP → parity → differentiation) |
 
 ## Requirement conventions
@@ -55,8 +58,58 @@ requirements/ Numbered, testable requirements (FR / NFR) + roadmap
 - Store listing and in-app copy must contain no reference to obtaining content, and no
   provider names, to stay inside Google Play policy for streaming apps.
 - Features and behaviours are not protected expression; **code, assets and layouts are**.
-  Everything in this project is to be authored independently.
+  Everything in this project is authored independently: no TiviMate source, binary, icon,
+  layout, string or artwork is reproduced or reused.
+
+## Building
+
+The project needs nothing but the Gradle wrapper and an Android SDK — there is no annotation
+processing and no code generation step.
+
+```sh
+./gradlew testReleaseUnitTest    # parser, time-model and matcher tests
+./gradlew assembleRelease        # APK in app/build/outputs/apk/release/
+```
+
+Without a release keystore the release build is signed with the standard debug key, so the
+artefact installs directly for personal use. To sign it properly, set `RELEASE_KEYSTORE_PATH`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` in the environment.
+
+CI (`.github/workflows/android.yml`) runs the tests and assembles the APK on every push, and
+uploads it as a build artefact.
+
+## Versioning
+
+`version.properties` at the repository root is the single source of truth:
+
+```properties
+versionMajor=0
+versionMinor=1
+versionPatch=0
+versionCode=1
+```
+
+Bump `versionCode` on every build that leaves the machine. The version name, version code,
+build type, git SHA and build timestamp are shown in **Settings → About** and in
+**Settings → Diagnostics**, and are embedded in the APK filename
+(`tivicopy-<version>-<buildType>-<sha>.apk`), so two installs can always be told apart.
+
+## Architecture
+
+One adaptive application module (`docs/adr/ADR-002`) that picks a UI shell at runtime:
+
+```
+core/     Errors, UTC time model, name normalisation — no Android UI types
+data/     M3U, Xtream, XMLTV parsers · SQLite store · repositories · settings · backup
+player/   Media3 wrapper: decoder selection, buffering, failover, diagnostics
+record/   Foreground-service DVR: exact alarms, boot re-arm, MPEG-TS writer
+ui/       Compose: shared screens, a TV shell and a touch shell
+```
 
 ## Status
 
-Requirements phase. No application code in this repository yet.
+Phase 1 (MVP) plus the DVR core from Phase 2. See `docs/10-implementation-status.md` for the
+requirement-by-requirement position, including what is deliberately not implemented.
+
+Entitlements, billing and device licensing (`FR-LIC-*`) are **not** implemented — this build
+is for personal use and every feature is simply available. See `docs/adr/ADR-007`.

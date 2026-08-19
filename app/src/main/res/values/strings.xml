@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TiviCopy</string>
+
+    <!-- Notification channels -->
+    <string name="channel_recording">Recording</string>
+    <string name="channel_recording_desc">Shown while a recording is in progress.</string>
+    <string name="channel_alerts">Alerts</string>
+    <string name="channel_alerts_desc">Reminders, recording results and subscription warnings.</string>
+
+    <!-- Generic actions -->
+    <string name="action_ok">OK</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_close">Close</string>
+    <string name="action_back">Back</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_add">Add</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_search">Search</string>
+    <string name="action_watch">Watch</string>
+    <string name="action_record">Record</string>
+    <string name="action_favourite">Favourite</string>
+    <string name="action_unfavourite">Remove favourite</string>
+    <string name="action_hide">Hide</string>
+    <string name="action_show">Show</string>
+    <string name="action_map_guide">Map guide</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_done">Done</string>
+
+    <!-- Navigation -->
+    <string name="nav_live">Live</string>
+    <string name="nav_guide">Guide</string>
+    <string name="nav_vod">On demand</string>
+    <string name="nav_recordings">Recordings</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_search">Search</string>
+
+    <!-- Onboarding / sources -->
+    <string name="setup_title">Add your subscription</string>
+    <string name="setup_intro">This app plays the subscription you already have. It ships no channels and no provider list — add your own playlist or Xtream account to begin.</string>
+    <string name="setup_type_m3u">M3U / M3U8 playlist</string>
+    <string name="setup_type_m3u_file">Local playlist file</string>
+    <string name="setup_type_xtream">Xtream Codes account</string>
+    <string name="setup_name">Display name</string>
+    <string name="setup_url">Playlist URL</string>
+    <string name="setup_server">Server URL</string>
+    <string name="setup_username">Username</string>
+    <string name="setup_password">Password</string>
+    <string name="setup_epg_url">Guide (XMLTV) URL — optional</string>
+    <string name="setup_output_format">Stream format</string>
+    <string name="setup_format_ts">MPEG-TS (lowest latency)</string>
+    <string name="setup_format_hls">HLS (better on unstable networks)</string>
+    <string name="setup_test">Test connection</string>
+    <string name="setup_testing">Testing…</string>
+    <string name="setup_ok">Connection succeeded.</string>
+    <string name="setup_pick_file">Choose file</string>
+    <string name="setup_http_warning">This address is plain HTTP; credentials travel unencrypted.</string>
+
+    <!-- Playlist / refresh -->
+    <string name="playlists_title">Playlists</string>
+    <string name="playlist_refresh_now">Refresh now</string>
+    <string name="playlist_refreshing">Refreshing…</string>
+    <string name="playlist_never_refreshed">Never refreshed</string>
+    <string name="playlist_last_refresh">Last refreshed %1$s</string>
+    <string name="refresh_report">%1$d added · %2$d removed · %3$d renamed · %4$d total</string>
+    <string name="refresh_failed_kept">Refresh failed — your previous channel list is unchanged.</string>
+    <string name="refresh_interval">Auto update</string>
+    <string name="interval_off">Off</string>
+    <string name="interval_6h">Every 6 hours</string>
+    <string name="interval_12h">Every 12 hours</string>
+    <string name="interval_daily">Daily</string>
+    <string name="interval_weekly">Weekly</string>
+
+    <!-- Channels / guide -->
+    <string name="all_channels">All channels</string>
+    <string name="favourites">Favourites</string>
+    <string name="recently_watched">Recently watched</string>
+    <string name="no_guide_data">No guide data</string>
+    <string name="now_next">Now / Next</string>
+    <string name="guide_jump_now">Now</string>
+    <string name="guide_jump_date">Date</string>
+    <string name="guide_updating">Updating guide… %1$d channels, %2$d programmes</string>
+    <string name="guide_update_now">Update guide now</string>
+    <string name="guide_match_title">Guide matching</string>
+    <string name="guide_match_summary">%1$d of %2$d channels matched (%3$d exact, %4$d by name, %5$d fuzzy, %6$d manual)</string>
+    <string name="guide_unmatched">%1$d channels have no guide</string>
+    <string name="guide_map_channel">Choose a guide entry for %1$s</string>
+    <string name="guide_mapped">Mapped to %1$s</string>
+    <string name="guide_unmap">Clear mapping</string>
+    <string name="catchup_available">Archive</string>
+    <string name="catchup_outside_window">This programme is outside the archive window your provider offers.</string>
+    <string name="catchup_unsupported">This channel does not offer an archive.</string>
+    <string name="channel_number_entry">Channel %1$s</string>
+    <string name="empty_no_channels">No channels yet. Add a playlist in Settings.</string>
+    <string name="empty_no_results">Nothing matched that search.</string>
+
+    <!-- Playback -->
+    <string name="playback_menu">Playback</string>
+    <string name="decoder_video">Video decoder</string>
+    <string name="decoder_audio">Audio decoder</string>
+    <string name="decoder_auto">Auto</string>
+    <string name="decoder_hardware">Hardware</string>
+    <string name="decoder_software">Software</string>
+    <string name="decoder_for_channel">Apply to this channel only</string>
+    <string name="decoder_fell_back">Hardware decoding failed; switched to software for this channel.</string>
+    <string name="audio_track">Audio track</string>
+    <string name="subtitle_track">Subtitles</string>
+    <string name="subtitle_off">Off</string>
+    <string name="no_subtitles_available">This stream carries no subtitles.</string>
+    <string name="video_track">Quality</string>
+    <string name="aspect_ratio">Aspect ratio</string>
+    <string name="aspect_fit">Fit</string>
+    <string name="aspect_fill">Fill</string>
+    <string name="aspect_zoom">Zoom</string>
+    <string name="aspect_stretch">Stretch</string>
+    <string name="aspect_16_9">16:9</string>
+    <string name="aspect_4_3">4:3</string>
+    <string name="aspect_original">Original</string>
+    <string name="buffer_size">Buffer</string>
+    <string name="buffer_minimal">Minimal</string>
+    <string name="buffer_small">Small</string>
+    <string name="buffer_normal">Normal</string>
+    <string name="buffer_large">Large</string>
+    <string name="buffer_custom">Custom</string>
+    <string name="buffer_custom_values">Buffer %1$d–%2$d ms</string>
+    <string name="failover_switched">Stream failed; switched to %1$s.</string>
+    <string name="retrying_in">Reconnecting…</string>
+    <string name="open_external_player">Open in another player</string>
+
+    <!-- Errors, in plain language -->
+    <string name="err_network">The server could not be reached. Check the connection and the address.</string>
+    <string name="err_timeout">The server did not answer in time.</string>
+    <string name="err_unauthorized">The server rejected these credentials.</string>
+    <string name="err_forbidden">The server refused the request. A different user-agent often fixes this.</string>
+    <string name="err_not_found">The server has no stream at that address any more.</string>
+    <string name="err_empty">The server answered with nothing.</string>
+    <string name="err_parse">The response could not be read as a playlist or guide.</string>
+    <string name="err_unsupported">This stream is in a format the player cannot read.</string>
+    <string name="err_geo">The provider appears to be blocking this network or region.</string>
+    <string name="err_drm">This stream is protected and this device cannot decrypt it.</string>
+    <string name="err_decoder">The decoder could not start. Try switching this channel to software decoding.</string>
+    <string name="err_catchup_window">That programme is outside the archive window.</string>
+    <string name="err_catchup_unsupported">This channel offers no archive.</string>
+    <string name="err_storage">There is not enough free space.</string>
+    <string name="err_permission">A required permission was refused.</string>
+    <string name="err_cancelled">Cancelled.</string>
+    <string name="err_unknown">Something went wrong: %1$s</string>
+
+    <!-- Recording -->
+    <string name="rec_title">Recordings</string>
+    <string name="rec_scheduled">Scheduled</string>
+    <string name="rec_completed">Completed</string>
+    <string name="rec_record_now">Record now</string>
+    <string name="rec_record_programme">Record this programme</string>
+    <string name="rec_record_series">Record series</string>
+    <string name="rec_manual_timer">Manual timer</string>
+    <string name="rec_padding">Padding: %1$d min before, %2$d min after</string>
+    <string name="rec_destination">Recording folder</string>
+    <string name="rec_choose_destination">Choose folder</string>
+    <string name="rec_no_destination">Choose a recording folder before scheduling.</string>
+    <string name="rec_insufficient_space">Not enough free space for a recording that long.</string>
+    <string name="rec_low_space">Free space is low; this recording may not finish.</string>
+    <string name="rec_concurrency">That would exceed your limit of simultaneous recordings.</string>
+    <string name="rec_no_series_metadata">The guide has no series information for this programme, so a series recording would record nothing. Use a repeat rule instead.</string>
+    <string name="rec_device_must_stay_on">Android cannot switch this device on by itself. Leave it on (standby is fine) or the recording will be missed.</string>
+    <string name="rec_exact_alarms_unavailable">Exact alarms are not permitted, so the start time may drift by a few minutes. Grant \"Alarms &amp; reminders\" in system settings to fix this.</string>
+    <string name="rec_notif_recording">Recording %1$s</string>
+    <string name="rec_notif_done">Recording finished</string>
+    <string name="rec_notif_partial">Recording incomplete: %1$s</string>
+    <string name="rec_notif_failed">Recording failed: %1$s</string>
+    <string name="rec_error_channel_missing">The channel no longer exists</string>
+    <string name="rec_error_no_url">The channel has no stream URL</string>
+    <string name="rec_error_destination">The recording folder could not be written to</string>
+    <string name="rec_stopped_by_user">Stopped</string>
+    <string name="rec_gaps">Reconnected %1$d time(s); the recording has gaps</string>
+    <string name="rec_uses_connection">A recording uses one of your provider connections for its whole duration.</string>
+    <string name="rec_state_scheduled">Scheduled</string>
+    <string name="rec_state_recording">Recording</string>
+    <string name="rec_state_completed">Completed</string>
+    <string name="rec_state_partial">Partial</string>
+    <string name="rec_state_failed">Failed</string>
+    <string name="rec_state_cancelled">Cancelled</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_sources">Playlists and guide</string>
+    <string name="settings_playback">Playback</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_network">Network</string>
+    <string name="settings_recording">Recording</string>
+    <string name="settings_parental">Parental controls</string>
+    <string name="settings_backup">Backup and restore</string>
+    <string name="settings_diagnostics">Diagnostics</string>
+    <string name="settings_about">About</string>
+    <string name="settings_user_agent">User agent</string>
+    <string name="settings_user_agent_hint">Providers often reject unknown clients. Trying a different user agent is the usual fix for a 403.</string>
+    <string name="settings_timeouts">Timeouts and retries</string>
+    <string name="settings_insecure_tls">Trust invalid certificates</string>
+    <string name="settings_insecure_tls_warning">This disables certificate checking for every provider request. Only enable it if you know the server uses a self-signed certificate.</string>
+    <string name="settings_theme">Theme</string>
+    <string name="theme_system">Follow system</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_amoled">AMOLED black</string>
+    <string name="settings_font_scale">Text size</string>
+    <string name="settings_overlay_hide">Hide overlays after</string>
+    <string name="settings_seconds">%1$d s</string>
+    <string name="settings_epg_offset">Guide time offset</string>
+    <string name="settings_epg_offset_channel">Offset for this channel</string>
+    <string name="settings_offset_minutes">%1$+d min</string>
+    <string name="settings_start_behaviour">On start</string>
+    <string name="start_last_channel">Resume the last channel</string>
+    <string name="start_specific_channel">Open a specific channel</string>
+    <string name="start_channel_list">Open the channel list</string>
+    <string name="start_guide">Open the guide</string>
+    <string name="settings_autostart">Start when the device boots</string>
+    <string name="settings_confirm_exit">Ask before exiting</string>
+    <string name="settings_pip">Picture-in-picture</string>
+    <string name="settings_pip_home">Enter picture-in-picture on Home</string>
+    <string name="settings_cache">Cache</string>
+    <string name="settings_cache_usage">Using %1$s of a %2$s budget</string>
+    <string name="settings_cache_clear_images">Clear image cache</string>
+    <string name="settings_cache_clear_guide">Clear guide cache</string>
+    <string name="settings_cache_clear_all">Clear all caches</string>
+    <string name="settings_external_player">External player</string>
+    <string name="ext_never">Never</string>
+    <string name="ext_vod_only">On-demand only</string>
+    <string name="ext_always">Always</string>
+
+    <!-- Parental -->
+    <string name="pin_set">Set a PIN</string>
+    <string name="pin_change">Change PIN</string>
+    <string name="pin_remove">Remove PIN</string>
+    <string name="pin_enter">Enter your PIN</string>
+    <string name="pin_hint">4 to 6 digits</string>
+    <string name="pin_wrong">That PIN is not correct.</string>
+    <string name="pin_locked">Too many attempts. Try again in %1$d s.</string>
+    <string name="pin_lock_settings">Require the PIN to open Settings</string>
+    <string name="pin_lock_channels">Require the PIN for locked channels</string>
+    <string name="pin_hide_locked">Hide locked channels instead of blocking them</string>
+    <string name="pin_recovery">The PIN is stored only as a salted hash and cannot be recovered. Removing it here clears every channel and group lock, so a forgotten PIN can never make content permanently unreachable.</string>
+
+    <!-- Backup -->
+    <string name="backup_export">Export configuration</string>
+    <string name="backup_import">Restore configuration</string>
+    <string name="backup_include_credentials">Include playlist credentials</string>
+    <string name="backup_credentials_warning">Credentials are written to the backup in clear text. Keep the file somewhere private.</string>
+    <string name="backup_exported">Saved %1$s.</string>
+    <string name="backup_imported">Restored %1$d playlists, %2$d groups, %3$d channel settings.</string>
+
+    <!-- Diagnostics / about -->
+    <string name="diag_title">Diagnostics</string>
+    <string name="diag_version">App version</string>
+    <string name="diag_stream">Current stream</string>
+    <string name="diag_decoders">Decoders</string>
+    <string name="diag_video">Video: %1$s %2$dx%3$d @ %4$.2f fps</string>
+    <string name="diag_audio">Audio: %1$s</string>
+    <string name="diag_bitrate">Bitrate: %1$d kbps</string>
+    <string name="diag_dropped">Dropped frames: %1$d</string>
+    <string name="diag_buffer">Buffer ahead: %1$d ms</string>
+    <string name="diag_playlists">Playlists</string>
+    <string name="diag_guide">Guide</string>
+    <string name="diag_guide_rows">%1$d programmes across %2$d guide channels</string>
+    <string name="diag_copy_report">Copy diagnostic report</string>
+    <string name="diag_copied">Report copied. Credentials are redacted.</string>
+    <string name="diag_recent_errors">Recent errors</string>
+    <string name="diag_keys">Remote key codes</string>
+    <string name="diag_keys_hint">Press any key on your remote to see the code it sends.</string>
+    <string name="diag_last_key">Last key: %1$s (%2$d)</string>
+
+    <string name="about_blurb">A media player for the subscription you already have. It supplies no channels, no streams and no provider list.</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_build">Build %1$s · %2$s</string>
+    <string name="about_secure_store">Credential encryption: %1$s</string>
+    <string name="about_secure_yes">Android Keystore</string>
+    <string name="about_secure_no">unavailable on this device</string>
+
+    <string name="exit_confirm">Press Back again to exit.</string>
+    <string name="loading">Loading…</string>
+</resources>
