@@ -58,7 +58,7 @@ fun TextSetting(
 
 /** Playlists: list, refresh, guide update and the per-source refresh interval. */
 @Composable
-fun SourcesSection(vm: AppViewModel) {
+fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     val state by vm.state.collectAsState()
     val settings = ServiceLocator.settings
     val s by settings.state.collectAsState()
@@ -87,6 +87,14 @@ fun SourcesSection(vm: AppViewModel) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
+
+    // FR-SRC-01: more than one subscription. The add screen otherwise appears only on a first
+    // run, when there is no playlist yet, and a second one could never be added.
+    SettingsRow(
+        title = stringResource(R.string.playlist_add),
+        subtitle = stringResource(R.string.playlist_add_hint),
+        onClick = onAddSource,
+    )
 
     SettingsRow(
         title = stringResource(R.string.playlist_refresh_now),

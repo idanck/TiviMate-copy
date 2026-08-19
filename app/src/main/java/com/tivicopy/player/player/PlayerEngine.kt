@@ -258,6 +258,10 @@ class PlayerEngine(
             _status.value = _status.value.copy(
                 title = title,
                 error = AppError(AppError.Kind.NotFound, "channel has no playable URL"),
+                // Terminal: `errorDetail` is what tells the UI to stop showing a spinner.
+                errorDetail = "no url",
+                buffering = false,
+                playing = false,
             )
             return
         }
@@ -283,6 +287,11 @@ class PlayerEngine(
             title = title,
             error = null,
             errorDetail = null,
+            // Claimed here rather than waiting for the first STATE_BUFFERING callback, so the
+            // UI can say "connecting" from the moment the channel is chosen instead of showing
+            // a black frame with nothing on it.
+            buffering = true,
+            playing = false,
             sourceIndex = currentSourceIndex,
             sourceCount = currentUrls.size,
             retriesUsed = retriesUsed,

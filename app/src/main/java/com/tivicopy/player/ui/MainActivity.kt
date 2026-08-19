@@ -81,10 +81,15 @@ class MainActivity : ComponentActivity() {
             }
 
             LaunchedEffect(Unit) {
-                when (prefs.startBehaviour) {
-                    StartBehaviour.CHANNEL_LIST -> overlay = TvOverlay.CHANNELS
-                    StartBehaviour.GUIDE -> overlay = TvOverlay.GUIDE
-                    else -> Unit
+                // Overlays belong to the TV shell; the phone has its own navigation. Setting
+                // one here anyway left an invisible overlay open on the phone, which then ate
+                // the first Back press without changing anything on screen.
+                if (isTelevision) {
+                    when (prefs.startBehaviour) {
+                        StartBehaviour.CHANNEL_LIST -> overlay = TvOverlay.CHANNELS
+                        StartBehaviour.GUIDE -> overlay = TvOverlay.GUIDE
+                        else -> Unit
+                    }
                 }
                 vm.resumeStartChannel()
             }

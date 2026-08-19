@@ -1,5 +1,6 @@
 package com.tivicopy.player.ui.mobile
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -11,17 +12,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +48,7 @@ import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
+import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
@@ -52,6 +58,7 @@ import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
+import com.tivicopy.player.ui.settings.settingsSectionTitle
 
 enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
 
@@ -63,6 +70,7 @@ enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
  * the top with the list below; landscape gives the video the whole screen with sheets over it;
  * and the playback gestures FR-UI-14 asks for are wired to the surface itself.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MobileRoot(
     vm: AppViewModel,
@@ -95,38 +103,79 @@ fun MobileRoot(
     val landscape = configuration.screenWidthDp > configuration.screenHeightDp
     val twoPane = configuration.screenWidthDp >= 720
 
+    val playback by vm.playbackStatus.collectAsState()
+
+    // The add screen doubles as the first-run setup, and then it *is* the root: with no
+    // playlist yet there is nothing behind it to go back to.
+    val showAddSource = addingSource || (state.playlists.isEmpty() && !state.loading)
+    val inSettingsSubSection =
+        !landscape && tab == MobileTab.SETTINGS && settingsSection != SettingsSection.ROOT
+    val canGoBack = (addingSource && state.playlists.isNotEmpty()) ||
+        (!showAddSource && inSettingsSubSection)
+
+    val goBack: () -> Unit = {
+        if (addingSource) addingSource = false else onSettingsSection(SettingsSection.ROOT)
+    }
+
+    // Picking a tab also abandons the add screen; otherwise the flag stays latched and the tab
+    // bar looks broken, moving its selection while the content underneath never changes.
+    val selectTab: (MobileTab) -> Unit = { addingSource = false; tab = it }
+
+    // Registered from composition, so it takes precedence over the activity's exit handler for
+    // exactly as long as there is somewhere to go back to.
+    BackHandler(enabled = canGoBack, onBack = goBack)
+
     Scaffold(
         modifier = modifier,
+        topBar = {
+            // Touch has no D-pad Back, and a phone's gesture bar is easy to miss, so the way
+            // out of a sub-screen is on the screen itself.
+            if (canGoBack) {
+                TopAppBar(
+                    // The add screen carries its own heading, so the bar there is the back
+                    // arrow alone rather than the same words twice.
+                    title = { if (!addingSource) Text(settingsSectionTitle(settingsSection)) },
+                    navigationIcon = {
+                        IconButton(onClick = goBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.action_back),
+                            )
+                        }
+                    },
+                )
+            }
+        },
         bottomBar = {
             if (!landscape) {
                 NavigationBar {
                     NavigationBarItem(
                         selected = tab == MobileTab.LIVE,
-                        onClick = { tab = MobileTab.LIVE },
+                        onClick = { selectTab(MobileTab.LIVE) },
                         icon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_live)) },
                     )
                     NavigationBarItem(
                         selected = tab == MobileTab.GUIDE,
-                        onClick = { tab = MobileTab.GUIDE },
+                        onClick = { selectTab(MobileTab.GUIDE) },
                         icon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_guide)) },
                     )
                     NavigationBarItem(
                         selected = tab == MobileTab.VOD,
-                        onClick = { tab = MobileTab.VOD },
+                        onClick = { selectTab(MobileTab.VOD) },
                         icon = { Icon(Icons.Filled.Star, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_vod)) },
                     )
                     NavigationBarItem(
                         selected = tab == MobileTab.RECORDINGS,
-                        onClick = { tab = MobileTab.RECORDINGS },
+                        onClick = { selectTab(MobileTab.RECORDINGS) },
                         icon = { Icon(Icons.Filled.List, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_recordings)) },
                     )
                     NavigationBarItem(
                         selected = tab == MobileTab.SETTINGS,
-                        onClick = { tab = MobileTab.SETTINGS },
+                        onClick = { selectTab(MobileTab.SETTINGS) },
                         icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                         label = { Text(stringResource(R.string.nav_settings)) },
                     )
@@ -134,7 +183,7 @@ fun MobileRoot(
             }
         },
     ) { padding ->
-        if (addingSource || (state.playlists.isEmpty() && !state.loading)) {
+        if (showAddSource) {
             AddSourceScreen(
                 vm = vm,
                 onDone = { addingSource = false },
@@ -175,6 +224,7 @@ fun MobileRoot(
                         subtitleScale = prefs.subtitleTextScale,
                         modifier = Modifier.fillMaxSize(),
                     )
+                    PlaybackStateOverlay(status = playback, modifier = Modifier.fillMaxSize())
                 }
 
                 if (!landscape) {
@@ -207,6 +257,7 @@ fun MobileRoot(
                                     vm = vm,
                                     section = settingsSection,
                                     onNavigate = onSettingsSection,
+                                    onAddSource = { addingSource = true },
                                     modifier = Modifier.weight(1f),
                                 )
                             }

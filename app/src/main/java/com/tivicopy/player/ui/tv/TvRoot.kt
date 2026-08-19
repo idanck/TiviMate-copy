@@ -161,6 +161,7 @@ fun TvRoot(
                         vm = vm,
                         section = settingsSection,
                         onNavigate = onSettingsSection,
+                        onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
                         modifier = Modifier.fillMaxSize(),
                     )
 

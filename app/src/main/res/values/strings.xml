@@ -62,6 +62,8 @@
 
     <!-- Playlist / refresh -->
     <string name="playlists_title">Playlists</string>
+    <string name="playlist_add">Add a playlist</string>
+    <string name="playlist_add_hint">Xtream Codes, an M3U address, or a file on this device</string>
     <string name="playlist_refresh_now">Refresh now</string>
     <string name="playlist_refreshing">Refreshing…</string>
     <string name="playlist_never_refreshed">Never refreshed</string>
@@ -100,6 +102,8 @@
 
     <!-- Playback -->
     <string name="playback_menu">Playback</string>
+    <string name="playback_connecting">Connecting…</string>
+    <string name="playback_reconnecting">Reconnecting — attempt %1$d…</string>
     <string name="decoder_video">Video decoder</string>
     <string name="decoder_audio">Audio decoder</string>
     <string name="decoder_auto">Auto</string>
