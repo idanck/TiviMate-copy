@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.FileInputStream
 import java.time.Instant
 import java.time.ZoneOffset
@@ -37,6 +38,12 @@ val buildStamp: String = System.getenv("BUILD_STAMP")?.takeIf { it.isNotBlank() 
         .withZone(ZoneOffset.UTC)
         .format(Instant.now())
 
+/** Release keystore, when the environment supplies a readable one. */
+val releaseKeystore: File? = System.getenv("RELEASE_KEYSTORE_PATH")
+    ?.takeIf { it.isNotBlank() }
+    ?.let { File(it) }
+    ?.takeIf { it.isFile }
+
 android {
     namespace = "com.tivicopy.player"
     compileSdk = 35
@@ -57,13 +64,13 @@ android {
         buildConfig = true
     }
 
+    // A release keystore is optional. The config is only created when one is actually present,
+    // so an empty, unusable signing config never reaches the packaging task; without a keystore
+    // the release output is signed with the standard debug key and installs directly.
     signingConfigs {
-        // A release keystore is optional. Without one, release output is signed with the
-        // standard debug key so the artifact is still directly installable for personal use.
-        create("releaseOptional") {
-            val storePath = System.getenv("RELEASE_KEYSTORE_PATH")
-            if (!storePath.isNullOrBlank() && file(storePath).exists()) {
-                storeFile = file(storePath)
+        releaseKeystore?.let { store ->
+            create("release") {
+                storeFile = store
                 storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
                 keyAlias = System.getenv("RELEASE_KEY_ALIAS")
                 keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
@@ -80,11 +87,7 @@ android {
         getByName("release") {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = if (!System.getenv("RELEASE_KEYSTORE_PATH").isNullOrBlank()) {
-                signingConfigs.getByName("releaseOptional")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

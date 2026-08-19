@@ -56,7 +56,7 @@
     <string name="playlist_refreshing">מרענן…</string>
     <string name="playlist_never_refreshed">מעולם לא רוענן</string>
     <string name="playlist_last_refresh">רוענן לאחרונה %1$s</string>
-    <string name="refresh_report">%1$d נוספו · %2$d הוסרו · %3$d שונו · %4$d סה"כ</string>
+    <string name="refresh_report">%1$d נוספו · %2$d הוסרו · %3$d שונו · %4$d סה\"כ</string>
     <string name="refresh_failed_kept">הרענון נכשל — רשימת הערוצים הקודמת נשמרה ללא שינוי.</string>
     <string name="refresh_interval">עדכון אוטומטי</string>
     <string name="interval_off">כבוי</string>
@@ -112,7 +112,7 @@
     <string name="buffer_normal">רגיל</string>
     <string name="buffer_large">גדול</string>
     <string name="buffer_custom">מותאם אישית</string>
-    <string name="buffer_custom_values">חוצץ %1$d–%2$d מ"ש</string>
+    <string name="buffer_custom_values">חוצץ %1$d–%2$d מ\"ש</string>
     <string name="failover_switched">השידור נכשל; עברנו אל %1$s.</string>
     <string name="retrying_in">מתחבר מחדש…</string>
     <string name="open_external_player">פתח בנגן אחר</string>
@@ -148,7 +148,7 @@
     <string name="rec_concurrency">זה יחרוג ממגבלת ההקלטות המקבילות שהגדרת.</string>
     <string name="rec_no_series_metadata">בלוח השידורים אין מידע על הסדרה, ולכן הקלטת סדרה לא תקליט דבר. השתמש בכלל חוזר במקום.</string>
     <string name="rec_device_must_stay_on">אנדרואיד אינו יכול להדליק את המכשיר בעצמו. השאר אותו דלוק (מצב המתנה בסדר) אחרת ההקלטה תוחמץ.</string>
-    <string name="rec_exact_alarms_unavailable">התראות מדויקות אינן מורשות, ולכן זמן ההתחלה עלול לסטות בכמה דקות. אשר "התראות ותזכורות" בהגדרות המערכת כדי לתקן.</string>
+    <string name="rec_exact_alarms_unavailable">התראות מדויקות אינן מורשות, ולכן זמן ההתחלה עלול לסטות בכמה דקות. אשר \"התראות ותזכורות\" בהגדרות המערכת כדי לתקן.</string>
     <string name="rec_notif_recording">מקליט את %1$s</string>
     <string name="rec_notif_done">ההקלטה הסתיימה</string>
     <string name="rec_notif_partial">ההקלטה חלקית: %1$s</string>
@@ -234,7 +234,7 @@
     <string name="diag_audio">אודיו: %1$s</string>
     <string name="diag_bitrate">קצב סיביות: %1$d kbps</string>
     <string name="diag_dropped">פריימים שהושמטו: %1$d</string>
-    <string name="diag_buffer">חוצץ קדימה: %1$d מ"ש</string>
+    <string name="diag_buffer">חוצץ קדימה: %1$d מ\"ש</string>
     <string name="diag_playlists">רשימות השמעה</string>
     <string name="diag_guide">לוח שידורים</string>
     <string name="diag_guide_rows">%1$d תוכניות ב-%2$d ערוצי לוח שידורים</string>

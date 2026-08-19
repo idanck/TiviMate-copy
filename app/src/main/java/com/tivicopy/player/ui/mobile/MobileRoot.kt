@@ -182,32 +182,11 @@ fun MobileRoot(
                         )
                         MobileTab.VOD -> VodScreen(
                             vm = vm,
-                            onPlay = { item ->
-                                val playlist = state.activePlaylist
-                                val client = playlist?.let { ServiceLocator.sources.xtreamClient(it) }
-                                val url = client?.vodUrl(item.streamId, item.containerExtension)
-                                if (url != null && playlist != null) {
-                                    ServiceLocator.player.playUrl(
-                                        item.name,
-                                        url,
-                                        ServiceLocator.sources.profileFor(playlist),
-                                        item.resumePositionMs,
-                                    )
-                                }
-                            },
+                            onPlay = vm::playVod,
                             modifier = Modifier.fillMaxSize(),
                         )
                         MobileTab.RECORDINGS -> RecordingsScreen(
-                            onPlayRecording = { recording ->
-                                recording.filePath?.let { path ->
-                                    ServiceLocator.player.playUrl(
-                                        recording.title,
-                                        if (path.startsWith("/")) "file://$path" else path,
-                                        com.tivicopy.player.data.net.RequestProfile(),
-                                        recording.resumePositionMs,
-                                    )
-                                }
-                            },
+                            onPlayRecording = vm::playRecording,
                             modifier = Modifier.fillMaxSize(),
                         )
                         MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {

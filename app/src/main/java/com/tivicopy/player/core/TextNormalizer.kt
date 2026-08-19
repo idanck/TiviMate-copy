@@ -44,10 +44,18 @@ object TextNormalizer {
     fun tokens(input: String): Set<String> =
         canonical(input).split(' ').filter { it.isNotBlank() }.toSet()
 
+    /** A digit mismatch can never produce a score a matcher should act on. */
+    const val DIGIT_MISMATCH_CEILING = 0.5
+
     /**
-     * Similarity in `0.0..1.0`. Combines Jaccard over tokens with a normalised
-     * Levenshtein over the canonical strings, so `"BBC One HD"` and `"BBC 1"` still
-     * score usefully while `"BBC One"` and `"CBS One"` do not.
+     * Similarity in `0.0..1.0`, combining Jaccard over tokens with a normalised Levenshtein
+     * over the canonical strings.
+     *
+     * Digits are treated as decisive. `Sky Sports F1` and `Sky Sports F2` differ by one
+     * character out of thirteen and score 0.75 on the letters alone, which is close enough to
+     * a usable threshold to be dangerous — and binding a channel to the wrong sibling's guide
+     * is worse than leaving it unmatched. Any difference in the digit sequence therefore caps
+     * the score at [DIGIT_MISMATCH_CEILING], below any threshold a caller should use.
      */
     fun similarity(a: String, b: String): Double {
         val ca = canonical(a)
@@ -65,7 +73,9 @@ object TextNormalizer {
         val maxLen = maxOf(ca.length, cb.length).toDouble()
         val edit = if (maxLen == 0.0) 0.0 else 1.0 - (distance / maxLen)
 
-        return (0.6 * jaccard + 0.4 * edit).coerceIn(0.0, 1.0)
+        val score = (0.4 * jaccard + 0.6 * edit).coerceIn(0.0, 1.0)
+        val digitsMatch = ca.filter(Char::isDigit) == cb.filter(Char::isDigit)
+        return if (digitsMatch) score else minOf(score, DIGIT_MISMATCH_CEILING)
     }
 
     fun levenshtein(a: String, b: String): Int {

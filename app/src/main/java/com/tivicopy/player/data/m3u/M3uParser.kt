@@ -126,7 +126,7 @@ object M3uParser {
     private fun parseExtInf(line: String): PendingEntry {
         // `#EXTINF:-1 tvg-id="a" group-title="b",Display Name`
         val afterColon = line.substringAfter(':', "")
-        val commaIndex = lastAttributeSafeComma(afterColon)
+        val commaIndex = firstAttributeSafeComma(afterColon)
         val attributePart = if (commaIndex >= 0) afterColon.substring(0, commaIndex) else afterColon
         val displayName = if (commaIndex >= 0) afterColon.substring(commaIndex + 1).trim() else ""
         val attrs = attributes(attributePart).toMutableMap()
@@ -164,22 +164,26 @@ object M3uParser {
     }
 
     /**
-     * The display name is separated by the last comma that is not inside a quoted attribute
-     * value — provider names such as `Channel 4, HD` would otherwise be truncated.
+     * `#EXTINF:<duration> <attributes>,<display name>` — the *first* comma outside a quoted
+     * attribute value ends the attribute list, and everything after it is the name.
+     *
+     * It has to be the first and not the last: provider names such as `Channel 4, HD` contain
+     * commas of their own, and splitting on the last one would truncate them to ` HD`.
+     * Unquoted attribute values cannot contain a comma, so the first unquoted comma is
+     * unambiguous.
      */
-    private fun lastAttributeSafeComma(s: String): Int {
+    private fun firstAttributeSafeComma(s: String): Int {
         var inQuote = false
         var quoteChar = ' '
-        var last = -1
         for (i in s.indices) {
             val c = s[i]
             when {
                 inQuote && c == quoteChar -> inQuote = false
                 !inQuote && (c == '"' || c == '\'') -> { inQuote = true; quoteChar = c }
-                !inQuote && c == ',' -> last = i
+                !inQuote && c == ',' -> return i
             }
         }
-        return last
+        return -1
     }
 
     /** `tvg-shift` is documented in hours and seen in the wild as `1`, `-2`, `1.5`, `+0.5`. */

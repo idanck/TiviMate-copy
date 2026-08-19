@@ -12,7 +12,7 @@ class TextNormalizerTest {
         assertEquals("bbc one", TextNormalizer.canonical("BBC One HD"))
         assertEquals("bbc one", TextNormalizer.canonical("  BBC  One   FHD "))
         assertEquals("bbc one", TextNormalizer.canonical("12. BBC One [UK]"))
-        assertEquals("canal plus", TextNormalizer.canonical("Canal+ 4K"))
+        assertEquals("canal", TextNormalizer.canonical("Canal+ 4K"))
     }
 
     @Test
@@ -24,8 +24,18 @@ class TextNormalizerTest {
     fun `similar names score high and different ones do not`() {
         assertTrue(TextNormalizer.similarity("BBC One HD", "BBC One") > 0.9)
         assertTrue(TextNormalizer.similarity("Sky Sports Main Event", "Sky Sports Main Event FHD") > 0.9)
-        assertTrue(TextNormalizer.similarity("BBC One", "CBS One") < 0.82)
+        assertTrue(TextNormalizer.similarity("BBC One", "CBS One") < 0.78)
         assertTrue(TextNormalizer.similarity("BBC One", "Discovery Channel") < 0.4)
+    }
+
+    @Test
+    fun `a digit mismatch is never scored as a match`() {
+        // Binding a channel to its sibling's guide is worse than leaving it unmatched.
+        assertTrue(TextNormalizer.similarity("Sky Sports F1", "Sky Sports F2") <= 0.5)
+        assertTrue(TextNormalizer.similarity("ITV 1", "ITV 2") <= 0.5)
+        assertTrue(TextNormalizer.similarity("Sport 24", "Sport 25") <= 0.5)
+        // Same digits, different wording, still scores on the letters.
+        assertTrue(TextNormalizer.similarity("Sky Sports Main Events", "Sky Sports Main Event") > 0.78)
     }
 
     @Test

@@ -25,7 +25,7 @@ data class MatchResult(
  * 3. normalised display-name equality, against every `<display-name>` the guide offers;
  * 4. a scored fuzzy match above [fuzzyThreshold].
  */
-class EpgMatcher(private val fuzzyThreshold: Double = 0.82) {
+class EpgMatcher(private val fuzzyThreshold: Double = 0.78) {
 
     fun match(channels: List<Channel>, epgChannels: List<EpgChannel>): List<MatchResult> {
         val byId = HashMap<String, String>(epgChannels.size * 2)

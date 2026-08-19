@@ -166,7 +166,7 @@
     <string name="rec_concurrency">That would exceed your limit of simultaneous recordings.</string>
     <string name="rec_no_series_metadata">The guide has no series information for this programme, so a series recording would record nothing. Use a repeat rule instead.</string>
     <string name="rec_device_must_stay_on">Android cannot switch this device on by itself. Leave it on (standby is fine) or the recording will be missed.</string>
-    <string name="rec_exact_alarms_unavailable">Exact alarms are not permitted, so the start time may drift by a few minutes. Grant "Alarms &amp; reminders" in system settings to fix this.</string>
+    <string name="rec_exact_alarms_unavailable">Exact alarms are not permitted, so the start time may drift by a few minutes. Grant \"Alarms &amp; reminders\" in system settings to fix this.</string>
     <string name="rec_notif_recording">Recording %1$s</string>
     <string name="rec_notif_done">Recording finished</string>
     <string name="rec_notif_partial">Recording incomplete: %1$s</string>

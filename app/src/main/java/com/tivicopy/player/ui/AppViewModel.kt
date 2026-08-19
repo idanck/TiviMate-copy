@@ -254,6 +254,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _state.value = _state.value.copy(currentChannel = channel, now = programme)
     }
 
+    /** Plays a VOD item or series episode through the owning playlist's request profile. */
+    fun playVod(item: com.tivicopy.player.data.model.VodItem) {
+        val playlist = _state.value.playlists.firstOrNull { it.id == item.playlistId }
+            ?: _state.value.activePlaylist
+            ?: return
+        val url = sources.xtreamClient(playlist)?.vodUrl(item.streamId, item.containerExtension)
+            ?: return post(UiMessage(error = AppError(AppError.Kind.NotFound, "on-demand needs an Xtream source")))
+        player.playUrl(item.name, url, sources.profileFor(playlist), item.resumePositionMs)
+    }
+
+    /** Plays a completed recording from wherever it was written. */
+    fun playRecording(recording: com.tivicopy.player.data.model.Recording) {
+        val path = recording.filePath
+            ?: return post(UiMessage(error = AppError(AppError.Kind.NotFound, "recording has no file")))
+        val uri = if (path.startsWith("/")) "file://$path" else path
+        player.playUrl(recording.title, uri, com.tivicopy.player.data.net.RequestProfile(), recording.resumePositionMs)
+    }
+
     // ---------------------------------------------------------------- editing
 
     fun toggleFavourite(channel: Channel) {

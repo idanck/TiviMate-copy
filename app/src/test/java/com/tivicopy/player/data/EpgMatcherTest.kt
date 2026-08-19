@@ -59,6 +59,13 @@ class EpgMatcherTest {
     }
 
     @Test
+    fun `a sibling channel that differs only by a digit is left unmatched`() {
+        val numbered = listOf(EpgChannel("sky.f1", listOf("Sky Sports F1")))
+        val results = EpgMatcher().match(listOf(channel(1, "Sky Sports F2")), numbered)
+        assertNull(results[0].epgId)
+    }
+
+    @Test
     fun `a near miss is taken only above the confidence threshold`() {
         val results = EpgMatcher().match(listOf(channel(1, "Sky Sports Main Events")), guide)
         assertEquals("sky.sports.main", results[0].epgId)
