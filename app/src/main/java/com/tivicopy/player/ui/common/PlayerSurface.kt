@@ -3,6 +3,8 @@ package com.tivicopy.player.ui.common
 import android.view.ViewGroup
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.ui.AspectRatioFrameLayout
@@ -25,6 +27,10 @@ fun PlayerSurface(
     subtitleScale: Float,
     modifier: Modifier = Modifier,
 ) {
+    // Collected, not fetched: when the engine replaces its instance the view must re-attach,
+    // and only a state read makes AndroidView's update block run again.
+    val exo by engine.currentPlayer.collectAsState()
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -39,7 +45,7 @@ fun PlayerSurface(
             }
         },
         update = { view ->
-            view.player = engine.exoPlayer()
+            view.player = exo ?: engine.exoPlayer()
             view.resizeMode = aspectMode.toResizeMode()
             view.subtitleView?.setFractionalTextSize(
                 androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subtitleScale,

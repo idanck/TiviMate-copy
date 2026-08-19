@@ -78,6 +78,17 @@ class PlayerEngine(
     private val _status = MutableStateFlow(PlaybackStatus())
     val status: StateFlow<PlaybackStatus> = _status
 
+    /**
+     * The live instance, published so the view can re-attach.
+     *
+     * Neither the decoder selectors nor the load control can be swapped on a running
+     * ExoPlayer, so a settings change replaces the whole instance. Anything holding the old
+     * one — the `PlayerView` in particular — would otherwise keep a released player and show
+     * a black screen.
+     */
+    private val _currentPlayer = MutableStateFlow<ExoPlayer?>(null)
+    val currentPlayer: StateFlow<ExoPlayer?> = _currentPlayer
+
     private var player: ExoPlayer? = null
     private var trackSelector: DefaultTrackSelector? = null
 
@@ -150,6 +161,7 @@ class PlayerEngine(
         exo.addListener(listener)
         exo.addAnalyticsListener(analytics)
         exo.playWhenReady = true
+        _currentPlayer.value = exo
         return exo
     }
 
@@ -163,8 +175,8 @@ class PlayerEngine(
             s.bufferPreset.minMs to s.bufferPreset.maxMs
         }
 
-    /** A change to decoder mode or buffer sizing needs a fresh instance. */
-    private fun rebuildIfNeeded() {
+    /** @return true when the instance was actually replaced. */
+    private fun rebuildIfNeeded(): Boolean {
         val s = settings.state.value
         val videoMode = if (softwareFallbackApplied) DecoderMode.SOFTWARE
         else currentChannel?.videoDecoder?.takeIf { it != DecoderMode.AUTO } ?: s.videoDecoder
@@ -181,6 +193,7 @@ class PlayerEngine(
             releasePlayer()
             player = build()
         }
+        return stale
     }
 
     // ------------------------------------------------------------------- play
@@ -275,9 +288,22 @@ class PlayerEngine(
             it.release()
         }
         player = null
+        _currentPlayer.value = null
     }
 
-    fun applySettingsChange() = rebuildIfNeeded()
+    /**
+     * Re-applies settings that can only take effect on a fresh instance, and resumes whatever
+     * was playing. A live stream restarts at the edge; on-demand keeps its position.
+     */
+    fun applySettingsChange() {
+        val title = _status.value.title
+        val wasLive = _status.value.isLive
+        val position = player?.currentPosition ?: 0
+        val hadSource = currentUrls.isNotEmpty()
+        if (rebuildIfNeeded() && hadSource) {
+            startCurrentSource(title, if (wasLive) 0 else position)
+        }
+    }
 
     /** Re-applies a per-channel decoder change without losing the current position. */
     fun reloadWithDecoders(channel: Channel, profileForChannel: RequestProfile) {
