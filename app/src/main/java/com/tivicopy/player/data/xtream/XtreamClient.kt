@@ -10,7 +10,6 @@ import com.tivicopy.player.data.net.HttpFactory
 import com.tivicopy.player.data.net.RequestProfile
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.InputStream
 import java.net.URLEncoder
 
 data class XtreamAccount(
@@ -70,27 +69,6 @@ class XtreamClient(
             if (!r.isSuccessful) Outcome.Err(AppError.fromHttp(r.code, body))
             else if (body.isBlank()) Outcome.Err(AppError(AppError.Kind.EmptyResponse, "empty body"))
             else Outcome.Ok(body)
-        }
-    } catch (t: Throwable) {
-        if (t is kotlinx.coroutines.CancellationException) throw t
-        Outcome.Err(AppError.of(t))
-    }
-
-    /** Streams the provider guide; the caller closes it. */
-    fun openXmltv(): Outcome<InputStream> = try {
-        val response = HttpFactory.client(profile)
-            .newCall(HttpFactory.request(xmltvUrl(), profile)).execute()
-        if (!response.isSuccessful) {
-            response.close()
-            Outcome.Err(AppError.fromHttp(response.code))
-        } else {
-            val stream = response.body?.byteStream()
-            if (stream == null) {
-                response.close()
-                Outcome.Err(AppError(AppError.Kind.EmptyResponse, "no guide body"))
-            } else {
-                Outcome.Ok(stream)
-            }
         }
     } catch (t: Throwable) {
         if (t is kotlinx.coroutines.CancellationException) throw t

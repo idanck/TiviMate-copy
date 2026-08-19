@@ -198,10 +198,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** FR-SET-04 / FR-PLB-21: what to put on screen when the app opens. */
     fun resumeStartChannel() {
         val s = settings.state.value
-        if (!s.resumeLastChannel) return
-        val id = if (s.startChannelId != 0L) s.startChannelId else s.lastChannelId
+        val id = when (s.startBehaviour) {
+            com.tivicopy.player.data.prefs.StartBehaviour.SPECIFIC_CHANNEL -> s.startChannelId
+            com.tivicopy.player.data.prefs.StartBehaviour.LAST_CHANNEL ->
+                if (s.resumeLastChannel) s.lastChannelId else 0L
+            // The list and guide behaviours open an overlay instead; the shell handles that,
+            // and starting a stream underneath it would waste a provider connection.
+            else -> 0L
+        }
         if (id == 0L) return
         viewModelScope.launch {
             val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return@launch

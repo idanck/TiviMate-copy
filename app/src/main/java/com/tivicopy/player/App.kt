@@ -5,6 +5,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.disk.DiskCache
 import com.tivicopy.player.data.backup.BackupManager
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.db.Dao
@@ -56,7 +59,30 @@ object ServiceLocator {
     }
 }
 
-class App : Application() {
+/**
+ * [coil.ImageLoaderFactory] is implemented so the image cache has a real, budget-derived size
+ * limit. Without it Coil sizes its own cache from free disk space and the app would be reduced
+ * to deleting files behind Coil's journal, which is exactly the unbounded-cache failure mode
+ * FR-SET-15 exists to prevent.
+ */
+class App : Application(), ImageLoaderFactory {
+
+    override fun newImageLoader(): ImageLoader {
+        // Coil may build the loader before onCreate finishes on some launch paths; init is
+        // idempotent, so asking for it here costs nothing and removes the ordering question.
+        ServiceLocator.init(this)
+        val budgetBytes = ServiceLocator.settings.state.value.cacheBudgetMb * 1024L * 1024L
+        return ImageLoader.Builder(this)
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve(CacheBudget.IMAGE_DIR))
+                    // Images get half the budget; the guide database and its working files
+                    // account for the rest.
+                    .maxSizeBytes((budgetBytes / 2).coerceAtLeast(32L * 1024 * 1024))
+                    .build()
+            }
+            .build()
+    }
 
     override fun onCreate() {
         super.onCreate()

@@ -131,92 +131,92 @@ fun MobileRoot(
         }
 
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            val videoModifier = if (landscape) {
-                Modifier.fillMaxSize()
-            } else {
-                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
-            }
+            Column(modifier = Modifier.fillMaxSize()) {
+                val videoModifier = if (landscape) {
+                    Modifier.fillMaxSize()
+                } else {
+                    Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                }
 
-            Box(modifier = videoModifier.background(Color.Black).gestureControls(
-                onBrightness = onBrightness,
-                onVolume = onVolume,
-                onSeek = { deltaMs ->
-                    val exo = ServiceLocator.player.exoPlayer()
-                    if (exo.isCurrentMediaItemSeekable) {
-                        exo.seekTo((exo.currentPosition + deltaMs).coerceAtLeast(0))
-                    }
-                },
-                onDoubleTapLeft = { ServiceLocator.player.exoPlayer().seekBack() },
-                onDoubleTapRight = { ServiceLocator.player.exoPlayer().seekForward() },
-                onCycleAspect = {
-                    val order = AspectMode.entries
-                    val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
-                    ServiceLocator.settings.setAspectMode(next)
-                },
-                onTap = { if (landscape) landscapeOverlay = !landscapeOverlay },
-            )) {
-                PlayerSurface(
-                    engine = ServiceLocator.player,
-                    aspectMode = prefs.aspectMode,
-                    subtitleScale = prefs.subtitleTextScale,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+                Box(modifier = videoModifier.background(Color.Black).gestureControls(
+                    onBrightness = onBrightness,
+                    onVolume = onVolume,
+                    onSeek = { deltaMs ->
+                        val exo = ServiceLocator.player.exoPlayer()
+                        if (exo.isCurrentMediaItemSeekable) {
+                            exo.seekTo((exo.currentPosition + deltaMs).coerceAtLeast(0))
+                        }
+                    },
+                    onDoubleTapLeft = { ServiceLocator.player.exoPlayer().seekBack() },
+                    onDoubleTapRight = { ServiceLocator.player.exoPlayer().seekForward() },
+                    onCycleAspect = {
+                        val order = AspectMode.entries
+                        val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
+                        ServiceLocator.settings.setAspectMode(next)
+                    },
+                    onTap = { if (landscape) landscapeOverlay = !landscapeOverlay },
+                )) {
+                    PlayerSurface(
+                        engine = ServiceLocator.player,
+                        aspectMode = prefs.aspectMode,
+                        subtitleScale = prefs.subtitleTextScale,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
 
-            if (!landscape) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    when (tab) {
-                        MobileTab.LIVE -> ChannelListScreen(
-                            vm = vm,
-                            onPlay = vm::play,
-                            compact = !twoPane,
-                            showNowNext = twoPane,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        MobileTab.GUIDE -> GuideScreen(
-                            vm = vm,
-                            onPlay = vm::play,
-                            onOpenProgramme = { channel, programme -> details = channel to programme },
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        MobileTab.VOD -> VodScreen(
-                            vm = vm,
-                            onPlay = vm::playVod,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        MobileTab.RECORDINGS -> RecordingsScreen(
-                            onPlayRecording = vm::playRecording,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
-                            SettingsScreen(
+                if (!landscape) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        when (tab) {
+                            MobileTab.LIVE -> ChannelListScreen(
                                 vm = vm,
-                                section = settingsSection,
-                                onNavigate = onSettingsSection,
-                                modifier = Modifier.weight(1f),
+                                onPlay = vm::play,
+                                compact = !twoPane,
+                                showNowNext = twoPane,
+                                modifier = Modifier.fillMaxSize(),
                             )
+                            MobileTab.GUIDE -> GuideScreen(
+                                vm = vm,
+                                onPlay = vm::play,
+                                onOpenProgramme = { channel, programme -> details = channel to programme },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            MobileTab.VOD -> VodScreen(
+                                vm = vm,
+                                onPlay = vm::playVod,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            MobileTab.RECORDINGS -> RecordingsScreen(
+                                onPlayRecording = vm::playRecording,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
+                                SettingsScreen(
+                                    vm = vm,
+                                    section = settingsSection,
+                                    onNavigate = onSettingsSection,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (landscape && landscapeOverlay) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f)),
-            ) {
-                ChannelListScreen(
-                    vm = vm,
-                    onPlay = { channel -> vm.play(channel); landscapeOverlay = false },
-                    compact = !twoPane,
-                    showNowNext = twoPane,
-                    modifier = Modifier.fillMaxSize(),
-                )
+            if (landscape && landscapeOverlay) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f)),
+                ) {
+                    ChannelListScreen(
+                        vm = vm,
+                        onPlay = { channel -> vm.play(channel); landscapeOverlay = false },
+                        compact = !twoPane,
+                        showNowNext = twoPane,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
             }
-        }
         }
 
         details?.let { (channel, programme) ->
