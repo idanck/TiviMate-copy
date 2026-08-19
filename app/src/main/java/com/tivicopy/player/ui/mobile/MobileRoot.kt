@@ -1,0 +1,299 @@
+package com.tivicopy.player.ui.mobile
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.tivicopy.player.R
+import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.prefs.AspectMode
+import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.UiMessage
+import com.tivicopy.player.ui.common.PlayerSurface
+import com.tivicopy.player.ui.screens.AddSourceScreen
+import com.tivicopy.player.ui.screens.ChannelListScreen
+import com.tivicopy.player.ui.screens.GuideScreen
+import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
+import com.tivicopy.player.ui.screens.RecordingsScreen
+import com.tivicopy.player.ui.screens.VodScreen
+import com.tivicopy.player.ui.settings.SettingsScreen
+import com.tivicopy.player.ui.settings.SettingsSection
+
+enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
+
+/**
+ * The touch shell.
+ *
+ * This is the deliberate divergence from the benchmark (docs/00 section 0.3, docs/08 row 1):
+ * the phone is a first-class target, not a scaled-down TV layout. Portrait pins the video to
+ * the top with the list below; landscape gives the video the whole screen with sheets over it;
+ * and the playback gestures FR-UI-14 asks for are wired to the surface itself.
+ */
+@Composable
+fun MobileRoot(
+    vm: AppViewModel,
+    settingsSection: SettingsSection,
+    onSettingsSection: (SettingsSection) -> Unit,
+    onBrightness: (Float) -> Unit,
+    onVolume: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val state by vm.state.collectAsState()
+    val prefs by vm.settingsState.collectAsState()
+    var tab by remember { mutableStateOf(MobileTab.LIVE) }
+    var details by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
+    var addingSource by remember { mutableStateOf(false) }
+    // Landscape hides the bottom bar, so a tap on the video brings the channel list back.
+    var landscapeOverlay by remember { mutableStateOf(false) }
+
+    val configuration = LocalConfiguration.current
+    val landscape = configuration.screenWidthDp > configuration.screenHeightDp
+    val twoPane = configuration.screenWidthDp >= 720
+
+    Scaffold(
+        modifier = modifier,
+        bottomBar = {
+            if (!landscape) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = tab == MobileTab.LIVE,
+                        onClick = { tab = MobileTab.LIVE },
+                        icon = { Icon(Icons.Filled.PlayArrow, contentDescription = null) },
+                        label = { Text(stringResource(R.string.nav_live)) },
+                    )
+                    NavigationBarItem(
+                        selected = tab == MobileTab.GUIDE,
+                        onClick = { tab = MobileTab.GUIDE },
+                        icon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
+                        label = { Text(stringResource(R.string.nav_guide)) },
+                    )
+                    NavigationBarItem(
+                        selected = tab == MobileTab.VOD,
+                        onClick = { tab = MobileTab.VOD },
+                        icon = { Icon(Icons.Filled.Star, contentDescription = null) },
+                        label = { Text(stringResource(R.string.nav_vod)) },
+                    )
+                    NavigationBarItem(
+                        selected = tab == MobileTab.RECORDINGS,
+                        onClick = { tab = MobileTab.RECORDINGS },
+                        icon = { Icon(Icons.Filled.List, contentDescription = null) },
+                        label = { Text(stringResource(R.string.nav_recordings)) },
+                    )
+                    NavigationBarItem(
+                        selected = tab == MobileTab.SETTINGS,
+                        onClick = { tab = MobileTab.SETTINGS },
+                        icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+                        label = { Text(stringResource(R.string.nav_settings)) },
+                    )
+                }
+            }
+        },
+    ) { padding ->
+        if (addingSource || (state.playlists.isEmpty() && !state.loading)) {
+            AddSourceScreen(
+                vm = vm,
+                onDone = { addingSource = false },
+                modifier = Modifier.fillMaxSize().padding(padding),
+            )
+            return@Scaffold
+        }
+
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val videoModifier = if (landscape) {
+                Modifier.fillMaxSize()
+            } else {
+                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+            }
+
+            Box(modifier = videoModifier.background(Color.Black).gestureControls(
+                onBrightness = onBrightness,
+                onVolume = onVolume,
+                onSeek = { deltaMs ->
+                    val exo = ServiceLocator.player.exoPlayer()
+                    if (exo.isCurrentMediaItemSeekable) {
+                        exo.seekTo((exo.currentPosition + deltaMs).coerceAtLeast(0))
+                    }
+                },
+                onDoubleTapLeft = { ServiceLocator.player.exoPlayer().seekBack() },
+                onDoubleTapRight = { ServiceLocator.player.exoPlayer().seekForward() },
+                onCycleAspect = {
+                    val order = AspectMode.entries
+                    val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
+                    ServiceLocator.settings.setAspectMode(next)
+                },
+                onTap = { if (landscape) landscapeOverlay = !landscapeOverlay },
+            )) {
+                PlayerSurface(
+                    engine = ServiceLocator.player,
+                    aspectMode = prefs.aspectMode,
+                    subtitleScale = prefs.subtitleTextScale,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+
+            if (!landscape) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    when (tab) {
+                        MobileTab.LIVE -> ChannelListScreen(
+                            vm = vm,
+                            onPlay = vm::play,
+                            compact = !twoPane,
+                            showNowNext = twoPane,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MobileTab.GUIDE -> GuideScreen(
+                            vm = vm,
+                            onPlay = vm::play,
+                            onOpenProgramme = { channel, programme -> details = channel to programme },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MobileTab.VOD -> VodScreen(
+                            vm = vm,
+                            onPlay = { item ->
+                                val playlist = state.activePlaylist
+                                val client = playlist?.let { ServiceLocator.sources.xtreamClient(it) }
+                                val url = client?.vodUrl(item.streamId, item.containerExtension)
+                                if (url != null && playlist != null) {
+                                    ServiceLocator.player.playUrl(
+                                        item.name,
+                                        url,
+                                        ServiceLocator.sources.profileFor(playlist),
+                                        item.resumePositionMs,
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MobileTab.RECORDINGS -> RecordingsScreen(
+                            onPlayRecording = { recording ->
+                                recording.filePath?.let { path ->
+                                    ServiceLocator.player.playUrl(
+                                        recording.title,
+                                        if (path.startsWith("/")) "file://$path" else path,
+                                        com.tivicopy.player.data.net.RequestProfile(),
+                                        recording.resumePositionMs,
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
+                            SettingsScreen(
+                                vm = vm,
+                                section = settingsSection,
+                                onNavigate = onSettingsSection,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (landscape && landscapeOverlay) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = 0.92f)),
+            ) {
+                ChannelListScreen(
+                    vm = vm,
+                    onPlay = { channel -> vm.play(channel); landscapeOverlay = false },
+                    compact = !twoPane,
+                    showNowNext = twoPane,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+        }
+
+        details?.let { (channel, programme) ->
+            ProgrammeDetailsDialog(
+                channel = channel,
+                programme = programme,
+                onDismiss = { details = null },
+                onWatch = { vm.play(channel) },
+                onCatchup = { vm.playCatchup(channel, programme) },
+                onFavourite = { vm.toggleFavourite(channel) },
+                onMessage = { text -> vm.post(UiMessage(text = text)) },
+            )
+        }
+    }
+}
+
+/**
+ * FR-UI-14 gestures. Brightness and volume are reported to the host activity, because both
+ * belong to the window and the audio manager rather than to the player.
+ */
+private fun Modifier.gestureControls(
+    onBrightness: (Float) -> Unit,
+    onVolume: (Float) -> Unit,
+    onSeek: (Long) -> Unit,
+    onDoubleTapLeft: () -> Unit,
+    onDoubleTapRight: () -> Unit,
+    onCycleAspect: () -> Unit,
+    onTap: () -> Unit,
+): Modifier = this
+    .pointerInput(Unit) {
+        val width = size.width
+        detectVerticalDragGestures { change, dragAmount ->
+            change.consume()
+            // Dragging up must increase, so the sign is inverted against screen coordinates.
+            val delta = -dragAmount / size.height.toFloat()
+            if (change.position.x < width / 2f) onBrightness(delta) else onVolume(delta)
+        }
+    }
+    .pointerInput(Unit) {
+        detectHorizontalDragGestures { change, dragAmount ->
+            change.consume()
+            onSeek((dragAmount / size.width.toFloat() * SEEK_SWEEP_MS).toLong())
+        }
+    }
+    .pointerInput(Unit) {
+        detectTapGestures(
+            onTap = { onTap() },
+            onDoubleTap = { offset ->
+                if (offset.x < size.width / 2f) onDoubleTapLeft() else onDoubleTapRight()
+            },
+            // Aspect cycling is bound to a long press rather than a pinch: a pinch detector on
+            // this surface would contend with the vertical and horizontal drag detectors above
+            // and make both less reliable, which is a bad trade for a rarely used control.
+            onLongPress = { onCycleAspect() },
+        )
+    }
+
+/** A full-width horizontal sweep seeks this far. */
+private const val SEEK_SWEEP_MS = 120_000f

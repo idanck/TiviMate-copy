@@ -1,0 +1,249 @@
+package com.tivicopy.player.record
+
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.StatFs
+import com.tivicopy.player.data.db.Dao
+import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.model.Recording
+import com.tivicopy.player.data.model.RecordingState
+import com.tivicopy.player.data.prefs.Settings
+import java.io.File
+
+/** Why a schedule request could not be honoured, so the UI can say something specific. */
+sealed class ScheduleResult {
+    data class Scheduled(val recording: Recording, val warnings: List<Warning>) : ScheduleResult()
+    data class Rejected(val reason: Warning) : ScheduleResult()
+
+    enum class Warning {
+        /** The platform cannot wake this device; it must stay on (FR-REC-17). */
+        DEVICE_MUST_STAY_ON,
+
+        /** Exact alarms are not permitted; the start may drift (Android 12+). */
+        EXACT_ALARMS_UNAVAILABLE,
+
+        /** More concurrent recordings than the configured limit (FR-REC-08). */
+        CONCURRENCY_LIMIT,
+
+        /** Not enough free space for the estimated size (FR-REC-12). */
+        INSUFFICIENT_SPACE,
+
+        /** Free space is above the hard floor but below the warning threshold. */
+        LOW_SPACE,
+
+        /** No destination folder has been chosen yet. */
+        NO_DESTINATION,
+
+        /** The guide has no series metadata for this programme (FR-REC-05). */
+        NO_SERIES_METADATA,
+    }
+}
+
+/**
+ * Schedules recordings with exact alarms and keeps them armed across reboots.
+ *
+ * The reliability requirements (FR-REC-14..17) are what this class exists for: a schedule is
+ * an `AlarmManager` exact alarm that starts a foreground service, not a timer inside the UI
+ * process, so a recording happens whether or not anything is on screen. Where the platform
+ * genuinely cannot wake the device, that is reported at scheduling time rather than
+ * discovered as a missing file the next morning.
+ */
+class RecordingScheduler(
+    private val context: Context,
+    private val dao: Dao,
+    private val settings: Settings,
+) {
+
+    private val alarms: AlarmManager? =
+        context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+
+    /** Bitrate assumed when estimating the size of a recording, in bits per second. */
+    private val assumedBitrate = 6_000_000L
+
+    fun canScheduleExact(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) alarms?.canScheduleExactAlarms() == true else true
+
+    /**
+     * The platform gives no way to power a device on from a cold state. `setExactAndAllowWhileIdle`
+     * wakes a *sleeping* device, which covers most TV boxes; a device that is switched off
+     * cannot be reached at all, which is what the user is warned about.
+     */
+    private fun deviceMustStayOnWarning(): ScheduleResult.Warning? =
+        if (canScheduleExact()) ScheduleResult.Warning.DEVICE_MUST_STAY_ON
+        else ScheduleResult.Warning.EXACT_ALARMS_UNAVAILABLE
+
+    fun scheduleProgramme(channel: Channel, programme: Programme): ScheduleResult {
+        val s = settings.state.value
+        val start = programme.startUtc - s.recordingPreRollMinutes * 60_000L
+        val end = programme.endUtc + s.recordingPostRollMinutes * 60_000L
+        val warnings = buildList {
+            if (!programme.hasSeriesMetadata) add(ScheduleResult.Warning.NO_SERIES_METADATA)
+        }
+        return schedule(
+            channel = channel,
+            title = programme.title,
+            startUtc = start,
+            endUtc = end,
+            seriesKey = programme.episodeId?.let { "${channel.id}:${programme.title}" },
+            extraWarnings = warnings,
+        )
+    }
+
+    /** FR-REC-01: record the rest of what is on now, or a caller-chosen duration. */
+    fun recordNow(channel: Channel, title: String, endUtc: Long): ScheduleResult {
+        val now = System.currentTimeMillis()
+        return schedule(channel, title, now, endUtc.coerceAtLeast(now + 60_000), null, emptyList())
+    }
+
+    fun schedule(
+        channel: Channel,
+        title: String,
+        startUtc: Long,
+        endUtc: Long,
+        seriesKey: String?,
+        extraWarnings: List<ScheduleResult.Warning> = emptyList(),
+    ): ScheduleResult {
+        val s = settings.state.value
+        if (s.recordingFolderUri.isBlank()) {
+            return ScheduleResult.Rejected(ScheduleResult.Warning.NO_DESTINATION)
+        }
+
+        val durationSeconds = ((endUtc - startUtc) / 1000).coerceAtLeast(1)
+        val estimatedBytes = durationSeconds * assumedBitrate / 8
+        val free = freeSpaceBytes(s.recordingFolderUri)
+        if (free in 1 until estimatedBytes) {
+            return ScheduleResult.Rejected(ScheduleResult.Warning.INSUFFICIENT_SPACE)
+        }
+
+        val overlapping = dao.pendingRecordings(startUtc).count { it.startUtc < endUtc && it.endUtc > startUtc }
+        if (overlapping >= s.maxConcurrentRecordings) {
+            return ScheduleResult.Rejected(ScheduleResult.Warning.CONCURRENCY_LIMIT)
+        }
+
+        val recording = Recording(
+            channelId = channel.id,
+            channelName = channel.displayName,
+            title = title,
+            startUtc = startUtc,
+            endUtc = endUtc,
+            state = RecordingState.SCHEDULED,
+            seriesKey = seriesKey,
+        )
+        val id = dao.upsertRecording(recording)
+        val stored = recording.copy(id = id)
+        arm(stored)
+
+        val warnings = buildList {
+            addAll(extraWarnings)
+            deviceMustStayOnWarning()?.let(::add)
+            if (free in 1 until s.recordingFreeSpaceWarnGb * 1024L * 1024 * 1024) {
+                add(ScheduleResult.Warning.LOW_SPACE)
+            }
+        }
+        return ScheduleResult.Scheduled(stored, warnings)
+    }
+
+    fun cancel(recordingId: Long) {
+        alarms?.cancel(pendingIntent(recordingId, forCancel = true))
+        dao.recording(recordingId)?.let { r ->
+            if (r.state == RecordingState.RECORDING) {
+                context.startService(
+                    Intent(context, RecordingService::class.java).apply {
+                        action = RecordingService.ACTION_STOP
+                        putExtra(RecordingService.EXTRA_RECORDING_ID, recordingId)
+                    },
+                )
+            }
+            dao.upsertRecording(r.copy(state = RecordingState.CANCELLED))
+        }
+    }
+
+    fun cancelSeries(seriesKey: String) {
+        dao.recordings(setOf(RecordingState.SCHEDULED))
+            .filter { it.seriesKey == seriesKey }
+            .forEach { cancel(it.id) }
+    }
+
+    /** FR-REC-15: called from the boot receiver and on every cold start. */
+    fun rearmAll() {
+        val now = System.currentTimeMillis()
+        dao.pendingRecordings(now).forEach { recording ->
+            if (recording.startUtc <= now && recording.endUtc > now) {
+                // The device was off when this should have started; begin what is left of it.
+                startNow(recording.id)
+            } else {
+                arm(recording)
+            }
+        }
+        // Anything left marked RECORDING did not survive the process; mark it partial so the
+        // library never shows a recording as running when nothing is writing to it.
+        dao.activeRecordings().forEach { r ->
+            dao.upsertRecording(
+                r.copy(
+                    state = if ((r.fileSizeBytes) > 0) RecordingState.PARTIAL else RecordingState.FAILED,
+                    message = "interrupted",
+                ),
+            )
+        }
+    }
+
+    private fun arm(recording: Recording) {
+        val manager = alarms ?: return
+        val intent = pendingIntent(recording.id)
+        val triggerAt = recording.startUtc
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && canScheduleExact()) {
+                manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+            } else {
+                manager.set(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+            }
+        } catch (_: SecurityException) {
+            // Exact-alarm permission was revoked between the check and the call.
+            manager.set(AlarmManager.RTC_WAKEUP, triggerAt, intent)
+        }
+    }
+
+    private fun startNow(recordingId: Long) {
+        val intent = Intent(context, RecordingService::class.java).apply {
+            action = RecordingService.ACTION_START
+            putExtra(RecordingService.EXTRA_RECORDING_ID, recordingId)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    private fun pendingIntent(recordingId: Long, forCancel: Boolean = false): PendingIntent {
+        val intent = Intent(context, RecordingAlarmReceiver::class.java).apply {
+            action = RecordingAlarmReceiver.ACTION_FIRE
+            putExtra(RecordingService.EXTRA_RECORDING_ID, recordingId)
+        }
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags = flags or PendingIntent.FLAG_IMMUTABLE
+        if (forCancel) flags = flags or PendingIntent.FLAG_NO_CREATE
+        return PendingIntent.getBroadcast(context, recordingId.toInt(), intent, flags)
+            ?: PendingIntent.getBroadcast(
+                context,
+                recordingId.toInt(),
+                intent,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                } else {
+                    PendingIntent.FLAG_UPDATE_CURRENT
+                },
+            )
+    }
+
+    private fun freeSpaceBytes(folderUri: String): Long = try {
+        val path = if (folderUri.startsWith("/")) folderUri else context.filesDir.absolutePath
+        StatFs(File(path).absolutePath).availableBytes
+    } catch (_: Exception) {
+        -1L
+    }
+}

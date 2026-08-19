@@ -1,0 +1,95 @@
+package com.tivicopy.player
+
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import com.tivicopy.player.data.backup.BackupManager
+import com.tivicopy.player.data.cache.CacheBudget
+import com.tivicopy.player.data.db.Dao
+import com.tivicopy.player.data.db.Database
+import com.tivicopy.player.data.prefs.Settings
+import com.tivicopy.player.data.repo.EpgRepository
+import com.tivicopy.player.data.repo.SourceRepository
+import com.tivicopy.player.player.PlayerEngine
+import com.tivicopy.player.record.RecordingScheduler
+import com.tivicopy.player.work.RefreshScheduler
+
+/**
+ * Manual dependency graph.
+ *
+ * A hand-written locator is used rather than an annotation-processed injector: the graph is
+ * small and entirely singleton-scoped, and keeping annotation processing out of the build is
+ * what lets this project compile from a clean checkout with nothing but the Gradle wrapper.
+ */
+object ServiceLocator {
+
+    @Volatile private var initialised = false
+
+    lateinit var appContext: Context private set
+    lateinit var database: Database private set
+    lateinit var dao: Dao private set
+    lateinit var settings: Settings private set
+    lateinit var sources: SourceRepository private set
+    lateinit var epg: EpgRepository private set
+    lateinit var cache: CacheBudget private set
+    lateinit var backup: BackupManager private set
+    lateinit var recordings: RecordingScheduler private set
+
+    /** The player is created lazily so a headless recording run never builds one. */
+    val player: PlayerEngine by lazy { PlayerEngine(appContext, settings) }
+
+    @Synchronized
+    fun init(context: Context) {
+        if (initialised) return
+        appContext = context.applicationContext
+        database = Database(appContext)
+        dao = Dao(database)
+        settings = Settings(appContext)
+        sources = SourceRepository(appContext, dao, settings)
+        epg = EpgRepository(dao, settings, sources)
+        cache = CacheBudget(appContext)
+        backup = BackupManager(dao, settings)
+        recordings = RecordingScheduler(appContext, dao, settings)
+        initialised = true
+    }
+}
+
+class App : Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+        ServiceLocator.init(this)
+        createNotificationChannels()
+        RefreshScheduler.scheduleAll(this)
+        // Re-arm anything that survived a process death but not a reboot.
+        ServiceLocator.recordings.rearmAll()
+        // Keep the on-disk cache inside its budget on every cold start (FR-SET-15).
+        ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+    }
+
+    private fun createNotificationChannels() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val manager = getSystemService(NotificationManager::class.java) ?: return
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_RECORDING,
+                getString(R.string.channel_recording),
+                NotificationManager.IMPORTANCE_LOW,
+            ).apply { description = getString(R.string.channel_recording_desc) },
+        )
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ALERTS,
+                getString(R.string.channel_alerts),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = getString(R.string.channel_alerts_desc) },
+        )
+    }
+
+    companion object {
+        const val CHANNEL_RECORDING = "recording"
+        const val CHANNEL_ALERTS = "alerts"
+    }
+}
