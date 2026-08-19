@@ -33,9 +33,18 @@ import com.tivicopy.player.player.PlaybackStatus
  *
  * Nothing here handles pointer input, so the playback gestures on the surface below keep
  * working through it.
+ *
+ * @param showErrorText whether a settled failure is spelled out here. The TV shell already
+ *   banners it at the edge of the screen, where a 10-foot layout wants it, and would otherwise
+ *   say the same thing twice; a still-retrying failure keeps its spinner either way, because
+ *   that is progress rather than a verdict.
  */
 @Composable
-fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) {
+fun PlaybackStateOverlay(
+    status: PlaybackStatus,
+    modifier: Modifier = Modifier,
+    showErrorText: Boolean = true,
+) {
     val context = LocalContext.current
     val error = status.error
     // `errorDetail` is filled in only once the engine has stopped trying, which is what
@@ -44,9 +53,11 @@ fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) 
     val busy = error == null && status.buffering
 
     if (error == null && !busy) return
+    // A settled failure the caller has chosen to render elsewhere leaves nothing to say.
+    if (error != null && !retrying && !showErrorText) return
 
     val message = when {
-        error != null -> error.describe(context)
+        error != null && showErrorText -> error.describe(context)
         else -> stringResource(R.string.playback_connecting)
     }
     val detail = when {
@@ -83,7 +94,7 @@ fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) 
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (error != null && !retrying) {
+                color = if (error != null && !retrying && showErrorText) {
                     MaterialTheme.colorScheme.error
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant

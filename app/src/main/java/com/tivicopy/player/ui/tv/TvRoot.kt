@@ -33,6 +33,7 @@ import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.describe
+import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.screens.AddSourceScreen
@@ -83,6 +84,15 @@ fun TvRoot(
             engine = ServiceLocator.player,
             aspectMode = prefs.aspectMode,
             subtitleScale = prefs.subtitleTextScale,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        // Zapping on a remote gives no other feedback: without this a channel that is still
+        // tuning is a black screen, identical to one that failed. The settled-failure text is
+        // left to PlaybackErrorBanner below, which is where a 10-foot layout wants it.
+        PlaybackStateOverlay(
+            status = status,
+            showErrorText = false,
             modifier = Modifier.fillMaxSize(),
         )
 
