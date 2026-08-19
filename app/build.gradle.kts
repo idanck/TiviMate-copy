@@ -1,4 +1,7 @@
 import java.io.FileInputStream
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Properties
 
 plugins {
@@ -30,9 +33,9 @@ val gitSha: String = (System.getenv("GIT_SHA")?.takeIf { it.isNotBlank() } ?: ru
 
 /** Build timestamp; CI passes a stable value so reproducible-ish builds stay comparable. */
 val buildStamp: String = System.getenv("BUILD_STAMP")?.takeIf { it.isNotBlank() }
-    ?: java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'")
-        .withZone(java.time.ZoneOffset.UTC)
-        .format(java.time.Instant.now())
+    ?: DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm 'UTC'")
+        .withZone(ZoneOffset.UTC)
+        .format(Instant.now())
 
 android {
     namespace = "com.tivicopy.player"

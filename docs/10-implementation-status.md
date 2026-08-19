@@ -1,0 +1,176 @@
+# 10 — Implementation status
+
+What the code in this repository actually does, requirement by requirement. The point of this
+file is that a reader can tell implemented from not-implemented without running the app.
+
+Legend: **Done** · **Partial** (works, with the limitation named) · **Not implemented**.
+
+Entitlements are out of scope for this build by decision — see `docs/adr/ADR-007`. Every
+requirement whose only reason to exist was tier gating is marked accordingly, and every `Paid`
+feature that was otherwise in scope is simply available.
+
+## SRC — Sources and playlists
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-SRC-01 | Done | `M3uParser`, fetched over OkHttp with the playlist's request profile. |
+| FR-SRC-02 | Done | SAF document or a plain path; `SourceRepository.openLocal`. |
+| FR-SRC-03 | Done | `XtreamClient`: account, live, VOD, series, `xmltv.php` wired as the guide URL. |
+| FR-SRC-04 | Not implemented | Stalker/portal. `SourceType` has room for it; no client written. |
+| FR-SRC-05 | Done | Including `#EXTVLCOPT`, `#KODIPROP` and preservation of unknown attributes. |
+| FR-SRC-06 | Done | Per playlist, TS or HLS. |
+| FR-SRC-07 | N/A | Tier gating removed; playlists are unlimited. |
+| FR-SRC-08 | Partial | Name, credentials, user-agent, headers and interval are stored and honoured; only name, URL, credentials and format have an editing UI. |
+| FR-SRC-09 | Done | Settings → Playlists → Refresh now. |
+| FR-SRC-10 | Done | `RefreshWorker` runs hourly and refreshes each playlist when its own interval is due. |
+| FR-SRC-11 | Done | `SourceRepository.merge`; user-owned fields are carried over untouched. |
+| FR-SRC-12 | Done | An error or an empty list aborts the merge and records the failure. |
+| FR-SRC-13 | Done | `RefreshReport`, shown in Settings. |
+| FR-SRC-14 | Not implemented | Deleting a playlist cascades; no retain-favourites offer. |
+| FR-SRC-15 | Partial | Account status and connection count are read and shown when testing a connection; no scheduled expiry warning. |
+
+## ORG — Channel organization
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-ORG-01 | Done | Provider `group-title`, with an `Ungrouped` fallback. |
+| FR-ORG-02 | Partial | The schema and DAO support custom groups; the UI creates provider groups only. |
+| FR-ORG-03 | Done | Per channel and per group, persisted across refreshes. |
+| FR-ORG-04 | Done | `customName` never overwritten by a refresh. |
+| FR-ORG-05 | Partial | `AppViewModel.moveChannel` implements move-mode reordering; no drag handle on touch. |
+| FR-ORG-06 | Partial | Provider order and recently-watched are available; A–Z and most-watched are not surfaced. |
+| FR-ORG-07 | Done | Channels; VOD favourites are stored but not yet browsable as a view. |
+| FR-ORG-08 | Not implemented | Cross-playlist unified favourites. |
+| FR-ORG-09 | Done | `tvg-chno` or position; editable through the DAO. |
+| FR-ORG-10 | Done | Cached by Coil with a generated monogram fallback. |
+| FR-ORG-11 | Partial | The setting exists; new groups are currently always shown. |
+
+## EPG — Guide data
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-EPG-01 | Done | URL or file, gzip and zip detected from the magic bytes rather than the extension. |
+| FR-EPG-02 | Done | Xtream `xmltv.php`. |
+| FR-EPG-03 | Done | `url-tvg` / `x-tvg-url` from the `#EXTM3U` header. |
+| FR-EPG-04 | Not implemented | Multiple prioritised EPG sources. The `source_priority` column exists. |
+| FR-EPG-05 | Done | Scheduled through `RefreshWorker`, plus "Update guide now". |
+| FR-EPG-06 | Done | Pull parser, nothing accumulated, progress reported every 2,000 programmes. |
+| FR-EPG-07 | Done | `EpgMatcher`, four stages in strict order. |
+| FR-EPG-08 | Done | `manualEpgId` wins over every other stage and is never recomputed. |
+| FR-EPG-09 | Partial | The match breakdown is reported in Settings and Diagnostics; the one-tap jump into mapping is not wired. |
+| FR-EPG-10 | Done | Epoch-millis UTC throughout; rendered in the device zone. |
+| FR-EPG-11 | Done | ±15-minute steps. |
+| FR-EPG-12 | Done | See `docs/adr/ADR-008` — offsets shift the query, not the rows. |
+| FR-EPG-13 | Done | Covered by `TimeModelTest`. |
+| FR-EPG-14 | Done | Whatever the source provides is stored. |
+| FR-EPG-15 | Done | Retention is the longest catch-up window in the library, floored by the setting. |
+| FR-EPG-16 | Done | Explicit "no guide data" in the list, the info card and the grid. |
+
+## PLB — Playback
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-PLB-01 | Done | HLS, DASH, MPEG-TS, progressive; RTSP module included. |
+| FR-PLB-02 / 03 | Done | Whatever the device's `MediaCodec` offers. |
+| FR-PLB-04 | Done | `SelectiveRenderersFactory`, independent per renderer family, global and per channel. |
+| FR-PLB-05 | Done | One software retry, with a notice saying what changed. |
+| FR-PLB-06 | Done | `PlayerEngine.audioTracks` / `selectTrack`. |
+| FR-PLB-07 | Done | `setPreferredAudioLanguage` on the track selector. |
+| FR-PLB-08 | Not implemented | Media3 exposes no audio offset; a stub would have read as a working control. |
+| FR-PLB-09 | Partial | Media3 passes through where the device allows; no explicit UI switch. |
+| FR-PLB-10 | Done | Rendered by `PlayerView`'s subtitle view. |
+| FR-PLB-11 | Partial | Size scaling only. |
+| FR-PLB-12 | Not implemented | External sidecar subtitles. |
+| FR-PLB-13 | Partial | Seven options mapped onto Media3's four resize modes; documented in `PlayerSurface`. |
+| FR-PLB-14 | Partial | `videoTracks()` enumerates renditions; no picker UI. |
+| FR-PLB-15 | Not implemented | Auto frame rate. |
+| FR-PLB-16 | Done | Five presets plus explicit millisecond values. |
+| FR-PLB-17 | Done | Backoff, then failover down the URL list, with a notice. |
+| FR-PLB-18 | Done | Auto-dismissing info card with now/next and a progress bar. |
+| FR-PLB-19 | Done | Numeric entry with a configurable confirm timeout. |
+| FR-PLB-20 | Done | `toggleLastChannel`. |
+| FR-PLB-21 | Done | Optional resume on start. |
+| FR-PLB-22 | Not implemented | Timeshift within the live buffer. |
+| FR-PLB-23 | Partial | PiP on Home; no explicit in-app trigger. |
+| FR-PLB-24..27 | Not implemented | Multi-view, presets, adjacent pre-buffering. |
+| FR-PLB-28 | Partial | VOD and series browse with artwork; the season/episode tree is fetched but not yet navigated. |
+| FR-PLB-29 | Done | Resume positions stored; continue-watching row in the VOD grid. |
+| FR-PLB-30 | Partial | The RTSP module is on the classpath; untested. |
+
+## UI, PRF, CU, REC, NET, SET
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-UI-01..06 | Done | D-pad throughout; overlays draw over playing video. |
+| FR-UI-07 | Done by construction | Lazy channel axis plus a windowed query per visible page; not measured on a TV box. |
+| FR-UI-08 | Partial | Details, watch, catch-up, record and favourite; no reminder or series action. |
+| FR-UI-09 | Partial | Channels and guide entries; VOD is searched on its own tab. |
+| FR-UI-10 | Done | Archive badge in the grid; recording state in the library. |
+| FR-UI-11 | Not implemented | Remappable keys. Defaults are as `docs/03` specifies. |
+| FR-UI-12 | Done | Key-code probe in Diagnostics. |
+| FR-UI-13..15 | Done | Bottom navigation, gestures, portrait and landscape. |
+| FR-UI-16 | Partial | Two-pane above 720dp; no master/detail split view. |
+| FR-UI-17..19 | Done | Four themes, overlay opacity and timeout, font scale that reflows. |
+| FR-UI-20 | Not implemented | Configurable playback menu. |
+| FR-UI-21 | Done | `supportsRtl`, start/end padding throughout, Hebrew resources. |
+| FR-UI-22 | Not implemented | Chromecast sender. |
+| FR-PRF-01..03 | Not implemented | Profiles. |
+| FR-PRF-04 / 05 / 08 | Done | PBKDF2 salted hash, lock scope settings, documented recovery. |
+| FR-PRF-06 | Not implemented | Lock by EPG rating. The `rating` column is populated. |
+| FR-PRF-07 | Done | `PinAttemptLimiter`, exponential backoff. |
+| FR-CU-01..04 | Done | Detection, backward scrolling, four URL conventions, standard transport controls. |
+| FR-CU-05 | Done | Outside-window and unsupported are distinct messages. |
+| FR-CU-06 | Not implemented | Dedicated catch-up browse view. |
+| FR-REC-01..03 | Done | Instant, scheduled from the guide, configurable padding. |
+| FR-REC-04 / 06 | Not implemented | Series recording and repeat rules. |
+| FR-REC-05 | Done | The missing-series-metadata warning is shown before scheduling. |
+| FR-REC-07 | Partial | `RecordingScheduler.schedule` accepts a manual timer; no UI form. |
+| FR-REC-08 | Partial | Concurrency limit enforced; provider connection limit is not cross-checked. |
+| FR-REC-09 | Partial | Internal and SAF trees, which covers USB; no SMB. |
+| FR-REC-10 | Done | Byte-exact MPEG-TS. |
+| FR-REC-11 | Partial | Fixed template, documented. |
+| FR-REC-12 | Done | Refused below the estimate, warned below the threshold. |
+| FR-REC-13 | Not implemented | Retention rules. |
+| FR-REC-14..17 | Done | Foreground service, exact alarms, boot re-arm, locks, honest wake warning. |
+| FR-REC-18 | Done | Reconnect and continue, gaps counted and reported. |
+| FR-REC-19 | Done | Every recording ends in a visible result record. |
+| FR-REC-20 | Partial | Play, delete and browse; no rename, mark-watched, share, filter or sort. |
+| FR-REC-21 | Partial | View and cancel individually; no series cancel UI. |
+| FR-NET-01 | Done | Global and per playlist, with presets. |
+| FR-NET-02 | Partial | Stored and sent per playlist; no header-editing UI. |
+| FR-NET-03 | Done | Parsed and applied per channel. |
+| FR-NET-04 | Done | Timeouts and retry count. |
+| FR-NET-05 | Done | Off by default, warned. |
+| FR-NET-06 | Partial | 403 bodies are inspected for the usual geo phrasing. |
+| FR-SET-01 | Not implemented | External-player handoff; the setting exists. |
+| FR-SET-02 | Done | Boot receiver, behind a setting. |
+| FR-SET-03..07 | Not implemented | Wake-from-standby, start behaviour beyond the three implemented, sleep timer, burn-in dimming. Exit confirmation (FR-SET-06) is done. |
+| FR-SET-08 | Done | JSON export/import, credentials excluded by default. |
+| FR-SET-09 | Partial | Any SAF location, which covers Drive; no SMB. |
+| FR-SET-10 | Not implemented | Cloud sync. |
+| FR-SET-11 | Not implemented | Reminders. |
+| FR-SET-12 | Done | Started, finished and failed notifications. |
+| FR-SET-13 | Done | Diagnostics screen, credentials redacted. |
+| FR-SET-14 | Done | Copy report. |
+| FR-SET-15 | Done | Budgeted, LRU-evicted, size shown, three clear actions. |
+| FR-SET-16 / 17 | Not implemented | Verbose file logging, revert playback settings. |
+| FR-LIC-* | N/A | See `docs/adr/ADR-007`. FR-LIC-10 (no advertising) holds — there is no ad code. |
+| FR-TVI-01 | Done | Leanback launcher category and a TV banner. |
+| FR-TVI-02..04 | Not implemented | Watch Next and preview channels. |
+| FR-TVI-05 | Partial | Widevine/PlayReady/ClearKey configured from `#KODIPROP`; untested. |
+| FR-TVI-06 | Done | DRM failure is terminal with an explanatory message. |
+| FR-TVI-07 | Won't | Out of scope, as specified. |
+
+## Non-functional
+
+Verified by test: NFR-MAINT-02 (parsers), and the DST and offset behaviour behind
+NFR-REL-05's spirit. NFR-MAINT-01 holds by structure — `core`, `data`, `player` and `record`
+import no Compose or UI types.
+
+The performance targets (NFR-PERF-01..06) are **not measured**. The design choices that serve
+them are in place — a lazy channel axis with a windowed guide query, one batched query per
+distinct offset, streamed parsing, and a bounded cache — but no numbers have been taken on a
+reference device, and this file does not claim otherwise.
+
+NFR-SEC-01/02 are implemented: credentials are Keystore-encrypted at rest and redacted
+everywhere they could be shared. NFR-SEC-04 holds trivially — there is no telemetry code.
