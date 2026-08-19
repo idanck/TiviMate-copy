@@ -139,7 +139,7 @@ class RecordingScheduler(
 
         val warnings = buildList {
             addAll(extraWarnings)
-            deviceMustStayOnWarning()?.let(::add)
+            deviceMustStayOnWarning()?.let { add(it) }
             if (free in 1 until s.recordingFreeSpaceWarnGb * 1024L * 1024 * 1024) {
                 add(ScheduleResult.Warning.LOW_SPACE)
             }
@@ -148,7 +148,7 @@ class RecordingScheduler(
     }
 
     fun cancel(recordingId: Long) {
-        alarms?.cancel(pendingIntent(recordingId, forCancel = true))
+        alarms?.cancel(pendingIntent(recordingId))
         dao.recording(recordingId)?.let { r ->
             if (r.state == RecordingState.RECORDING) {
                 context.startService(
@@ -219,25 +219,15 @@ class RecordingScheduler(
         }
     }
 
-    private fun pendingIntent(recordingId: Long, forCancel: Boolean = false): PendingIntent {
+    /** The request code is the recording id, which is what makes cancelling match one alarm. */
+    private fun pendingIntent(recordingId: Long): PendingIntent {
         val intent = Intent(context, RecordingAlarmReceiver::class.java).apply {
             action = RecordingAlarmReceiver.ACTION_FIRE
             putExtra(RecordingService.EXTRA_RECORDING_ID, recordingId)
         }
         var flags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags = flags or PendingIntent.FLAG_IMMUTABLE
-        if (forCancel) flags = flags or PendingIntent.FLAG_NO_CREATE
         return PendingIntent.getBroadcast(context, recordingId.toInt(), intent, flags)
-            ?: PendingIntent.getBroadcast(
-                context,
-                recordingId.toInt(),
-                intent,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                } else {
-                    PendingIntent.FLAG_UPDATE_CURRENT
-                },
-            )
     }
 
     private fun freeSpaceBytes(folderUri: String): Long = try {

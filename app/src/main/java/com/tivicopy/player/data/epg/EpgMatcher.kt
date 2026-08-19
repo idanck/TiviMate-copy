@@ -35,11 +35,12 @@ class EpgMatcher(private val fuzzyThreshold: Double = 0.82) {
             byId[e.id.lowercase()] = e.id
             e.displayNames.forEach { n ->
                 val key = TextNormalizer.canonical(n)
-                if (key.isNotEmpty()) byName.putIfAbsent(key, e.id)
+                // First guide entry wins, so a later duplicate name cannot steal the binding.
+                if (key.isNotEmpty() && key !in byName) byName[key] = e.id
             }
             // The id itself is often a readable name such as `BBCOne.uk`.
             val idAsName = TextNormalizer.canonical(e.id.substringBeforeLast('.'))
-            if (idAsName.isNotEmpty()) byName.putIfAbsent(idAsName, e.id)
+            if (idAsName.isNotEmpty() && idAsName !in byName) byName[idAsName] = e.id
         }
 
         // Candidate list for the fuzzy stage: (canonical name, epg id).

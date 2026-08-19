@@ -26,12 +26,16 @@ fun SettingsSectionTitle(text: String) {
     )
 }
 
+/**
+ * `onClick` is the last parameter on purpose: a trailing lambda at a call site must be the
+ * click action, not composable content that would then run during composition.
+ */
 @Composable
 fun SettingsRow(
     title: String,
     subtitle: String? = null,
-    onClick: () -> Unit = {},
     trailing: @Composable () -> Unit = {},
+    onClick: () -> Unit = {},
 ) {
     FocusableRow(onClick = onClick, contentDescription = title) {
         Column(modifier = Modifier.weight(1f)) {
@@ -50,9 +54,12 @@ fun SettingsRow(
 
 @Composable
 fun SettingsSwitch(title: String, subtitle: String? = null, checked: Boolean, onChange: (Boolean) -> Unit) {
-    SettingsRow(title = title, subtitle = subtitle, onClick = { onChange(!checked) }) {
-        Switch(checked = checked, onCheckedChange = onChange)
-    }
+    SettingsRow(
+        title = title,
+        subtitle = subtitle,
+        trailing = { Switch(checked = checked, onCheckedChange = onChange) },
+        onClick = { onChange(!checked) },
+    )
 }
 
 /** A radio list; used for every enum-valued setting so the pattern is identical throughout. */
