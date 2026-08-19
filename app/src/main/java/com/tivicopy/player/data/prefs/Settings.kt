@@ -8,12 +8,20 @@ import com.tivicopy.player.data.net.UserAgents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Buffer sizes offered in Settings, in milliseconds.
+ *
+ * `DefaultLoadControl` refuses a `minMs` below either playback threshold and a `maxMs` below
+ * `minMs`, and it throws instead of clamping, so `minMs` is never smaller than [rebufferMs]
+ * here. [com.tivicopy.player.player.BufferDurations] re-checks the same invariants, because
+ * the custom values come from preferences and cannot be constrained at this end.
+ */
 enum class BufferPreset(val minMs: Int, val maxMs: Int, val playbackMs: Int, val rebufferMs: Int) {
-    MINIMAL(500, 3_000, 400, 1_000),
-    SMALL(1_000, 8_000, 800, 2_000),
-    NORMAL(2_500, 30_000, 1_500, 3_000),
+    MINIMAL(1_000, 3_000, 400, 1_000),
+    SMALL(2_000, 8_000, 800, 2_000),
+    NORMAL(3_000, 30_000, 1_500, 3_000),
     LARGE(10_000, 60_000, 3_000, 6_000),
-    CUSTOM(2_500, 30_000, 1_500, 3_000),
+    CUSTOM(3_000, 30_000, 1_500, 3_000),
 }
 
 enum class AspectMode { FIT, FILL, ZOOM, STRETCH, RATIO_16_9, RATIO_4_3, ORIGINAL }
