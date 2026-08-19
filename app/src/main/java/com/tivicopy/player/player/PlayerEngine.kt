@@ -49,6 +49,33 @@ data class PlaybackStatus(
     val isLive: Boolean = false,
 )
 
+/**
+ * Buffer durations, reconciled to what `DefaultLoadControl` will accept.
+ *
+ * The load control validates its four durations against each other and *throws* when they do
+ * not line up, rather than clamping — so an inconsistent set does not degrade playback, it
+ * takes the process down the moment the player is built. Since the custom values come from
+ * preferences and can outlive any change to the presets, the invariants are enforced here on
+ * every build rather than trusted at the call site.
+ */
+data class BufferDurations(
+    val minMs: Int,
+    val maxMs: Int,
+    val playbackMs: Int,
+    val rebufferMs: Int,
+) {
+    companion object {
+        fun reconcile(minMs: Int, maxMs: Int, playbackMs: Int, rebufferMs: Int): BufferDurations {
+            val playback = playbackMs.coerceAtLeast(0)
+            val rebuffer = rebufferMs.coerceAtLeast(0)
+            // Neither threshold may exceed the minimum buffer, and the maximum may not fall
+            // below it.
+            val min = minMs.coerceAtLeast(maxOf(playback, rebuffer))
+            return BufferDurations(min, maxMs.coerceAtLeast(min), playback, rebuffer)
+        }
+    }
+}
+
 /** One selectable audio or subtitle track. */
 data class TrackOption(
     val groupIndex: Int,
@@ -100,7 +127,7 @@ class PlayerEngine(
     private var builtVideoMode = DecoderMode.AUTO
     private var builtAudioMode = DecoderMode.AUTO
     private var builtPreset: BufferPreset? = null
-    private var builtBuffer: Pair<Int, Int>? = null
+    private var builtBuffer: BufferDurations? = null
     private var profile = RequestProfile()
 
     /** Set by the host so a failover can be scheduled off the player's callback thread. */
@@ -119,13 +146,13 @@ class PlayerEngine(
         val audioMode = currentChannel?.audioDecoder?.takeIf { it != DecoderMode.AUTO } ?: s.audioDecoder
         val effectiveVideoMode = if (softwareFallbackApplied) DecoderMode.SOFTWARE else videoMode
 
-        val (minMs, maxMs) = bufferValues(s)
+        val buffer = bufferValues(s)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                minMs,
-                maxMs,
-                s.bufferPreset.playbackMs,
-                s.bufferPreset.rebufferMs,
+                buffer.minMs,
+                buffer.maxMs,
+                buffer.playbackMs,
+                buffer.rebufferMs,
             )
             .setPrioritizeTimeOverSizeThresholds(true)
             .build()
@@ -156,7 +183,7 @@ class PlayerEngine(
         builtVideoMode = effectiveVideoMode
         builtAudioMode = audioMode
         builtPreset = s.bufferPreset
-        builtBuffer = minMs to maxMs
+        builtBuffer = buffer
 
         exo.addListener(listener)
         exo.addAnalyticsListener(analytics)
@@ -165,15 +192,16 @@ class PlayerEngine(
         return exo
     }
 
-    private fun bufferValues(s: Settings.Snapshot): Pair<Int, Int> =
-        if (s.bufferPreset == BufferPreset.CUSTOM) {
-            // A max below the min would make DefaultLoadControl throw at build time.
-            val min = s.customBufferMinMs.coerceAtLeast(200)
-            val max = s.customBufferMaxMs.coerceAtLeast(min + 500)
-            min to max
-        } else {
-            s.bufferPreset.minMs to s.bufferPreset.maxMs
-        }
+    private fun bufferValues(s: Settings.Snapshot): BufferDurations {
+        val preset = s.bufferPreset
+        val custom = preset == BufferPreset.CUSTOM
+        return BufferDurations.reconcile(
+            minMs = if (custom) s.customBufferMinMs else preset.minMs,
+            maxMs = if (custom) s.customBufferMaxMs else preset.maxMs,
+            playbackMs = preset.playbackMs,
+            rebufferMs = preset.rebufferMs,
+        )
+    }
 
     /** @return true when the instance was actually replaced. */
     private fun rebuildIfNeeded(): Boolean {
@@ -230,6 +258,10 @@ class PlayerEngine(
             _status.value = _status.value.copy(
                 title = title,
                 error = AppError(AppError.Kind.NotFound, "channel has no playable URL"),
+                // Terminal: `errorDetail` is what tells the UI to stop showing a spinner.
+                errorDetail = "no url",
+                buffering = false,
+                playing = false,
             )
             return
         }
@@ -255,6 +287,11 @@ class PlayerEngine(
             title = title,
             error = null,
             errorDetail = null,
+            // Claimed here rather than waiting for the first STATE_BUFFERING callback, so the
+            // UI can say "connecting" from the moment the channel is chosen instead of showing
+            // a black frame with nothing on it.
+            buffering = true,
+            playing = false,
             sourceIndex = currentSourceIndex,
             sourceCount = currentUrls.size,
             retriesUsed = retriesUsed,

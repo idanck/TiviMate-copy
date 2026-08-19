@@ -52,6 +52,8 @@
     <string name="setup_pick_file">בחירת קובץ</string>
     <string name="setup_http_warning">הכתובת היא HTTP רגיל; פרטי ההתחברות נשלחים ללא הצפנה.</string>
     <string name="playlists_title">רשימות השמעה</string>
+    <string name="playlist_add">הוספת רשימה</string>
+    <string name="playlist_add_hint">Xtream Codes, כתובת M3U, או קובץ במכשיר</string>
     <string name="playlist_refresh_now">רענן עכשיו</string>
     <string name="playlist_refreshing">מרענן…</string>
     <string name="playlist_never_refreshed">מעולם לא רוענן</string>
@@ -86,6 +88,8 @@
     <string name="empty_no_channels">עדיין אין ערוצים. הוסף רשימת השמעה בהגדרות.</string>
     <string name="empty_no_results">לא נמצאו תוצאות לחיפוש.</string>
     <string name="playback_menu">ניגון</string>
+    <string name="playback_connecting">מתחבר…</string>
+    <string name="playback_reconnecting">מתחבר מחדש — ניסיון %1$d…</string>
     <string name="decoder_video">מפענח וידאו</string>
     <string name="decoder_audio">מפענח אודיו</string>
     <string name="decoder_auto">אוטומטי</string>

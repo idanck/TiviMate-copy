@@ -17,6 +17,15 @@ import android.database.sqlite.SQLiteOpenHelper
  */
 class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION) {
 
+    init {
+        // Write-ahead logging is switched on through the framework helper rather than with a
+        // `PRAGMA journal_mode=WAL` statement. That pragma answers with the mode it settled
+        // on, and `execSQL` rejects every statement that returns a row — running it here threw
+        // on the very first database access, which is inside `Application.onCreate`, so the
+        // process died on every launch. This call has to happen before the database is opened.
+        setWriteAheadLoggingEnabled(true)
+    }
+
     override fun onConfigure(db: SQLiteDatabase) {
         super.onConfigure(db)
         db.setForeignKeyConstraintsEnabled(true)
@@ -24,10 +33,8 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
 
     override fun onOpen(db: SQLiteDatabase) {
         super.onOpen(db)
-        if (!db.isReadOnly) {
-            db.execSQL("PRAGMA journal_mode=WAL")
-            db.execSQL("PRAGMA synchronous=NORMAL")
-        }
+        // `synchronous` returns nothing, so this one is safe to execute directly.
+        if (!db.isReadOnly) db.execSQL("PRAGMA synchronous=NORMAL")
     }
 
     override fun onCreate(db: SQLiteDatabase) {
