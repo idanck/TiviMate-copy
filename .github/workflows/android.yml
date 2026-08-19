@@ -2,7 +2,9 @@ name: Android build
 
 on:
   push:
-    branches: ["**"]
+    # Every branch except the one this workflow publishes APKs to, so a build cannot
+    # trigger itself.
+    branches-ignore: ["apk"]
   workflow_dispatch:
 
 permissions:
@@ -58,6 +60,32 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish the APK to the apk branch
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          apk=$(ls dist/*.apk | head -1)
+          staging=$(mktemp -d)
+          cp "$apk" "$staging/"
+          cat > "$staging/README.md" <<EOF
+          # Latest build
+
+          Built from \`${GITHUB_SHA}\` on \`${GITHUB_REF_NAME}\` at $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          This branch is force-pushed on every build and holds a single APK, so it can be
+          fetched with git rather than through the Actions artefact API.
+          EOF
+          cd "$staging"
+          git init -q -b apk
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "build: APK for ${GITHUB_SHA:0:8} (${GITHUB_REF_NAME})"
+          git push -q --force \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk
 
       - name: Publish release
         # Only for the integration branch, so feature pushes do not create releases.

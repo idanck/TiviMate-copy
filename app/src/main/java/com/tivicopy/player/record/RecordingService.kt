@@ -117,7 +117,7 @@ class RecordingService : Service() {
             return
         }
 
-        dao.upsertRecording(recording.copy(state = RecordingState.RECORDING, filePath = target.displayPath))
+        dao.upsertRecording(recording.copy(state = RecordingState.RECORDING, filePath = target.locator))
         notify(recording, ongoing = true)
 
         var written = 0L
@@ -329,7 +329,12 @@ class RecordingService : Service() {
 /** Resolves the destination for a recording, on a SAF tree or a plain path. */
 object RecordingStorage {
 
-    data class Target(val uri: Uri, val displayPath: String)
+    /**
+     * [locator] is what gets stored on the recording: an absolute path for a plain file, or the
+     * document URI for a SAF tree. Both forms are enough to play the file back *and* to delete
+     * it later — storing only a display name would leave SAF recordings undeletable.
+     */
+    data class Target(val uri: Uri, val locator: String)
 
     /**
      * FR-REC-10 / 7.3: files are written through the Storage Access Framework into a tree the
@@ -355,7 +360,7 @@ object RecordingStorage {
             DocumentsContract.getTreeDocumentId(treeUri),
         )
         val created = DocumentsContract.createDocument(context.contentResolver, parent, MIME_TS, name)
-        created?.let { Target(it, name) }
+        created?.let { Target(it, it.toString()) }
     } catch (_: Exception) {
         null
     }
@@ -370,6 +375,18 @@ object RecordingStorage {
 
     private fun sanitize(raw: String): String =
         raw.replace(Regex("[\\\\/:*?\"<>|\\u0000-\\u001F]"), "_").trim().take(80).ifBlank { "untitled" }
+
+    /** Deletes a finished recording, whichever storage it landed on. */
+    fun delete(context: Context, locator: String?): Boolean {
+        if (locator.isNullOrBlank()) return false
+        return runCatching {
+            if (locator.startsWith("content://")) {
+                DocumentsContract.deleteDocument(context.contentResolver, Uri.parse(locator))
+            } else {
+                java.io.File(locator).delete()
+            }
+        }.getOrDefault(false)
+    }
 
     private const val MIME_TS = "video/mp2t"
 }

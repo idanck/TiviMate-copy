@@ -25,6 +25,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
+import com.tivicopy.player.record.RecordingStorage
 import com.tivicopy.player.ui.common.Badge
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
@@ -88,9 +89,9 @@ fun RecordingsScreen(
                     recording = recording,
                     onPrimary = {
                         scope.launch(Dispatchers.IO) {
-                            recording.filePath?.let { path ->
-                                if (path.startsWith("/")) java.io.File(path).delete()
-                            }
+                            // Deletes the file itself, on a plain path or a SAF tree alike, so a
+                            // removed recording does not keep occupying the user's storage.
+                            RecordingStorage.delete(ServiceLocator.appContext, recording.filePath)
                             ServiceLocator.dao.deleteRecording(recording.id)
                             withContext(Dispatchers.Main) { reloadToken++ }
                         }
