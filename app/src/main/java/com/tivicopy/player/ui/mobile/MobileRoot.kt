@@ -39,13 +39,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.data.prefs.AspectMode
+import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
@@ -58,7 +58,6 @@ import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
-import com.tivicopy.player.ui.settings.settingsSectionTitle
 
 enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
 
@@ -105,6 +104,15 @@ fun MobileRoot(
 
     val playback by vm.playbackStatus.collectAsState()
 
+    // FR-SET-04: on the TV shell the guide and channel-list start behaviours open an overlay,
+    // and `resumeStartChannel` deliberately plays nothing for them. The phone has no overlays,
+    // so the equivalent is the tab that opens first; without this both settings do nothing at
+    // all here and the user is left on Live with a black surface. The channel list already is
+    // the Live tab, so only the guide needs moving.
+    LaunchedEffect(Unit) {
+        if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
+    }
+
     // The add screen doubles as the first-run setup, and then it *is* the root: with no
     // playlist yet there is nothing behind it to go back to.
     val showAddSource = addingSource || (state.playlists.isEmpty() && !state.loading)
@@ -124,6 +132,10 @@ fun MobileRoot(
     // Registered from composition, so it takes precedence over the activity's exit handler for
     // exactly as long as there is somewhere to go back to.
     BackHandler(enabled = canGoBack, onBack = goBack)
+    // The landscape channel list is a sheet over the video with nothing to dismiss it but a
+    // tap on the video behind it. Without this, Back falls through to the activity and the
+    // second press quits the app with the list still on screen.
+    BackHandler(enabled = landscape && landscapeOverlay && !showAddSource) { landscapeOverlay = false }
 
     Scaffold(
         modifier = modifier,
@@ -132,9 +144,10 @@ fun MobileRoot(
             // out of a sub-screen is on the screen itself.
             if (canGoBack) {
                 TopAppBar(
-                    // The add screen carries its own heading, so the bar there is the back
-                    // arrow alone rather than the same words twice.
-                    title = { if (!addingSource) Text(settingsSectionTitle(settingsSection)) },
+                    // Every destination behind this bar draws its own heading — the add screen
+                    // and each settings section alike — so the bar is the back arrow on its
+                    // own rather than the same words twice, one above the other.
+                    title = {},
                     navigationIcon = {
                         IconButton(onClick = goBack) {
                             Icon(
@@ -224,7 +237,11 @@ fun MobileRoot(
                         subtitleScale = prefs.subtitleTextScale,
                         modifier = Modifier.fillMaxSize(),
                     )
-                    PlaybackStateOverlay(status = playback, modifier = Modifier.fillMaxSize())
+                    PlaybackStateOverlay(
+                        status = playback,
+                        opacity = prefs.overlayOpacity,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
 
                 if (!landscape) {

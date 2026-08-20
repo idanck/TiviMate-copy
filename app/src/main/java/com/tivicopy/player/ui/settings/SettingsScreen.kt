@@ -33,23 +33,6 @@ import com.tivicopy.player.ui.AppViewModel
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
-/** The heading for a section, so a shell can title the sub-screen it has navigated into. */
-@Composable
-fun settingsSectionTitle(section: SettingsSection): String = stringResource(
-    when (section) {
-        SettingsSection.ROOT -> R.string.settings_title
-        SettingsSection.SOURCES -> R.string.settings_sources
-        SettingsSection.PLAYBACK -> R.string.settings_playback
-        SettingsSection.APPEARANCE -> R.string.settings_appearance
-        SettingsSection.NETWORK -> R.string.settings_network
-        SettingsSection.RECORDING -> R.string.settings_recording
-        SettingsSection.PARENTAL -> R.string.settings_parental
-        SettingsSection.BACKUP -> R.string.settings_backup
-        SettingsSection.DIAGNOSTICS -> R.string.settings_diagnostics
-        SettingsSection.ABOUT -> R.string.settings_about
-    },
-)
-
 /**
  * Settings, organised so every screen is reachable with a D-pad alone (FR-UI-01).
  *

@@ -12,6 +12,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.player.PlaybackStatus
+import kotlinx.coroutines.delay
 
 /**
  * Says what the player is doing over the video surface.
@@ -33,20 +39,50 @@ import com.tivicopy.player.player.PlaybackStatus
  *
  * Nothing here handles pointer input, so the playback gestures on the surface below keep
  * working through it.
+ *
+ * A live stream dips into buffering for a fraction of a second fairly often, and a card that
+ * appeared for each of those would be worse than no card at all, so the busy state has to hold
+ * for [BUSY_GRACE_MILLIS] before anything is drawn. A channel that tunes faster than that never
+ * needed to be reported on.
+ *
+ * @param showErrorText whether a settled failure is spelled out here. The TV shell already
+ *   banners it at the edge of the screen, where a 10-foot layout wants it, and would otherwise
+ *   say the same thing twice; a still-retrying failure keeps its spinner either way, because
+ *   that is progress rather than a verdict.
+ * @param opacity the user's overlay opacity (FR-UI-16), so this card thins out with every other
+ *   overlay rather than staying the most solid thing on screen.
  */
 @Composable
-fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) {
+fun PlaybackStateOverlay(
+    status: PlaybackStatus,
+    modifier: Modifier = Modifier,
+    showErrorText: Boolean = true,
+    // Default matches `Settings.overlayOpacity`, for a caller with no preference to hand.
+    opacity: Float = 0.85f,
+) {
     val context = LocalContext.current
     val error = status.error
     // `errorDetail` is filled in only once the engine has stopped trying, which is what
     // separates "reconnecting" from "gave up" (see PlayerEngine.handleError).
     val retrying = error != null && status.errorDetail == null
-    val busy = error == null && status.buffering
+    val buffering = error == null && status.buffering
+
+    var busy by remember { mutableStateOf(false) }
+    LaunchedEffect(buffering) {
+        if (!buffering) {
+            busy = false
+            return@LaunchedEffect
+        }
+        delay(BUSY_GRACE_MILLIS)
+        busy = true
+    }
 
     if (error == null && !busy) return
+    // A settled failure the caller has chosen to render elsewhere leaves nothing to say.
+    if (error != null && !retrying && !showErrorText) return
 
     val message = when {
-        error != null -> error.describe(context)
+        error != null && showErrorText -> error.describe(context)
         else -> stringResource(R.string.playback_connecting)
     }
     val detail = when {
@@ -63,7 +99,7 @@ fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) 
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier
                 .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.82f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = opacity.coerceIn(0.1f, 1f)))
                 .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
             if (busy || retrying) {
@@ -83,7 +119,7 @@ fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) 
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (error != null && !retrying) {
+                color = if (error != null && !retrying && showErrorText) {
                     MaterialTheme.colorScheme.error
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
@@ -101,3 +137,6 @@ fun PlaybackStateOverlay(status: PlaybackStatus, modifier: Modifier = Modifier) 
         }
     }
 }
+
+/** How long buffering has to persist before it is worth drawing anything. */
+private const val BUSY_GRACE_MILLIS = 350L

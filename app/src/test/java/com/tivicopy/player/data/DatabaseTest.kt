@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.db.Database
+import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,9 +29,20 @@ class DatabaseTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
+    private val opened = mutableListOf<Database>()
+
+    /** Every helper here opens a real connection, so each one is closed again. */
+    private fun database(): Database = Database(context).also(opened::add)
+
+    @After
+    fun closeHelpers() {
+        opened.forEach(Database::close)
+        opened.clear()
+    }
+
     @Test
     fun `a fresh install opens the database and answers the cold-start queries`() {
-        val dao = Dao(Database(context))
+        val dao = Dao(database())
 
         // The three reads `App.onCreate` -> `RecordingScheduler.rearmAll` and the first frame
         // make before anything is on screen.
@@ -40,12 +52,16 @@ class DatabaseTest {
     }
 
     @Test
-    fun `every schema statement survives a second open`() {
-        // `onCreate` runs once, but `onUpgrade` replays the whole schema, so each statement has
-        // to be idempotent. A second helper over the same file proves the file is reusable.
-        Dao(Database(context)).playlists()
-        val reopened = Dao(Database(context))
+    fun `every schema statement survives being replayed`() {
+        // `onCreate` runs once, but `onUpgrade` replays the whole schema over a database that
+        // already has the tables, so each statement has to be idempotent. Reopening the file
+        // does not reach that path — the version has not moved — so the replay is done here
+        // directly, against the same statements and the same populated database.
+        val helper = database()
+        val db = helper.writableDatabase
+        Database.SCHEMA.forEach(db::execSQL)
 
+        val reopened = Dao(database())
         assertTrue(reopened.playlists().isEmpty())
         assertTrue(reopened.recordings().isEmpty())
     }

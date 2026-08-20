@@ -1,27 +1,43 @@
 package com.tivicopy.player.player
 
+import android.app.Application
+import androidx.media3.exoplayer.DefaultLoadControl
 import com.tivicopy.player.data.prefs.BufferPreset
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * `DefaultLoadControl` throws when its four durations are inconsistent, and the player is built
  * on the first frame — so an invalid preset is not a playback quirk, it is the app failing to
- * start. These are the exact invariants it asserts.
+ * start.
+ *
+ * These assert against the real load control rather than a copy of its rules: the rules are
+ * media3's to change, and a copy would stay green through the exact upgrade that starts
+ * rejecting one of these presets.
  */
+@RunWith(RobolectricTestRunner::class)
+// The plain platform Application, not this app's: `App.onCreate` starts WorkManager, which is
+// not initialised under Robolectric and fails every test in the class before it begins.
+@Config(sdk = [34], application = Application::class)
 class BufferDurationsTest {
 
+    /** Fails if media3 rejects the combination, which is the whole point of the test. */
     private fun assertAccepted(minMs: Int, maxMs: Int, playbackMs: Int, rebufferMs: Int) {
-        assertTrue("bufferForPlaybackMs must not be negative", playbackMs >= 0)
-        assertTrue("bufferForPlaybackAfterRebufferMs must not be negative", rebufferMs >= 0)
-        assertTrue("minBufferMs cannot be less than bufferForPlaybackMs", minMs >= playbackMs)
-        assertTrue(
-            "minBufferMs cannot be less than bufferForPlaybackAfterRebufferMs",
-            minMs >= rebufferMs,
-        )
-        assertTrue("maxBufferMs cannot be less than minBufferMs", maxMs >= minMs)
+        DefaultLoadControl.Builder()
+            .setBufferDurationsMs(minMs, maxMs, playbackMs, rebufferMs)
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
     }
+
+    private fun assertAccepted(durations: BufferDurations) = assertAccepted(
+        durations.minMs,
+        durations.maxMs,
+        durations.playbackMs,
+        durations.rebufferMs,
+    )
 
     @Test
     fun `every preset is a set of durations the load control accepts`() {
@@ -40,7 +56,7 @@ class BufferDurationsTest {
         )
 
         assertEquals(1_000, durations.minMs)
-        assertAccepted(durations.minMs, durations.maxMs, durations.playbackMs, durations.rebufferMs)
+        assertAccepted(durations)
     }
 
     @Test
@@ -54,19 +70,15 @@ class BufferDurationsTest {
 
         assertEquals(8_000, durations.minMs)
         assertEquals(8_000, durations.maxMs)
+        assertAccepted(durations)
     }
 
     @Test
     fun `nonsense stored by an older install still yields something buildable`() {
         // Custom values live in preferences, so they can be anything a previous version wrote.
-        val durations = BufferDurations.reconcile(
-            minMs = -1,
-            maxMs = -1,
-            playbackMs = -1,
-            rebufferMs = -1,
+        assertAccepted(
+            BufferDurations.reconcile(minMs = -1, maxMs = -1, playbackMs = -1, rebufferMs = -1),
         )
-
-        assertAccepted(durations.minMs, durations.maxMs, durations.playbackMs, durations.rebufferMs)
     }
 
     @Test
