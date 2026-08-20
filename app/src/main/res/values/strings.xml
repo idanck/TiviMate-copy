@@ -124,6 +124,7 @@
     <string name="aspect_16_9">16:9</string>
     <string name="aspect_4_3">4:3</string>
     <string name="aspect_original">Original</string>
+    <string name="aspect_changed">Aspect ratio: %1$s</string>
     <string name="buffer_size">Buffer</string>
     <string name="buffer_minimal">Minimal</string>
     <string name="buffer_small">Small</string>

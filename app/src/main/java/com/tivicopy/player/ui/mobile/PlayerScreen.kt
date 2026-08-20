@@ -14,16 +14,21 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,19 +49,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.prefs.AspectMode
+import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NowNextPane
+import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * The phone's Now Playing screen (ADR-011): a full-screen surface over the browse shell, the
@@ -102,6 +112,27 @@ fun PlayerScreen(
     val landscape = configuration.screenWidthDp > configuration.screenHeightDp
     var channelSheet by remember { mutableStateOf(false) }
 
+    // One aspect action for both routes into it — the long press on the video and the button
+    // in the details below. It always announces what it just did: the long press is easy to
+    // fire by accident, and a silently persisted Zoom reads as "the picture is suddenly
+    // cropped" (device report), with nothing on screen to explain or undo it.
+    val aspectChanged = stringResource(R.string.aspect_changed)
+    val aspectLabels = mapOf(
+        AspectMode.FIT to stringResource(R.string.aspect_fit),
+        AspectMode.FILL to stringResource(R.string.aspect_fill),
+        AspectMode.ZOOM to stringResource(R.string.aspect_zoom),
+        AspectMode.STRETCH to stringResource(R.string.aspect_stretch),
+        AspectMode.RATIO_16_9 to stringResource(R.string.aspect_16_9),
+        AspectMode.RATIO_4_3 to stringResource(R.string.aspect_4_3),
+        AspectMode.ORIGINAL to stringResource(R.string.aspect_original),
+    )
+    val cycleAspect: () -> Unit = {
+        val order = AspectMode.entries
+        val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
+        ServiceLocator.settings.setAspectMode(next)
+        vm.post(UiMessage(text = aspectChanged.format(aspectLabels.getValue(next))))
+    }
+
     // Close is registered first so the sheet's handler, registered after, wins while the sheet
     // is open: Back then dismisses the list before it collapses the screen.
     // The programme-turnover refresh lives in MobileRoot, which is always composed — here it
@@ -130,11 +161,7 @@ fun PlayerScreen(
                         },
                         onDoubleTapLeft = { ServiceLocator.player.exoPlayer().seekBack() },
                         onDoubleTapRight = { ServiceLocator.player.exoPlayer().seekForward() },
-                        onCycleAspect = {
-                            val order = AspectMode.entries
-                            val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
-                            ServiceLocator.settings.setAspectMode(next)
-                        },
+                        onCycleAspect = cycleAspect,
                         onTap = { if (landscape) channelSheet = !channelSheet },
                     ),
                 ) {
@@ -169,6 +196,7 @@ fun PlayerScreen(
                     NowPlayingDetails(
                         vm = vm,
                         onOpenGuide = onOpenGuide,
+                        onCycleAspect = cycleAspect,
                         modifier = Modifier.fillMaxWidth().weight(1f),
                     )
                 }
@@ -207,9 +235,11 @@ fun PlayerScreen(
 private fun NowPlayingDetails(
     vm: AppViewModel,
     onOpenGuide: () -> Unit,
+    onCycleAspect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
+    val playback by vm.playbackStatus.collectAsState()
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -259,38 +289,6 @@ private fun NowPlayingDetails(
                         )
                     }
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    // Transport-style arrows, deliberately not mirrored in RTL: like a seek bar,
-                    // "next" keeps its direction regardless of the reading order.
-                    FilledTonalIconButton(onClick = { vm.zap(-1) }) {
-                        Icon(
-                            imageVector = Icons.Filled.SkipPrevious,
-                            contentDescription = stringResource(R.string.channel_previous),
-                        )
-                    }
-                    TextButton(onClick = onOpenGuide, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Filled.DateRange, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(stringResource(R.string.nav_guide))
-                    }
-                    FilledTonalIconButton(onClick = { vm.zap(1) }) {
-                        Icon(
-                            imageVector = Icons.Filled.SkipNext,
-                            contentDescription = stringResource(R.string.channel_next),
-                        )
-                    }
-                }
-                HorizontalDivider()
-                NowNextPane(
-                    channel = channel,
-                    now = state.now,
-                    next = state.next,
-                    modifier = Modifier.fillMaxWidth(),
-                )
             }
 
             is NowPlayingInfo.Catchup -> {
@@ -368,7 +366,131 @@ private fun NowPlayingDetails(
             // Still tuning: the playback overlay on the surface above already says so.
             null -> Unit
         }
+
+        val live = state.nowPlaying as? NowPlayingInfo.Live
+        if (state.nowPlaying != null) {
+            TransportRow(
+                isPlaying = playback.playing,
+                showZap = live != null,
+                showGuide = live != null,
+                onTogglePlay = {
+                    val exo = ServiceLocator.player.exoPlayer()
+                    exo.playWhenReady = !exo.playWhenReady
+                },
+                onZapPrevious = { vm.zap(-1) },
+                onZapNext = { vm.zap(1) },
+                onOpenGuide = onOpenGuide,
+                onCycleAspect = onCycleAspect,
+            )
+            QualityLine(status = playback)
+        }
+        if (live != null) {
+            // Re-read from the current list, as above: the pane's channel identity must track
+            // edits made after playback started.
+            val channel = state.list.channels.firstOrNull { it.id == live.channel.id }
+                ?: live.channel
+            HorizontalDivider()
+            NowNextPane(
+                channel = channel,
+                now = state.now,
+                next = state.next,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
+}
+
+/**
+ * Play/pause front and centre — the one control every kind of playback needs (device report) —
+ * with zapping around it for live, and the guide and aspect actions on a second line. The
+ * arrows are deliberately not mirrored in RTL: like a seek bar, "next" keeps its direction
+ * regardless of the reading order.
+ */
+@Composable
+private fun TransportRow(
+    isPlaying: Boolean,
+    showZap: Boolean,
+    showGuide: Boolean,
+    onTogglePlay: () -> Unit,
+    onZapPrevious: () -> Unit,
+    onZapNext: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onCycleAspect: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (showZap) {
+            FilledTonalIconButton(onClick = onZapPrevious) {
+                Icon(
+                    imageVector = Icons.Filled.SkipPrevious,
+                    contentDescription = stringResource(R.string.channel_previous),
+                )
+            }
+        }
+        FilledIconButton(onClick = onTogglePlay, modifier = Modifier.size(64.dp)) {
+            Icon(
+                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = stringResource(
+                    if (isPlaying) R.string.action_pause else R.string.action_play,
+                ),
+                modifier = Modifier.size(32.dp),
+            )
+        }
+        if (showZap) {
+            FilledTonalIconButton(onClick = onZapNext) {
+                Icon(
+                    imageVector = Icons.Filled.SkipNext,
+                    contentDescription = stringResource(R.string.channel_next),
+                )
+            }
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        if (showGuide) {
+            TextButton(onClick = onOpenGuide) {
+                Icon(Icons.Filled.DateRange, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.nav_guide))
+            }
+        }
+        TextButton(onClick = onCycleAspect) {
+            Icon(Icons.Filled.AspectRatio, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(stringResource(R.string.aspect_ratio))
+        }
+    }
+}
+
+/**
+ * What the stream is actually delivering (device report asked to see it): resolution, frame
+ * rate, bitrate and codec, each shown only once known. Isolated LTR so the mixed run cannot
+ * reorder inside a Hebrew layout.
+ */
+@Composable
+private fun QualityLine(status: PlaybackStatus) {
+    val parts = buildList {
+        if (status.height > 0) add("${status.height}p")
+        if (status.frameRate > 0f) add("${status.frameRate.roundToInt()} fps")
+        if (status.bitrate > 0) {
+            add(String.format(Locale.ROOT, "%.1f Mbps", status.bitrate / 1_000_000f))
+        }
+        status.videoCodec?.takeIf { it.isNotBlank() }?.let { add(it.removePrefix("video/")) }
+    }
+    if (parts.isEmpty()) return
+    Text(
+        text = TimeModel.ltr(parts.joinToString(" · ")),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 /**

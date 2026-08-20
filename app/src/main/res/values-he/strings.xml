@@ -110,6 +110,7 @@
     <string name="aspect_16_9">16:9</string>
     <string name="aspect_4_3">4:3</string>
     <string name="aspect_original">מקורי</string>
+    <string name="aspect_changed">יחס תצוגה: %1$s</string>
     <string name="buffer_size">חוצץ</string>
     <string name="buffer_minimal">מינימלי</string>
     <string name="buffer_small">קטן</string>
