@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +113,13 @@ fun PlayerScreen(
     val configuration = LocalConfiguration.current
     val landscape = configuration.screenWidthDp > configuration.screenHeightDp
     var channelSheet by remember { mutableStateOf(false) }
+
+    // The sheet is a landscape construct; composition survives rotation (the activity handles
+    // it), so without this the flag stayed latched through portrait and the sheet popped back
+    // open, unasked, on the next rotate.
+    LaunchedEffect(landscape) {
+        if (!landscape) channelSheet = false
+    }
 
     // One aspect action for both routes into it — the long press on the video and the button
     // in the details below. It always announces what it just did: the long press is easy to

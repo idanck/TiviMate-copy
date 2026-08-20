@@ -38,8 +38,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +73,7 @@ import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
+import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import kotlinx.coroutines.delay
@@ -102,7 +106,9 @@ fun MobileRoot(
     val state by vm.state.collectAsState()
     val prefs by vm.settingsState.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
-    var tab by remember { mutableStateOf(MobileTab.LIVE) }
+    // Saveable: a language change recreates the activity, and plain `remember` dumped the
+    // user who did it from Settings back onto the Live tab.
+    var tab by rememberSaveable { mutableStateOf(MobileTab.LIVE) }
     var details by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
     // Loaded when the details dialog opens so a series recording can claim the episodes the
     // guide already lists, without querying on every recomposition.
@@ -122,15 +128,25 @@ fun MobileRoot(
     // A series picked out of search, handed to the on-demand tab so it opens on that series
     // rather than on the grid the user would then have to search again.
     var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
+    // Held here, above the tab switch and the search overlay, so leaving the on-demand tab and
+    // coming back restores the search box, the filter, the open series and the scroll position.
+    val vodState = remember { VodScreenState() }
 
     val configuration = LocalConfiguration.current
-    val twoPane = configuration.screenWidthDp >= 720
+    // The smallest width, not the current one: a tall phone lying down is ~800dp wide and is
+    // still a phone, not a tablet wanting three panes.
+    val twoPane = configuration.smallestScreenWidthDp >= 600
 
     // FR-SET-04: on the TV shell the guide and channel-list start behaviours open an overlay.
     // Here the channel list already is the Live tab, so only the guide needs moving; a resumed
-    // start channel opens the player screen instead, and MainActivity owns that flag.
+    // start channel opens the player screen instead, and MainActivity owns that flag. One-shot
+    // across recreation, or a language change would re-force the guide tab.
+    var startTabApplied by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
+        if (!startTabApplied) {
+            startTabApplied = true
+            if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
+        }
     }
 
     // Re-query now/next when the running programme ends, so neither the mini bar nor the player
@@ -341,6 +357,7 @@ fun MobileRoot(
                             modifier = Modifier.fillMaxSize(),
                             openSeriesRequest = pendingSeries,
                             onSeriesRequestConsumed = { pendingSeries = null },
+                            state = vodState,
                         )
                         MobileTab.RECORDINGS -> RecordingsScreen(
                             onPlayRecording = { recording -> if (vm.playRecording(recording)) openPlayer() },
@@ -409,7 +426,17 @@ private fun MiniPlayerBar(
     ) {
         Column {
             if (nowPlaying is NowPlayingInfo.Live && now != null) {
-                ProgrammeProgress(now.startUtc, now.endUtc)
+                // ProgrammeProgress computes its fraction at composition, which the TV info
+                // card recomposes constantly and this long-lived bar does not — without the
+                // tick it sat frozen at wherever the programme was when the bar appeared.
+                var tick by remember { mutableIntStateOf(0) }
+                LaunchedEffect(now.startUtc) {
+                    while (true) {
+                        delay(PROGRESS_TICK_MS)
+                        tick++
+                    }
+                }
+                key(tick) { ProgrammeProgress(now.startUtc, now.endUtc) }
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -460,3 +487,6 @@ private fun MiniPlayerBar(
 
 /** How long past a programme's end to wait before re-asking the guide, absorbing clock skew. */
 private const val PROGRAMME_TURNOVER_GRACE_MS = 5_000L
+
+/** How often the mini bar's progress strip advances on its own. */
+private const val PROGRESS_TICK_MS = 60_000L

@@ -44,6 +44,7 @@ import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
+import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 
@@ -74,6 +75,9 @@ fun TvRoot(
     // A series picked out of search, handed to the on-demand overlay so it opens on that series
     // rather than on the grid the user would then have to search again.
     var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
+    // Held here, above the overlay switch, so closing and reopening the on-demand overlay
+    // restores the search box, the filter, the open series and the scroll position.
+    val vodState = remember { VodScreenState() }
 
     // The screen drops the request itself once it has taken it; this only covers the request
     // that is never taken, because on demand was left before it composed.
@@ -187,6 +191,7 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                         openSeriesRequest = pendingSeries,
                         onSeriesRequestConsumed = { pendingSeries = null },
+                        state = vodState,
                     )
 
                     TvOverlay.SETTINGS -> SettingsScreen(

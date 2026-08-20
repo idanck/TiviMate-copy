@@ -335,11 +335,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** FR-PLB-18/19: relative zapping within whatever list is on screen. */
     fun zap(delta: Int) {
-        val channels = _state.value.list.channels.ifEmpty { return }
-        val currentId = _state.value.currentChannel?.id
-        val index = channels.indexOfFirst { it.id == currentId }
-        val nextIndex = if (index < 0) 0 else ((index + delta) % channels.size + channels.size) % channels.size
-        play(channels[nextIndex])
+        val current = _state.value.currentChannel
+        val channels = _state.value.list.channels
+        val index = channels.indexOfFirst { it.id == current?.id }
+        if (index >= 0) {
+            play(channels[(index + delta).mod(channels.size)])
+            return
+        }
+        // The playing channel is not in the browsed list — filtered away, or played from
+        // search. Zapping within a list the user cannot see jumped to its first row, which
+        // from the phone's player screen read as a leap to an unrelated channel; the playlist
+        // in its own order is the neighbourhood a viewer actually expects.
+        val playlistId = current?.playlistId ?: _state.value.activePlaylist?.id ?: return
+        viewModelScope.launch {
+            val prefs = settings.state.value
+            val all = withContext(Dispatchers.IO) {
+                val raw = dao.channels(playlistId, sort = prefs.channelSort)
+                if (prefs.hideLockedChannels) raw.filter { !it.locked } else raw
+            }
+            if (all.isEmpty()) return@launch
+            val at = all.indexOfFirst { it.id == current?.id }
+            play(if (at < 0) all[0] else all[(at + delta).mod(all.size)])
+        }
     }
 
     /** FR-PLB-19: jump by the channel number the user typed. */
@@ -478,10 +495,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         leaveVod()
         playingVod = item
-        player.playUrl(item.name, url, sources.profileFor(playlist), item.resumePositionMs)
+        // The generation pins the start to the latest tap: two quick taps read their resume
+        // marks concurrently, and without it the reads could complete out of order — the
+        // earlier film starting last and playing under the later one's title.
+        val generation = ++vodPlayGeneration
+        viewModelScope.launch {
+            // The database, not the caller's snapshot: the screens only re-read on their own
+            // triggers, so the tile's resume mark goes stale the moment another episode saves
+            // its place — and starting from a stale mark has the next save overwrite the real
+            // one, losing the viewer's position to the row they pressed (FR-PLB-29).
+            val resume = if (item.id == 0L) {
+                item.resumePositionMs
+            } else {
+                withContext(Dispatchers.IO) { dao.vodResumePosition(item.id) }
+            }
+            if (generation != vodPlayGeneration) return@launch
+            player.playUrl(item.name, url, sources.profileFor(playlist), resume)
+        }
         _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.OnDemand(item))
         return true
     }
+
+    /** Bumped per [playVod] so a slow resume read cannot start an older tap's film last. */
+    private var vodPlayGeneration = 0
 
     /**
      * What a previous visit already stored for one series. No network, so it answers at once.
@@ -518,6 +554,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             outcome?.getOrNull()?.let { listed ->
                 dao.transaction { d ->
                     listed.forEach { dao.upsertVod(d, it.copy(playlistId = playlistId)) }
+                    // What the panel stopped listing leaves the shelf too: a pruned episode
+                    // kept in the cache answers 404 through /series/, which reads like a
+                    // broken provider. Only on a successful fetch, and only inside its
+                    // transaction; surviving rows keep their favourite and resume marks.
+                    dao.deleteStaleEpisodes(d, playlistId, seriesId, listed.map { it.streamId }.toSet())
                 }
             }
             outcome to dao.episodes(playlistId, seriesId)
@@ -553,6 +594,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun leaveVod() {
         saveVodProgress()
         playingVod = null
+        // Every source switch passes through here, so a resume read still in flight belongs
+        // to a session that just ended — without this, its deferred start could replace the
+        // live channel that interrupted it.
+        vodPlayGeneration++
     }
 
     /**
@@ -571,8 +616,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Not `viewModelScope`: this is called from `Activity.onStop`, and on the way out of the
         // app `onCleared` cancels that scope immediately afterwards — often before the write has
         // been picked up. The one write that matters most would be the one most likely to be lost.
+        // Guarded, because `appScope` has no exception handler: a full disk on the way out of
+        // the app would otherwise crash the process over a bookkeeping write.
         ServiceLocator.appScope.launch {
-            dao.saveResume(item.id, keep, System.currentTimeMillis())
+            runCatching { dao.saveResume(item.id, keep, System.currentTimeMillis()) }
         }
     }
 

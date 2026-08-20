@@ -68,6 +68,9 @@ class MainActivity : ComponentActivity() {
     private var playerOpen by mutableStateOf(false)
     private var inPip by mutableStateOf(false)
 
+    /** Set when [onStop] paused a stream nothing was showing, so [onStart] can resume it. */
+    private var pausedInBackground = false
+
     /**
      * Read per press rather than cached: the layout direction follows the interface language, and
      * a change to that recreates the activity anyway, but the system locale can also change under
@@ -95,9 +98,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ServiceLocator.init(this)
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onBackPressedDispatcher.addCallback(this) { handleBack() }
         registerPipActionReceiver()
+
+        // A recreation must come back where it was. Locale is not in the manifest's
+        // `configChanges`, so a device-language change recreates the activity — and doing
+        // that inside a PiP window without these left the browse shell squeezed into it,
+        // with the video track disabled underneath.
+        playerOpen = savedInstanceState?.getBoolean(KEY_PLAYER_OPEN) ?: false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) inPip = isInPictureInPictureMode
+        if (inPip) playerOpen = true
 
         setContent {
             val prefs by vm.settingsState.collectAsState()
@@ -111,6 +121,17 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(inPip, playback.playWhenReady, playback.width, playback.height) {
                 if (inPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     runCatching { setPictureInPictureParams(pipParams(playback.playWhenReady)) }
+                }
+            }
+
+            // The screen stays awake for watching, not for reading: browsing is full screen
+            // now with no video on it, and pinning the display through a long look at the
+            // guide is battery spent on nothing.
+            LaunchedEffect(playerOpen, inPip) {
+                if (isTelevision || playerOpen || inPip) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 }
             }
             val context = LocalContext.current
@@ -422,6 +443,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        // Undo what [onStop] did for the background: the shells' own effects only re-run when
+        // their keys change, and coming back from the launcher changes none of them.
+        ServiceLocator.player.setVideoOutputWanted(isTelevision || playerOpen || inPip)
+        if (pausedInBackground) {
+            pausedInBackground = false
+            ServiceLocator.player.setPlayWhenReady(true)
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         // Where an on-demand title got to, written before the player can be torn down. The
@@ -430,12 +462,34 @@ class MainActivity : ComponentActivity() {
         vm.saveVodProgress()
         // Playback is released only when the activity really goes away; a recording keeps
         // running in its own foreground service either way.
-        if (isFinishing) ServiceLocator.player.release()
+        if (isFinishing) {
+            ServiceLocator.player.release()
+            return
+        }
+        // Stopped with no picture-in-picture window (the switch is off, the device has no
+        // PiP, or a launcher stopped the task instead of finishing it): nothing anywhere is
+        // showing this stream. Left alone it kept downloading and decoding video for no
+        // surface, and playing sound from a backgrounded app with no notification and no way
+        // to stop it. Pause, drop the video track, and let [onStart] undo both.
+        val pipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
+        if (!pipNow) {
+            if (vm.playbackStatus.value.playWhenReady) {
+                pausedInBackground = true
+                ServiceLocator.player.setPlayWhenReady(false)
+            }
+            ServiceLocator.player.setVideoOutputWanted(false)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_PLAYER_OPEN, playerOpen)
     }
 
     private companion object {
         const val EXIT_CONFIRM_WINDOW_MS = 3_000L
         const val ACTION_PIP_PLAY_PAUSE = "com.tivicopy.player.PIP_PLAY_PAUSE"
         const val PIP_REQUEST_PLAY_PAUSE = 1
+        const val KEY_PLAYER_OPEN = "player_open"
     }
 }

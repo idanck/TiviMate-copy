@@ -727,6 +727,47 @@ class Dao(private val helper: Database) {
             arrayOf(limit.toString()),
         ).mapAll(::readVod)
 
+    /**
+     * The stored resume mark for one on-demand row.
+     *
+     * Read at play time rather than trusted from the caller: the screen's snapshot goes stale
+     * the moment another episode saves its place, and starting from a stale mark has the next
+     * save overwrite the real one — the viewer's position, lost to the row they pressed
+     * (FR-PLB-29).
+     */
+    fun vodResumePosition(id: Long): Long = db.rawQuery(
+        "SELECT resume_position_ms FROM vod WHERE id=?",
+        arrayOf(id.toString()),
+    ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
+
+    /**
+     * Drops the episodes the panel no longer lists for one series; the rows it still lists
+     * survive with their favourite and resume marks. Called only after a successful
+     * `get_series_info`, inside its transaction — pruning on a failed fetch would wipe the
+     * cache the fetch exists to refresh. The episode guard spares the series container row.
+     */
+    fun deleteStaleEpisodes(
+        d: SQLiteDatabase,
+        playlistId: Long,
+        seriesId: String,
+        keepStreamIds: Set<String>,
+    ) {
+        val stale = d.rawQuery(
+            "SELECT id, stream_id FROM vod WHERE playlist_id=? AND series_id=? AND $IS_AN_EPISODE",
+            arrayOf(playlistId.toString(), seriesId),
+        ).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    if (c.getString(1) !in keepStreamIds) add(c.getLong(0))
+                }
+            }
+        }
+        // Ids are numeric and chunked under SQLite's placeholder ceiling.
+        stale.chunked(500).forEach { chunk ->
+            d.execSQL("DELETE FROM vod WHERE id IN (${chunk.joinToString(",")})")
+        }
+    }
+
     fun saveResume(vodId: Long, positionMs: Long, whenUtc: Long) {
         db.execSQL(
             "UPDATE vod SET resume_position_ms=?, last_watched_utc=? WHERE id=?",

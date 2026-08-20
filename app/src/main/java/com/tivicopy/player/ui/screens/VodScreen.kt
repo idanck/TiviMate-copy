@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -78,35 +77,29 @@ fun VodScreen(
     modifier: Modifier = Modifier,
     openSeriesRequest: VodItem? = null,
     onSeriesRequestConsumed: () -> Unit = {},
+    state: VodScreenState = rememberVodScreenState(),
 ) {
-    var openSeries by remember { mutableStateOf<VodItem?>(null) }
-    // Held here rather than inside the grid, because opening a series replaces the grid: without
-    // this, finding a series by typing its name and then coming back left an empty search box, a
-    // reset filter and the catalogue scrolled to the top.
-    val grid = remember { VodGridState() }
-    val gridScroll = rememberLazyGridState()
-
     // Taken once, and the shell told so it can drop it. The shell cannot see when the list is
     // dismissed, so a request left standing would reopen the series every time this screen came
     // back into composition — on returning from search, or on rotating.
     LaunchedEffect(openSeriesRequest) {
         val requested = openSeriesRequest ?: return@LaunchedEffect
-        openSeries = requested
+        state.openSeries = requested
         onSeriesRequestConsumed()
     }
 
     // Registered from composition, which is what makes it outrank the handlers both shells set up
     // before it — the activity's for the TV overlay, `MobileRoot`'s for the phone — for exactly as
     // long as the episode list is open. Back returns to the grid rather than leaving on demand.
-    BackHandler(enabled = openSeries != null) { openSeries = null }
+    BackHandler(enabled = state.openSeries != null) { state.openSeries = null }
 
-    val series = openSeries
+    val series = state.openSeries
     if (series != null) {
         SeriesEpisodes(
             vm = vm,
             series = series,
             onPlay = onPlay,
-            onBack = { openSeries = null },
+            onBack = { state.openSeries = null },
             modifier = modifier,
         )
         return
@@ -115,35 +108,58 @@ fun VodScreen(
     VodGrid(
         vm = vm,
         onPlay = onPlay,
-        onOpenSeries = { openSeries = it },
-        state = grid,
-        scroll = gridScroll,
+        onOpenSeries = { state.openSeries = it },
+        state = state,
         modifier = modifier,
     )
 }
 
-/** What the grid remembers about how the user left it. See [VodScreen] for why it lives there. */
-private class VodGridState {
+/**
+ * What the on-demand screen remembers about how the user left it: the search box, the
+ * favourites filter, the open series and the scroll position.
+ *
+ * It exists to be hoisted. Held inside this screen it survives only what happens *within* the
+ * screen (a series opening over the grid); the shells unmount the screen wholesale — a tab
+ * switch, the search overlay — and every route back then landed on an empty box, a reset
+ * filter and the top of the catalogue. The shell holds one of these and everything survives.
+ */
+class VodScreenState {
     var query by mutableStateOf("")
     var favouritesOnly by mutableStateOf(false)
+    var openSeries by mutableStateOf<VodItem?>(null)
+    val gridScroll = LazyGridState()
 
     /** Bumped after a favourite is toggled, so the grid re-reads without a full screen reload. */
     var revision by mutableIntStateOf(0)
 }
+
+/** A [VodScreenState] scoped to the calling composition, for callers with nowhere higher. */
+@Composable
+fun rememberVodScreenState(): VodScreenState = remember { VodScreenState() }
 
 @Composable
 private fun VodGrid(
     vm: AppViewModel,
     onPlay: (VodItem) -> Unit,
     onOpenSeries: (VodItem) -> Unit,
-    state: VodGridState,
-    scroll: LazyGridState,
+    state: VodScreenState,
     modifier: Modifier = Modifier,
 ) {
     val app by vm.state.collectAsState()
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf<List<VodItem>>(emptyList()) }
     var continueWatching by remember { mutableStateOf<List<VodItem>>(emptyList()) }
+
+    // One toggle for every tile on this screen. The write is off the main thread — `docs/11`
+    // finding 12 is the standing rule that no composable touches the database directly.
+    val toggleFavourite: (VodItem) -> Unit = { item ->
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                ServiceLocator.dao.setVodFavourite(item.id, !item.favourite)
+            }
+            state.revision++
+        }
+    }
 
     LaunchedEffect(app.activePlaylist?.id, state.query, state.favouritesOnly, state.revision) {
         val playlistId = app.activePlaylist?.id
@@ -192,7 +208,7 @@ private fun VodGrid(
 
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 130.dp),
-            state = scroll,
+            state = state.gridScroll,
             modifier = Modifier.fillMaxSize(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -202,41 +218,15 @@ private fun VodGrid(
                     SectionHeader(stringResource(R.string.recently_watched))
                 }
                 items(resumeRow, key = { "cw${it.id}" }) { item ->
-                    VodTile(
-                        item = item,
-                        onOpen = open,
-                        onToggleFavourite = {
-                            scope.launch {
-                                // The write is off the main thread; `docs/11` finding 12 is the
-                                // standing rule that no composable touches the database directly.
-                                withContext(Dispatchers.IO) {
-                                    ServiceLocator.dao.setVodFavourite(item.id, !item.favourite)
-                                }
-                                state.revision++
-                            }
-                        },
-                    )
+                    VodTile(item = item, onOpen = open, onToggleFavourite = { toggleFavourite(item) })
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionHeader(stringResource(R.string.nav_vod))
                 }
             }
             items(items, key = { it.id }) { item ->
-                    VodTile(
-                        item = item,
-                        onOpen = open,
-                        onToggleFavourite = {
-                            scope.launch {
-                                // The write is off the main thread; `docs/11` finding 12 is the
-                                // standing rule that no composable touches the database directly.
-                                withContext(Dispatchers.IO) {
-                                    ServiceLocator.dao.setVodFavourite(item.id, !item.favourite)
-                                }
-                                state.revision++
-                            }
-                        },
-                    )
-                }
+                VodTile(item = item, onOpen = open, onToggleFavourite = { toggleFavourite(item) })
+            }
         }
     }
 }
