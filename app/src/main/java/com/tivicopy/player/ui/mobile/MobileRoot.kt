@@ -70,6 +70,7 @@ import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
+import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import kotlinx.coroutines.delay
@@ -122,6 +123,9 @@ fun MobileRoot(
     // A series picked out of search, handed to the on-demand tab so it opens on that series
     // rather than on the grid the user would then have to search again.
     var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
+    // Held here, above the tab switch and the search overlay, so leaving the on-demand tab and
+    // coming back restores the search box, the filter, the open series and the scroll position.
+    val vodState = remember { VodScreenState() }
 
     val configuration = LocalConfiguration.current
     val twoPane = configuration.screenWidthDp >= 720
@@ -341,6 +345,7 @@ fun MobileRoot(
                             modifier = Modifier.fillMaxSize(),
                             openSeriesRequest = pendingSeries,
                             onSeriesRequestConsumed = { pendingSeries = null },
+                            state = vodState,
                         )
                         MobileTab.RECORDINGS -> RecordingsScreen(
                             onPlayRecording = { recording -> if (vm.playRecording(recording)) openPlayer() },

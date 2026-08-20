@@ -59,7 +59,7 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
 
     companion object {
         const val NAME = "tivicopy.db"
-        const val VERSION = 1
+        const val VERSION = 2
 
         val SCHEMA: List<String> = listOf(
             """
@@ -189,6 +189,9 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
             """.trimIndent(),
             "CREATE UNIQUE INDEX IF NOT EXISTS idx_vod_unique ON vod(playlist_id, stream_id)",
             "CREATE INDEX IF NOT EXISTS idx_vod_recent ON vod(last_watched_utc)",
+            // Serves `episodes()` and the stale-episode prune: without it every series open
+            // walks the playlist's whole vod set, which the schema sizes in tens of thousands.
+            "CREATE INDEX IF NOT EXISTS idx_vod_series ON vod(playlist_id, series_id)",
             """
             CREATE TABLE IF NOT EXISTS recordings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -217,7 +220,11 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
             """.trimIndent(),
         )
 
-        /** Reserved for schema version 2 and later; see [onUpgrade]. */
-        val MIGRATIONS: Map<Int, List<String>> = emptyMap()
+        /** One list per target version; see [onUpgrade]. Idempotent, additive only. */
+        val MIGRATIONS: Map<Int, List<String>> = mapOf(
+            2 to listOf(
+                "CREATE INDEX IF NOT EXISTS idx_vod_series ON vod(playlist_id, series_id)",
+            ),
+        )
     }
 }

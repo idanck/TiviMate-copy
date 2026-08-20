@@ -239,4 +239,48 @@ class VodQueriesTest {
 
         assertTrue(dao.continueWatching().isEmpty())
     }
+
+    /**
+     * Play-time reads the mark from the database, because the tile's snapshot goes stale the
+     * moment another episode saves its place — and starting from a stale mark has the next
+     * save overwrite the real one (FR-PLB-29).
+     */
+    @Test
+    fun `the stored resume mark is the authority, not the tile's snapshot`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        dao.put(episode(playlist, "31", "4211", "Pilot", season = 1, number = 1))
+        val stored = dao.episodes(playlist, "31").single()
+
+        dao.saveResume(stored.id, 30 * 60_000L, 1_700_000_000_000L)
+
+        assertEquals(30 * 60_000L, dao.vodResumePosition(stored.id))
+        // A row that does not exist resumes from the start rather than failing.
+        assertEquals(0L, dao.vodResumePosition(999_999L))
+    }
+
+    /**
+     * A pruned episode kept in the cache answers 404 through `/series/`, which reads like a
+     * broken provider. The survivors keep what the user set, and the series container — the
+     * same `series_id`, but not an episode — is spared.
+     */
+    @Test
+    fun `a successful fetch prunes the episodes the panel stopped listing`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        dao.put(seriesContainer(playlist, "31", "The Series"))
+        dao.put(episode(playlist, "31", "4211", "Pilot", season = 1, number = 1))
+        dao.put(episode(playlist, "31", "4212", "Fallout", season = 1, number = 2))
+        val kept = dao.episodes(playlist, "31").first { it.episodeNumber == 1 }
+        dao.setVodFavourite(kept.id, true)
+
+        dao.transaction { d ->
+            dao.deleteStaleEpisodes(d, playlist, "31", setOf(kept.streamId))
+        }
+
+        val after = dao.episodes(playlist, "31").single()
+        assertEquals("Pilot", after.name)
+        assertTrue(after.favourite)
+        assertEquals(1, dao.vod(playlist, seriesOnly = true).size)
+    }
 }

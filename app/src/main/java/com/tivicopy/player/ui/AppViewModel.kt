@@ -478,7 +478,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         leaveVod()
         playingVod = item
-        player.playUrl(item.name, url, sources.profileFor(playlist), item.resumePositionMs)
+        viewModelScope.launch {
+            // The database, not the caller's snapshot: the screens only re-read on their own
+            // triggers, so the tile's resume mark goes stale the moment another episode saves
+            // its place — and starting from a stale mark has the next save overwrite the real
+            // one, losing the viewer's position to the row they pressed (FR-PLB-29).
+            val resume = if (item.id == 0L) {
+                item.resumePositionMs
+            } else {
+                withContext(Dispatchers.IO) { dao.vodResumePosition(item.id) }
+            }
+            player.playUrl(item.name, url, sources.profileFor(playlist), resume)
+        }
         _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.OnDemand(item))
         return true
     }
@@ -518,6 +529,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             outcome?.getOrNull()?.let { listed ->
                 dao.transaction { d ->
                     listed.forEach { dao.upsertVod(d, it.copy(playlistId = playlistId)) }
+                    // What the panel stopped listing leaves the shelf too: a pruned episode
+                    // kept in the cache answers 404 through /series/, which reads like a
+                    // broken provider. Only on a successful fetch, and only inside its
+                    // transaction; surviving rows keep their favourite and resume marks.
+                    dao.deleteStaleEpisodes(d, playlistId, seriesId, listed.map { it.streamId }.toSet())
                 }
             }
             outcome to dao.episodes(playlistId, seriesId)
@@ -571,8 +587,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Not `viewModelScope`: this is called from `Activity.onStop`, and on the way out of the
         // app `onCleared` cancels that scope immediately afterwards — often before the write has
         // been picked up. The one write that matters most would be the one most likely to be lost.
+        // Guarded, because `appScope` has no exception handler: a full disk on the way out of
+        // the app would otherwise crash the process over a bookkeeping write.
         ServiceLocator.appScope.launch {
-            dao.saveResume(item.id, keep, System.currentTimeMillis())
+            runCatching { dao.saveResume(item.id, keep, System.currentTimeMillis()) }
         }
     }
 
