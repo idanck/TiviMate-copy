@@ -134,5 +134,70 @@ on the composition dispatcher, and mutated it from click handlers.
   have been taken on a reference device, and nothing here claims otherwise.
 - **`ProgrammeDetailsDialog` schedules on the main thread.** Two small queries and one insert
   behind a click. Worth moving if the recordings table ever grows large.
-- **A refresh can race a per-channel edit.** Both write whole channel rows. The window is tiny
-  and the loser is a single user edit, not data loss.
+- **A refresh can race a per-channel edit.** ~~Both write whole channel rows. The window is tiny
+  and the loser is a single user edit, not data loss.~~ **Fixed, and the original entry had it
+  backwards** — see finding 13.
+
+---
+
+## Second pass — the channel management work
+
+Read against the requirements the first pass marked done, asking not "does the code work" but
+"can anyone reach it".
+
+**13. Every per-channel edit rewrote the whole row, and the refresh was the loser.**
+`renameChannel`, `moveChannel`, `setChannelEpgOffset` and `setChannelDecoders` all went through
+`Dao.upsertChannel(snapshot.copy(...))`, which writes all thirty columns from whatever `Channel`
+the caller is holding. A refresh landing between reading that snapshot and writing the edit would
+have its provider fields — name, logo, urls, catch-up — pushed back to the stale values. The
+"Not addressed" entry above described the loser as a single user edit; it is the refresh that
+loses, and silently. It had never fired only because none of those four functions had a caller.
+**Fixed** — a targeted setter per concept, plus a regression test that drives a refresh between
+the read and the write (`ChannelQueriesTest`).
+
+**14. Seven view-model functions had no callers, and `docs/10` recorded them as done.**
+`setHidden`, `setLocked`, `renameChannel`, `moveChannel`, `setChannelEpgOffset`, `bindGuide` and
+`setChannelDecoders` were fully implemented and unreachable. FR-ORG-03 and FR-ORG-04 were marked
+Done on the strength of the data layer alone. **Fixed** — a channel options menu on both shells;
+`docs/10` corrected, and the two rows that were overstated now say what is and is not there.
+
+**15. Clock ranges reverse in a Hebrew layout.** `"${formatClock(start)} – ${formatClock(end)}"`
+is two runs of strong left-to-right digits joined by a bidirectionally neutral dash; in a
+right-to-left paragraph the dash takes the paragraph's direction and the times swap, so a
+programme is drawn as ending before it began. Six call sites. FR-UI-21 was marked Done on the
+strength of `supportsRtl` and start/end padding, neither of which touches this. **Fixed** —
+`TimeModel.ltr` and friends wrap each run in isolates.
+
+**16. The remote was not mirrored.** D-pad Left was hardwired to the channel list and Right to
+the mini guide, so a Hebrew interface had a mirrored screen driven by an unmirrored remote.
+**Fixed** — both follow the layout direction.
+
+**17. Search wrote into the channel list's filter.** Two different questions shared one field:
+opening search filtered the Live list, and closing it left that filter in place with nothing on
+screen to explain the shrunken list. Results were also scoped to whichever group was selected.
+**Fixed** — separate state, and a filter is now always visible once set.
+
+**18. Every `LIKE` clause passed the user's text straight through.** A search for `100%` matched
+everything beginning `100`, and `_` matched any character. **Fixed** — escaped, with `ESCAPE`
+declared per clause. Covered by a regression test.
+
+**19. Hiding a group hid only its row.** FR-ORG-03 names groups as well as channels, but the
+channel query never consulted `channel_groups.hidden`, so a hidden group's channels stayed in All
+channels. **Fixed** — a subquery, and a test.
+
+### Not addressed in this pass
+
+- **Backup skips a channel whose only change is its position.** `BackupManager.export` decides a
+  channel is worth exporting from the favourite, hidden, locked, custom name, logo, offset,
+  manual EPG id and decoder fields — not `number` or `sort_index`, which it then writes when it
+  does export. A channel the user only reordered or renumbered is left out. Widening the test to
+  include `sort_index` would export nearly every channel, since a refresh sets it on all of them;
+  doing it properly needs a signal for "the user has reordered this playlist". Recorded here
+  rather than half-fixed.
+- **A focusable control inside a focusable row is unverified on a D-pad.** The favourite toggle
+  on each channel row should be one step right, and `FocusableRow` now tracks `hasFocus` so the
+  row keeps its ring while the toggle has focus — but no D-pad has been near it. If the focus
+  order misbehaves, the same action is the first row of the options menu.
+- **The guide grid's mirroring is reasoned, not observed.** It is laid out in widths with no
+  pixel offsets and one shared scroll state, so it should mirror by construction. FR-UI-21 is
+  marked Partial rather than Done for exactly this reason.

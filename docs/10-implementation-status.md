@@ -34,16 +34,18 @@ feature that was otherwise in scope is simply available.
 | ID | Status | Notes |
 |---|---|---|
 | FR-ORG-01 | Done | Provider `group-title`, with an `Ungrouped` fallback. |
-| FR-ORG-02 | Partial | The schema and DAO support custom groups; the UI creates provider groups only. |
-| FR-ORG-03 | Done | Per channel and per group, persisted across refreshes. |
-| FR-ORG-04 | Done | `customName` never overwritten by a refresh. |
-| FR-ORG-05 | Partial | `AppViewModel.moveChannel` implements move-mode reordering; no drag handle on touch. |
-| FR-ORG-06 | Partial | Provider order and recently-watched are available; A–Z and most-watched are not surfaced. |
-| FR-ORG-07 | Done | Channels; VOD favourites are stored but not yet browsable as a view. |
-| FR-ORG-08 | Not implemented | Cross-playlist unified favourites. |
-| FR-ORG-09 | Done | `tvg-chno` or position; editable through the DAO. |
-| FR-ORG-10 | Done | Cached by Coil with a generated monogram fallback. |
-| FR-ORG-11 | Partial | The setting exists; new groups are currently always shown. |
+| FR-ORG-02 | Partial | Custom groups can be created, renamed, deleted and assigned to. Provider groups can be hidden but not renamed: `ensureGroup` matches them by name on every refresh, so a rename would orphan the group and have the provider's version recreated beside it. That needs a column remembering the original name, and a migration. |
+| FR-ORG-03 | Done | Per channel and per group, from the channel options, persisted across refreshes. Hiding a group now hides its channels too — until this change it removed only the group's row from the column. |
+| FR-ORG-04 | Partial | Channels: done, from the channel editor, and `customName` is never overwritten by a refresh. Groups: see FR-ORG-02. |
+| FR-ORG-05 | Partial | Move-mode reordering from the channel options, on both shells. No drag handle on touch. Offered only where the list is in the playlist's own order, because a swap in Favourites or Recently watched would reorder somewhere the user cannot see. |
+| FR-ORG-06 | Done | Provider order, A–Z, most watched and recently watched, from Appearance. |
+| FR-ORG-07 | Done | Channels and VOD, each from a control on the row or tile, with a Favourites view for both. |
+| FR-ORG-08 | Not implemented | Cross-playlist unified favourites. Every channel query is scoped to one playlist; `Dao.favouriteChannels` is the unused seam for it. |
+| FR-ORG-09 | Done | `tvg-chno` or position, editable from the channel editor and preserved by a refresh once set. |
+| FR-ORG-10 | Done | Cached by Coil with a generated monogram fallback, and a custom address can be set per channel. A picker for a local file is not offered — that needs a persistable URI grant. |
+| FR-ORG-11 | Done | `ensureGroup` honours the setting, and only for groups it creates: one the user has chosen to show stays shown. |
+| FR-ORG-12 | Done | Long press on touch, Menu on a remote. `dispatchKeyEvent` offers the view hierarchy the key before the activity's own Menu binding. |
+| FR-ORG-13 | Done | A Hidden view beside Favourites and Recently watched, with per-channel and show-all restores. |
 
 ## EPG — Guide data
 
@@ -104,7 +106,7 @@ feature that was otherwise in scope is simply available.
 | FR-UI-01..06 | Done | D-pad throughout; overlays draw over playing video. |
 | FR-UI-07 | Done by construction | Lazy channel axis plus a windowed query per visible page; not measured on a TV box. |
 | FR-UI-08 | Partial | Details, watch, catch-up, record and favourite; no reminder or series action. |
-| FR-UI-09 | Partial | Channels and guide entries; VOD is searched on its own tab. |
+| FR-UI-09 | Done | Channels, guide entries and VOD in one query over the whole playlist, debounced, reachable from the top bar on the phone and from the group column on the television. Catch-up programmes are covered only in so far as they are still in the guide window. |
 | FR-UI-10 | Done | Archive badge in the grid; recording state in the library. |
 | FR-UI-11 | Not implemented | Remappable keys. Defaults are as `docs/03` specifies. |
 | FR-UI-12 | Done | Key-code probe in Diagnostics. |
@@ -112,8 +114,9 @@ feature that was otherwise in scope is simply available.
 | FR-UI-16 | Partial | Two-pane above 720dp; no master/detail split view. |
 | FR-UI-17..19 | Done | Four themes, overlay opacity and timeout, font scale that reflows. |
 | FR-UI-20 | Not implemented | Configurable playback menu. |
-| FR-UI-21 | Done | `supportsRtl`, start/end padding throughout, Hebrew resources. |
+| FR-UI-21 | Partial | `supportsRtl`, start/end padding throughout, Hebrew resources, D-pad Left/Right mirrored to the layout direction, and clock ranges isolated so they no longer render end-first in a Hebrew paragraph. This was previously marked Done on the strength of the padding alone, while the remote and every composed time range were still wrong. The guide grid should mirror by construction — it is laid out in widths, with no pixel offsets — but that has not been checked on a device. |
 | FR-UI-22 | Not implemented | Chromecast sender. |
+| FR-UI-23 | Done | Follow the device, English or Hebrew, from Appearance; applied by wrapping the base context, and the activity is recreated. See `docs/adr/ADR-009`. |
 | FR-PRF-01..03 | Not implemented | Profiles. |
 | FR-PRF-04 / 05 / 08 | Done | PBKDF2 salted hash, lock scope settings, documented recovery. |
 | FR-PRF-06 | Not implemented | Lock by EPG rating. The `rating` column is populated. |

@@ -33,6 +33,22 @@
 - Screensaver / burn-in protection: dim or hide static overlays after N minutes on a
   paused or static stream.
 
+## 5.3a Interface language and channel organisation
+
+- **Interface language** (FR-UI-23): follow the device, English, or Hebrew — chosen in the app,
+  not by switching the whole device. Choosing a right-to-left language mirrors the layout and the
+  remote's horizontal bindings with it. Applied by wrapping the base context and recreating the
+  activity; `docs/adr/ADR-009` records why, and why the AppCompat route was rejected. The set of
+  languages is bounded by `resourceConfigurations` in the build file.
+- **Channel order** (FR-ORG-06): the playlist's own order, A–Z, most watched, or recently
+  watched. Manual moves are stored in `sort_index`, which only the first of those reads, so
+  switching away parks a hand-made order rather than losing it.
+- **Show groups your provider adds later** (FR-ORG-11): applied when a group is first created by
+  a refresh. A group the user has since chosen to show is never hidden again.
+- **Hidden channels**: hiding is what "remove" means here, and it is reversible — hidden channels
+  keep a view of their own in the channel list, restorable one at a time or all at once.
+  `docs/adr/ADR-010` records why there is no delete.
+
 ## 5.4 Backup, restore and sync
 
 - **Local backup/restore** of the full configuration (playlists, groups, favourites,
