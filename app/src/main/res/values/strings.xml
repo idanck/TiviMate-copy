@@ -210,8 +210,65 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_amoled">AMOLED black</string>
+    <!--
+      The isolate characters around the signed offsets are deliberate: a leading "+" or "-" is
+      bidirectionally neutral, so in a Hebrew layout it migrates to the far side and "-1d" is
+      drawn as "1d-". U+2066/U+2069 keep each one whole (NFR-UX-08).
+    -->
+    <string name="guide_shift_back_day">⁦-1d⁩</string>
+    <string name="guide_shift_back_hours">⁦-2h⁩</string>
+    <string name="guide_shift_forward_hours">⁦+2h⁩</string>
+    <string name="guide_shift_forward_day">⁦+1d⁩</string>
+    <string name="settings_show_new_groups">Show groups your provider adds later</string>
+    <string name="settings_channel_sort">Channel order</string>
+    <string name="sort_provider">As your playlist sends them</string>
+    <string name="sort_name">A to Z</string>
+    <string name="sort_most_watched">Most watched</string>
+    <string name="sort_recent">Recently watched</string>
+    <string name="sort_manual_note">Moving a channel by hand only applies to your playlist\'s own order.</string>
+    <string name="group_manage">Groups</string>
+    <string name="group_new">New group</string>
+    <string name="group_name">Group name</string>
+    <string name="group_exists">This playlist already has a group called %1$s.</string>
+    <string name="group_options">Group options</string>
+    <string name="group_delete">Delete this group</string>
+    <string name="group_rename_provider">Groups that came with your playlist are matched by name on every refresh, so they cannot be renamed. You can hide one, or make a group of your own.</string>
+    <string name="channel_options">Channel options</string>
+    <string name="channel_options_hint">Long press a channel, or press Menu on the remote, for its options.</string>
+    <string name="channel_move_up">Move up</string>
+    <string name="channel_move_down">Move down</string>
+    <string name="channel_move_unavailable">Reordering works in All channels and in a group, with the channel order set to your playlist\'s own.</string>
+    <string name="channel_edit">Edit channel</string>
+    <string name="channel_advanced">Guide and decoding</string>
+    <string name="channel_custom_name">Name</string>
+    <string name="channel_custom_logo">Logo address</string>
+    <string name="channel_number">Channel number</string>
+    <string name="channel_group">Group</string>
+    <string name="channel_group_none">No group</string>
+    <string name="channel_reset">Undo my changes to this channel</string>
+    <string name="channel_reset_done">%1$s is back to the values your provider sent.</string>
+    <string name="channel_hidden_done">%1$s is hidden. Find it again under Hidden channels.</string>
+    <string name="channel_shown_done">%1$s is back in the list.</string>
+    <string name="channel_lock">Lock with the parental PIN</string>
+    <string name="channel_unlock">Remove the parental lock</string>
+    <string name="filter_channels">Filter channels</string>
+    <string name="filter_active">Filtered: %1$s</string>
+    <string name="action_clear">Clear</string>
+    <string name="hidden_channels">Hidden channels</string>
+    <string name="hidden_channels_empty">Nothing is hidden. Hiding a channel from its options menu removes it from every list until you show it again.</string>
+    <string name="action_show_all">Show all</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_hint">Applies immediately. Choosing Hebrew also mirrors the layout right to left.</string>
+    <string name="language_system">Follow the device</string>
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
     <string name="settings_font_scale">Text size</string>
     <string name="settings_overlay_hide">Hide overlays after</string>
+    <string name="settings_overlay_opacity">Overlay opacity</string>
+    <string name="settings_audio_language">Preferred audio language</string>
+    <string name="settings_subtitles_enabled">Show subtitles</string>
+    <string name="settings_subtitle_language">Preferred subtitle language</string>
+    <string name="settings_subtitle_scale">Subtitle size</string>
     <string name="settings_seconds">%1$d s</string>
     <string name="settings_epg_offset">Guide time offset</string>
     <string name="settings_epg_offset_channel">Offset for this channel</string>

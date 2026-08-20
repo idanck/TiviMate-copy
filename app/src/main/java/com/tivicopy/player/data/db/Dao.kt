@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.CatchupMode
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgChannel
@@ -14,6 +15,9 @@ import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.data.model.VodItem
+
+/** Declares the escape character used by every `LIKE` clause here. See [Dao.likePattern]. */
+private const val LIKE_ESCAPE = " ESCAPE '\\'"
 
 /**
  * Data access for [Database]. Every method takes or opens a writable handle; SQLiteOpenHelper
@@ -117,18 +121,67 @@ class Dao(private val helper: Database) {
         db.query("channel_groups", null, "id=?", arrayOf(id.toString()), null, null, null)
             .firstOrNull(::readGroup)
 
-    /** Returns the id of an existing group with this name, or creates one. */
-    fun ensureGroup(d: SQLiteDatabase, playlistId: Long, name: String, sortIndex: Int): Long {
+    /**
+     * Returns the id of an existing group with this name, or creates one.
+     *
+     * [hiddenWhenNew] applies only on creation (FR-ORG-11): a group the user has already chosen to
+     * show must not be hidden again by the next refresh.
+     */
+    fun ensureGroup(
+        d: SQLiteDatabase,
+        playlistId: Long,
+        name: String,
+        sortIndex: Int,
+        hiddenWhenNew: Boolean = false,
+    ): Long {
         d.query("channel_groups", arrayOf("id"), "playlist_id=? AND name=?", arrayOf(playlistId.toString(), name), null, null, null)
             .use { c -> if (c.moveToFirst()) return c.getLong(0) }
         val v = ContentValues().apply {
             put("playlist_id", playlistId)
             put("name", name)
             put("custom", 0)
+            put("hidden", if (hiddenWhenNew) 1 else 0)
             put("sort_index", sortIndex)
         }
         return d.insert("channel_groups", null, v)
     }
+
+    /**
+     * Creates a group the user owns (FR-ORG-02). Returns -1 when the playlist already has one by
+     * that name, which the unique index enforces — the caller reports that rather than silently
+     * doing nothing.
+     */
+    fun createCustomGroup(playlistId: Long, name: String, sortIndex: Int): Long = db.insertWithOnConflict(
+        "channel_groups",
+        null,
+        ContentValues().apply {
+            put("playlist_id", playlistId)
+            put("name", name)
+            put("custom", 1)
+            put("hidden", 0)
+            put("sort_index", sortIndex)
+        },
+        SQLiteDatabase.CONFLICT_IGNORE,
+    )
+
+    fun setGroupHidden(id: Long, hidden: Boolean) {
+        db.update(
+            "channel_groups",
+            ContentValues().apply { put("hidden", if (hidden) 1 else 0) },
+            "id=?",
+            arrayOf(id.toString()),
+        )
+    }
+
+    /** Renames a group. Returns false when the playlist already has one by that name. */
+    fun renameGroup(id: Long, name: String): Boolean = runCatching {
+        db.update(
+            "channel_groups",
+            ContentValues().apply { put("name", name) },
+            "id=?",
+            arrayOf(id.toString()),
+        ) > 0
+    }.getOrDefault(false)
 
     fun upsertGroup(g: ChannelGroup): Long {
         val v = ContentValues().apply {
@@ -139,11 +192,20 @@ class Dao(private val helper: Database) {
             put("locked", if (g.locked) 1 else 0)
             put("sort_index", g.sortIndex)
         }
-        return if (g.id == 0L) db.insertWithOnConflict("channel_groups", null, v, SQLiteDatabase.CONFLICT_IGNORE)
-        else {
+        if (g.id != 0L) {
             db.update("channel_groups", v, "id=?", arrayOf(g.id.toString()))
-            g.id
+            return g.id
         }
+        val inserted = db.insertWithOnConflict("channel_groups", null, v, SQLiteDatabase.CONFLICT_IGNORE)
+        if (inserted != -1L) return inserted
+        // The unique index on (playlist_id, name) rejected the insert. Ignoring that silently is
+        // what made restoring a backup drop the hidden flag and the ordering of every group the
+        // refresh had already recreated, while still reporting them as restored.
+        db.update("channel_groups", v, "playlist_id=? AND name=?", arrayOf(g.playlistId.toString(), g.name))
+        return db.query(
+            "channel_groups", arrayOf("id"), "playlist_id=? AND name=?",
+            arrayOf(g.playlistId.toString(), g.name), null, null, null,
+        ).use { c -> if (c.moveToFirst()) c.getLong(0) else -1L }
     }
 
     fun deleteGroup(id: Long) {
@@ -163,27 +225,67 @@ class Dao(private val helper: Database) {
 
     // ----------------------------------------------------------------- channels
 
+    /**
+     * A `LIKE` pattern that matches [query] literally.
+     *
+     * `%` and `_` are wildcards, so a search for "100%" without this matches everything that
+     * starts with "100". The escape character has to be declared per clause with `ESCAPE`.
+     */
+    fun likePattern(query: String): String = "%" + query
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_") + "%"
+
     fun channels(
         playlistId: Long,
         groupId: Long? = null,
         favouritesOnly: Boolean = false,
+        hiddenOnly: Boolean = false,
         includeHidden: Boolean = false,
         search: String? = null,
+        sort: ChannelSort = ChannelSort.PROVIDER,
         limit: Int = 0,
     ): List<Channel> {
         val where = StringBuilder("playlist_id=?")
         val args = mutableListOf(playlistId.toString())
         if (groupId != null) { where.append(" AND group_id=?"); args += groupId.toString() }
         if (favouritesOnly) where.append(" AND favourite=1")
-        if (!includeHidden) where.append(" AND hidden=0")
-        if (!search.isNullOrBlank()) {
-            where.append(" AND (name LIKE ? OR IFNULL(custom_name,'') LIKE ?)")
-            args += "%$search%"; args += "%$search%"
+        when {
+            hiddenOnly -> where.append(" AND hidden=1")
+            !includeHidden -> {
+                where.append(" AND hidden=0")
+                // FR-ORG-03 covers whole groups, not just channels. Hiding a group used to remove
+                // only its row from the group column, leaving its channels under All channels.
+                where.append(
+                    " AND (group_id IS NULL OR group_id NOT IN " +
+                        "(SELECT id FROM channel_groups WHERE hidden=1))",
+                )
+            }
         }
-        val sql = "SELECT * FROM channels WHERE $where ORDER BY sort_index, number, name" +
+        if (!search.isNullOrBlank()) {
+            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
+        }
+        // `sort.orderBy` is a constant on the enum, never anything the user typed.
+        val sql = "SELECT * FROM channels WHERE $where ORDER BY ${sort.orderBy}" +
             if (limit > 0) " LIMIT $limit" else ""
         return db.rawQuery(sql, args.toTypedArray()).mapAll(::readChannel)
     }
+
+    /** The channel a guide entry belongs to, so a search hit on a programme can be played. */
+    fun channelForEpgId(epgId: String): Channel? = db.rawQuery(
+        "SELECT * FROM channels WHERE (manual_epg_id=? OR resolved_epg_id=?) AND hidden=0 LIMIT 1",
+        arrayOf(epgId, epgId),
+    ).firstOrNull(::readChannel)
+
+    /** Puts every hidden channel in a playlist back on screen. Returns how many were restored. */
+    fun showAllHidden(playlistId: Long): Int = db.update(
+        "channels",
+        ContentValues().apply { put("hidden", 0) },
+        "playlist_id=? AND hidden=1",
+        arrayOf(playlistId.toString()),
+    )
 
     fun allChannels(includeHidden: Boolean = true): List<Channel> {
         val where = if (includeHidden) "1=1" else "hidden=0"
@@ -198,11 +300,25 @@ class Dao(private val helper: Database) {
         db.rawQuery("SELECT * FROM channels WHERE favourite=1 AND hidden=0 ORDER BY sort_index, number, name", null)
             .mapAll(::readChannel)
 
-    fun recentChannels(limit: Int = 25): List<Channel> =
-        db.rawQuery(
-            "SELECT * FROM channels WHERE last_watched_utc>0 AND hidden=0 ORDER BY last_watched_utc DESC LIMIT ?",
-            arrayOf(limit.toString()),
+    /**
+     * Recently watched, newest first. Deliberately spans every playlist — the same choice
+     * `continueWatching` makes for on-demand — because "what was I just watching" is not a
+     * question about the playlist that happens to be selected.
+     */
+    fun recentChannels(search: String? = null, limit: Int = 25): List<Channel> {
+        val where = StringBuilder("last_watched_utc>0 AND hidden=0")
+        val args = mutableListOf<String>()
+        if (!search.isNullOrBlank()) {
+            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
+        }
+        args += limit.toString()
+        return db.rawQuery(
+            "SELECT * FROM channels WHERE $where ORDER BY last_watched_utc DESC LIMIT ?",
+            args.toTypedArray(),
         ).mapAll(::readChannel)
+    }
 
     fun channelValues(ch: Channel): ContentValues = ContentValues().apply {
         put("playlist_id", ch.playlistId)
@@ -257,8 +373,83 @@ class Dao(private val helper: Database) {
         favourite?.let { v.put("favourite", if (it) 1 else 0) }
         hidden?.let { v.put("hidden", if (it) 1 else 0) }
         locked?.let { v.put("locked", if (it) 1 else 0) }
+        writeChannelFields(id, v)
+    }
+
+    // ------------------------------------------------- targeted channel edits
+    //
+    // A user edit must touch only the columns it owns. [upsertChannel] writes all thirty from
+    // whatever `Channel` the caller happens to be holding, so an edit made against a snapshot
+    // taken before a refresh lands would push the stale *provider* fields — name, logo, urls,
+    // catch-up — back over the fresh ones. `docs/11` records that race as "the loser is a single
+    // user edit"; it is in fact the refresh that loses. These setters close it: each writes one
+    // concept, and the row keeps everything the caller never asked to change.
+
+    private fun writeChannelFields(id: Long, v: ContentValues) {
         if (v.size() > 0) db.update("channels", v, "id=?", arrayOf(id.toString()))
     }
+
+    /** FR-ORG-04: a local rename. Null restores the provider's own name. */
+    fun setChannelCustomName(id: Long, customName: String?) =
+        writeChannelFields(id, ContentValues().apply { put("custom_name", customName) })
+
+    /** FR-ORG-10: a user-supplied logo, overriding whatever the playlist carried. */
+    fun setChannelCustomLogo(id: Long, url: String?) =
+        writeChannelFields(id, ContentValues().apply { put("custom_logo_url", url) })
+
+    /** FR-ORG-09: the number numeric zapping uses. */
+    fun setChannelNumber(id: Long, number: Int) =
+        writeChannelFields(id, ContentValues().apply { put("number", number) })
+
+    /** FR-ORG-05: manual ordering. */
+    fun setChannelSortIndex(id: Long, sortIndex: Int) =
+        writeChannelFields(id, ContentValues().apply { put("sort_index", sortIndex) })
+
+    /** FR-ORG-02: move a channel between groups; null leaves it ungrouped. */
+    fun setChannelGroup(id: Long, groupId: Long?) = writeChannelFields(
+        id,
+        ContentValues().apply { if (groupId == null) putNull("group_id") else put("group_id", groupId) },
+    )
+
+    /** FR-EPG-12: a per-channel guide offset. */
+    fun setChannelEpgOffset(id: Long, minutes: Int?) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            if (minutes == null) putNull("epg_offset_minutes") else put("epg_offset_minutes", minutes)
+        },
+    )
+
+    /** FR-PLB-04: a decoder choice remembered for one channel. */
+    fun setChannelDecoders(id: Long, video: DecoderMode, audio: DecoderMode) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            put("video_decoder", video.name)
+            put("audio_decoder", audio.name)
+        },
+    )
+
+    /** FR-EPG-08: the guide entry a channel is bound to, and how it was arrived at. */
+    fun setChannelBinding(id: Long, manualEpgId: String?, resolvedEpgId: String?, matchKind: String) =
+        writeChannelFields(
+            id,
+            ContentValues().apply {
+                put("manual_epg_id", manualEpgId)
+                put("resolved_epg_id", resolvedEpgId)
+                put("match_kind", matchKind)
+            },
+        )
+
+    /** Drops every local customisation, leaving the provider's own values in place. */
+    fun resetChannelCustomisations(id: Long) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            putNull("custom_name")
+            putNull("custom_logo_url")
+            putNull("epg_offset_minutes")
+            put("video_decoder", DecoderMode.AUTO.name)
+            put("audio_decoder", DecoderMode.AUTO.name)
+        },
+    )
 
     fun recordWatch(channelId: Long, whenUtc: Long) {
         db.execSQL(
@@ -319,8 +510,9 @@ class Dao(private val helper: Database) {
         val sql = StringBuilder("SELECT * FROM epg_channels")
         val args = mutableListOf<String>()
         if (!search.isNullOrBlank()) {
-            sql.append(" WHERE epg_id LIKE ? OR display_names LIKE ?")
-            args += "%$search%"; args += "%$search%"
+            sql.append(" WHERE epg_id LIKE ?$LIKE_ESCAPE OR display_names LIKE ?$LIKE_ESCAPE")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
         }
         sql.append(" ORDER BY epg_id LIMIT ").append(limit)
         return db.rawQuery(sql.toString(), args.toTypedArray()).mapAll { c ->
@@ -395,8 +587,8 @@ class Dao(private val helper: Database) {
 
     fun searchProgrammes(query: String, fromUtc: Long, limit: Int = 200): List<Programme> =
         db.rawQuery(
-            "SELECT * FROM programmes WHERE title LIKE ? AND end_utc>=? ORDER BY start_utc LIMIT ?",
-            arrayOf("%$query%", fromUtc.toString(), limit.toString()),
+            "SELECT * FROM programmes WHERE title LIKE ?$LIKE_ESCAPE AND end_utc>=? ORDER BY start_utc LIMIT ?",
+            arrayOf(likePattern(query), fromUtc.toString(), limit.toString()),
         ).mapAll(::readProgramme)
 
     fun programmeCount(): Int =
@@ -456,12 +648,22 @@ class Dao(private val helper: Database) {
         if (updated == 0) d.insertWithOnConflict("vod", null, v, SQLiteDatabase.CONFLICT_IGNORE)
     }
 
-    fun vod(playlistId: Long, seriesOnly: Boolean = false, movieOnly: Boolean = false, search: String? = null, limit: Int = 500): List<VodItem> {
+    fun vod(
+        playlistId: Long,
+        seriesOnly: Boolean = false,
+        movieOnly: Boolean = false,
+        favouritesOnly: Boolean = false,
+        search: String? = null,
+        limit: Int = 500,
+    ): List<VodItem> {
         val where = StringBuilder("playlist_id=?")
         val args = mutableListOf(playlistId.toString())
         if (seriesOnly) where.append(" AND series_id IS NOT NULL")
         if (movieOnly) where.append(" AND series_id IS NULL")
-        if (!search.isNullOrBlank()) { where.append(" AND name LIKE ?"); args += "%$search%" }
+        if (favouritesOnly) where.append(" AND favourite=1")
+        if (!search.isNullOrBlank()) {
+            where.append(" AND name LIKE ?$LIKE_ESCAPE"); args += likePattern(search)
+        }
         return db.rawQuery(
             "SELECT * FROM vod WHERE $where ORDER BY name LIMIT $limit", args.toTypedArray(),
         ).mapAll(::readVod)

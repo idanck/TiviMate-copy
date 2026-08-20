@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
@@ -12,6 +13,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgMatchStats
 import com.tivicopy.player.data.model.Playlist
@@ -20,6 +22,8 @@ import com.tivicopy.player.data.model.RefreshReport
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.player.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -28,19 +32,44 @@ import kotlinx.coroutines.withContext
 /** A transient message for the user: a toast-style line with an optional error behind it. */
 data class UiMessage(val text: String? = null, val error: AppError? = null, val id: Long = System.nanoTime())
 
-/** Pseudo-group ids for the two synthetic views in the channel list. */
+/** Pseudo-group ids for the synthetic views in the channel list. */
 object VirtualGroup {
     const val ALL = -1L
     const val FAVOURITES = -2L
     const val RECENT = -3L
+
+    /**
+     * The only way back from hiding a channel (FR-ORG-03). A virtual group rather than a screen of
+     * its own: it is reachable with a D-pad, identical on both shells, and needs no navigation.
+     */
+    const val HIDDEN = -4L
 }
 
 data class ChannelListState(
     val groups: List<ChannelGroup> = emptyList(),
     val selectedGroupId: Long = VirtualGroup.ALL,
     val channels: List<Channel> = emptyList(),
+    /** The channel-list filter box. Scoped to the selected group, and always visible when set. */
     val search: String = "",
 )
+
+/**
+ * The search screen's own results (FR-UI-09).
+ *
+ * Deliberately separate from [ChannelListState.search]. They were one field, so opening search
+ * filtered the Live list and closing it left the filter in place with nothing on screen to explain
+ * it — and results were silently limited to whichever group happened to be selected. A filter and
+ * a search are different questions.
+ */
+data class SearchState(
+    val query: String = "",
+    val running: Boolean = false,
+    val channels: List<Channel> = emptyList(),
+    val programmes: List<Programme> = emptyList(),
+    val vod: List<com.tivicopy.player.data.model.VodItem> = emptyList(),
+) {
+    val isEmpty: Boolean get() = channels.isEmpty() && programmes.isEmpty() && vod.isEmpty()
+}
 
 data class AppUiState(
     val loading: Boolean = true,
@@ -80,6 +109,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val main = Handler(Looper.getMainLooper())
 
+    private var listJob: Job? = null
+
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
         player.onNotice = { error, what ->
@@ -88,9 +119,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         reload()
     }
 
-    private fun noticeText(error: AppError, what: String): String = when {
-        what == "software" -> getApplication<Application>().getString(com.tivicopy.player.R.string.decoder_fell_back)
-        else -> getApplication<Application>().getString(com.tivicopy.player.R.string.failover_switched, what)
+    // `ServiceLocator.locale`, not the application context: `Application` is attached once and
+    // never rebuilt, so after a language change it still resolves the previous one until the
+    // process dies (FR-UI-23).
+    private fun noticeText(error: AppError, what: String): String {
+        val strings = ServiceLocator.locale
+        return when {
+            what == "software" -> strings.getString(com.tivicopy.player.R.string.decoder_fell_back)
+            else -> strings.getString(com.tivicopy.player.R.string.failover_switched, what)
+        }
     }
 
     // ------------------------------------------------------------------ load
@@ -101,7 +138,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val playlists = dao.playlists()
                 val activeId = settings.state.value.activePlaylistId
                 val active = playlists.firstOrNull { it.id == activeId } ?: playlists.firstOrNull()
-                val groups = active?.let { dao.groups(it.id) }.orEmpty()
+                // Hidden groups are listed too, drawn dimmed, so that hiding one is not a one-way
+                // door — there would otherwise be nothing left on screen to show it again.
+                val groups = active?.let { dao.groups(it.id, includeHidden = true) }.orEmpty()
                 val stats = active?.let { epg.stats(it.id) } ?: EpgMatchStats()
                 Triple(playlists, active, groups) to stats
             }
@@ -133,23 +172,99 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSearch(query: String) {
         _state.value = _state.value.copy(list = _state.value.list.copy(search = query))
-        loadChannels()
+        // Debounced, unlike a group change: the filter field calls this on every keystroke.
+        loadChannels(debounceMs = FILTER_DEBOUNCE_MS)
     }
 
-    private fun loadChannels() {
+    // ---------------------------------------------------------------- search
+
+    private val _searchState = MutableStateFlow(SearchState())
+    val searchState: StateFlow<SearchState> = _searchState
+
+    private var searchJob: Job? = null
+
+    /**
+     * FR-UI-09: one query across channels, the guide and on-demand, over the whole playlist.
+     *
+     * Debounced and cancellable. `searchProgrammes` is a `LIKE` over a table that holds a
+     * programme per channel per half hour for a week — six figures of rows, with no index that can
+     * serve a leading wildcard — and it used to run once per keystroke.
+     */
+    fun search(query: String) {
+        searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.length < MIN_SEARCH_LENGTH) {
+            _searchState.value = SearchState(query = query)
+            return
+        }
+        _searchState.value = _searchState.value.copy(query = query, running = true)
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            val playlistId = _state.value.activePlaylist?.id
+            val results = withContext(Dispatchers.IO) {
+                Triple(
+                    playlistId?.let { dao.channels(it, search = trimmed) }.orEmpty(),
+                    epg.searchProgrammes(trimmed, System.currentTimeMillis()),
+                    playlistId?.let { dao.vod(it, search = trimmed) }.orEmpty(),
+                )
+            }
+            _searchState.value = SearchState(
+                query = query,
+                running = false,
+                channels = results.first,
+                programmes = results.second,
+                vod = results.third,
+            )
+        }
+    }
+
+    /** Drops the results when the search surface closes, so reopening it starts clean. */
+    fun clearSearch() {
+        searchJob?.cancel()
+        _searchState.value = SearchState()
+    }
+
+    /** The channel a guide hit belongs to, so a programme result is something you can act on. */
+    suspend fun channelForProgramme(programme: Programme): Channel? =
+        withContext(Dispatchers.IO) { dao.channelForEpgId(programme.epgChannelId) }
+
+    /**
+     * Reads the list the current group and filter describe.
+     *
+     * The job is held and cancelled, because this is called on every keystroke and every group
+     * change: without it, overlapping queries commit in whatever order they finish, so a slow
+     * query for "b" could land after the one for "bbc" and leave the box and the list disagreeing.
+     */
+    private fun loadChannels(debounceMs: Long = 0) {
+        listJob?.cancel()
         val active = _state.value.activePlaylist ?: run {
             _state.value = _state.value.copy(list = _state.value.list.copy(channels = emptyList()))
             return
         }
         val listState = _state.value.list
-        viewModelScope.launch {
+        listJob = viewModelScope.launch {
+            if (debounceMs > 0) delay(debounceMs)
             val channels = withContext(Dispatchers.IO) {
-                val hideLocked = settings.state.value.hideLockedChannels
+                val prefs = settings.state.value
+                val hideLocked = prefs.hideLockedChannels
+                val sort = prefs.channelSort
+                val search = listState.search.takeIf { it.isNotBlank() }
                 val raw = when (listState.selectedGroupId) {
-                    VirtualGroup.ALL -> dao.channels(active.id, search = listState.search.takeIf { it.isNotBlank() })
-                    VirtualGroup.FAVOURITES -> dao.channels(active.id, favouritesOnly = true, search = listState.search.takeIf { it.isNotBlank() })
-                    VirtualGroup.RECENT -> dao.recentChannels()
-                    else -> dao.channels(active.id, groupId = listState.selectedGroupId, search = listState.search.takeIf { it.isNotBlank() })
+                    VirtualGroup.ALL -> dao.channels(active.id, search = search, sort = sort)
+                    VirtualGroup.FAVOURITES ->
+                        dao.channels(active.id, favouritesOnly = true, search = search, sort = sort)
+                    // The filter box used to do nothing at all here, because the argument was
+                    // simply not passed on.
+                    VirtualGroup.RECENT -> dao.recentChannels(search = search)
+                    // Always in the playlist's own order: this is a repair screen, and the point
+                    // is to find the channel you hid, not to browse.
+                    VirtualGroup.HIDDEN -> dao.channels(active.id, hiddenOnly = true, search = search)
+                    else -> dao.channels(
+                        active.id,
+                        groupId = listState.selectedGroupId,
+                        search = search,
+                        sort = sort,
+                    )
                 }
                 if (hideLocked) raw.filter { !it.locked } else raw
             }
@@ -228,7 +343,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setChannelDecoders(channel: Channel, video: DecoderMode, audio: DecoderMode) {
         viewModelScope.launch {
             val updated = channel.copy(videoDecoder = video, audioDecoder = audio)
-            withContext(Dispatchers.IO) { dao.upsertChannel(updated) }
+            withContext(Dispatchers.IO) { dao.setChannelDecoders(channel.id, video, audio) }
             val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
             val profile = playlist?.let { sources.profileFor(it) }
                 ?: com.tivicopy.player.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
@@ -281,17 +396,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- editing
 
-    fun toggleFavourite(channel: Channel) {
+    /**
+     * FR-ORG-07. Takes the state to write rather than toggling, because not every caller is
+     * holding a fresh channel: the programme dialog is handed a snapshot when it opens and never
+     * re-reads it, so a toggle derived from `channel.favourite` there wrote the same value every
+     * time and could add a favourite but never remove one.
+     */
+    fun setFavourite(channel: Channel, favourite: Boolean) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = !channel.favourite) }
+            withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = favourite) }
             loadChannels()
         }
     }
 
+    /**
+     * FR-ORG-03. This is what "remove this channel" means here, and deliberately so: a refresh
+     * re-imports every channel the provider still lists, so a real delete would come back on the
+     * next refresh with the favourite, name, number and order the user gave it all reset. Hiding
+     * survives a refresh and can be undone. See ADR-010.
+     */
     fun setHidden(channel: Channel, hidden: Boolean) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, hidden = hidden) }
             loadChannels()
+            post(
+                UiMessage(
+                    text = string(
+                        if (hidden) R.string.channel_hidden_done else R.string.channel_shown_done,
+                        channel.displayName,
+                    ),
+                ),
+            )
         }
     }
 
@@ -302,17 +437,118 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun renameChannel(channel: Channel, name: String) {
+    /** Puts a channel back the way the provider sent it, keeping favourite/hidden/order. */
+    fun resetChannelCustomisations(channel: Channel) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.resetChannelCustomisations(channel.id) }
+            loadChannels()
+            post(UiMessage(text = string(R.string.channel_reset_done, channel.name)))
+        }
+    }
+
+    /**
+     * Applies the channel editor in one pass. Each field is written on its own, and only when it
+     * changed, so an edit never rewrites a column the user did not touch.
+     */
+    fun saveChannelEdits(channel: Channel, name: String?, logo: String?, number: Int, groupId: Long?) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                dao.upsertChannel(channel.copy(customName = name.takeIf { it.isNotBlank() }))
+                if (name != channel.customName) dao.setChannelCustomName(channel.id, name)
+                if (logo != channel.customLogoUrl) dao.setChannelCustomLogo(channel.id, logo)
+                if (number != channel.number) dao.setChannelNumber(channel.id, number.coerceIn(0, 9999))
+                if (groupId != channel.groupId) dao.setChannelGroup(channel.id, groupId)
             }
             loadChannels()
         }
     }
 
+    /** FR-ORG-03: hiding has to be reversible, and this is the way back for all of them at once. */
+    fun showAllHidden() {
+        val active = _state.value.activePlaylist ?: return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.showAllHidden(active.id) }
+            loadChannels()
+        }
+    }
+
+    private fun string(resId: Int, vararg args: Any): String =
+        ServiceLocator.locale.getString(resId, *args)
+
+    // ----------------------------------------------------------------- groups
+
+    /** FR-ORG-02: a group of the user's own, alongside the ones the playlist supplies. */
+    fun createGroup(name: String) {
+        val active = _state.value.activePlaylist ?: return
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            val id = withContext(Dispatchers.IO) {
+                val next = (_state.value.list.groups.maxOfOrNull { it.sortIndex } ?: 0) + 1
+                dao.createCustomGroup(active.id, trimmed, next)
+            }
+            // The unique index on (playlist_id, name) rejected it; say so rather than appearing
+            // to have worked.
+            if (id == -1L) post(UiMessage(text = string(R.string.group_exists, trimmed)))
+            reload()
+        }
+    }
+
+    /**
+     * FR-ORG-03 for whole groups. Hidden groups stay in the column, drawn dimmed, so this can be
+     * undone; their channels drop out of every list.
+     */
+    fun setGroupHidden(group: ChannelGroup, hidden: Boolean) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.setGroupHidden(group.id, hidden) }
+            reload()
+        }
+    }
+
+    /**
+     * Renaming is offered for custom groups only. A provider group is matched by name on every
+     * refresh, so renaming one would leave the old group orphaned and its replacement recreated
+     * under the provider's name — that needs a column to remember the original, and a migration.
+     */
+    fun renameGroup(group: ChannelGroup, name: String) {
+        val trimmed = name.trim()
+        if (!group.custom || trimmed.isBlank()) return
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { dao.renameGroup(group.id, trimmed) }
+            if (!ok) post(UiMessage(text = string(R.string.group_exists, trimmed)))
+            reload()
+        }
+    }
+
+    /** Deletes a custom group. Its channels survive, ungrouped — `deleteGroup` clears their id. */
+    fun deleteGroup(group: ChannelGroup) {
+        if (!group.custom) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.deleteGroup(group.id) }
+            if (_state.value.list.selectedGroupId == group.id) selectGroup(VirtualGroup.ALL)
+            reload()
+        }
+    }
+
+    /**
+     * Whether the list currently on screen is ordered by `sort_index`, which is the only case
+     * where swapping two neighbours means what the user thinks it means. Favourites is ordered by
+     * `sort_index` too, but its neighbours are not neighbours in the full list, so a swap there
+     * flings a channel across the playlist; Recent is ordered by watch time, where a swap changes
+     * nothing on screen and silently reorders somewhere else entirely.
+     */
+    val canReorder: Boolean
+        get() {
+            // A sort preset orders the list by something other than `sort_index`, so a swap there
+            // changes nothing on screen while quietly rearranging the order the user built by
+            // hand. The group test alone was not enough once FR-ORG-06 existed.
+            if (settings.state.value.channelSort != ChannelSort.PROVIDER) return false
+            val group = _state.value.list.selectedGroupId
+            return group == VirtualGroup.ALL || group >= 0
+        }
+
     /** FR-ORG-05: move-mode reordering, one step at a time so a D-pad can drive it. */
     fun moveChannel(channel: Channel, delta: Int) {
+        if (!canReorder) return
         val channels = _state.value.list.channels
         val index = channels.indexOfFirst { it.id == channel.id }
         val target = index + delta
@@ -320,8 +556,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val other = channels[target]
-                dao.upsertChannel(channel.copy(sortIndex = other.sortIndex))
-                dao.upsertChannel(other.copy(sortIndex = channel.sortIndex))
+                // One transaction: a process death between the two writes would otherwise leave
+                // both channels sharing a sort_index, and the tie is broken by `number, name`.
+                dao.transaction {
+                    dao.setChannelSortIndex(channel.id, other.sortIndex)
+                    dao.setChannelSortIndex(other.id, channel.sortIndex)
+                }
             }
             loadChannels()
         }
@@ -331,7 +571,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setChannelEpgOffset(channel: Channel, minutes: Int?) {
         viewModelScope.launch {
             val clamped = minutes?.let(TimeModel::clampOffset)
-            withContext(Dispatchers.IO) { dao.upsertChannel(channel.copy(epgOffsetMinutes = clamped)) }
+            withContext(Dispatchers.IO) { dao.setChannelEpgOffset(channel.id, clamped) }
             _state.value = _state.value.copy(
                 currentChannel = _state.value.currentChannel
                     ?.takeIf { it.id == channel.id }
@@ -397,9 +637,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun programmesFor(channel: Channel, fromUtc: Long, toUtc: Long): List<Programme> =
         withContext(Dispatchers.IO) { epg.programmesFor(channel, fromUtc, toUtc) }
 
-    suspend fun searchProgrammes(query: String): List<Programme> =
-        withContext(Dispatchers.IO) { epg.searchProgrammes(query, System.currentTimeMillis()) }
-
     suspend fun unmatchedChannels(): List<Channel> = withContext(Dispatchers.IO) {
         _state.value.activePlaylist?.let { epg.unmatchedChannels(it.id) }.orEmpty()
     }
@@ -426,5 +663,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         player.onScheduleRetry = null
         player.onNotice = null
         super.onCleared()
+    }
+
+    private companion object {
+        /** A single letter matches most of a playlist; two is where a result list means something. */
+        const val MIN_SEARCH_LENGTH = 2
+        const val SEARCH_DEBOUNCE_MS = 250L
+
+        /** Shorter than the search debounce: this one only re-queries a single indexed table. */
+        const val FILTER_DEBOUNCE_MS = 150L
     }
 }

@@ -41,6 +41,8 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-ORG-09 | Channel numbers are taken from the source or auto-assigned, and are user-editable. | SHOULD | Free | Both |
 | FR-ORG-10 | Channel logos are loaded from the source and cached locally, with a generated fallback tile and an option to supply a custom logo. | MUST | Free | Both |
 | FR-ORG-11 | Newly added groups are shown or hidden per a user setting. | SHOULD | Free | Both |
+| FR-ORG-12 | Per-channel options — favourite, rename, logo, number, group, hide, lock and reorder — are reachable from the channel list itself, by long press on touch and by the Menu key on a remote. | MUST | Free | Both |
+| FR-ORG-13 | Hidden channels remain listed in a view of their own and can be shown again, individually or all at once. | MUST | Free | Both |
 
 ## EPG — Guide Data
 
@@ -124,6 +126,7 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UI-20 | The playback action menu is user-configurable in content and order. | COULD | Free | Both |
 | FR-UI-21 | The interface fully supports RTL languages including Hebrew, with a correctly mirrored guide and right-anchored time axis. | SHOULD | Free | Both |
 | FR-UI-22 | The app can cast the current stream to a Chromecast device from the mobile app. | COULD | Paid | Mobile |
+| FR-UI-23 | The interface language can be chosen in the app — follow the device, English or Hebrew — independently of the device locale, and choosing a right-to-left language mirrors the layout. | SHOULD | Free | Both |
 
 ## PRF — Profiles and Parental Controls
 

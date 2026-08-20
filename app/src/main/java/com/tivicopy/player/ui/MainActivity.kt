@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Rational
 import android.view.KeyEvent
+import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.mobile.MobileRoot
@@ -53,11 +55,28 @@ class MainActivity : ComponentActivity() {
     private var lastBackPress = 0L
     private var infoCardHideAt = 0L
 
+    /**
+     * Read per press rather than cached: the layout direction follows the interface language, and
+     * a change to that recreates the activity anyway, but the system locale can also change under
+     * a running process.
+     */
+    private val isRtl: Boolean
+        get() = resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+
     private val isTelevision: Boolean by lazy {
         val pm = packageManager
         pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
             pm.hasSystemFeature("android.software.leanback_only") ||
             !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+    }
+
+    /**
+     * FR-UI-23: the interface language is applied here, before any resource is resolved.
+     * [android.app.Activity.recreate] runs this again, which is how a change in Settings takes
+     * effect without restarting the process.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -149,8 +168,13 @@ class MainActivity : ComponentActivity() {
         return when (keyCode) {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP -> { zap(1); true }
             KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(-1); true }
-            KeyEvent.KEYCODE_DPAD_LEFT -> { overlay = TvOverlay.CHANNELS; true }
-            KeyEvent.KEYCODE_DPAD_RIGHT -> { overlay = TvOverlay.MINI_GUIDE; true }
+            // FR-UI-21: in a right-to-left layout the two horizontal bindings swap, so the key
+            // pointing at the channel column still opens the channel column. Without this a
+            // Hebrew interface has a mirrored screen and an unmirrored remote.
+            KeyEvent.KEYCODE_DPAD_LEFT ->
+                { overlay = if (isRtl) TvOverlay.MINI_GUIDE else TvOverlay.CHANNELS; true }
+            KeyEvent.KEYCODE_DPAD_RIGHT ->
+                { overlay = if (isRtl) TvOverlay.CHANNELS else TvOverlay.MINI_GUIDE; true }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { event.startTracking(); true }
             KeyEvent.KEYCODE_GUIDE, KeyEvent.KEYCODE_PROG_YELLOW -> { overlay = TvOverlay.GUIDE; true }
             KeyEvent.KEYCODE_INFO -> { showInfoCard(); true }

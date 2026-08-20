@@ -133,6 +133,7 @@ fun TvRoot(
                     TvOverlay.CHANNELS -> ChannelListScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
+                        onSearch = { onOverlayChange(TvOverlay.SEARCH) },
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -148,6 +149,8 @@ fun TvRoot(
                     TvOverlay.SEARCH -> SearchScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
+                        onOpenProgramme = { channel, programme -> details = channel to programme },
+                        onPlayVod = { item -> vm.playVod(item); onOverlayChange(TvOverlay.NONE) },
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -194,7 +197,7 @@ fun TvRoot(
                 onDismiss = { details = null },
                 onWatch = { vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                 onCatchup = { vm.playCatchup(channel, programme); onOverlayChange(TvOverlay.NONE) },
-                onFavourite = { vm.toggleFavourite(channel) },
+                onFavourite = { favourite -> vm.setFavourite(channel, favourite) },
                 onMessage = { text -> vm.post(com.tivicopy.player.ui.UiMessage(text = text)) },
                 upcoming = upcoming,
             )
@@ -245,7 +248,7 @@ fun ChannelInfoCard(
         }
         now?.let {
             Text(
-                text = "${TimeModel.formatClock(it.startUtc)} – ${TimeModel.formatClock(it.endUtc)}",
+                text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -253,7 +256,7 @@ fun ChannelInfoCard(
         }
         next?.let {
             Text(
-                text = "${TimeModel.formatClock(it.startUtc)} · ${it.title}",
+                text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

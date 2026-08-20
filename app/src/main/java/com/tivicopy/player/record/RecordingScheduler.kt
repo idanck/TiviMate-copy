@@ -181,7 +181,12 @@ class RecordingScheduler(
             return ScheduleResult.Rejected(ScheduleResult.Warning.INSUFFICIENT_SPACE)
         }
 
-        val overlapping = dao.pendingRecordings(startUtc).count { it.startUtc < endUtc && it.endUtc > startUtc }
+        // FR-REC-08 counts connections, and a recording that has already started is holding one:
+        // `pendingRecordings` is SCHEDULED only, so counting it alone let a second recording start
+        // beside a running one however low the limit was set.
+        val overlapping = (dao.pendingRecordings(startUtc) + dao.activeRecordings())
+            .distinctBy { it.id }
+            .count { it.startUtc < endUtc && it.endUtc > startUtc }
         if (overlapping >= s.maxConcurrentRecordings) {
             return ScheduleResult.Rejected(ScheduleResult.Warning.CONCURRENCY_LIMIT)
         }

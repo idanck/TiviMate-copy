@@ -134,5 +134,151 @@ on the composition dispatcher, and mutated it from click handlers.
   have been taken on a reference device, and nothing here claims otherwise.
 - **`ProgrammeDetailsDialog` schedules on the main thread.** Two small queries and one insert
   behind a click. Worth moving if the recordings table ever grows large.
-- **A refresh can race a per-channel edit.** Both write whole channel rows. The window is tiny
-  and the loser is a single user edit, not data loss.
+- **A refresh can race a per-channel edit.** ~~Both write whole channel rows. The window is tiny
+  and the loser is a single user edit, not data loss.~~ **Fixed, and the original entry had it
+  backwards** — see finding 13.
+
+---
+
+## Second pass — the channel management work
+
+Read against the requirements the first pass marked done, asking not "does the code work" but
+"can anyone reach it".
+
+**13. Every per-channel edit rewrote the whole row, and the refresh was the loser.**
+Renaming, reordering, the guide offset and the decoder choice all went through
+`Dao.upsertChannel(snapshot.copy(...))`, which writes all thirty columns from whatever `Channel`
+the caller is holding. A refresh landing between reading that snapshot and writing the edit would
+have its provider fields — name, logo, urls, catch-up — pushed back to the stale values. The
+"Not addressed" entry above described the loser as a single user edit; it is the refresh that
+loses, and silently. It had never fired only because none of those four functions had a caller.
+**Fixed** — a targeted setter per concept, plus a regression test that drives a refresh between
+the read and the write (`ChannelQueriesTest`).
+
+**14. Seven view-model functions had no callers, and `docs/10` recorded them as done.**
+`setHidden`, `setLocked`, `renameChannel`, `moveChannel`, `setChannelEpgOffset`, `bindGuide` and
+`setChannelDecoders` were fully implemented and unreachable. FR-ORG-03 and FR-ORG-04 were marked
+Done on the strength of the data layer alone. **Fixed** — a channel options menu on both shells;
+`docs/10` corrected, and the two rows that were overstated now say what is and is not there.
+
+**15. Clock ranges reverse in a Hebrew layout.** `"${formatClock(start)} – ${formatClock(end)}"`
+is two runs of strong left-to-right digits joined by a bidirectionally neutral dash; in a
+right-to-left paragraph the dash takes the paragraph's direction and the times swap, so a
+programme is drawn as ending before it began. Six call sites. FR-UI-21 was marked Done on the
+strength of `supportsRtl` and start/end padding, neither of which touches this. **Fixed** —
+`TimeModel.ltr` and friends wrap each run in isolates.
+
+**16. The remote was not mirrored.** D-pad Left was hardwired to the channel list and Right to
+the mini guide, so a Hebrew interface had a mirrored screen driven by an unmirrored remote.
+**Fixed** — both follow the layout direction.
+
+**17. Search wrote into the channel list's filter.** Two different questions shared one field:
+opening search filtered the Live list, and closing it left that filter in place with nothing on
+screen to explain the shrunken list. Results were also scoped to whichever group was selected.
+**Fixed** — separate state, and a filter is now always visible once set.
+
+**18. Every `LIKE` clause passed the user's text straight through.** A search for `100%` matched
+everything beginning `100`, and `_` matched any character. **Fixed** — escaped, with `ESCAPE`
+declared per clause. Covered by a regression test.
+
+**19. Hiding a group hid only its row.** FR-ORG-03 names groups as well as channels, but the
+channel query never consulted `channel_groups.hidden`, so a hidden group's channels stayed in All
+channels. **Fixed** — a subquery, and a test.
+
+### Third pass — a review of the whole branch, 2026-08-20
+
+Run over `main..HEAD` at high effort. It found seven things this branch had caused or made
+reachable, and eight that were already on `main`. The first group is fixed in `cded323`; the
+second is split between the small ones, fixed alongside them, and the rest, recorded below.
+
+**20. The programme dialog's favourite button could not un-favourite.** It flipped its own label
+while calling the view model with the snapshot the shell captured when the dialog opened, so every
+press wrote the same value. **Fixed** — the view model takes the state to write.
+
+**21. Move up/down was offered under the sort presets added in the same branch.** A preset orders
+by something other than `sort_index`, so the swap changed nothing visible and rearranged the
+user's hand-made order. **Fixed** — `canReorder` checks the sort too.
+
+**22. `AppLocale.wrap` moved the JVM default locale and never restored it,** so switching back to
+"follow the device" left the process on the abandoned language. **Fixed** — it no longer touches
+the default; resources come from the configuration, and every formatter here passes `Locale.ROOT`.
+
+**23. The string context for non-composition code was rebuilt per access** — a `Configuration` and
+a context per toast, from background threads. **Fixed** — cached on the locator, invalidated when
+the language changes.
+
+**24. The channel-list filter queried per keystroke with nothing cancelling the last one,** so
+results could commit out of order. **Fixed** — held, cancelled and debounced.
+
+**25. Group actions were reachable only from the group column, which phones do not draw.**
+**Fixed** — the compact layout gets a manager dialog, since a chip has no long press.
+
+**26. `EpgRepository.bindManually` still wrote all thirty columns.** **Fixed** — three columns,
+written as three.
+
+**27. Recordings ended with a null file path.** The destination was written to the row but not to
+the snapshot every exit path builds its final update from, so `finish` put it back to NULL: the
+library could neither play the file nor delete it. Pre-existing. **Fixed.**
+
+**28. The recording concurrency limit counted only SCHEDULED recordings,** so one already running
+did not count against it. Pre-existing. **Fixed.**
+
+**29. Restoring a backup silently dropped group state.** The insert lost to the unique index on
+`(playlist_id, name)` and nothing updated instead, so the hidden flag and ordering of every group
+a refresh had recreated were discarded — and still reported as restored. Pre-existing. **Fixed.**
+
+**30. A retry could fire against the wrong channel.** Retries are posted to a `Handler` with
+nothing removing the callback and a backoff reaching fifteen seconds, so a retry armed for one
+channel re-prepared whichever was playing when it landed. Pre-existing. **Fixed** — a generation
+counter, bumped by every new source.
+
+**31. The HTTP client cache was unbounded.** `RequestProfile` is built from live settings, so
+dragging the timeouts slider added an entry per value for the life of the process. Less severe
+than it looks — `newBuilder` shares the base client's pool and dispatcher, so no entry owns
+threads — but a map that only grows is still a leak. Pre-existing. **Fixed** — bounded LRU.
+
+### Not addressed in this pass
+
+- **Backup skips a channel whose only change is its position.** `BackupManager.export` decides a
+  channel is worth exporting from the favourite, hidden, locked, custom name, logo, offset,
+  manual EPG id and decoder fields — not `number` or `sort_index`, which it then writes when it
+  does export. A channel the user only reordered or renumbered is left out. Widening the test to
+  include `sort_index` would export nearly every channel, since a refresh sets it on all of them;
+  doing it properly needs a signal for "the user has reordered this playlist". Recorded here
+  rather than half-fixed.
+- **A focusable control inside a focusable row is unverified on a D-pad.** The favourite toggle
+  on each channel row should be one step right, and `FocusableRow` now tracks `hasFocus` so the
+  row keeps its ring while the toggle has focus — but no D-pad has been near it. If the focus
+  order misbehaves, the same action is the first row of the options menu.
+- **The guide grid's mirroring is reasoned, not observed.** It is laid out in widths with no
+  pixel offsets and one shared scroll state, so it should mirror by construction. FR-UI-21 is
+  marked Partial rather than Done for exactly this reason.
+- **Parental controls are stored but never enforced (FR-PRF-04/05/07/08).** The PIN is hashed
+  correctly and the lock-scope switches persist, but `ParentalPin.verify` and `PinAttemptLimiter`
+  have no callers anywhere: Settings opens unprompted, a locked channel plays on the first press,
+  and `hideLockedChannels` only filters the list and can be unticked in the same unprotected
+  screen. This is a missing feature rather than a defect in a working one, and it is outside what
+  this branch set out to do, so it is recorded here and `docs/10` is corrected from Done to Not
+  implemented rather than half-built.
+- **Series do not play (FR-PLB-28).** `XtreamClient.series` stores a `series:<id>` stream id and
+  the grid sends it through the movie URL, which no panel serves, so every series tile answers
+  with a playback error. `seriesEpisodes` exists with no caller. The honest fix is an episode
+  list, which is a feature; `docs/10` now says plainly that series do not play.
+- **Scheduling a recording blocks the main thread.** `ProgrammeDetailsDialog` calls the scheduler
+  straight from `onClick`, and each schedule does a query, an insert and a `StatFs`. "Record
+  series" iterates a fortnight of episodes, so it is dozens of blocking calls in one frame. The
+  earlier entry above under-described it; the rule it breaks is the one `VodScreen` cites.
+- **Free space is measured on the wrong volume.** `RecordingScheduler.freeSpaceBytes` runs
+  `StatFs` against internal storage whenever the destination is a SAF tree, which is the only
+  thing the picker can produce on Android 10 and later — so the space check and the low-space
+  warning are both wrong in both directions for the common case.
+- **Cold start does disk I/O on the main thread.** `Application.onCreate` opens the database,
+  re-arms recordings and walks the whole cache tree before the first frame; `BootReceiver` does
+  the same inside a broadcast's ten-second window.
+- **`EpgMatcher` scores every unmatched channel against every guide entry** with a Levenshtein,
+  after each guide refresh. Finding 9 bounded the normalisation; the comparison itself is still
+  quadratic in the worst case.
+- **`AppViewModel.unmatchedChannels` still has no caller.** It answers "which channels did the
+  matcher fail to place", which belongs next to the match breakdown in Diagnostics as the
+  one-tap route into mapping that FR-EPG-09 asks for. Now that the mapping dialog exists there
+  is somewhere for it to lead, but wiring it is a separate change.

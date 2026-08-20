@@ -18,12 +18,28 @@ Both share the same domain layer, so a channel hidden on the phone is hidden on 
    boot into video, not into a dashboard.
 2. **Channel list overlay** — groups on the left, channels in the middle, now/next on the
    right, video still playing behind. Opened with OK or Right.
+   - The group column carries Search, All channels, Favourites, Recently watched, Hidden
+     channels and New group above the playlist's own groups. Hidden groups stay listed, drawn
+     dimmed, so hiding one is not a one-way door.
+   - Each channel row carries a favourite toggle. **Menu** on the remote, or a long press on
+     touch, opens that channel's options: watch, favourite, edit, hide, parental lock, and move
+     up or down. The same gesture on a group row opens the group's options.
+   - The channel editor covers a local name, a logo address, the channel number and the group,
+     each showing the provider's own value as its placeholder, plus one row that undoes all of
+     it. None of it is sent anywhere: a refresh updates what the provider owns and leaves these
+     alone.
+   - Moving a channel is offered only where the list is in the playlist's own order. In
+     Favourites the row above is not the row above in the full list, and in Recently watched the
+     order comes from watch times.
 3. **Mini guide** — a single-row horizontal timeline for the current channel.
 4. **Full guide** — the classic grid: channels down, time across, current-time marker,
    horizontal scroll by hours/days, jump-to-now, jump-to-date.
 5. **Programme details** — title, times, description, category, series/episode, poster,
    plus actions: watch, record, schedule series, catch-up, remind, add to favourites.
-6. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series.
+6. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
+   owns its own query, spans the whole playlist rather than the selected group, and is debounced.
+   The channel list's filter box is a different thing: it narrows what is on screen, stays
+   visible while it is set, and is scoped to the group you are in.
 7. **Recordings** — completed and scheduled.
 8. **Settings**.
 
@@ -69,6 +85,11 @@ This is our differentiator and must not be an afterthought.
 - Font scale (small → extra large) that actually reflows the guide.
 - Configurable bottom playback menu: which actions appear and in what order.
 - Optional channel-logo-only vs logo+name list modes.
+- Interface language: follow the device, English or Hebrew, chosen in the app rather than by
+  switching the whole television. Choosing Hebrew mirrors the layout and swaps the D-pad's
+  horizontal bindings with it. See `docs/adr/ADR-009`.
+- Channel order: the playlist's own order, A–Z, most watched, or recently watched. Manual moves
+  live in the first of those.
 - Full RTL support including Hebrew, with correctly mirrored guide layout and
   right-anchored time axis. (The benchmark's RTL handling is not a strength.)
 

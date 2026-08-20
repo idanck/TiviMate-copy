@@ -22,14 +22,17 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.cache.CacheBudget
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
+import com.tivicopy.player.data.prefs.AppLanguage
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.data.prefs.BufferPreset
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.findActivity
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
@@ -125,24 +128,24 @@ fun SettingsScreen(
                     onSelect = settings::setAspectMode,
                 )
                 TextSetting(
-                    title = stringResource(R.string.audio_track),
+                    title = stringResource(R.string.settings_audio_language),
                     value = s.preferredAudioLanguage,
                     placeholder = "en, he, ru…",
                     onChange = settings::setPreferredAudioLanguage,
                 )
                 SettingsSwitch(
-                    title = stringResource(R.string.subtitle_track),
+                    title = stringResource(R.string.settings_subtitles_enabled),
                     checked = s.subtitlesEnabled,
                     onChange = settings::setSubtitlesEnabled,
                 )
                 TextSetting(
-                    title = stringResource(R.string.subtitle_track),
+                    title = stringResource(R.string.settings_subtitle_language),
                     value = s.preferredSubtitleLanguage,
                     placeholder = "en, he…",
                     onChange = settings::setPreferredSubtitleLanguage,
                 )
                 SettingsSlider(
-                    title = stringResource(R.string.settings_font_scale),
+                    title = stringResource(R.string.settings_subtitle_scale),
                     valueLabel = "%.1f×".format(s.subtitleTextScale),
                     value = s.subtitleTextScale,
                     range = 0.5f..2.5f,
@@ -192,6 +195,35 @@ fun SettingsScreen(
 
             SettingsSection.APPEARANCE -> {
                 SettingsSectionTitle(stringResource(R.string.settings_appearance))
+                // FR-UI-23. Unlike every other setting here, this one cannot be applied to the
+                // running composition: resources are resolved from the activity's base context,
+                // which is only attached once. Recreating the activity re-runs
+                // `attachBaseContext`, which is where the choice is read.
+                SettingsChoice(
+                    title = stringResource(R.string.settings_language),
+                    options = listOf(
+                        AppLanguage.SYSTEM to stringResource(R.string.language_system),
+                        AppLanguage.ENGLISH to stringResource(R.string.language_english),
+                        AppLanguage.HEBREW to stringResource(R.string.language_hebrew),
+                    ),
+                    selected = s.language,
+                ) { chosen ->
+                    if (chosen != s.language) {
+                        settings.setLanguage(chosen)
+                        // The cached application-language context is now stale.
+                        ServiceLocator.refreshLocale()
+                        // Channel names are stored by the platform at creation, so they only
+                        // follow the language if we re-declare them.
+                        com.tivicopy.player.App.createNotificationChannels(context)
+                        context.findActivity()?.recreate()
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.settings_language_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
                 SettingsChoice(
                     title = stringResource(R.string.settings_theme),
                     options = listOf(
@@ -210,6 +242,29 @@ fun SettingsScreen(
                     range = 0.8f..1.6f,
                     onChange = settings::setFontScale,
                 )
+                // FR-ORG-06. Manual moves live in `sort_index`, which only the provider order
+                // reads, so switching away from it parks your own ordering rather than losing it.
+                SettingsChoice(
+                    title = stringResource(R.string.settings_channel_sort),
+                    options = listOf(
+                        ChannelSort.PROVIDER to stringResource(R.string.sort_provider),
+                        ChannelSort.NAME_ASC to stringResource(R.string.sort_name),
+                        ChannelSort.MOST_WATCHED to stringResource(R.string.sort_most_watched),
+                        ChannelSort.RECENTLY_WATCHED to stringResource(R.string.sort_recent),
+                    ),
+                    selected = s.channelSort,
+                ) { settings.setChannelSort(it); vm.reload() }
+                Text(
+                    text = stringResource(R.string.sort_manual_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_show_new_groups),
+                    checked = s.showNewGroups,
+                    onChange = settings::setShowNewGroups,
+                )
                 SettingsSlider(
                     title = stringResource(R.string.settings_overlay_hide),
                     valueLabel = stringResource(R.string.settings_seconds, s.overlayAutoHideSeconds),
@@ -217,7 +272,7 @@ fun SettingsScreen(
                     range = 2f..60f,
                 ) { settings.setOverlayAutoHideSeconds(it.toInt()) }
                 SettingsSlider(
-                    title = stringResource(R.string.settings_overlay_hide),
+                    title = stringResource(R.string.settings_overlay_opacity),
                     valueLabel = "%.0f%%".format(s.overlayOpacity * 100),
                     value = s.overlayOpacity,
                     range = 0.3f..1f,

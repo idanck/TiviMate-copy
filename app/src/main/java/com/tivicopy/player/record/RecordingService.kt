@@ -22,6 +22,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.net.HttpFactory
+import com.tivicopy.player.data.prefs.AppLocale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -54,6 +55,16 @@ class RecordingService : Service() {
     private var wifiLock: WifiManager.WifiLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * FR-UI-23. A service is handed a fresh context by the framework rather than the one
+     * `Application` was attached with, so without this every string below — the ongoing recording
+     * notification included — would come back in the system language while the UI spoke the
+     * user's chosen one.
+     */
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val recordingId = intent?.getLongExtra(EXTRA_RECORDING_ID, 0L) ?: 0L
@@ -93,7 +104,10 @@ class RecordingService : Service() {
         jobs[recordingId]?.cancel()
     }
 
-    private suspend fun runRecording(recording: Recording) {
+    private suspend fun runRecording(scheduled: Recording) {
+        // Mutable, because the destination is only known once storage has been opened and every
+        // exit path below builds its final update from this snapshot.
+        var recording = scheduled
         val dao = ServiceLocator.dao
         val settings = ServiceLocator.settings.state.value
         val channel = dao.channel(recording.channelId)
@@ -117,7 +131,12 @@ class RecordingService : Service() {
             return
         }
 
-        dao.upsertRecording(recording.copy(state = RecordingState.RECORDING, filePath = target.locator))
+        // Carried on the local snapshot, not only written to the row: every `finish` below builds
+        // its update from `recording`, so a locator that lived only in the database was written
+        // straight back to NULL when the recording ended — leaving a file on disk that the
+        // library could neither play nor delete.
+        recording = recording.copy(state = RecordingState.RECORDING, filePath = target.locator)
+        dao.upsertRecording(recording)
         notify(recording, ongoing = true)
 
         var written = 0L

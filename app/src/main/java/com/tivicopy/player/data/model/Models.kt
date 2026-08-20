@@ -26,6 +26,19 @@ enum class CatchupMode { NONE, DEFAULT, APPEND, SHIFT, FLUSSONIC, XC;
 
 enum class DecoderMode { AUTO, HARDWARE, SOFTWARE }
 
+/**
+ * How the channel list is ordered (FR-ORG-06).
+ *
+ * [PROVIDER] is the playlist's own order as adjusted by manual moves, and stays the default.
+ * [orderBy] is a fixed SQL fragment chosen by the enum, never assembled from user input.
+ */
+enum class ChannelSort(val orderBy: String) {
+    PROVIDER("sort_index, number, name"),
+    NAME_ASC("COALESCE(NULLIF(custom_name, ''), name) COLLATE NOCASE, number"),
+    MOST_WATCHED("watch_count DESC, last_watched_utc DESC, name"),
+    RECENTLY_WATCHED("last_watched_utc DESC, name"),
+}
+
 data class Playlist(
     val id: Long = 0,
     val name: String,

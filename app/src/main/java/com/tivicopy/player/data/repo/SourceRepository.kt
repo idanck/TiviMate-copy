@@ -206,7 +206,16 @@ class SourceRepository(
 
                 val groupName = entry.groupTitle?.takeIf { it.isNotBlank() } ?: UNGROUPED
                 val groupId = groupIds.getOrPut(groupName) {
-                    dao.ensureGroup(db, playlist.id, groupName, groupSort++)
+                    // FR-ORG-11: the setting existed but nothing read it, so a provider adding
+                    // twenty categories always dropped twenty new rows into the group column.
+                    // Only groups created here are affected; one the user has shown stays shown.
+                    dao.ensureGroup(
+                        db,
+                        playlist.id,
+                        groupName,
+                        groupSort++,
+                        hiddenWhenNew = !settings.state.value.showNewGroups,
+                    )
                 }
 
                 val alternates = alternatesByIdentity[identity].orEmpty().toList()

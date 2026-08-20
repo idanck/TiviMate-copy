@@ -12,8 +12,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -31,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.ChannelGroup
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.VirtualGroup
@@ -54,10 +62,29 @@ fun ChannelListScreen(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
     showNowNext: Boolean = true,
+    /**
+     * Whether to draw a filter field. Touch gets one; the ten-foot shell does not, because a text
+     * field inside a D-pad overlay takes the first focus and turns the remote into a keyboard.
+     * There, [FilterBanner] reports an active filter instead and the remote's Search key opens the
+     * search overlay.
+     */
+    showFilter: Boolean = compact,
+    /** Opens the full search surface. Null hides the entry point. */
+    onSearch: (() -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
     var preview by remember { mutableStateOf<Pair<Programme?, Programme?>>(null to null) }
+    // Both shells render this screen, so the per-channel dialogs live here rather than being
+    // hoisted twice into TvRoot and MobileRoot.
+    var menuFor by remember { mutableStateOf<Channel?>(null) }
+    var editing by remember { mutableStateOf<Channel?>(null) }
+    var advancedFor by remember { mutableStateOf<Channel?>(null) }
+    var bindingGuideFor by remember { mutableStateOf<Channel?>(null) }
+    var groupMenuFor by remember { mutableStateOf<ChannelGroup?>(null) }
+    var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
+    var creatingGroup by remember { mutableStateOf(false) }
+    var managingGroups by remember { mutableStateOf(false) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -77,18 +104,36 @@ fun ChannelListScreen(
         if (!compact) {
             GroupColumn(
                 vm = vm,
+                onSearch = onSearch,
+                onNewGroup = { creatingGroup = true },
+                onGroupOptions = { groupMenuFor = it },
                 modifier = Modifier.width(220.dp).fillMaxHeight(),
             )
             VerticalDivider()
         }
 
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            if (compact) GroupChips(vm)
+            if (showFilter) {
+                FilterField(query = state.list.search, onQuery = vm::setSearch)
+            } else {
+                FilterBanner(query = state.list.search, onClear = { vm.setSearch("") })
+            }
+            if (compact) GroupChips(vm, onManageGroups = { managingGroups = true })
+            if (state.list.selectedGroupId == VirtualGroup.HIDDEN && state.list.channels.isNotEmpty()) {
+                androidx.compose.material3.TextButton(
+                    onClick = { vm.showAllHidden() },
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) { Text(stringResource(R.string.action_show_all)) }
+            }
             val channels = state.list.channels
             if (channels.isEmpty()) {
                 EmptyState(
-                    text = if (state.list.search.isBlank()) stringResource(R.string.empty_no_channels)
-                    else stringResource(R.string.empty_no_results),
+                    text = when {
+                        state.list.selectedGroupId == VirtualGroup.HIDDEN ->
+                            stringResource(R.string.hidden_channels_empty)
+                        state.list.search.isBlank() -> stringResource(R.string.empty_no_channels)
+                        else -> stringResource(R.string.empty_no_results)
+                    },
                 )
             } else {
                 val listState = rememberLazyListState()
@@ -104,6 +149,18 @@ fun ChannelListScreen(
                             selected = state.currentChannel?.id == channel.id,
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
+                            onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
+                            onOptions = { menuFor = channel },
+                        )
+                    }
+                    item {
+                        // The gesture is invisible otherwise, and on a television there is no
+                        // convention to fall back on.
+                        Text(
+                            text = stringResource(R.string.channel_options_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
                         )
                     }
                 }
@@ -120,6 +177,96 @@ fun ChannelListScreen(
             )
         }
     }
+
+    // Re-read from the current list so the dialog reflects a change made in a previous pass —
+    // toggling a favourite and reopening the menu should not still offer "Add to favourites".
+    menuFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelMenuDialog(
+            channel = channel,
+            canReorder = vm.canReorder,
+            onDismiss = { menuFor = null },
+            onPlay = { onPlay(channel) },
+            onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
+            onToggleHidden = { vm.setHidden(channel, !channel.hidden) },
+            onToggleLocked = { vm.setLocked(channel, !channel.locked) },
+            onEdit = { menuFor = null; editing = channel },
+            onAdvanced = { menuFor = null; advancedFor = channel },
+            onMove = { delta -> vm.moveChannel(channel, delta) },
+        )
+    }
+
+    advancedFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelAdvancedDialog(
+            channel = channel,
+            onDismiss = { advancedFor = null },
+            onOffset = { minutes -> vm.setChannelEpgOffset(channel, minutes) },
+            onDecoders = { video, audio -> vm.setChannelDecoders(channel, video, audio) },
+            onBindGuide = { advancedFor = null; bindingGuideFor = channel },
+        )
+    }
+
+    bindingGuideFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        GuideBindingDialog(
+            channel = channel,
+            onDismiss = { bindingGuideFor = null },
+            onSearch = vm::searchGuideEntries,
+            onBind = { epgId -> vm.bindGuide(channel, epgId) },
+        )
+    }
+
+    editing?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelEditDialog(
+            channel = channel,
+            groups = state.list.groups,
+            onDismiss = { editing = null },
+            onSave = { name, logo, number, groupId ->
+                vm.saveChannelEdits(channel, name, logo, number, groupId)
+            },
+            onReset = { vm.resetChannelCustomisations(channel) },
+        )
+    }
+
+    groupMenuFor?.let { group ->
+        GroupMenuDialog(
+            group = group,
+            onDismiss = { groupMenuFor = null },
+            onToggleHidden = { vm.setGroupHidden(group, !group.hidden) },
+            onRename = { groupMenuFor = null; renamingGroup = group },
+            onDelete = { vm.deleteGroup(group) },
+        )
+    }
+
+    renamingGroup?.let { group ->
+        TextEntryDialog(
+            title = stringResource(R.string.group_options),
+            label = stringResource(R.string.group_name),
+            initial = group.name,
+            onDismiss = { renamingGroup = null },
+            onConfirm = { vm.renameGroup(group, it) },
+        )
+    }
+
+    if (managingGroups) {
+        GroupManagerDialog(
+            groups = state.list.groups,
+            onDismiss = { managingGroups = false },
+            onNewGroup = { managingGroups = false; creatingGroup = true },
+            onGroupOptions = { managingGroups = false; groupMenuFor = it },
+        )
+    }
+
+    if (creatingGroup) {
+        TextEntryDialog(
+            title = stringResource(R.string.group_new),
+            label = stringResource(R.string.group_name),
+            onDismiss = { creatingGroup = false },
+            onConfirm = vm::createGroup,
+        )
+    }
 }
 
 @Composable
@@ -128,12 +275,15 @@ private fun ChannelRow(
     selected: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
+    onToggleFavourite: () -> Unit,
+    onOptions: () -> Unit,
 ) {
     FocusableRow(
         onClick = onClick,
         selected = selected,
         contentDescription = channel.displayName,
         onFocused = onFocused,
+        onLongClick = onOptions,
     ) {
         Text(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
@@ -147,20 +297,82 @@ private fun ChannelRow(
             secondary = null,
             modifier = Modifier.weight(1f),
         )
-        if (channel.favourite) Badge(text = "★")
         if (channel.hasCatchup) Badge(text = stringResource(R.string.catchup_available))
         if (channel.locked) Badge(text = "🔒")
+        // FR-ORG-07. This was a `★` badge that only reported the state; marking a favourite meant
+        // opening the guide, picking a programme and using its dialog. A control on the row is
+        // one press on touch, and one step right on a D-pad.
+        IconButton(onClick = onToggleFavourite) {
+            Icon(
+                imageVector = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                contentDescription = stringResource(
+                    if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                ),
+                tint = if (channel.favourite) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
     }
 }
 
+/** The touch filter box. Always visible once set, which is what makes the leak impossible. */
 @Composable
-private fun GroupColumn(vm: AppViewModel, modifier: Modifier = Modifier) {
+private fun FilterField(query: String, onQuery: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
+        label = { Text(stringResource(R.string.filter_channels)) },
+        singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQuery("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * The ten-foot equivalent: no keyboard, but never a silently filtered list either. Search on the
+ * TV shell is its own overlay, and this is what says so afterwards.
+ */
+@Composable
+private fun FilterBanner(query: String, onClear: () -> Unit) {
+    if (query.isBlank()) return
+    androidx.compose.material3.AssistChip(
+        onClick = onClear,
+        label = { Text(stringResource(R.string.filter_active, query), maxLines = 1) },
+        trailingIcon = {
+            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+        },
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+@Composable
+private fun GroupColumn(
+    vm: AppViewModel,
+    onSearch: (() -> Unit)?,
+    onNewGroup: () -> Unit,
+    onGroupOptions: (ChannelGroup) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state by vm.state.collectAsState()
     LazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        if (onSearch != null) {
+            // Search was reachable only through the remote's Search key, which plenty of remotes
+            // do not have. It needs somewhere on screen to live.
+            item { GroupRow(stringResource(R.string.nav_search), selected = false, onClick = onSearch) }
+        }
         item {
             GroupRow(stringResource(R.string.all_channels), state.list.selectedGroupId == VirtualGroup.ALL) {
                 vm.selectGroup(VirtualGroup.ALL)
@@ -176,29 +388,60 @@ private fun GroupColumn(vm: AppViewModel, modifier: Modifier = Modifier) {
                 vm.selectGroup(VirtualGroup.RECENT)
             }
         }
+        item {
+            GroupRow(stringResource(R.string.hidden_channels), state.list.selectedGroupId == VirtualGroup.HIDDEN) {
+                vm.selectGroup(VirtualGroup.HIDDEN)
+            }
+        }
         item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
+        item {
+            GroupRow(stringResource(R.string.group_new), selected = false, onClick = onNewGroup)
+        }
         items(state.list.groups, key = { it.id }) { group ->
-            GroupRow(group.name, state.list.selectedGroupId == group.id) { vm.selectGroup(group.id) }
+            GroupRow(
+                name = group.name,
+                selected = state.list.selectedGroupId == group.id,
+                // A hidden group stays listed, drawn dimmed, because otherwise nothing on screen
+                // could ever show it again.
+                dimmed = group.hidden,
+                onClick = { vm.selectGroup(group.id) },
+                onLongClick = { onGroupOptions(group) },
+            )
         }
     }
 }
 
 @Composable
-private fun GroupRow(name: String, selected: Boolean, onClick: () -> Unit) {
-    FocusableRow(onClick = onClick, selected = selected, contentDescription = name) {
+private fun GroupRow(
+    name: String,
+    selected: Boolean,
+    dimmed: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+) {
+    FocusableRow(
+        onClick = onClick,
+        selected = selected,
+        contentDescription = name,
+        onLongClick = onLongClick,
+    ) {
         Text(
             text = name,
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = if (dimmed) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
         )
     }
 }
 
 /** Narrow-screen replacement for the group column. */
 @Composable
-private fun GroupChips(vm: AppViewModel) {
+private fun GroupChips(vm: AppViewModel, onManageGroups: () -> Unit) {
     val state by vm.state.collectAsState()
     androidx.compose.foundation.lazy.LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
@@ -218,11 +461,33 @@ private fun GroupChips(vm: AppViewModel) {
                 label = { Text(stringResource(R.string.favourites)) },
             )
         }
+        item {
+            androidx.compose.material3.FilterChip(
+                selected = state.list.selectedGroupId == VirtualGroup.RECENT,
+                onClick = { vm.selectGroup(VirtualGroup.RECENT) },
+                label = { Text(stringResource(R.string.recently_watched)) },
+            )
+        }
+        item {
+            androidx.compose.material3.FilterChip(
+                selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
+                onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
+                label = { Text(stringResource(R.string.hidden_channels)) },
+            )
+        }
         items(state.list.groups, key = { it.id }) { group ->
             androidx.compose.material3.FilterChip(
                 selected = state.list.selectedGroupId == group.id,
                 onClick = { vm.selectGroup(group.id) },
                 label = { Text(group.name, maxLines = 1) },
+            )
+        }
+        item {
+            // A chip has no long press to hang a context menu on, so the phone reaches the group
+            // actions through a manager instead of not at all.
+            androidx.compose.material3.AssistChip(
+                onClick = onManageGroups,
+                label = { Text(stringResource(R.string.group_manage)) },
             )
         }
     }
@@ -254,7 +519,7 @@ fun NowNextPane(
             )
         } else {
             Text(
-                text = "${TimeModel.formatClock(now.startUtc)} – ${TimeModel.formatClock(now.endUtc)}",
+                text = TimeModel.formatClockRange(now.startUtc, now.endUtc),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

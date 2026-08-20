@@ -13,6 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,13 +42,17 @@ fun ProgrammeDetailsDialog(
     onDismiss: () -> Unit,
     onWatch: () -> Unit,
     onCatchup: () -> Unit,
-    onFavourite: () -> Unit,
+    /** Receives the state to write, not a toggle — see [com.tivicopy.player.ui.AppViewModel.setFavourite]. */
+    onFavourite: (Boolean) -> Unit,
     onMessage: (String) -> Unit,
     /** Later programmes on this channel, so a series recording can claim them immediately. */
     upcoming: List<Programme> = emptyList(),
 ) {
     val now = System.currentTimeMillis()
     val inPast = programme.endUtc < now
+    // The dialog is handed a snapshot the shell captured when it opened, and nothing re-reads it
+    // while it is up, so the toggle tracks its own state to keep the label truthful.
+    var favourite by remember(channel.id) { mutableStateOf(channel.favourite) }
     val archiveAvailable = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
 
     AlertDialog(
@@ -56,9 +64,14 @@ fun ProgrammeDetailsDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "${channel.displayName} · ${TimeModel.formatDay(programme.startUtc)} " +
-                        "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
-                        "(${TimeModel.formatDuration(programme.durationMillis)})",
+                    // The channel name may be Hebrew and the rest is numeric, so the numeric part
+                    // is isolated as one run: otherwise the day, the times and the duration merge
+                    // into a single left-to-right run and land in the wrong order (NFR-UX-08).
+                    text = "${channel.displayName} · " + TimeModel.ltr(
+                        "${TimeModel.formatDay(programme.startUtc)} " +
+                            "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
+                            "(${TimeModel.formatDuration(programme.durationMillis)})",
+                    ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -123,7 +136,15 @@ fun ProgrammeDetailsDialog(
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onFavourite() }) { Text(stringResource(R.string.action_favourite)) }
+                TextButton(onClick = { favourite = !favourite; onFavourite(favourite) }) {
+                    // The label has to say what the press will do; a fixed "Favourite" left the
+                    // user unable to tell whether they had just added or removed one.
+                    Text(
+                        stringResource(
+                            if (favourite) R.string.action_unfavourite else R.string.action_favourite,
+                        ),
+                    )
+                }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
             }
         },
@@ -140,7 +161,8 @@ private fun scheduleSeries(channel: Channel, programme: Programme, upcoming: Lis
     describe(ServiceLocator.recordings.scheduleSeries(channel, programme, upcoming), programme.title)
 
 private fun describe(result: ScheduleResult, title: String): String {
-    val context = ServiceLocator.appContext
+    // The application context keeps whatever language it was attached with (FR-UI-23).
+    val context = ServiceLocator.locale
     return when (result) {
         is ScheduleResult.Rejected -> context.getString(warningString(result.reason))
         is ScheduleResult.Scheduled -> buildString {

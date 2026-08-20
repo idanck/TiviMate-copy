@@ -2,6 +2,7 @@ package com.tivicopy.player.core
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.ZoneId
 
@@ -91,5 +92,31 @@ class TimeModelTest {
         assertEquals("45m", TimeModel.formatDuration(45 * 60_000L))
         assertEquals("1h 05m", TimeModel.formatDuration(65 * 60_000L))
         assertEquals("0m", TimeModel.formatDuration(-5))
+    }
+
+    /**
+     * FR-UI-21. Without the isolate, the dash between two runs of digits is neutral and takes the
+     * paragraph's direction, so a Hebrew layout draws the range end-first.
+     */
+    @Test
+    fun `a clock range is isolated so it survives a right-to-left layout`() {
+        val start = TimeModel.parseXmltvTime("20260819140000 +0000")!!
+        val end = TimeModel.parseXmltvTime("20260819153000 +0000")!!
+        val range = TimeModel.formatClockRange(start, end, london)
+
+        assertTrue(range.startsWith("⁦"))
+        assertTrue(range.endsWith("⁩"))
+        assertEquals("15:00 – 16:30", range.trim('⁦', '⁩'))
+    }
+
+    @Test
+    fun `a day and time is isolated the same way`() {
+        val at = TimeModel.parseXmltvTime("20260819140000 +0000")!!
+        assertEquals("19/08 15:00", TimeModel.formatDayTime(at, london).trim('⁦', '⁩'))
+    }
+
+    @Test
+    fun `isolating leaves the text itself untouched`() {
+        assertEquals("-1d", TimeModel.ltr("-1d").trim('⁦', '⁩'))
     }
 }
