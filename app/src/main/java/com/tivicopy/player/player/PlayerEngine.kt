@@ -126,9 +126,16 @@ class PlayerEngine(
     private var softwareFallbackApplied = false
     private var builtVideoMode = DecoderMode.AUTO
     private var builtAudioMode = DecoderMode.AUTO
-    private var builtPreset: BufferPreset? = null
     private var builtBuffer: BufferDurations? = null
     private var profile = RequestProfile()
+
+    private companion object {
+        /** Smallest custom minimum buffer offered, matching the slider in Settings. */
+        const val MIN_CUSTOM_BUFFER_MS = 200
+
+        /** How far `maxBufferMs` is kept above `minBufferMs` so loading has a band to work in. */
+        const val MIN_BUFFER_BAND_MS = 500
+    }
 
     /** Set by the host so a failover can be scheduled off the player's callback thread. */
     var onScheduleRetry: ((delayMillis: Long, action: () -> Unit) -> Unit)? = null
@@ -182,7 +189,6 @@ class PlayerEngine(
 
         builtVideoMode = effectiveVideoMode
         builtAudioMode = audioMode
-        builtPreset = s.bufferPreset
         builtBuffer = buffer
 
         exo.addListener(listener)
@@ -194,12 +200,28 @@ class PlayerEngine(
 
     private fun bufferValues(s: Settings.Snapshot): BufferDurations {
         val preset = s.bufferPreset
-        val custom = preset == BufferPreset.CUSTOM
+        if (preset != BufferPreset.CUSTOM) {
+            return BufferDurations.reconcile(
+                preset.minMs,
+                preset.maxMs,
+                preset.playbackMs,
+                preset.rebufferMs,
+            )
+        }
+        // FR-PLB-16 offers the millisecond values so a low minimum can actually lower latency.
+        // Reconciling alone would raise the minimum to meet CUSTOM's fixed thresholds, which
+        // silently discards everything the slider offers below 3 s, so the thresholds are
+        // brought down to the chosen minimum instead of the minimum being pushed up to them.
+        // The floor matches the slider's own minimum; a zero-length buffer is not a latency
+        // setting, it is a stall. The band above it keeps `maxBufferMs` clear of `minBufferMs`,
+        // because the two sliders move independently and an inverted pair would otherwise
+        // collapse into a window with no hysteresis at all.
+        val min = s.customBufferMinMs.coerceAtLeast(MIN_CUSTOM_BUFFER_MS)
         return BufferDurations.reconcile(
-            minMs = if (custom) s.customBufferMinMs else preset.minMs,
-            maxMs = if (custom) s.customBufferMaxMs else preset.maxMs,
-            playbackMs = preset.playbackMs,
-            rebufferMs = preset.rebufferMs,
+            minMs = min,
+            maxMs = s.customBufferMaxMs.coerceAtLeast(min + MIN_BUFFER_BAND_MS),
+            playbackMs = preset.playbackMs.coerceAtMost(min),
+            rebufferMs = preset.rebufferMs.coerceAtMost(min),
         )
     }
 
@@ -214,7 +236,9 @@ class PlayerEngine(
         val stale = player == null ||
             videoMode != builtVideoMode ||
             audioMode != builtAudioMode ||
-            s.bufferPreset != builtPreset ||
+            // The four durations are everything the load control is built from, so comparing
+            // the preset as well only forces a visible stream restart when two presets happen
+            // to reconcile to the same numbers.
             buffer != builtBuffer
 
         if (stale) {
@@ -262,6 +286,11 @@ class PlayerEngine(
                 errorDetail = "no url",
                 buffering = false,
                 playing = false,
+                // Otherwise the card keeps the previous channel's failover counters and
+                // claims this one is on "2/3" of sources it does not have.
+                sourceIndex = 0,
+                sourceCount = currentUrls.size,
+                retriesUsed = 0,
             )
             return
         }
@@ -316,6 +345,11 @@ class PlayerEngine(
     fun release() {
         releasePlayer()
         trackSelector = null
+        // The engine hangs off the process-wide ServiceLocator, so it outlives the activity,
+        // and `releasePlayer` detaches the listener before releasing — nothing will ever
+        // correct the last state it saw. Left alone, the next launch draws a spinner or an
+        // error banner for a player that no longer exists.
+        _status.value = PlaybackStatus()
     }
 
     private fun releasePlayer() {

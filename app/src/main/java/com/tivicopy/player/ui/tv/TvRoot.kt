@@ -93,6 +93,7 @@ fun TvRoot(
         PlaybackStateOverlay(
             status = status,
             showErrorText = false,
+            opacity = prefs.overlayOpacity,
             modifier = Modifier.fillMaxSize(),
         )
 
