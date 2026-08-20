@@ -1,9 +1,15 @@
 package com.tivicopy.player.ui
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.drawable.Icon
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -90,11 +96,21 @@ class MainActivity : ComponentActivity() {
         ServiceLocator.init(this)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onBackPressedDispatcher.addCallback(this) { handleBack() }
+        registerPipActionReceiver()
 
         setContent {
             val prefs by vm.settingsState.collectAsState()
             val state by vm.state.collectAsState()
+            val playback by vm.playbackStatus.collectAsState()
             val snackbar = remember { SnackbarHostState() }
+
+            // The floating window's own play/pause has to track reality: the action's icon is
+            // baked into the params, so a state change while in the window re-submits them.
+            LaunchedEffect(inPip, playback.playing) {
+                if (inPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    runCatching { setPictureInPictureParams(pipParams(playback.playing)) }
+                }
+            }
             val context = LocalContext.current
 
             // FR-SET-12 / NFR-REL-06: every message reaches the user in plain language.
@@ -322,14 +338,68 @@ class MainActivity : ComponentActivity() {
     private fun enterPip() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        runCatching { enterPictureInPictureMode(pipParams(vm.playbackStatus.value.playing)) }
+    }
+
+    /**
+     * The floating window's controls (device report): the system supplies expand and close on
+     * its own, so the one action the app must add is play/pause. The receiver toggles the
+     * player directly; the state change then flows back through [setPictureInPictureParams]
+     * above, which is what swaps the icon.
+     */
+    private fun pipParams(playing: Boolean): PictureInPictureParams {
         val status = vm.playbackStatus.value
         val ratio = if (status.width > 0 && status.height > 0) {
             Rational(status.width, status.height)
         } else {
             Rational(16, 9)
         }
-        runCatching {
-            enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(ratio).build())
+        val label = getString(if (playing) R.string.action_pause else R.string.action_play)
+        val toggle = RemoteAction(
+            Icon.createWithResource(
+                this,
+                if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+            ),
+            label,
+            label,
+            PendingIntent.getBroadcast(
+                this,
+                PIP_REQUEST_PLAY_PAUSE,
+                Intent(ACTION_PIP_PLAY_PAUSE).setPackage(packageName),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            ),
+        )
+        return PictureInPictureParams.Builder()
+            .setAspectRatio(ratio)
+            .setActions(listOf(toggle))
+            .build()
+    }
+
+    private val pipActionReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action != ACTION_PIP_PLAY_PAUSE) return
+            val exo = ServiceLocator.player.exoPlayer()
+            exo.playWhenReady = !exo.playWhenReady
+        }
+    }
+
+    private fun registerPipActionReceiver() {
+        // The action never leaves this package (the PendingIntent is package-scoped), and the
+        // receiver takes no data, so not-exported is both sufficient and required on 33+.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val filter = IntentFilter(ACTION_PIP_PLAY_PAUSE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(pipActionReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(pipActionReceiver, filter)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching { unregisterReceiver(pipActionReceiver) }
         }
     }
 
@@ -346,5 +416,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val EXIT_CONFIRM_WINDOW_MS = 3_000L
+        const val ACTION_PIP_PLAY_PAUSE = "com.tivicopy.player.PIP_PLAY_PAUSE"
+        const val PIP_REQUEST_PLAY_PAUSE = 1
     }
 }

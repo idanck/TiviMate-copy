@@ -155,7 +155,9 @@ class Settings(context: Context) {
         autoStartOnBoot = prefs.getBoolean(K_AUTOSTART, false),
         numericZapTimeoutMs = prefs.getInt(K_NUMERIC_TIMEOUT, 2_000),
         pipEnabled = prefs.getBoolean(K_PIP, true),
-        pipOnHome = prefs.getBoolean(K_PIP_HOME, false),
+        // On by default (device report): leaving the app mid-programme should keep the picture
+        // in a floating window unless the user turns that off in Settings.
+        pipOnHome = prefs.getBoolean(K_PIP_HOME, true),
         externalPlayerScope = prefs.enum(K_EXT_SCOPE, ExternalPlayerScope.NEVER),
         externalPlayerPackage = prefs.getString(K_EXT_PACKAGE, "") ?: "",
         cacheBudgetMb = prefs.getInt(K_CACHE_BUDGET, 500),
