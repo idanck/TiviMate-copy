@@ -257,8 +257,72 @@ class Dao(private val helper: Database) {
         favourite?.let { v.put("favourite", if (it) 1 else 0) }
         hidden?.let { v.put("hidden", if (it) 1 else 0) }
         locked?.let { v.put("locked", if (it) 1 else 0) }
+        writeChannelFields(id, v)
+    }
+
+    // ------------------------------------------------- targeted channel edits
+    //
+    // A user edit must touch only the columns it owns. [upsertChannel] writes all thirty from
+    // whatever `Channel` the caller happens to be holding, so an edit made against a snapshot
+    // taken before a refresh lands would push the stale *provider* fields — name, logo, urls,
+    // catch-up — back over the fresh ones. `docs/11` records that race as "the loser is a single
+    // user edit"; it is in fact the refresh that loses. These setters close it: each writes one
+    // concept, and the row keeps everything the caller never asked to change.
+
+    private fun writeChannelFields(id: Long, v: ContentValues) {
         if (v.size() > 0) db.update("channels", v, "id=?", arrayOf(id.toString()))
     }
+
+    /** FR-ORG-04: a local rename. Null restores the provider's own name. */
+    fun setChannelCustomName(id: Long, customName: String?) =
+        writeChannelFields(id, ContentValues().apply { put("custom_name", customName) })
+
+    /** FR-ORG-10: a user-supplied logo, overriding whatever the playlist carried. */
+    fun setChannelCustomLogo(id: Long, url: String?) =
+        writeChannelFields(id, ContentValues().apply { put("custom_logo_url", url) })
+
+    /** FR-ORG-09: the number numeric zapping uses. */
+    fun setChannelNumber(id: Long, number: Int) =
+        writeChannelFields(id, ContentValues().apply { put("number", number) })
+
+    /** FR-ORG-05: manual ordering. */
+    fun setChannelSortIndex(id: Long, sortIndex: Int) =
+        writeChannelFields(id, ContentValues().apply { put("sort_index", sortIndex) })
+
+    /** FR-ORG-02: move a channel between groups; null leaves it ungrouped. */
+    fun setChannelGroup(id: Long, groupId: Long?) = writeChannelFields(
+        id,
+        ContentValues().apply { if (groupId == null) putNull("group_id") else put("group_id", groupId) },
+    )
+
+    /** FR-EPG-12: a per-channel guide offset. */
+    fun setChannelEpgOffset(id: Long, minutes: Int?) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            if (minutes == null) putNull("epg_offset_minutes") else put("epg_offset_minutes", minutes)
+        },
+    )
+
+    /** FR-PLB-04: a decoder choice remembered for one channel. */
+    fun setChannelDecoders(id: Long, video: DecoderMode, audio: DecoderMode) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            put("video_decoder", video.name)
+            put("audio_decoder", audio.name)
+        },
+    )
+
+    /** Drops every local customisation, leaving the provider's own values in place. */
+    fun resetChannelCustomisations(id: Long) = writeChannelFields(
+        id,
+        ContentValues().apply {
+            putNull("custom_name")
+            putNull("custom_logo_url")
+            putNull("epg_offset_minutes")
+            put("video_decoder", DecoderMode.AUTO.name)
+            put("audio_decoder", DecoderMode.AUTO.name)
+        },
+    )
 
     fun recordWatch(channelId: Long, whenUtc: Long) {
         db.execSQL(

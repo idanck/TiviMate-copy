@@ -228,7 +228,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setChannelDecoders(channel: Channel, video: DecoderMode, audio: DecoderMode) {
         viewModelScope.launch {
             val updated = channel.copy(videoDecoder = video, audioDecoder = audio)
-            withContext(Dispatchers.IO) { dao.upsertChannel(updated) }
+            withContext(Dispatchers.IO) { dao.setChannelDecoders(channel.id, video, audio) }
             val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
             val profile = playlist?.let { sources.profileFor(it) }
                 ?: com.tivicopy.player.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
@@ -305,14 +305,59 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun renameChannel(channel: Channel, name: String) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                dao.upsertChannel(channel.copy(customName = name.takeIf { it.isNotBlank() }))
+                dao.setChannelCustomName(channel.id, name.takeIf { it.isNotBlank() })
             }
             loadChannels()
         }
     }
 
+    /** FR-ORG-10: a logo of the user's own, for when the provider supplies a bad one or none. */
+    fun setChannelLogo(channel: Channel, url: String?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                dao.setChannelCustomLogo(channel.id, url?.trim()?.takeIf { it.isNotBlank() })
+            }
+            loadChannels()
+        }
+    }
+
+    /** FR-ORG-09: the number the numeric keys jump to. */
+    fun setChannelNumber(channel: Channel, number: Int) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.setChannelNumber(channel.id, number.coerceIn(0, 9999)) }
+            loadChannels()
+        }
+    }
+
+    /** FR-ORG-02: move a channel into a group, or out of every group. */
+    fun assignGroup(channel: Channel, groupId: Long?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.setChannelGroup(channel.id, groupId) }
+            loadChannels()
+        }
+    }
+
+    /** Puts a channel back the way the provider sent it, keeping favourite/hidden/order. */
+    fun resetChannelCustomisations(channel: Channel) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.resetChannelCustomisations(channel.id) }
+            loadChannels()
+        }
+    }
+
+    /**
+     * Whether the list currently on screen is ordered by `sort_index`, which is the only case
+     * where swapping two neighbours means what the user thinks it means. Favourites is ordered by
+     * `sort_index` too, but its neighbours are not neighbours in the full list, so a swap there
+     * flings a channel across the playlist; Recent is ordered by watch time, where a swap changes
+     * nothing on screen and silently reorders somewhere else entirely.
+     */
+    val canReorder: Boolean
+        get() = _state.value.list.selectedGroupId.let { it == VirtualGroup.ALL || it >= 0 }
+
     /** FR-ORG-05: move-mode reordering, one step at a time so a D-pad can drive it. */
     fun moveChannel(channel: Channel, delta: Int) {
+        if (!canReorder) return
         val channels = _state.value.list.channels
         val index = channels.indexOfFirst { it.id == channel.id }
         val target = index + delta
@@ -320,8 +365,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val other = channels[target]
-                dao.upsertChannel(channel.copy(sortIndex = other.sortIndex))
-                dao.upsertChannel(other.copy(sortIndex = channel.sortIndex))
+                // One transaction: a process death between the two writes would otherwise leave
+                // both channels sharing a sort_index, and the tie is broken by `number, name`.
+                dao.transaction {
+                    dao.setChannelSortIndex(channel.id, other.sortIndex)
+                    dao.setChannelSortIndex(other.id, channel.sortIndex)
+                }
             }
             loadChannels()
         }
@@ -331,7 +380,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun setChannelEpgOffset(channel: Channel, minutes: Int?) {
         viewModelScope.launch {
             val clamped = minutes?.let(TimeModel::clampOffset)
-            withContext(Dispatchers.IO) { dao.upsertChannel(channel.copy(epgOffsetMinutes = clamped)) }
+            withContext(Dispatchers.IO) { dao.setChannelEpgOffset(channel.id, clamped) }
             _state.value = _state.value.copy(
                 currentChannel = _state.value.currentChannel
                     ?.takeIf { it.id == channel.id }
