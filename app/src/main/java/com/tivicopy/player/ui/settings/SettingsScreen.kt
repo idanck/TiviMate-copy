@@ -27,6 +27,7 @@ import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
 import com.tivicopy.player.data.prefs.AppLanguage
 import com.tivicopy.player.data.prefs.AspectMode
+import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.data.prefs.BufferPreset
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
 import com.tivicopy.player.data.prefs.StartBehaviour
@@ -115,15 +116,7 @@ fun SettingsScreen(
                 }
                 SettingsChoice(
                     title = stringResource(R.string.aspect_ratio),
-                    options = listOf(
-                        AspectMode.FIT to stringResource(R.string.aspect_fit),
-                        AspectMode.FILL to stringResource(R.string.aspect_fill),
-                        AspectMode.ZOOM to stringResource(R.string.aspect_zoom),
-                        AspectMode.STRETCH to stringResource(R.string.aspect_stretch),
-                        AspectMode.RATIO_16_9 to stringResource(R.string.aspect_16_9),
-                        AspectMode.RATIO_4_3 to stringResource(R.string.aspect_4_3),
-                        AspectMode.ORIGINAL to stringResource(R.string.aspect_original),
-                    ),
+                    options = AspectMode.entries.map { it to stringResource(it.labelRes()) },
                     selected = s.aspectMode,
                     onSelect = settings::setAspectMode,
                 )

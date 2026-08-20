@@ -250,12 +250,9 @@ fun MobileRoot(
                         MiniPlayerBar(
                             nowPlaying = nowPlaying,
                             now = state.now,
-                            playing = playback.playing,
+                            wantsPlay = playback.playWhenReady,
                             onExpand = openPlayer,
-                            onTogglePlay = {
-                                val exo = ServiceLocator.player.exoPlayer()
-                                exo.playWhenReady = !exo.playWhenReady
-                            },
+                            onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                         )
                     }
                     NavigationBar {
@@ -399,7 +396,8 @@ fun MobileRoot(
 private fun MiniPlayerBar(
     nowPlaying: NowPlayingInfo,
     now: Programme?,
-    playing: Boolean,
+    /** The intent flag, not `isPlaying` — a rebuffering stream must still offer Pause. */
+    wantsPlay: Boolean,
     onExpand: () -> Unit,
     onTogglePlay: () -> Unit,
 ) {
@@ -449,9 +447,9 @@ private fun MiniPlayerBar(
                 TwoLine(primary = primary, secondary = secondary, modifier = Modifier.weight(1f))
                 IconButton(onClick = onTogglePlay) {
                     Icon(
-                        imageVector = if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        imageVector = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                         contentDescription = stringResource(
-                            if (playing) R.string.action_pause else R.string.action_play,
+                            if (wantsPlay) R.string.action_pause else R.string.action_play,
                         ),
                     )
                 }

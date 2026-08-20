@@ -63,6 +63,7 @@ import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
+import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NowNextPane
 import java.util.Locale
@@ -117,15 +118,7 @@ fun PlayerScreen(
     // fire by accident, and a silently persisted Zoom reads as "the picture is suddenly
     // cropped" (device report), with nothing on screen to explain or undo it.
     val aspectChanged = stringResource(R.string.aspect_changed)
-    val aspectLabels = mapOf(
-        AspectMode.FIT to stringResource(R.string.aspect_fit),
-        AspectMode.FILL to stringResource(R.string.aspect_fill),
-        AspectMode.ZOOM to stringResource(R.string.aspect_zoom),
-        AspectMode.STRETCH to stringResource(R.string.aspect_stretch),
-        AspectMode.RATIO_16_9 to stringResource(R.string.aspect_16_9),
-        AspectMode.RATIO_4_3 to stringResource(R.string.aspect_4_3),
-        AspectMode.ORIGINAL to stringResource(R.string.aspect_original),
-    )
+    val aspectLabels = AspectMode.entries.associateWith { stringResource(it.labelRes()) }
     val cycleAspect: () -> Unit = {
         val order = AspectMode.entries
         val next = order[(order.indexOf(prefs.aspectMode) + 1) % order.size]
@@ -151,6 +144,7 @@ fun PlayerScreen(
 
                 Box(
                     modifier = videoModifier.background(Color.Black).gestureControls(
+                        key = landscape,
                         onBrightness = onBrightness,
                         onVolume = onVolume,
                         onSeek = { deltaMs ->
@@ -227,9 +221,10 @@ fun PlayerScreen(
 
 /**
  * The metadata half of the portrait player screen, keyed off what is actually playing: a live
- * channel gets its identity, zap arrows and now/next; catch-up, on-demand and recordings get
- * the title and what little else is known. Deliberately no transport bar — seeking is the
- * horizontal drag and double-tap the surface already carries (FR-UI-14).
+ * channel gets its identity, zapping and now/next; catch-up, on-demand and recordings get the
+ * title and what little else is known. Every kind gets the transport row (play/pause front and
+ * centre) and the quality readout. Seeking stays on the surface's gestures (FR-UI-14) — there
+ * is no scrubber yet, and docs/10 says so.
  */
 @Composable
 private fun NowPlayingDetails(
@@ -240,16 +235,19 @@ private fun NowPlayingDetails(
 ) {
     val state by vm.state.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
+    // Re-read from the current list so the star and the pane reflect an edit made after
+    // playback started; the snapshot inside NowPlayingInfo never updates.
+    val live = state.nowPlaying as? NowPlayingInfo.Live
+    val liveChannel = live?.let { l ->
+        state.list.channels.firstOrNull { it.id == l.channel.id } ?: l.channel
+    }
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         when (val playing = state.nowPlaying) {
             is NowPlayingInfo.Live -> {
-                // Re-read from the current list so the star reflects a change made after playback
-                // started; the snapshot in `playing` never updates.
-                val channel = state.list.channels.firstOrNull { it.id == playing.channel.id }
-                    ?: playing.channel
+                val channel = liveChannel ?: playing.channel
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -367,16 +365,12 @@ private fun NowPlayingDetails(
             null -> Unit
         }
 
-        val live = state.nowPlaying as? NowPlayingInfo.Live
         if (state.nowPlaying != null) {
             TransportRow(
-                isPlaying = playback.playing,
+                wantsPlay = playback.playWhenReady,
                 showZap = live != null,
                 showGuide = live != null,
-                onTogglePlay = {
-                    val exo = ServiceLocator.player.exoPlayer()
-                    exo.playWhenReady = !exo.playWhenReady
-                },
+                onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                 onZapPrevious = { vm.zap(-1) },
                 onZapNext = { vm.zap(1) },
                 onOpenGuide = onOpenGuide,
@@ -384,14 +378,10 @@ private fun NowPlayingDetails(
             )
             QualityLine(status = playback)
         }
-        if (live != null) {
-            // Re-read from the current list, as above: the pane's channel identity must track
-            // edits made after playback started.
-            val channel = state.list.channels.firstOrNull { it.id == live.channel.id }
-                ?: live.channel
+        if (liveChannel != null) {
             HorizontalDivider()
             NowNextPane(
-                channel = channel,
+                channel = liveChannel,
                 now = state.now,
                 next = state.next,
                 modifier = Modifier.fillMaxWidth(),
@@ -408,7 +398,8 @@ private fun NowPlayingDetails(
  */
 @Composable
 private fun TransportRow(
-    isPlaying: Boolean,
+    /** The intent flag, not `isPlaying` — a rebuffering stream must still offer Pause. */
+    wantsPlay: Boolean,
     showZap: Boolean,
     showGuide: Boolean,
     onTogglePlay: () -> Unit,
@@ -432,9 +423,9 @@ private fun TransportRow(
         }
         FilledIconButton(onClick = onTogglePlay, modifier = Modifier.size(64.dp)) {
             Icon(
-                imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                imageVector = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                 contentDescription = stringResource(
-                    if (isPlaying) R.string.action_pause else R.string.action_play,
+                    if (wantsPlay) R.string.action_pause else R.string.action_play,
                 ),
                 modifier = Modifier.size(32.dp),
             )
@@ -496,8 +487,14 @@ private fun QualityLine(status: PlaybackStatus) {
 /**
  * FR-UI-14 gestures. Brightness and volume are reported to the host activity, because both
  * belong to the window and the audio manager rather than to the player.
+ *
+ * [key] restarts the pointer handlers so their captured lambdas stay current. The activity
+ * handles rotation itself (`configChanges`), so `pointerInput(Unit)` would keep the closures
+ * from the first composition for the life of the screen — with the orientation baked into
+ * `onTap`, the landscape tap-for-channel-list would be dead after rotating mid-playback.
  */
 private fun Modifier.gestureControls(
+    key: Any?,
     onBrightness: (Float) -> Unit,
     onVolume: (Float) -> Unit,
     onSeek: (Long) -> Unit,
@@ -506,22 +503,23 @@ private fun Modifier.gestureControls(
     onCycleAspect: () -> Unit,
     onTap: () -> Unit,
 ): Modifier = this
-    .pointerInput(Unit) {
-        val width = size.width
+    .pointerInput(key) {
         detectVerticalDragGestures { change, dragAmount ->
             change.consume()
             // Dragging up must increase, so the sign is inverted against screen coordinates.
             val delta = -dragAmount / size.height.toFloat()
-            if (change.position.x < width / 2f) onBrightness(delta) else onVolume(delta)
+            // `size` is read per event, never cached: it changes under a live composition when
+            // the window resizes without this block restarting.
+            if (change.position.x < size.width / 2f) onBrightness(delta) else onVolume(delta)
         }
     }
-    .pointerInput(Unit) {
+    .pointerInput(key) {
         detectHorizontalDragGestures { change, dragAmount ->
             change.consume()
             onSeek((dragAmount / size.width.toFloat() * SEEK_SWEEP_MS).toLong())
         }
     }
-    .pointerInput(Unit) {
+    .pointerInput(key) {
         detectTapGestures(
             onTap = { onTap() },
             onDoubleTap = { offset ->

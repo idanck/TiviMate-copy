@@ -40,6 +40,7 @@ import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.mobile.MobileRoot
+import com.tivicopy.player.ui.mobile.PlayerScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import com.tivicopy.player.ui.theme.TiviCopyTheme
 import com.tivicopy.player.ui.tv.TvOverlay
@@ -106,9 +107,10 @@ class MainActivity : ComponentActivity() {
 
             // The floating window's own play/pause has to track reality: the action's icon is
             // baked into the params, so a state change while in the window re-submits them.
-            LaunchedEffect(inPip, playback.playing) {
+            // Width and height are keys too — a failover or track switch reshapes the window.
+            LaunchedEffect(inPip, playback.playWhenReady, playback.width, playback.height) {
                 if (inPip && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    runCatching { setPictureInPictureParams(pipParams(playback.playing)) }
+                    runCatching { setPictureInPictureParams(pipParams(playback.playWhenReady)) }
                 }
             }
             val context = LocalContext.current
@@ -144,15 +146,30 @@ class MainActivity : ComponentActivity() {
                         snackbarHost = { SnackbarHost(snackbar) },
                     ) { _ ->
                         if (isTelevision) {
-                            TvRoot(
-                                vm = vm,
-                                overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
-                                settingsSection = settingsSection,
-                                onOverlayChange = { overlay = it },
-                                onSettingsSection = { settingsSection = it },
-                                numericEntry = numericEntry,
-                                modifier = Modifier.fillMaxSize(),
-                            )
+                            // Android TV boxes do PiP too, and the window must be bare video:
+                            // an open overlay squeezed into it is unreadable chrome.
+                            if (inPip) {
+                                PlayerScreen(
+                                    vm = vm,
+                                    onClose = {},
+                                    onOpenGuide = {},
+                                    onBrightness = {},
+                                    onVolume = {},
+                                    twoPane = false,
+                                    inPip = true,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                TvRoot(
+                                    vm = vm,
+                                    overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
+                                    settingsSection = settingsSection,
+                                    onOverlayChange = { overlay = it },
+                                    onSettingsSection = { settingsSection = it },
+                                    numericEntry = numericEntry,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
                         } else {
                             MobileRoot(
                                 vm = vm,
@@ -210,8 +227,7 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_MENU -> { overlay = TvOverlay.SETTINGS; true }
             KeyEvent.KEYCODE_PROG_RED -> { overlay = TvOverlay.RECORDINGS; true }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
-                val exo = ServiceLocator.player.exoPlayer()
-                exo.playWhenReady = !exo.playWhenReady
+                ServiceLocator.player.togglePlayPause()
                 true
             }
             KeyEvent.KEYCODE_LAST_CHANNEL, KeyEvent.KEYCODE_TV -> { vm.toggleLastChannel(); true }
@@ -338,27 +354,31 @@ class MainActivity : ComponentActivity() {
     private fun enterPip() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-        runCatching { enterPictureInPictureMode(pipParams(vm.playbackStatus.value.playing)) }
+        runCatching { enterPictureInPictureMode(pipParams(vm.playbackStatus.value.playWhenReady)) }
     }
 
     /**
      * The floating window's controls (device report): the system supplies expand and close on
      * its own, so the one action the app must add is play/pause. The receiver toggles the
-     * player directly; the state change then flows back through [setPictureInPictureParams]
-     * above, which is what swaps the icon.
+     * player; the state change then flows back through [setPictureInPictureParams] above,
+     * which is what swaps the icon. [wantsPlay] is the intent flag, not `isPlaying` — a
+     * rebuffering stream must show Pause, or the button pauses when the user meant "play".
      */
-    private fun pipParams(playing: Boolean): PictureInPictureParams {
+    private fun pipParams(wantsPlay: Boolean): PictureInPictureParams {
         val status = vm.playbackStatus.value
-        val ratio = if (status.width > 0 && status.height > 0) {
-            Rational(status.width, status.height)
+        // Android only accepts a window between 1:2.39 and 2.39:1 and *throws* outside it, so
+        // an ultra-wide stream is clamped rather than silently costing the whole window.
+        val raw = if (status.width > 0 && status.height > 0) {
+            status.width.toFloat() / status.height
         } else {
-            Rational(16, 9)
+            16f / 9f
         }
-        val label = getString(if (playing) R.string.action_pause else R.string.action_play)
+        val ratio = Rational((raw.coerceIn(0.42f, 2.38f) * 10_000).toInt(), 10_000)
+        val label = getString(if (wantsPlay) R.string.action_pause else R.string.action_play)
         val toggle = RemoteAction(
             Icon.createWithResource(
                 this,
-                if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                if (wantsPlay) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
             ),
             label,
             label,
@@ -378,8 +398,7 @@ class MainActivity : ComponentActivity() {
     private val pipActionReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != ACTION_PIP_PLAY_PAUSE) return
-            val exo = ServiceLocator.player.exoPlayer()
-            exo.playWhenReady = !exo.playWhenReady
+            ServiceLocator.player.togglePlayPause()
         }
     }
 
