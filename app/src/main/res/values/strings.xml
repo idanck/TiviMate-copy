@@ -357,4 +357,34 @@
     <string name="action_pause">Pause</string>
     <string name="channel_previous">Previous channel</string>
     <string name="channel_next">Next channel</string>
+    <!-- In-app updates (FR-UPD-01..08). -->
+    <string name="update_title">Updates</string>
+    <string name="update_check_now">Check for updates</string>
+    <string name="update_checking">Checking…</string>
+    <string name="update_up_to_date">This is the latest version</string>
+    <string name="update_available">Version %1$s is available</string>
+    <string name="update_install">Download and install</string>
+    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_verifying">Verifying the download…</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_auto">Check automatically</string>
+    <string name="update_auto_sub">Once a day, in the background</string>
+    <string name="update_wifi_only">Download over Wi-Fi only</string>
+    <string name="update_wifi_only_sub">Never spend mobile data on an update</string>
+    <string name="update_skip">Skip this version</string>
+    <string name="update_later">Later</string>
+    <string name="update_now">Update now</string>
+    <string name="update_hide">Hide</string>
+    <string name="update_unknown_sources">Allow installs from this app</string>
+    <string name="update_unknown_sources_sub">Android asks once, so TiviCopy can install its own updates</string>
+    <string name="update_unknown_sources_manual">Settings → Security → Install unknown apps → allow TiviCopy</string>
+    <string name="update_last_check">Last checked: %1$s</string>
+    <string name="update_never_checked">Not checked yet</string>
+    <string name="update_dialog_title">Update available</string>
+    <string name="update_dialog_summary">Version %1$s · %2$s MB</string>
+    <string name="update_blocked_recording">Not while a recording is running</string>
+    <string name="update_blocked_permission">Allow installs from this app first</string>
+    <string name="update_blocked_metered">Waiting for Wi-Fi, or turn off Wi-Fi-only downloads</string>
+    <string name="update_blocked_android">This update needs a newer version of Android</string>
+    <string name="update_blocked_space">Not enough free space for the download</string>
 </resources>

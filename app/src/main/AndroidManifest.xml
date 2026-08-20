@@ -14,6 +14,12 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- In-app updates (FR-UPD-04): the app is distributed outside a store, so it installs
+         its own updates. UPDATE_PACKAGES_WITHOUT_USER_ACTION is a normal permission that lets
+         a self-update skip the confirmation once this app is the installer of record. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+
     <!-- One binary for both form factors: neither leanback nor a touchscreen is required. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -72,7 +78,15 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <!-- Replacing the package clears its alarms; the schedule is re-armed. -->
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Addressed by class from the installer session's PendingIntent, so it needs no
+             intent filter and is never reachable from outside the app. -->
+        <receiver
+            android:name=".data.update.UpdateInstallReceiver"
+            android:exported="false" />
+
     </application>
 </manifest>

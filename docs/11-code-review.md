@@ -523,3 +523,78 @@ The suite compiles and passes (113 tests); backgrounding, PiP recreation, IDLE r
 the zap fallback are lifecycle behaviours only a device can exercise. Known gaps recorded, not
 fixed: no media session (headset and Bluetooth keys do nothing on the phone), no error surface
 on the mini bar, a recording's resume position is still never written.
+
+## In-app updates, 2026-08-20
+
+Reviewed while writing rather than after, because the environment cannot compile Android and CI
+is the only compiler this change gets. The findings below were all caught in a self-review pass
+over the finished diff and fixed before the first push.
+
+The finding that started the feature is not in the app at all. Three consecutive CI builds —
+0.3.0, 0.3.1, 0.3.2 — carry three *different* signing certificates, each generated minutes
+before its own build: with no keystore configured, Gradle mints a throwaway debug key per
+runner. Android replaces a package only when the certificate matches, so none of those builds
+could ever have updated another, and the "installs over the previous version" note that went out
+with 0.3.2 was wrong. A stable release keystore now lives in repository secrets and CI asserts
+the APK carries it before publishing anything (`docs/adr/ADR-012`).
+
+- **A background check could destroy an install in flight.** `RefreshWorker`'s daily check wrote
+  its own state over `Downloading` and pruned the cache directory the download was writing into.
+  `check` now returns immediately while an install is under way.
+- **Refusals spoke in generic error text.** "Metered connection" arrived as *network error*,
+  which is neither true nor actionable. Refusals are now a named `UpdateBlocker` with a sentence
+  each: a recording in progress, the install permission, Wi-Fi-only, an older Android, no space.
+- **A refusal threw the offer away.** `Blocked` replaced `Available`, so the install button
+  vanished and the user had to re-check to get it back. `Blocked` carries the manifest and the
+  button stays.
+- **The recording guard read the database on the caller's thread.** Moved onto IO.
+- **Abandoned downloads were never cleaned up** — 16 MB per attempt, invisible to the cache
+  budget. The daily check prunes everything except the build still worth installing.
+- **Discovery relied entirely on a deferrable worker.** A launch-time check was added; the
+  once-a-day limit inside the manager keeps it free.
+- **An unescaped quotation mark in a string resource** would have failed the resource compiler
+  outright. Rewritten without it.
+- **The installer's callback would never have arrived.** The status `PendingIntent` named an
+  action and a package, and since Android 8 a manifest receiver does not receive implicit
+  broadcasts — so the confirmation dialog would never have been launched and every install would
+  have hung on "Installing…". The intent now names the receiver class outright, which also means
+  the status can reach nothing else.
+
+Not proven, and stated as such: no part of the install path has run on a device. The permission
+prompt, the installer session, the silent self-update on Android 12+, and whether a scheduled
+recording really survives the replacement are all first provable on the first signed build.
+
+### Requested review of the update feature, 2026-08-20
+
+A second pass over the same diff, run as a review rather than as self-review. Six findings, all
+fixed before the merge.
+
+- **The published version name would have read "040".** The workflow squeezed whitespace out of
+  the whole `version.properties` stream before joining the three numbers, so `tr` ate the
+  newlines `paste` was about to join on. Every device would have been offered "version 040".
+  Reproduced against the repository's own file; the fix squeezes spaces per line and is verified
+  to print `0.4.0`.
+- **An update found overnight stayed invisible until the next day.** The daily interval outlives
+  the process, so a check inside it returned nothing and left the UI idle — while Settings
+  accurately reported that it had looked recently. The manifest is now persisted verbatim and
+  the rate-limited path restores the offer from it.
+- **Two taps started two downloads.** `downloadAndInstall` published `Downloading` only after
+  suspending over the blocking checks, so both callers passed the guard and then raced over the
+  same cache file, ending in a checksum mismatch. The claim is now taken atomically before the
+  first suspension point.
+- **A dropped confirmation wedged the feature.** If the platform asked for user action but named
+  no intent — or the activity start was silently dropped, which is not an exception on Android 10
+  and later — nothing moved the state on, and `Installing` then suppressed every later check for
+  the life of the process. A missing intent is now reported as a failure, and the state carries
+  when it began so it can lapse.
+- **Failed installs leaked staged sessions.** Nothing abandoned the `PackageInstaller` session
+  when writing or committing threw, so repeated failures burned through the per-UID session
+  limit at ~16 MB each. The session is abandoned on failure, and stale ones from earlier
+  attempts are dropped before a new one is created.
+- **The retry re-fetched a file the device already had.** `download` wiped the cache directory
+  unconditionally, including the verified APK the daily check had deliberately kept, which made
+  the `keep` argument dead code. A file that still matches the manifest's size and hash is now
+  reused.
+
+Two tests cover the persistence half of the second finding; the suite is 129 tests. The install path itself
+is still unproven on a device, for the reason given above.

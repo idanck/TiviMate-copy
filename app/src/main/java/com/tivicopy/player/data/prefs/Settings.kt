@@ -121,6 +121,12 @@ class Settings(context: Context) {
         val hideLockedChannels: Boolean,
         val activePlaylistId: Long,
         val verboseLogging: Boolean,
+        val updateAutoCheck: Boolean,
+        val updateWifiOnly: Boolean,
+        val updateSkippedVersionCode: Int,
+        val updateLastCheckUtc: Long,
+        /** The manifest the last successful check read, verbatim; null when it found none. */
+        val updateLastManifest: String?,
     )
 
     private fun read() = Snapshot(
@@ -176,6 +182,11 @@ class Settings(context: Context) {
         hideLockedChannels = prefs.getBoolean(K_HIDE_LOCKED, false),
         activePlaylistId = prefs.getLong(K_ACTIVE_PLAYLIST, 0),
         verboseLogging = prefs.getBoolean(K_VERBOSE, false),
+        updateAutoCheck = prefs.getBoolean(K_UPDATE_AUTO, true),
+        updateWifiOnly = prefs.getBoolean(K_UPDATE_WIFI_ONLY, true),
+        updateSkippedVersionCode = prefs.getInt(K_UPDATE_SKIPPED, 0),
+        updateLastCheckUtc = prefs.getLong(K_UPDATE_LAST_CHECK, 0),
+        updateLastManifest = prefs.getString(K_UPDATE_MANIFEST, null),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -245,6 +256,30 @@ class Settings(context: Context) {
     fun setHideLockedChannels(v: Boolean) = commit { putBoolean(K_HIDE_LOCKED, v) }
     fun setActivePlaylist(id: Long) = commit { putLong(K_ACTIVE_PLAYLIST, id) }
     fun setVerboseLogging(v: Boolean) = commit { putBoolean(K_VERBOSE, v) }
+
+    /** FR-UPD-06: the background check and the metered-network guard are both opt-out. */
+    fun setUpdateAutoCheck(v: Boolean) = commit { putBoolean(K_UPDATE_AUTO, v) }
+    fun setUpdateWifiOnly(v: Boolean) = commit { putBoolean(K_UPDATE_WIFI_ONLY, v) }
+
+    /**
+     * Silences one version. Stored as a floor rather than a set: skipping 12 also means
+     * nothing older than 12 is worth asking about, and a later build clears it by being
+     * greater than the floor.
+     */
+    fun setUpdateSkippedVersion(versionCode: Int) = commit { putInt(K_UPDATE_SKIPPED, versionCode) }
+
+    /**
+     * Records that a check happened, and drops a stale skip once that version is installed.
+     *
+     * [manifestJson] is kept verbatim because the check interval outlives the process: an
+     * update the background sweep found overnight has to survive until someone opens the app,
+     * and re-asking the host on every start is exactly what the interval exists to avoid.
+     */
+    fun rememberUpdateCheck(atUtc: Long, seenVersionCode: Int, manifestJson: String? = null) = commit {
+        putLong(K_UPDATE_LAST_CHECK, atUtc)
+        if (manifestJson == null) remove(K_UPDATE_MANIFEST) else putString(K_UPDATE_MANIFEST, manifestJson)
+        if (seenVersionCode <= com.tivicopy.player.BuildInfo.versionCode) remove(K_UPDATE_SKIPPED)
+    }
 
     /** Remembers the current and previous channel so a single key can toggle (FR-PLB-20). */
     fun rememberChannel(id: Long) {
@@ -340,5 +375,10 @@ class Settings(context: Context) {
         const val K_HIDE_LOCKED = "hide_locked"
         const val K_ACTIVE_PLAYLIST = "active_playlist"
         const val K_VERBOSE = "verbose_logging"
+        const val K_UPDATE_AUTO = "update_auto_check"
+        const val K_UPDATE_WIFI_ONLY = "update_wifi_only"
+        const val K_UPDATE_SKIPPED = "update_skipped_code"
+        const val K_UPDATE_LAST_CHECK = "update_last_check"
+        const val K_UPDATE_MANIFEST = "update_last_manifest"
     }
 }

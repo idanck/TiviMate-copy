@@ -45,6 +45,7 @@ import com.tivicopy.player.ui.settings.SettingsSection
 import com.tivicopy.player.ui.theme.TiviCopyTheme
 import com.tivicopy.player.ui.tv.TvOverlay
 import com.tivicopy.player.ui.tv.TvRoot
+import kotlinx.coroutines.launch
 
 /**
  * The single activity for both form factors.
@@ -159,6 +160,11 @@ class MainActivity : ComponentActivity() {
                 // The phone browses full screen, so a resumed channel opens the player screen —
                 // otherwise it would be audible behind the channel list with no video anywhere.
                 if (!isTelevision && resumed) playerOpen = true
+
+                // FR-UPD-02: a look on launch, rate-limited to once a day inside the manager.
+                // Without it a device that is opened and closed daily would rely entirely on a
+                // background worker that doze can defer for hours.
+                ServiceLocator.appScope.launch { ServiceLocator.updates.check(force = false) }
             }
 
             TiviCopyTheme(mode = prefs.theme, fontScale = prefs.fontScale) {

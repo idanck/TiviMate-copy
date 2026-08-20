@@ -35,6 +35,21 @@ jobs:
           echo "GIT_SHA=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_ENV"
           echo "BUILD_STAMP=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
 
+      - name: Set up the release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64:-}" ]; then
+            echo "::warning::No release keystore configured — this build falls back to a per-run"
+            echo "::warning::debug key, so it cannot update an existing install and is not published."
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "SIGNED=true" >> "$GITHUB_ENV"
+
       - name: Unit tests
         run: ./gradlew --no-daemon testReleaseUnitTest
 
@@ -43,7 +58,28 @@ jobs:
         continue-on-error: true
 
       - name: Assemble release APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew --no-daemon assembleRelease
+
+      - name: Confirm the APK carries the release key
+        if: env.SIGNED == 'true'
+        run: |
+          set -euo pipefail
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
+          expected=$(keytool -list -keystore "$RUNNER_TEMP/release.jks" \
+            -storepass "${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" -alias "${{ secrets.RELEASE_KEY_ALIAS }}" -v |
+            awk '/SHA256:/ { print $2; exit }')
+          unzip -p "$apk" META-INF/*.RSA > "$RUNNER_TEMP/cert.p7"
+          actual=$(openssl pkcs7 -inform DER -in "$RUNNER_TEMP/cert.p7" -print_certs |
+            openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)
+          echo "keystore: $expected"
+          echo "apk:      $actual"
+          # An APK signed with anything else cannot replace an existing install, and shipping it
+          # as an update would strand every device on its current version.
+          [ "$expected" = "$actual" ]
 
       - name: Collect artefacts
         id: collect
@@ -86,6 +122,68 @@ jobs:
           git commit -qm "build: APK for ${GITHUB_SHA:0:8} (${GITHUB_REF_NAME})"
           git push -q --force \
             "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk
+
+      - name: Publish the update manifest
+        # Only a properly signed build from the integration branch can update an install, so
+        # only that one is announced to the app (FR-UPD-01).
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.SIGNED == 'true'
+        env:
+          UPLOAD_TOKEN: ${{ secrets.UPDATES_UPLOAD_TOKEN }}
+          HOST: https://updates.idanck.com
+        run: |
+          set -euo pipefail
+          if [ -z "${UPLOAD_TOKEN:-}" ]; then
+            echo "::warning::No UPDATES_UPLOAD_TOKEN secret — nothing published."
+            exit 0
+          fi
+
+          apk=$(ls dist/*.apk | head -1)
+          name=$(basename "$apk")
+          sha=$(sha256sum "$apk" | cut -d' ' -f1)
+          size=$(stat -c%s "$apk")
+          versionCode=$(grep '^versionCode=' version.properties | cut -d= -f2 | tr -d '[:space:]')
+          # Squeeze spaces per line, never newlines: `tr -d '[:space:]'` across the stream
+          # would glue the three numbers into "040" before paste ever saw a line to join.
+          versionName=$(grep -E '^versionM(ajor|inor)=|^versionPatch=' version.properties |
+            cut -d= -f2 | tr -d ' \r' | paste -sd.)
+          minSdk=$(grep -m1 'minSdk = ' app/build.gradle.kts | tr -dc '0-9')
+          notes=$(git log -1 --pretty=%s)
+
+          published=$(curl -fsS "$HOST/latest.json" || echo '{}')
+          pubCode=$(jq -r '.versionCode // 0' <<<"$published")
+          pubSha=$(jq -r '.sha256 // ""' <<<"$published")
+
+          if [ "$versionCode" -lt "$pubCode" ]; then
+            echo "::error::versionCode $versionCode is older than the published $pubCode."
+            exit 1
+          fi
+          if [ "$versionCode" -eq "$pubCode" ]; then
+            if [ "$sha" = "$pubSha" ]; then
+              echo "Already published; nothing to do."
+              exit 0
+            fi
+            echo "::error::versionCode $versionCode is already published with different contents."
+            echo "::error::Bump versionCode in version.properties: devices compare that number alone."
+            exit 1
+          fi
+
+          curl -fsS -X PUT -H "Authorization: Bearer $UPLOAD_TOKEN" \
+            --data-binary @"$apk" "$HOST/publish/apk/$name" > /dev/null
+
+          jq -n --arg vn "$versionName" --argjson vc "$versionCode" \
+            --arg url "$HOST/apk/$name" --arg sha "$sha" --argjson size "$size" \
+            --argjson min "$minSdk" --arg notes "$notes" \
+            '{versionCode: $vc, versionName: $vn, apkUrl: $url, sha256: $sha,
+              sizeBytes: $size, minSdk: $min, notes: {he: $notes, en: $notes}}' > "$RUNNER_TEMP/latest.json"
+
+          # The APK is uploaded first, so the manifest never points at a file that is not there.
+          curl -fsS -X PUT -H "Authorization: Bearer $UPLOAD_TOKEN" \
+            --data-binary @"$RUNNER_TEMP/latest.json" "$HOST/publish/latest.json" > /dev/null
+
+          served=$(curl -fsS "$HOST/latest.json")
+          [ "$(jq -r .sha256 <<<"$served")" = "$sha" ]
+          [ "$(curl -fsS -o /dev/null -w '%{http_code}' -I "$HOST/apk/$name")" = "200" ]
+          echo "Published $versionName ($versionCode) — $name"
 
       - name: Publish release
         # Only for the integration branch, so feature pushes do not create releases.

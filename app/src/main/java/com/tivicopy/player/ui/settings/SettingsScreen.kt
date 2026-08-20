@@ -345,6 +345,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
+                UpdateSettingsBlock()
                 CacheRows()
             }
         }

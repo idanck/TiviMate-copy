@@ -325,4 +325,34 @@
     <string name="action_pause">השהה</string>
     <string name="channel_previous">הערוץ הקודם</string>
     <string name="channel_next">הערוץ הבא</string>
+    <!-- In-app updates (FR-UPD-01..08). -->
+    <string name="update_title">עדכונים</string>
+    <string name="update_check_now">בדוק עדכונים</string>
+    <string name="update_checking">בודק…</string>
+    <string name="update_up_to_date">מותקנת הגרסה העדכנית ביותר</string>
+    <string name="update_available">גרסה %1$s זמינה</string>
+    <string name="update_install">הורד והתקן</string>
+    <string name="update_downloading">מוריד… %1$d%%</string>
+    <string name="update_verifying">מאמת את הקובץ…</string>
+    <string name="update_installing">מתקין…</string>
+    <string name="update_auto">בדיקה אוטומטית</string>
+    <string name="update_auto_sub">פעם ביום, ברקע</string>
+    <string name="update_wifi_only">הורדה ב-Wi-Fi בלבד</string>
+    <string name="update_wifi_only_sub">לא לבזבז חבילת גלישה על עדכון</string>
+    <string name="update_skip">דלג על גרסה זו</string>
+    <string name="update_later">אחר כך</string>
+    <string name="update_now">עדכן עכשיו</string>
+    <string name="update_hide">הסתר</string>
+    <string name="update_unknown_sources">אפשר התקנה מהאפליקציה</string>
+    <string name="update_unknown_sources_sub">אנדרואיד מבקש את האישור הזה פעם אחת, כדי ש-TiviCopy תוכל להתקין את העדכונים שלה</string>
+    <string name="update_unknown_sources_manual">הגדרות ← אבטחה ← התקנת אפליקציות לא מוכרות ← אפשר ל-TiviCopy</string>
+    <string name="update_last_check">נבדק לאחרונה: %1$s</string>
+    <string name="update_never_checked">עוד לא נבדק</string>
+    <string name="update_dialog_title">יש עדכון</string>
+    <string name="update_dialog_summary">גרסה %1$s · %2$s MB</string>
+    <string name="update_blocked_recording">לא בזמן הקלטה פעילה</string>
+    <string name="update_blocked_permission">צריך קודם לאשר התקנה מהאפליקציה</string>
+    <string name="update_blocked_metered">ממתין ל-Wi-Fi, או כבה את ההורדה ב-Wi-Fi בלבד</string>
+    <string name="update_blocked_android">העדכון הזה דורש גרסת אנדרואיד חדשה יותר</string>
+    <string name="update_blocked_space">אין מספיק מקום פנוי להורדה</string>
 </resources>

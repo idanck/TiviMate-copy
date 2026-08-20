@@ -62,6 +62,11 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         epg.pruneOldProgrammes()
         ServiceLocator.cache.enforce(settings.cacheBudgetMb)
 
+        // FR-UPD-02: one small request, rate-limited to a day inside the manager, and never a
+        // download — deciding to install is the user's. Its outcome does not affect this run:
+        // an unreachable update host says nothing about the playlists that just refreshed.
+        ServiceLocator.updates.check(force = false)
+
         // A failed refresh is retried by WorkManager with its own backoff; the previous
         // snapshot is still intact either way (FR-SRC-12).
         return if (anyFailure) Result.retry() else Result.success()
