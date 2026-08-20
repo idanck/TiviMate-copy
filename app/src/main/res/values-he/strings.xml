@@ -314,7 +314,6 @@
     <!-- On-demand: series and episodes (FR-PLB-28). -->
     <string name="vod_season">עונה %1$d</string>
     <string name="vod_episode_label">S%1$02dE%2$02d</string>
-    <string name="vod_episodes">פרקים</string>
     <string name="vod_no_episodes">הספק לא החזיר פרקים לסדרה הזו.</string>
     <string name="vod_open_series_to_play">פתחו את הסדרה ובחרו פרק.</string>
 </resources>

@@ -32,6 +32,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** Below this, resuming would rewind to somewhere the viewer had barely arrived. */
+private const val MIN_RESUME_MS = 60_000L
+
+/** The last twentieth of a title counts as watched. */
+private const val FINISHED_TAIL_FRACTION = 20L
+
+/**
+ * What to store as the resume mark for a title stopped at [position] of [duration], or null to
+ * leave whatever is already stored alone.
+ *
+ * Extracted because this one decision is the only thing standing between a viewer and losing
+ * their place, and it is provable here without a player. Answering null rather than zero for an
+ * early position is the point of it: a failover restarts the source from zero
+ * (`PlayerEngine.startCurrentSource` defaults to it), so writing that back would spend one
+ * network blip to erase forty minutes.
+ */
+internal fun resumeMark(position: Long, duration: Long): Long? = when {
+    // Finishing clears the mark, so the title leaves continue-watching rather than sitting at
+    // 99% for good.
+    duration > 0 && position >= duration - duration / FINISHED_TAIL_FRACTION -> 0L
+    position < MIN_RESUME_MS -> null
+    else -> position
+}
+
 /** A transient message for the user: a toast-style line with an optional error behind it. */
 data class UiMessage(val text: String? = null, val error: AppError? = null, val id: Long = System.nanoTime())
 
@@ -359,7 +383,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** FR-CU-03/04: play a past programme from the provider's archive. */
     fun playCatchup(channel: Channel, programme: Programme) {
-        leaveVod()
         val now = System.currentTimeMillis()
         if (!channel.hasCatchup) {
             post(UiMessage(error = AppError(AppError.Kind.CatchupUnsupported)))
@@ -377,6 +400,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
         val profile = playlist?.let { sources.profileFor(it) }
             ?: com.tivicopy.player.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
+        // After the guards, never before: three of them abandon the attempt and leave the film
+        // that is already playing exactly where it was, so releasing it here would forget where
+        // that film had reached without anything having replaced it.
+        leaveVod()
         player.playUrl(programme.title, url, profile)
         _state.value = _state.value.copy(currentChannel = channel, now = programme)
     }
@@ -394,7 +421,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ?: _state.value.activePlaylist
             ?: return
         if (item.isSeriesContainer) {
-            post(UiMessage(text = ServiceLocator.locale.getString(R.string.vod_open_series_to_play)))
+            post(UiMessage(text = string(R.string.vod_open_series_to_play)))
             return
         }
         val client = sources.xtreamClient(playlist)
@@ -410,34 +437,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The episodes of one series: fetched from the panel, then kept.
+     * What a previous visit already stored for one series. No network, so it answers at once.
+     *
+     * This is what the episode list draws first, and what it re-reads after a star: the database
+     * is the authority on both, and neither is worth an HTTP request.
+     */
+    suspend fun storedEpisodes(series: VodItem): List<VodItem> = withContext(Dispatchers.IO) {
+        val seriesId = series.seriesId ?: return@withContext emptyList()
+        val playlistId = playlistIdFor(series) ?: return@withContext emptyList()
+        dao.episodes(playlistId, seriesId)
+    }
+
+    /**
+     * Fetches one series' episodes from the panel, stores them, and answers with what is stored.
      *
      * `get_series_info` is one request per series, so this cannot happen during a refresh — a
      * playlist carrying a thousand series would make a thousand requests for screens nobody
-     * opened. It happens when a series is opened instead, and what comes back is written to the
-     * database and read straight back out. That round trip is the point: it gives every episode a
-     * row of its own to hold a resume position and a favourite, and it is what a failed fetch
-     * falls back to, so an opened series still lists what a previous visit stored.
+     * opened. It happens when a series is opened instead, and the round trip through the database
+     * is the point: it gives every episode a row of its own to hold a resume position and a
+     * favourite, and it is what a failed fetch falls back to.
+     *
+     * Pair it with [storedEpisodes]: that answers at once from what a previous visit left, so a
+     * slow or unreachable panel costs a refresh rather than the whole screen.
      */
-    suspend fun episodesFor(series: VodItem): List<VodItem> = withContext(Dispatchers.IO) {
-        val seriesId = series.seriesId ?: return@withContext emptyList()
-        val playlistId = series.playlistId.takeIf { it != 0L }
-            ?: _state.value.activePlaylist?.id
-            ?: return@withContext emptyList()
-        val client = _state.value.playlists.firstOrNull { it.id == playlistId }
-            ?.let { sources.xtreamClient(it) }
+    suspend fun refreshEpisodes(series: VodItem): List<VodItem> {
+        val seriesId = series.seriesId ?: return emptyList()
+        val playlistId = playlistIdFor(series) ?: return emptyList()
 
-        val fetched = client?.seriesEpisodes(seriesId)
-        val listed = fetched?.getOrNull()
-        when {
-            listed != null -> dao.transaction { d ->
-                listed.forEach { dao.upsertVod(d, it.copy(playlistId = playlistId)) }
+        val (fetched, stored) = withContext(Dispatchers.IO) {
+            val client = _state.value.playlists.firstOrNull { it.id == playlistId }
+                ?.let { sources.xtreamClient(it) }
+            val outcome = client?.seriesEpisodes(seriesId)
+            outcome?.getOrNull()?.let { listed ->
+                dao.transaction { d ->
+                    listed.forEach { dao.upsertVod(d, it.copy(playlistId = playlistId)) }
+                }
             }
-            fetched != null -> post(UiMessage(error = fetched.errorOrNull() ?: AppError(AppError.Kind.Unknown)))
-            else -> post(UiMessage(error = AppError(AppError.Kind.NotFound, "on-demand needs an Xtream source")))
+            outcome to dao.episodes(playlistId, seriesId)
         }
-        dao.episodes(playlistId, seriesId)
+
+        // Posted out here, on whatever thread called in, rather than inside the block above.
+        // `post` is a read-modify-write on the one state flow and every other one in this file
+        // lands on the main thread; from a background thread it silently drops whichever
+        // concurrent update loses the race.
+        when {
+            fetched == null ->
+                post(UiMessage(error = AppError(AppError.Kind.NotFound, "on-demand needs an Xtream source")))
+            fetched.getOrNull() == null ->
+                post(UiMessage(error = fetched.errorOrNull() ?: AppError(AppError.Kind.Unknown)))
+        }
+        return stored
     }
+
+    /** The playlist a VOD row belongs to, falling back to the active one for an unsaved item. */
+    private fun playlistIdFor(item: VodItem): Long? =
+        item.playlistId.takeIf { it != 0L } ?: _state.value.activePlaylist?.id
 
     /**
      * The on-demand row playback is currently inside, so its position can be written back.
@@ -465,19 +519,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val item = playingVod ?: return
         if (item.id == 0L) return
         val (position, duration) = player.positionAndDuration() ?: return
-        val finished = duration > 0 && position >= duration - duration / FINISHED_TAIL_FRACTION
-        val keep = if (finished || position < MIN_RESUME_MS) 0L else position
-        viewModelScope.launch(Dispatchers.IO) {
+        val keep = resumeMark(position, duration) ?: return
+
+        // Not `viewModelScope`: this is called from `Activity.onStop`, and on the way out of the
+        // app `onCleared` cancels that scope immediately afterwards — often before the write has
+        // been picked up. The one write that matters most would be the one most likely to be lost.
+        ServiceLocator.appScope.launch {
             dao.saveResume(item.id, keep, System.currentTimeMillis())
         }
     }
 
     /** Plays a completed recording from wherever it was written. */
     fun playRecording(recording: com.tivicopy.player.data.model.Recording) {
-        leaveVod()
         val path = recording.filePath
             ?: return post(UiMessage(error = AppError(AppError.Kind.NotFound, "recording has no file")))
         val uri = if (path.startsWith("/")) "file://$path" else path
+        leaveVod()
         player.playUrl(recording.title, uri, com.tivicopy.player.data.net.RequestProfile(), recording.resumePositionMs)
     }
 
@@ -759,11 +816,5 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         /** Shorter than the search debounce: this one only re-queries a single indexed table. */
         const val FILTER_DEBOUNCE_MS = 150L
-
-        /** Below this, resuming would rewind to somewhere the viewer had barely arrived. */
-        const val MIN_RESUME_MS = 60_000L
-
-        /** The last twentieth of a title counts as watched. */
-        const val FINISHED_TAIL_FRACTION = 20L
     }
 }

@@ -143,8 +143,8 @@ fun MobileRoot(
     val selectTab: (MobileTab) -> Unit = {
         addingSource = false
         searching = false
-        // Dropped on any deliberate move, so coming back to on demand later opens the grid
-        // rather than reopening a series chosen some time ago.
+        // The screen drops the request itself once it has taken it; this only covers the request
+        // that is never taken, because another tab was chosen before it composed.
         pendingSeries = null
         tab = it
     }
@@ -319,6 +319,7 @@ fun MobileRoot(
                                 onPlay = vm::playVod,
                                 modifier = Modifier.fillMaxSize(),
                                 openSeriesRequest = pendingSeries,
+                                onSeriesRequestConsumed = { pendingSeries = null },
                             )
                             MobileTab.RECORDINGS -> RecordingsScreen(
                                 onPlayRecording = vm::playRecording,

@@ -75,8 +75,8 @@ fun TvRoot(
     // rather than on the grid the user would then have to search again.
     var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
 
-    // Dropped as soon as on demand is left, so returning to it later opens where it left off
-    // rather than reopening a series chosen some time ago.
+    // The screen drops the request itself once it has taken it; this only covers the request
+    // that is never taken, because on demand was left before it composed.
     LaunchedEffect(overlay) { if (overlay != TvOverlay.VOD) pendingSeries = null }
 
     LaunchedEffect(details?.first?.id) {
@@ -182,6 +182,7 @@ fun TvRoot(
                         },
                         modifier = Modifier.fillMaxSize(),
                         openSeriesRequest = pendingSeries,
+                        onSeriesRequestConsumed = { pendingSeries = null },
                     )
 
                     TvOverlay.SETTINGS -> SettingsScreen(

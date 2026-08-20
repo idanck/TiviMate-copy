@@ -22,10 +22,13 @@ private const val LIKE_ESCAPE = " ESCAPE '\\'"
 /**
  * What tells an episode apart from the two kinds of row that belong in the on-demand grid.
  *
- * `vod` holds movies (`series_id` null), series containers (`series_id` set, `season_number`
+ * `vod` holds films (`series_id` null), series containers (`series_id` set, `season_number`
  * null) and episodes (both set). `parseSeriesEpisodes` guarantees an episode always carries a
- * season, which is what makes this predicate exact rather than a guess.
+ * season, which is what makes this exact rather than a guess. The Kotlin side of the same rule
+ * is `VodItem.isEpisode` in `XtreamClient.kt`; these two are the only places it is spelled out,
+ * and they have to move together.
  */
+private const val IS_AN_EPISODE = "season_number IS NOT NULL"
 private const val NOT_AN_EPISODE = "season_number IS NULL"
 
 /**
@@ -675,8 +678,10 @@ class Dao(private val helper: Database) {
     ): List<VodItem> {
         val where = StringBuilder("playlist_id=?")
         val args = mutableListOf(playlistId.toString())
-        if (!includeEpisodes) where.append(" AND $NOT_AN_EPISODE")
-        if (seriesOnly) where.append(" AND series_id IS NOT NULL AND $NOT_AN_EPISODE")
+        // A container is not an episode either, so asking for series excludes them whatever
+        // [includeEpisodes] says — added once, so the clause cannot end up in the query twice.
+        if (!includeEpisodes || seriesOnly) where.append(" AND $NOT_AN_EPISODE")
+        if (seriesOnly) where.append(" AND series_id IS NOT NULL")
         if (movieOnly) where.append(" AND series_id IS NULL")
         if (favouritesOnly) where.append(" AND favourite=1")
         if (!search.isNullOrBlank()) {
@@ -693,7 +698,7 @@ class Dao(private val helper: Database) {
      * The exact complement of what [vod] shows: everything this returns is a row the grid hides.
      */
     fun episodes(playlistId: Long, seriesId: String): List<VodItem> = db.rawQuery(
-        "SELECT * FROM vod WHERE playlist_id=? AND series_id=? AND season_number IS NOT NULL " +
+        "SELECT * FROM vod WHERE playlist_id=? AND series_id=? AND $IS_AN_EPISODE " +
             "ORDER BY season_number, episode_number, name",
         arrayOf(playlistId.toString(), seriesId),
     ).mapAll(::readVod)

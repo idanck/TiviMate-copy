@@ -142,6 +142,28 @@ class VodQueriesTest {
         assertEquals(listOf("Fauda"), dao.vod(playlist, search = "Fauda").map { it.name })
     }
 
+    /**
+     * The two halves of the favourite star have to agree. The grid hides episodes because a
+     * catalogue of them is noise; "my favourites" is the one list where a starred episode is the
+     * whole point, and before this the star on an episode wrote a flag nothing could show.
+     */
+    @Test
+    fun `a starred episode is findable under favourites`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        dao.put(film(playlist, "900", "A Film"))
+        dao.put(episode(playlist, "31", "4211", "Pilot", season = 1, number = 1))
+        val stored = dao.episodes(playlist, "31").single()
+        dao.setVodFavourite(stored.id, true)
+
+        assertEquals(
+            listOf("Pilot"),
+            dao.vod(playlist, favouritesOnly = true, includeEpisodes = true).map { it.name },
+        )
+        // And it is still not in the ordinary catalogue.
+        assertEquals(listOf("A Film"), dao.vod(playlist).map { it.name })
+    }
+
     @Test
     fun `episodes come back in the order a viewer meets them`() {
         val dao = dao()

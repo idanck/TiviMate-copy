@@ -95,7 +95,7 @@ feature that was otherwise in scope is simply available.
 | FR-PLB-22 | Not implemented | Timeshift within the live buffer. |
 | FR-PLB-23 | Partial | PiP on Home; no explicit in-app trigger. |
 | FR-PLB-24..27 | Not implemented | Multi-view, presets, adjacent pre-buffering. |
-| FR-PLB-28 | Done | VOD and series both browse and play. A series tile opens a season/episode list (`VodScreen.SeriesEpisodes`); episodes are fetched by `AppViewModel.episodesFor` when the series opens, stored, and played from `/series/` via `XtreamClient.episodeUrl`. What CI proves is the URL construction and the queries; that a panel then streams what it is asked for needs a real subscription and has not been checked here. |
+| FR-PLB-28 | Done | VOD and series both browse and play. A series tile opens a season/episode list (`VodScreen.SeriesEpisodes`); episodes are fetched by `AppViewModel.refreshEpisodes` when the series opens, stored, and played from `/series/` via `XtreamClient.episodeUrl`. What CI proves is the URL construction and the queries; that a panel then streams what it is asked for needs a real subscription and has not been checked here. |
 | FR-PLB-29 | Partial | The continue-watching row and the resume columns have always existed. Nothing wrote them until 2026-08-20: `resume_position_ms` was read when playback started and never saved, so the row could not fill and every title restarted from zero. `AppViewModel.saveVodProgress` now writes it when on-demand playback is left and from `MainActivity.onStop`. Still Partial because a recording's resume position is read the same way and is still never written. |
 | FR-PLB-30 | Partial | The RTSP module is on the classpath; untested. |
 

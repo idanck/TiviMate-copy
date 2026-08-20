@@ -19,6 +19,9 @@ import com.tivicopy.player.data.repo.SourceRepository
 import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.record.RecordingScheduler
 import com.tivicopy.player.work.RefreshScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * Manual dependency graph.
@@ -40,6 +43,18 @@ object ServiceLocator {
     lateinit var cache: CacheBudget private set
     lateinit var backup: BackupManager private set
     lateinit var recordings: RecordingScheduler private set
+
+    /**
+     * A scope for writes that must outlive the screen that ordered them.
+     *
+     * The last thing an on-demand session does is record where it got to, and that happens in
+     * `Activity.onStop` — which, on the way out of the app, is followed immediately by
+     * `onCleared` cancelling `viewModelScope`. A write dispatched onto that scope can be
+     * cancelled before it reaches the database, so the one write that matters most would be the
+     * one most likely to be dropped. `SupervisorJob` so one failed write cannot take the rest
+     * of the scope down with it.
+     */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     @Volatile private var localeContext: Context? = null
 
