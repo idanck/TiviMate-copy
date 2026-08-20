@@ -520,11 +520,19 @@ class Dao(private val helper: Database) {
         if (updated == 0) d.insertWithOnConflict("vod", null, v, SQLiteDatabase.CONFLICT_IGNORE)
     }
 
-    fun vod(playlistId: Long, seriesOnly: Boolean = false, movieOnly: Boolean = false, search: String? = null, limit: Int = 500): List<VodItem> {
+    fun vod(
+        playlistId: Long,
+        seriesOnly: Boolean = false,
+        movieOnly: Boolean = false,
+        favouritesOnly: Boolean = false,
+        search: String? = null,
+        limit: Int = 500,
+    ): List<VodItem> {
         val where = StringBuilder("playlist_id=?")
         val args = mutableListOf(playlistId.toString())
         if (seriesOnly) where.append(" AND series_id IS NOT NULL")
         if (movieOnly) where.append(" AND series_id IS NULL")
+        if (favouritesOnly) where.append(" AND favourite=1")
         if (!search.isNullOrBlank()) { where.append(" AND name LIKE ?"); args += "%$search%" }
         return db.rawQuery(
             "SELECT * FROM vod WHERE $where ORDER BY name LIMIT $limit", args.toTypedArray(),

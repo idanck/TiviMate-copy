@@ -15,6 +15,12 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -22,8 +28,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +48,7 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.SectionHeader
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** VOD and series browsing with artwork and a continue-watching row (FR-PLB-28/29). */
@@ -50,15 +59,23 @@ fun VodScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
+    val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
+    var favouritesOnly by remember { mutableStateOf(false) }
     var items by remember { mutableStateOf<List<VodItem>>(emptyList()) }
     var continueWatching by remember { mutableStateOf<List<VodItem>>(emptyList()) }
+    // Bumped after a favourite is toggled, so the grid re-reads without a full screen reload.
+    var revision by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(state.activePlaylist?.id, query) {
+    LaunchedEffect(state.activePlaylist?.id, query, favouritesOnly, revision) {
         val playlistId = state.activePlaylist?.id
         val loaded = withContext(Dispatchers.IO) {
             val list = if (playlistId == null) emptyList()
-            else ServiceLocator.dao.vod(playlistId, search = query.takeIf { it.length >= 2 })
+            else ServiceLocator.dao.vod(
+                playlistId,
+                favouritesOnly = favouritesOnly,
+                search = query.takeIf { it.length >= 2 },
+            )
             list to ServiceLocator.dao.continueWatching()
         }
         items = loaded.first
@@ -73,8 +90,16 @@ fun VodScreen(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+        FilterChip(
+            selected = favouritesOnly,
+            onClick = { favouritesOnly = !favouritesOnly },
+            label = { Text(stringResource(R.string.favourites)) },
+        )
 
-        if (items.isEmpty() && continueWatching.isEmpty()) {
+        // Continue-watching is not filtered by the database query, so it is dropped by hand while
+        // the favourites filter is on — otherwise the grid answers a question nobody asked.
+        val resumeRow = if (favouritesOnly) emptyList() else continueWatching
+        if (items.isEmpty() && resumeRow.isEmpty()) {
             EmptyState(stringResource(R.string.empty_no_results))
             return@Column
         }
@@ -85,22 +110,52 @@ fun VodScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (continueWatching.isNotEmpty()) {
+            if (resumeRow.isNotEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionHeader(stringResource(R.string.recently_watched))
                 }
-                items(continueWatching, key = { "cw${it.id}" }) { item -> VodTile(item, onPlay) }
+                items(resumeRow, key = { "cw${it.id}" }) { item ->
+                    VodTile(
+                        item = item,
+                        onPlay = onPlay,
+                        onToggleFavourite = {
+                            scope.launch {
+                                // The write is off the main thread; `docs/11` finding 12 is the
+                                // standing rule that no composable touches the database directly.
+                                withContext(Dispatchers.IO) {
+                                    ServiceLocator.dao.setVodFavourite(item.id, !item.favourite)
+                                }
+                                revision++
+                            }
+                        },
+                    )
+                }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionHeader(stringResource(R.string.nav_vod))
                 }
             }
-            items(items, key = { it.id }) { item -> VodTile(item, onPlay) }
+            items(items, key = { it.id }) { item ->
+                    VodTile(
+                        item = item,
+                        onPlay = onPlay,
+                        onToggleFavourite = {
+                            scope.launch {
+                                // The write is off the main thread; `docs/11` finding 12 is the
+                                // standing rule that no composable touches the database directly.
+                                withContext(Dispatchers.IO) {
+                                    ServiceLocator.dao.setVodFavourite(item.id, !item.favourite)
+                                }
+                                revision++
+                            }
+                        },
+                    )
+                }
         }
     }
 }
 
 @Composable
-private fun VodTile(item: VodItem, onPlay: (VodItem) -> Unit) {
+private fun VodTile(item: VodItem, onPlay: (VodItem) -> Unit, onToggleFavourite: () -> Unit) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
@@ -127,6 +182,24 @@ private fun VodTile(item: VodItem, onPlay: (VodItem) -> Unit) {
                     model = item.posterUrl,
                     contentDescription = item.name,
                     modifier = Modifier.fillMaxSize(),
+                )
+            }
+            // FR-ORG-07 names VOD alongside channels. The column and the backup file have carried
+            // this flag since the first release; nothing could ever set it.
+            IconButton(
+                onClick = onToggleFavourite,
+                modifier = Modifier.align(Alignment.TopEnd),
+            ) {
+                Icon(
+                    imageVector = if (item.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    contentDescription = stringResource(
+                        if (item.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                    ),
+                    tint = if (item.favourite) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         }

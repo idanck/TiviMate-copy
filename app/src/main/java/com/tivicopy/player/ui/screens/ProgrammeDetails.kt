@@ -13,6 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -46,6 +50,9 @@ fun ProgrammeDetailsDialog(
 ) {
     val now = System.currentTimeMillis()
     val inPast = programme.endUtc < now
+    // The dialog is handed a snapshot the shell captured when it opened, and nothing re-reads it
+    // while it is up, so the toggle tracks its own state to keep the label truthful.
+    var favourite by remember(channel.id) { mutableStateOf(channel.favourite) }
     val archiveAvailable = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
 
     AlertDialog(
@@ -129,7 +136,15 @@ fun ProgrammeDetailsDialog(
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onFavourite() }) { Text(stringResource(R.string.action_favourite)) }
+                TextButton(onClick = { onFavourite(); favourite = !favourite }) {
+                    // The label has to say what the press will do; a fixed "Favourite" left the
+                    // user unable to tell whether they had just added or removed one.
+                    Text(
+                        stringResource(
+                            if (favourite) R.string.action_unfavourite else R.string.action_favourite,
+                        ),
+                    )
+                }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
             }
         },

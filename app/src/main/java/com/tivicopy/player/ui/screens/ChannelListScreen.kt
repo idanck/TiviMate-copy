@@ -12,7 +12,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -104,6 +109,7 @@ fun ChannelListScreen(
                             selected = state.currentChannel?.id == channel.id,
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
+                            onToggleFavourite = { vm.toggleFavourite(channel) },
                         )
                     }
                 }
@@ -128,6 +134,7 @@ private fun ChannelRow(
     selected: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
+    onToggleFavourite: () -> Unit,
 ) {
     FocusableRow(
         onClick = onClick,
@@ -147,9 +154,24 @@ private fun ChannelRow(
             secondary = null,
             modifier = Modifier.weight(1f),
         )
-        if (channel.favourite) Badge(text = "★")
         if (channel.hasCatchup) Badge(text = stringResource(R.string.catchup_available))
         if (channel.locked) Badge(text = "🔒")
+        // FR-ORG-07. This was a `★` badge that only reported the state; marking a favourite meant
+        // opening the guide, picking a programme and using its dialog. A control on the row is
+        // one press on touch, and one step right on a D-pad.
+        IconButton(onClick = onToggleFavourite) {
+            Icon(
+                imageVector = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                contentDescription = stringResource(
+                    if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                ),
+                tint = if (channel.favourite) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
     }
 }
 

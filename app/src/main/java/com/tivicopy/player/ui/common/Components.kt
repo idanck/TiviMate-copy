@@ -134,8 +134,10 @@ fun FocusableRow(
             .background(background)
             .border(2.dp, border, RoundedCornerShape(8.dp))
             .onFocusChanged {
-                focused = it.isFocused
-                if (it.isFocused) onFocused()
+                // `hasFocus`, not `isFocused`: rows now carry their own controls — the favourite
+                // toggle — and a D-pad step onto one of those must not look like leaving the row.
+                focused = it.hasFocus
+                if (it.hasFocus) onFocused()
             }
             .focusable(interactionSource = interaction)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
