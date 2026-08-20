@@ -316,4 +316,12 @@
     <string name="vod_episode_label">S%1$02dE%2$02d</string>
     <string name="vod_no_episodes">הספק לא החזיר פרקים לסדרה הזו.</string>
     <string name="vod_open_series_to_play">פתחו את הסדרה ובחרו פרק.</string>
+
+    <!-- The phone's Now Playing screen and mini player bar (ADR-011). -->
+    <string name="now_playing">מתנגן עכשיו</string>
+    <string name="action_collapse_player">מזעור הנגן</string>
+    <string name="action_play">נגן</string>
+    <string name="action_pause">השהה</string>
+    <string name="channel_previous">הערוץ הקודם</string>
+    <string name="channel_next">הערוץ הבא</string>
 </resources>

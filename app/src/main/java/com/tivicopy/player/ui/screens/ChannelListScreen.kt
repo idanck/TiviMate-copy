@@ -26,12 +26,15 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,6 +51,7 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.TwoLine
+import kotlinx.coroutines.delay
 
 /**
  * Groups on one side, channels in the middle, now/next on the other (docs/03 section 3.2).
@@ -71,6 +75,21 @@ fun ChannelListScreen(
     showFilter: Boolean = compact,
     /** Opens the full search surface. Null hides the entry point. */
     onSearch: (() -> Unit)? = null,
+    /**
+     * Opens the list scrolled to the playing channel instead of the top. One-shot per
+     * appearance: a later filter or group change never fights the user's own scrolling.
+     */
+    scrollToCurrent: Boolean = false,
+    /**
+     * Additionally puts D-pad focus on the playing channel's row once anchored. TV only —
+     * on touch there is no focus to place.
+     */
+    focusCurrent: Boolean = false,
+    /**
+     * Draws what each channel is showing right now as the row's second line. Defaults to the
+     * compact layout, which has no now/next pane to say it instead.
+     */
+    showNowLine: Boolean = compact,
 ) {
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
@@ -85,6 +104,10 @@ fun ChannelListScreen(
     var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
     var creatingGroup by remember { mutableStateOf(false) }
     var managingGroups by remember { mutableStateOf(false) }
+    // The one-shot for [scrollToCurrent], held at screen level rather than inside the list
+    // branch: a filter that momentarily empties the list tears that branch down, and a guard
+    // living there would reset and re-hijack the scroll when the list refills.
+    var anchored by remember { mutableStateOf(false) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -137,6 +160,57 @@ fun ChannelListScreen(
                 )
             } else {
                 val listState = rememberLazyListState()
+                val currentFocus = remember { FocusRequester() }
+
+                if (scrollToCurrent && !anchored) {
+                    // Keyed on both the list and the playing channel: at startup the list can
+                    // land before `resumeStartChannel` has decided what is playing, so the
+                    // anchor waits for the channel rather than firing once against null.
+                    LaunchedEffect(channels, state.currentChannel?.id) {
+                        if (anchored) return@LaunchedEffect
+                        val currentId = state.currentChannel?.id ?: return@LaunchedEffect
+                        anchored = true
+                        val index = channels.indexOfFirst { it.id == currentId }
+                        if (index > 0) listState.scrollToItem(index)
+                        if (focusCurrent && index >= 0) {
+                            // One frame so the scrolled-to row is composed and carries the
+                            // requester; if a re-query removed it in between, no focus jump.
+                            withFrameNanos { }
+                            runCatching { currentFocus.requestFocus() }
+                        }
+                    }
+                }
+
+                // What every visible channel is showing, fetched the way the guide grid does it:
+                // the visible rows drive one windowed query (per distinct EPG offset), replaced
+                // rather than accumulated, so a thousand-channel list costs what a screenful
+                // costs. Quantised to blocks of rows so a fling crosses a handful of keys, not
+                // one per row, and debounced so a restart cancels a query the scroll has
+                // already made stale.
+                var nowByChannel by remember { mutableStateOf<Map<Long, Programme>>(emptyMap()) }
+                if (showNowLine) {
+                    val visibleBlock by remember {
+                        derivedStateOf { listState.firstVisibleItemIndex / NOW_PREFETCH_ROWS }
+                    }
+                    LaunchedEffect(channels, visibleBlock) {
+                        delay(NOW_QUERY_DEBOUNCE_MS)
+                        val first = ((visibleBlock - 1) * NOW_PREFETCH_ROWS).coerceAtLeast(0)
+                        val last = (visibleBlock * NOW_PREFETCH_ROWS + NOW_VISIBLE_ROWS + NOW_PREFETCH_ROWS)
+                            .coerceAtMost(channels.size)
+                        if (first >= last) {
+                            nowByChannel = emptyMap()
+                            return@LaunchedEffect
+                        }
+                        val now = System.currentTimeMillis()
+                        nowByChannel = vm.guideWindow(channels.subList(first, last).toList(), now, now + 1)
+                            .mapNotNull { (id, list) ->
+                                list.firstOrNull { now in it.startUtc until it.endUtc }
+                                    ?.let { id to it }
+                            }
+                            .toMap()
+                    }
+                }
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -144,9 +218,12 @@ fun ChannelListScreen(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     items(channels, key = { it.id }) { channel ->
+                        val isCurrent = state.currentChannel?.id == channel.id
                         ChannelRow(
                             channel = channel,
-                            selected = state.currentChannel?.id == channel.id,
+                            selected = isCurrent,
+                            nowProgramme = nowByChannel[channel.id],
+                            focusRequester = currentFocus.takeIf { focusCurrent && isCurrent },
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
                             onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
@@ -273,6 +350,8 @@ fun ChannelListScreen(
 private fun ChannelRow(
     channel: Channel,
     selected: Boolean,
+    nowProgramme: Programme?,
+    focusRequester: FocusRequester?,
     onClick: () -> Unit,
     onFocused: () -> Unit,
     onToggleFavourite: () -> Unit,
@@ -284,6 +363,7 @@ private fun ChannelRow(
         contentDescription = channel.displayName,
         onFocused = onFocused,
         onLongClick = onOptions,
+        focusRequester = focusRequester,
     ) {
         Text(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
@@ -294,7 +374,7 @@ private fun ChannelRow(
         ChannelLogo(channel = channel, sizeDp = 36)
         TwoLine(
             primary = channel.displayName,
-            secondary = null,
+            secondary = nowProgramme?.title,
             modifier = Modifier.weight(1f),
         )
         if (channel.hasCatchup) Badge(text = stringResource(R.string.catchup_available))
@@ -550,3 +630,12 @@ fun NowNextPane(
         }
     }
 }
+
+/** How many rows the now-line query covers around the viewport; roughly one screenful. */
+private const val NOW_VISIBLE_ROWS = 15
+
+/** Extra rows fetched on either side so a slow scroll never shows a blank second line. */
+private const val NOW_PREFETCH_ROWS = 5
+
+/** How long a scroll must rest on a block before its now-line query runs. */
+private const val NOW_QUERY_DEBOUNCE_MS = 120L

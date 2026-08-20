@@ -142,6 +142,10 @@ fun TvRoot(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onSearch = { onOverlayChange(TvOverlay.SEARCH) },
+                        // Opening the list lands on the playing channel, focused, so zapping
+                        // onward is one press instead of a scroll from the top.
+                        scrollToCurrent = true,
+                        focusCurrent = true,
                         modifier = Modifier.fillMaxSize(),
                     )
 

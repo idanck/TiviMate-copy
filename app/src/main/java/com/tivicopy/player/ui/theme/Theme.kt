@@ -1,7 +1,9 @@
 package com.tivicopy.player.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -9,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tivicopy.player.data.prefs.ThemeMode
 
@@ -35,12 +38,23 @@ private val DarkScheme = darkColorScheme(
     outline = Color(0xFF5B6472),
     error = Color(0xFFFF6B6B),
     onError = Color(0xFF2B0000),
+    // The container ramp the raised surfaces sit on (the mini player, cards). Material's
+    // defaults for these are derived from a different base tone and land visibly warmer than
+    // this palette, so they are pinned to the same blue-grey family as the surfaces above.
+    surfaceDim = Color(0xFF0B0E12),
+    surfaceContainer = Color(0xFF1A1F27),
+    surfaceContainerHigh = Color(0xFF1F252E),
+    surfaceContainerHighest = Color(0xFF242B35),
 )
 
 private val AmoledScheme = DarkScheme.copy(
     background = Color(0xFF000000),
     surface = Color(0xFF000000),
     surfaceVariant = Color(0xFF14161A),
+    surfaceDim = Color(0xFF000000),
+    surfaceContainer = Color(0xFF0A0C0F),
+    surfaceContainerHigh = Color(0xFF101318),
+    surfaceContainerHighest = Color(0xFF161A20),
 )
 
 private val LightScheme = lightColorScheme(
@@ -58,6 +72,23 @@ private val LightScheme = lightColorScheme(
     outline = Color(0xFF757C8A),
     error = Color(0xFFB3261E),
     onError = Color.White,
+    surfaceDim = Color(0xFFE4E8EF),
+    surfaceContainer = Color(0xFFEEF1F6),
+    surfaceContainerHigh = Color(0xFFE8ECF2),
+    surfaceContainerHighest = Color(0xFFE1E6EE),
+)
+
+/**
+ * One corner ramp for the whole app, so the new raised surfaces (the mini player bar, the
+ * player screen's cards) share a family instead of each picking a radius. The existing
+ * hardcoded radii in `ui/common` sit inside this ramp already.
+ */
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 /**
@@ -102,6 +133,7 @@ fun TiviCopyTheme(
     MaterialTheme(
         colorScheme = scheme,
         typography = typographyFor(fontScale.coerceIn(0.8f, 1.6f)),
+        shapes = AppShapes,
         content = content,
     )
 }

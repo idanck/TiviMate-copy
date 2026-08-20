@@ -3,6 +3,7 @@ package com.tivicopy.player.ui
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -54,6 +55,11 @@ class MainActivity : ComponentActivity() {
     private var numericEntry by mutableStateOf("")
     private var lastBackPress = 0L
     private var infoCardHideAt = 0L
+
+    // Phone-shell navigation, hoisted like [overlay] because the activity itself needs it:
+    // [onUserLeaveHint] gates PiP on the player screen being the thing on screen.
+    private var playerOpen by mutableStateOf(false)
+    private var inPip by mutableStateOf(false)
 
     /**
      * Read per press rather than cached: the layout direction follows the interface language, and
@@ -110,7 +116,10 @@ class MainActivity : ComponentActivity() {
                         else -> Unit
                     }
                 }
-                vm.resumeStartChannel()
+                val resumed = vm.resumeStartChannel()
+                // The phone browses full screen, so a resumed channel opens the player screen —
+                // otherwise it would be audible behind the channel list with no video anywhere.
+                if (!isTelevision && resumed) playerOpen = true
             }
 
             TiviCopyTheme(mode = prefs.theme, fontScale = prefs.fontScale) {
@@ -133,6 +142,9 @@ class MainActivity : ComponentActivity() {
                                 vm = vm,
                                 settingsSection = settingsSection,
                                 onSettingsSection = { settingsSection = it },
+                                playerOpen = playerOpen,
+                                onPlayerOpenChange = { playerOpen = it },
+                                inPip = inPip,
                                 onBrightness = ::adjustBrightness,
                                 onVolume = ::adjustVolume,
                                 modifier = Modifier.fillMaxSize(),
@@ -293,8 +305,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        // On the phone, browsing shows no video, so there is nothing for a PiP window to keep
+        // showing — only the open player screen shrinks into one. The TV shell is always video.
+        if (!isTelevision && !playerOpen) return
         val prefs = ServiceLocator.settings.state.value
         if (prefs.pipEnabled && prefs.pipOnHome) enterPip()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        // The phone shell renders bare video while in the window; on the way out the player
+        // screen is still open, so the user lands back where they left.
+        inPip = isInPictureInPictureMode
     }
 
     private fun enterPip() {

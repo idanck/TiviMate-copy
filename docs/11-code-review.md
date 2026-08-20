@@ -337,3 +337,63 @@ missing was not a correct id but the step where a viewer picks one.
 
 That a panel actually streams from `/series/` needs a real subscription. CI proves the URLs and
 the queries; `docs/10` says as much rather than claiming more.
+
+---
+
+## Phone interface restructure, 2026-08-20
+
+The phone's owner, testing on a phone, reported the layout itself as the defect: the list
+compressed under an always-pinned video, selection that visibly did nothing, and a filter that
+could not answer "the HEB channels". The restructure (ADR-011) went through review before it was
+pushed; seven findings, all confirmed, all **fixed (`72e8dad`)**.
+
+### What was wrong
+
+- **`resumeStartChannel` answered before looking.** It returned true on a non-zero id and did
+  the `dao.channel` read in a fire-and-forget coroutine, so a start channel deleted by a refresh
+  opened the new Now Playing screen over nothing — black video, no metadata — on every launch.
+  It now suspends for the read and reports what actually happened.
+- **The start effect replayed on every activity recreation.** `LaunchedEffect(Unit)` in
+  `setContent` re-runs when a language change calls `recreate()`, and the shared view model
+  survives — so the start channel tore down whatever was playing, and the new code would also
+  have thrown the player screen open over it. Resume is now one-shot per process.
+- **The scroll anchor's one-shot guard lived inside the non-empty branch** — the exact branch a
+  transiently-empty filter tears down — so its comment ("never fights the user's scrolling")
+  described the opposite of its behaviour: the refill re-anchored mid-typing. The guard moved to
+  screen level.
+- **The same anchor raced startup.** The list query and the start-channel read run concurrently;
+  if the list landed first the anchor consumed itself against `currentChannel == null` and the
+  headline behaviour silently no-opped. It now waits, keyed on both.
+- **The mini bar's now/next went stale.** The programme-turnover refresh sat in `PlayerScreen`,
+  which leaves composition on collapse — exactly when the mini bar is the only thing showing the
+  title. The refresh moved to `MobileRoot`, which is always composed.
+- **The now-line cost a query per row scrolled.** Every `firstVisibleItemIndex` change restarted
+  the effect and ran `guideWindow`. Quantised to five-row blocks and debounced 120 ms, a fling
+  now costs a handful of queries; `collectLatest`-style restart cancellation does the rest.
+- **Collapsed playback kept decoding video nobody displayed.** Browse screens compose no
+  `PlayerSurface`, but the stream's video track kept downloading and decoding. The engine now
+  drops the video track (not the stream) while neither the player screen nor PiP is showing,
+  and re-applies the choice when it rebuilds the instance.
+
+### Decisions worth keeping
+
+- **`NowPlayingInfo` exists because `currentChannel` deliberately lies.** An on-demand session
+  leaves `currentChannel` in place so live state can be restored afterwards; captioning surfaces
+  keyed off it would title a film with a live channel's guide. The sealed type names what the
+  player is actually carrying, and the play functions now answer whether they started so the
+  player screen never opens over a refused attempt (a series container, a missing recording file).
+- **Back ordering by composition order, again.** The player screen's handlers are registered
+  inside it, after every shell handler, so it wins while open — the same mechanism the episode
+  list uses, with the sheet's handler registered after the close handler so it wins in turn.
+- **The group-name clause is gated on "no group selected".** Inside a group every channel shares
+  the group's name; matching it there turns the filter into a no-op. The hidden-group exclusion
+  stays a separate conjunct, so a group-name match cannot resurrect a hidden group's channels —
+  pinned by test.
+
+### Not proved here
+
+The JVM suite proves the Dao clause and the existing behaviours around it. Nothing automated
+composes the new screens: portrait/landscape on a phone, the four start behaviours, PiP entry
+and exit, RTL Hebrew layout, TV focus landing on the playing channel, and the cost of the
+video-track drop on real streams all need a device pass. CI proves compilation and the 111-test
+suite, not the phone in the hand.

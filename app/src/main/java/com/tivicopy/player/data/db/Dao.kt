@@ -275,9 +275,22 @@ class Dao(private val helper: Database) {
             }
         }
         if (!search.isNullOrBlank()) {
-            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
             val pattern = likePattern(search)
-            args += pattern; args += pattern
+            if (groupId == null) {
+                // The filter is how a phone user asks "the HEB channels" without a group column on
+                // screen, so it matches the group's name as well as the channel's. Only outside a
+                // selected group: inside one every channel shares that name and the clause would
+                // turn the filter into a no-op. The hidden-group exclusion above is a separate AND,
+                // so a name match cannot resurrect a hidden group's channels.
+                where.append(
+                    " AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE" +
+                        " OR group_id IN (SELECT id FROM channel_groups WHERE name LIKE ?$LIKE_ESCAPE))",
+                )
+                args += pattern; args += pattern; args += pattern
+            } else {
+                where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+                args += pattern; args += pattern
+            }
         }
         // `sort.orderBy` is a constant on the enum, never anything the user typed.
         val sql = "SELECT * FROM channels WHERE $where ORDER BY ${sort.orderBy}" +
@@ -321,9 +334,14 @@ class Dao(private val helper: Database) {
         val where = StringBuilder("last_watched_utc>0 AND hidden=0")
         val args = mutableListOf<String>()
         if (!search.isNullOrBlank()) {
-            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+            // Group names count as matches here too; see `channels`. Recents span playlists, and
+            // group ids are globally unique, so the subselect needs no playlist scoping.
+            where.append(
+                " AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE" +
+                    " OR group_id IN (SELECT id FROM channel_groups WHERE name LIKE ?$LIKE_ESCAPE))",
+            )
             val pattern = likePattern(search)
-            args += pattern; args += pattern
+            args += pattern; args += pattern; args += pattern
         }
         args += limit.toString()
         return db.rawQuery(

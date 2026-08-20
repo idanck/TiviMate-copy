@@ -348,4 +348,12 @@
     <string name="vod_episode_label">S%1$02dE%2$02d</string>
     <string name="vod_no_episodes">The provider listed no episodes for this series.</string>
     <string name="vod_open_series_to_play">Open the series and choose an episode.</string>
+
+    <!-- The phone's Now Playing screen and mini player bar (ADR-011). -->
+    <string name="now_playing">Now playing</string>
+    <string name="action_collapse_player">Minimise the player</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="channel_previous">Previous channel</string>
+    <string name="channel_next">Next channel</string>
 </resources>

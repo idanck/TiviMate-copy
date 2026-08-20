@@ -118,7 +118,7 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UI-12 | A key-diagnostic screen displays raw keycodes so non-standard remotes can be bound. | SHOULD | Free | TV |
 | FR-UI-13 | The mobile app provides a touch-native interface with bottom navigation, sticky-header channel list and fast scroll. | MUST | Free | Mobile |
 | FR-UI-14 | Playback gestures on mobile: vertical swipe for brightness/volume, horizontal swipe to seek, double-tap to skip, pinch to change aspect ratio. | MUST | Free | Mobile |
-| FR-UI-15 | The mobile app supports portrait (video pinned top) and landscape (fullscreen) layouts. | MUST | Free | Mobile |
+| FR-UI-15 | The mobile app browses full screen and plays in a dedicated Now Playing screen — video above its details in portrait, fullscreen in landscape — with a mini player keeping playback reachable while browsing (ADR-011; originally "portrait pins the video top with the list below"). | MUST | Free | Mobile |
 | FR-UI-16 | Tablets use a two-pane master/detail layout. | SHOULD | Free | Mobile |
 | FR-UI-17 | Themes (system/light/dark/AMOLED) and an accent colour are selectable. | SHOULD | Free | Both |
 | FR-UI-18 | Overlay opacity and auto-hide timeout are configurable. | SHOULD | Free | Both |
