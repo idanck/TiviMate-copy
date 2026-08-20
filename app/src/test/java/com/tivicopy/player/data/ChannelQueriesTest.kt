@@ -184,6 +184,78 @@ class ChannelQueriesTest {
         )
     }
 
+    /** Typing a category's name must surface its channels, not just channels named after it. */
+    @Test
+    fun `the filter finds a channel by the name of its group`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val heb = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "HEB"))
+        dao.newChannel(playlist, "Channel 12", identity = "a", groupId = heb)
+        dao.newChannel(playlist, "Hebrew Music", identity = "b")
+        dao.newChannel(playlist, "Cartoons", identity = "c")
+
+        // The union of group matches and name matches, case-insensitively.
+        assertEquals(
+            listOf("Channel 12", "Hebrew Music"),
+            dao.channels(playlist, search = "heb").map { it.name }.sorted(),
+        )
+    }
+
+    @Test
+    fun `a group-name match does not resurrect a hidden group`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val heb = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "HEB"))
+        dao.newChannel(playlist, "Channel 12", identity = "a", groupId = heb)
+        dao.newChannel(playlist, "Hebrew Music", identity = "b")
+
+        dao.setGroupHidden(heb, hidden = true)
+
+        assertEquals(listOf("Hebrew Music"), dao.channels(playlist, search = "heb").map { it.name })
+    }
+
+    /**
+     * Inside a selected group every channel shares the group's name, so matching it there would
+     * turn the filter into a no-op: this pins that the group clause applies only groupless.
+     */
+    @Test
+    fun `inside a selected group the filter still narrows by channel name`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val heb = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "HEB"))
+        dao.newChannel(playlist, "Heb News", identity = "a", groupId = heb)
+        dao.newChannel(playlist, "Kids", identity = "b", groupId = heb)
+
+        assertEquals(
+            listOf("Heb News"),
+            dao.channels(playlist, groupId = heb, search = "heb").map { it.name },
+        )
+    }
+
+    @Test
+    fun `the recently watched filter matches group names`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val heb = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "HEB"))
+        val watched = dao.newChannel(playlist, "Channel 12", identity = "a", groupId = heb)
+        dao.newChannel(playlist, "Kids", identity = "b", groupId = heb)
+
+        dao.recordWatch(watched, whenUtc = 1_000L)
+
+        assertEquals(listOf("Channel 12"), dao.recentChannels(search = "heb").map { it.name })
+    }
+
+    @Test
+    fun `a percent sign in a group name is matched literally`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val group = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "100% Sport"))
+        dao.newChannel(playlist, "Match", identity = "a", groupId = group)
+        dao.newChannel(playlist, "1000 Movies", identity = "b")
+
+        assertEquals(listOf("Match"), dao.channels(playlist, search = "100%").map { it.name })
+    }
+
     @Test
     fun `a guide entry resolves back to the channel that carries it`() {
         val dao = dao()
