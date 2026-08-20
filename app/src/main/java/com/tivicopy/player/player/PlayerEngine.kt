@@ -162,7 +162,21 @@ class PlayerEngine(
      */
     fun togglePlayPause() {
         val exo = player ?: return
-        exo.playWhenReady = !exo.playWhenReady
+        val resuming = !exo.playWhenReady
+        // Resuming from a terminal failure: retries exhausted leave the player sitting in
+        // IDLE, where the flag alone starts nothing — every play button would flip its icon
+        // and do nothing. Preparing again retries the current source.
+        if (resuming && exo.playbackState == Player.STATE_IDLE) exo.prepare()
+        exo.playWhenReady = resuming
+    }
+
+    /**
+     * Background pause/resume, on the existing instance only — the host pauses when it stops
+     * without a picture-in-picture window, because sound from a fully backgrounded app with no
+     * notification and no way to stop it is a defect, not a feature.
+     */
+    fun setPlayWhenReady(wanted: Boolean) {
+        player?.playWhenReady = wanted
     }
 
     /**
@@ -407,10 +421,17 @@ class PlayerEngine(
         playbackGeneration++
         releasePlayer()
         trackSelector = null
-        // The engine hangs off the process-wide ServiceLocator, so it outlives the activity,
-        // and `releasePlayer` detaches the listener before releasing — nothing will ever
-        // correct the last state it saw. Left alone, the next launch draws a spinner or an
-        // error banner for a player that no longer exists.
+        // The source is forgotten along with the player. The engine outlives the activity on
+        // the ServiceLocator, and `applySettingsChange` treats a non-empty URL list as "had a
+        // source": left populated, the first settings change of the *next* session silently
+        // resurrected the previous session's stream — on the phone as audio with no UI
+        // attached to it, because nothing was marked as playing.
+        currentChannel = null
+        currentUrls = emptyList()
+        currentSourceIndex = 0
+        // `releasePlayer` detaches the listener before releasing — nothing will ever correct
+        // the last state it saw. Left alone, the next launch draws a spinner or an error
+        // banner for a player that no longer exists.
         _status.value = PlaybackStatus()
     }
 

@@ -113,6 +113,13 @@ fun PlayerScreen(
     val landscape = configuration.screenWidthDp > configuration.screenHeightDp
     var channelSheet by remember { mutableStateOf(false) }
 
+    // The sheet is a landscape construct; composition survives rotation (the activity handles
+    // it), so without this the flag stayed latched through portrait and the sheet popped back
+    // open, unasked, on the next rotate.
+    LaunchedEffect(landscape) {
+        if (!landscape) channelSheet = false
+    }
+
     // One aspect action for both routes into it — the long press on the video and the button
     // in the details below. It always announces what it just did: the long press is easy to
     // fire by accident, and a silently persisted Zoom reads as "the picture is suddenly
