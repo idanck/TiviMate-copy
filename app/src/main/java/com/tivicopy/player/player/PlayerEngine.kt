@@ -28,6 +28,12 @@ import kotlinx.coroutines.flow.StateFlow
 data class PlaybackStatus(
     val title: String = "",
     val playing: Boolean = false,
+    /**
+     * The user's intent, as distinct from [playing]: a rebuffering stream is not playing but
+     * has not been paused. Play/pause buttons must render and act on this — an icon derived
+     * from [playing] shows Play during a stall, and "Play" that flips the flag then pauses.
+     */
+    val playWhenReady: Boolean = false,
     val buffering: Boolean = false,
     val error: AppError? = null,
     val errorDetail: String? = null,
@@ -147,6 +153,17 @@ class PlayerEngine(
     var onNotice: ((AppError, String) -> Unit)? = null
 
     fun exoPlayer(): ExoPlayer = player ?: build().also { player = it }
+
+    /**
+     * The one play/pause toggle every surface shares — the transport button, the mini bar, the
+     * remote's key and the floating window's action. On the existing instance only: building a
+     * player just to pause it would leak a codec (see [positionAndDuration]'s warning), and the
+     * floating window's action can land after [release] on the way out of the app.
+     */
+    fun togglePlayPause() {
+        val exo = player ?: return
+        exo.playWhenReady = !exo.playWhenReady
+    }
 
     /**
      * Where playback has reached, and how long the item is, or null when there is no player.
@@ -531,6 +548,10 @@ class PlayerEngine(
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _status.value = _status.value.copy(playing = isPlaying)
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            _status.value = _status.value.copy(playWhenReady = playWhenReady)
         }
 
         override fun onTracksChanged(tracks: Tracks) = refreshDiagnostics()

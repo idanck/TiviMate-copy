@@ -78,7 +78,8 @@ This is our differentiator and must not be an afterthought.
   (audio only — the video track is dropped while nothing displays it).
 - The channel list opens anchored to the playing channel, and each row's second line says
   what that channel is showing now.
-- PiP on Home press from the Now Playing screen; background audio optional.
+- PiP on Home press from the Now Playing screen, on by default, with a play/pause action
+  in the floating window; background audio optional.
 - Tablet: two-pane master/detail.
 - Chromecast **sender** support (cast the current stream to a Chromecast) — **COULD**,
   and notably absent from the benchmark.

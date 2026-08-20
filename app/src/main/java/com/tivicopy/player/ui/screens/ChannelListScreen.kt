@@ -369,7 +369,12 @@ private fun ChannelRow(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(36.dp),
+            // Fixed, not a minimum, so mixed-length numbers keep the logos in one column;
+            // sized for the five digits providers actually issue instead of the three the
+            // old 36dp held, which wrapped "16035" onto two lines (device report).
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(48.dp),
         )
         ChannelLogo(channel = channel, sizeDp = 36)
         TwoLine(

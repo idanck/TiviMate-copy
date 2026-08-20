@@ -26,9 +26,9 @@
     <string name="action_map_guide">שיוך ללוח שידורים</string>
     <string name="action_copy">העתק</string>
     <string name="action_done">סיום</string>
-    <string name="nav_live">שידור חי</string>
-    <string name="nav_guide">לוח שידורים</string>
-    <string name="nav_vod">לפי דרישה</string>
+    <string name="nav_live">ערוצים</string>
+    <string name="nav_guide">מדריך</string>
+    <string name="nav_vod">VOD</string>
     <string name="nav_recordings">הקלטות</string>
     <string name="nav_settings">הגדרות</string>
     <string name="nav_search">חיפוש</string>
@@ -110,6 +110,7 @@
     <string name="aspect_16_9">16:9</string>
     <string name="aspect_4_3">4:3</string>
     <string name="aspect_original">מקורי</string>
+    <string name="aspect_changed">יחס תצוגה: %1$s</string>
     <string name="buffer_size">חוצץ</string>
     <string name="buffer_minimal">מינימלי</string>
     <string name="buffer_small">קטן</string>
