@@ -82,6 +82,21 @@
 - Recording notifications: started, finished, failed.
 - Account/subscription expiry warning from Xtream account info.
 
+## 5.6a Updates
+
+The app is installed outside a store, so Settings → About carries what a store would otherwise
+do (FR-UPD-01..08, `docs/adr/ADR-012`):
+
+- **Check for updates** — asks the published manifest now; the same check runs on launch and
+  from the hourly refresh worker, rate-limited to once a day.
+- **Check automatically** and **Download over Wi-Fi only** — both on by default.
+- An offered build shows its version, size and notes, and can be postponed for the launch or
+  skipped until something newer appears.
+- A refusal names itself rather than failing generically: a recording in progress, the
+  "install unknown apps" permission, a metered connection, a too-old Android, no room on disk.
+- The downloaded APK is installed only if its SHA-256 matches the manifest and its signing
+  certificate matches the running app's.
+
 ## 5.7 Settings that must NOT exist
 
 - Anything that fetches, aggregates or suggests content sources.

@@ -523,3 +523,38 @@ The suite compiles and passes (113 tests); backgrounding, PiP recreation, IDLE r
 the zap fallback are lifecycle behaviours only a device can exercise. Known gaps recorded, not
 fixed: no media session (headset and Bluetooth keys do nothing on the phone), no error surface
 on the mini bar, a recording's resume position is still never written.
+
+## In-app updates, 2026-08-20
+
+Reviewed while writing rather than after, because the environment cannot compile Android and CI
+is the only compiler this change gets. The findings below were all caught in a self-review pass
+over the finished diff and fixed before the first push.
+
+The finding that started the feature is not in the app at all. Three consecutive CI builds —
+0.3.0, 0.3.1, 0.3.2 — carry three *different* signing certificates, each generated minutes
+before its own build: with no keystore configured, Gradle mints a throwaway debug key per
+runner. Android replaces a package only when the certificate matches, so none of those builds
+could ever have updated another, and the "installs over the previous version" note that went out
+with 0.3.2 was wrong. A stable release keystore now lives in repository secrets and CI asserts
+the APK carries it before publishing anything (`docs/adr/ADR-012`).
+
+- **A background check could destroy an install in flight.** `RefreshWorker`'s daily check wrote
+  its own state over `Downloading` and pruned the cache directory the download was writing into.
+  `check` now returns immediately while an install is under way.
+- **Refusals spoke in generic error text.** "Metered connection" arrived as *network error*,
+  which is neither true nor actionable. Refusals are now a named `UpdateBlocker` with a sentence
+  each: a recording in progress, the install permission, Wi-Fi-only, an older Android, no space.
+- **A refusal threw the offer away.** `Blocked` replaced `Available`, so the install button
+  vanished and the user had to re-check to get it back. `Blocked` carries the manifest and the
+  button stays.
+- **The recording guard read the database on the caller's thread.** Moved onto IO.
+- **Abandoned downloads were never cleaned up** — 16 MB per attempt, invisible to the cache
+  budget. The daily check prunes everything except the build still worth installing.
+- **Discovery relied entirely on a deferrable worker.** A launch-time check was added; the
+  once-a-day limit inside the manager keeps it free.
+- **An unescaped quotation mark in a string resource** would have failed the resource compiler
+  outright. Rewritten without it.
+
+Not proven, and stated as such: no part of the install path has run on a device. The permission
+prompt, the installer session, the silent self-update on Android 12+, and whether a scheduled
+recording really survives the replacement are all first provable on the first signed build.

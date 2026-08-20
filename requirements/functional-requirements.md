@@ -239,3 +239,16 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-TVI-05 | Widevine-protected streams play where the device supports the required security level, with licence configuration read from playlist properties. | SHOULD | Free | Both |
 | FR-TVI-06 | A stream requiring unsupported DRM produces a clear explanatory message, never a silent black screen. | MUST | Free | Both |
 | FR-TVI-07 | The app registers as a TV Input Framework input so channels appear in the system Live TV app. | WON'T | — | TV |
+
+## UPD — In-app Updates
+
+| ID | Requirement | Prio | Tier | Plat |
+|---|---|---|---|---|
+| FR-UPD-01 | Each distributed build publishes a manifest describing the newest release: version code and name, APK URL, SHA-256, size, minimum API level and release notes. | MUST | Free | Both |
+| FR-UPD-02 | The app checks that manifest in the background at most once a day, and whenever the user asks. | MUST | Free | Both |
+| FR-UPD-03 | A newer build is offered to the user with its version, size and notes; the offer can be postponed or skipped, and never interrupts playback in picture-in-picture. | MUST | Free | Both |
+| FR-UPD-04 | The user can download and install an offered update from inside the app, with visible progress. | MUST | Free | Both |
+| FR-UPD-05 | A downloaded APK is installed only when its SHA-256 matches the manifest and its signing certificate matches the running app's; the manifest is fetched over HTTPS only. | MUST | Free | Both |
+| FR-UPD-06 | Automatic checking and Wi-Fi-only downloading are settings, both on by default; a skipped version is remembered until a newer one appears. | MUST | Free | Both |
+| FR-UPD-07 | An update is refused while a recording is in progress, and the reason is stated. | MUST | Free | Both |
+| FR-UPD-08 | Scheduled recordings survive the app being replaced by an update. | MUST | Free | Both |

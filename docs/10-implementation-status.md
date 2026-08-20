@@ -165,6 +165,23 @@ feature that was otherwise in scope is simply available.
 | FR-TVI-06 | Done | DRM failure is terminal with an explanatory message. |
 | FR-TVI-07 | Won't | Out of scope, as specified. |
 
+## UPD — In-app updates
+
+Written against a device that could not run it: the whole path — permission prompt, installer
+session, replacement — needs a signed build on real hardware before any of this is proven. What
+is claimed here is that the code exists and its logic is covered; see `docs/11`.
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-UPD-01 | Done | CI publishes `latest.json` beside the APK on every push to `main`, and refuses to publish a version code that does not advance. `UpdateManifest` parses it strictly. |
+| FR-UPD-02 | Done | On launch and from `RefreshWorker`, rate-limited to once a day; "check now" in Settings → About is always immediate. |
+| FR-UPD-03 | Done | `UpdatePrompt`, shown by both shells and by neither in picture-in-picture. Postpone lasts for the launch, skip until a newer build. |
+| FR-UPD-04 | Done | `UpdateManager.downloadAndInstall` streams to the cache and commits a `PackageInstaller` session; progress in the dialog and in Settings. |
+| FR-UPD-05 | Done | HTTPS-only manifest, SHA-256 computed over the download itself, signing certificate compared with the running app's before the session opens. |
+| FR-UPD-06 | Done | Both switches in Settings → About, on by default. The skip is stored as a floor, so a newer build clears it. |
+| FR-UPD-07 | Done | `blockingReason` refuses while `dao.activeRecordings()` is non-empty, and the refusal names itself. |
+| FR-UPD-08 | Done | `BootReceiver` also answers `MY_PACKAGE_REPLACED` and re-arms the schedule. |
+
 ## Non-functional
 
 Verified by test: NFR-MAINT-02 (parsers), and the DST and offset behaviour behind
