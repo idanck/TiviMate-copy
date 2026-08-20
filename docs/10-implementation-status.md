@@ -106,11 +106,11 @@ feature that was otherwise in scope is simply available.
 | FR-UI-01..06 | Done | D-pad throughout; overlays draw over playing video. |
 | FR-UI-07 | Done by construction | Lazy channel axis plus a windowed query per visible page; not measured on a TV box. |
 | FR-UI-08 | Partial | Details, watch, catch-up, record and favourite; no reminder or series action. |
-| FR-UI-09 | Done | Channels, guide entries and VOD in one query over the whole playlist, debounced, reachable from the top bar on the phone and from the group column on the television. Catch-up programmes are covered only in so far as they are still in the guide window. |
+| FR-UI-09 | Done | Channels, guide entries and VOD in one query over the whole playlist, debounced, reachable from the top bar on the phone and from the group column on the television. The channel clause also matches group names — typing a category surfaces its channels — outside a selected group, without resurrecting hidden groups (`ChannelQueriesTest`). Catch-up programmes are covered only in so far as they are still in the guide window. |
 | FR-UI-10 | Done | Archive badge in the grid; recording state in the library. |
 | FR-UI-11 | Not implemented | Remappable keys. Defaults are as `docs/03` specifies. |
 | FR-UI-12 | Done | Key-code probe in Diagnostics. |
-| FR-UI-13..15 | Done | Bottom navigation, gestures, portrait and landscape. |
+| FR-UI-13..15 | Done | Bottom navigation and full-screen browse screens; playback lives in `PlayerScreen` (portrait video-plus-details, landscape fullscreen with the list as a sheet) with `MiniPlayerBar` collapsing it Apple-Music-style (ADR-011, FR-UI-15 as reworded). Gestures unchanged, now on the player screen's video. The list opens anchored to the playing channel with a now-programme second line per visible row. Verified by construction and the JVM suite only — no Compose UI tests exist; the manual matrix is in `docs/11`. |
 | FR-UI-16 | Partial | Two-pane above 720dp; no master/detail split view. |
 | FR-UI-17..19 | Done | Four themes, overlay opacity and timeout, font scale that reflows. |
 | FR-UI-20 | Not implemented | Configurable playback menu. |
@@ -148,7 +148,7 @@ feature that was otherwise in scope is simply available.
 | FR-NET-06 | Partial | 403 bodies are inspected for the usual geo phrasing. |
 | FR-SET-01 | Not implemented | External-player handoff; the setting exists. |
 | FR-SET-02 | Done | Boot receiver, behind a setting. |
-| FR-SET-03..07 | Not implemented | Wake-from-standby, start behaviour beyond the three implemented, sleep timer, burn-in dimming. Exit confirmation (FR-SET-06) is done. |
+| FR-SET-03..07 | Not implemented | Wake-from-standby, start behaviour beyond the three implemented, sleep timer, burn-in dimming. Exit confirmation (FR-SET-06) is done. Start behaviour (FR-SET-04) is now once per process and, on the phone, a resumed channel opens the Now Playing screen — previously it played invisibly behind the list, and a recreate (language change) restarted it over whatever was playing. |
 | FR-SET-08 | Done | JSON export/import, credentials excluded by default. |
 | FR-SET-09 | Partial | Any SAF location, which covers Drive; no SMB. |
 | FR-SET-10 | Not implemented | Cloud sync. |

@@ -71,9 +71,14 @@ This is our differentiator and must not be an afterthought.
 - Vertical channel list with sticky group headers and fast-scroll.
 - Gestures during playback: vertical swipe left = brightness, right = volume, horizontal
   swipe = seek (VOD/timeshift), double-tap sides = skip, pinch = aspect ratio.
-- Portrait: video pinned to the top, guide/list below. Landscape: fullscreen video with
-  overlay sheets.
-- PiP on Home press; background audio optional.
+- Browsing is full screen; playing opens a **Now Playing screen** over it (the music-app
+  pattern, ADR-011): portrait shows the video above the channel's identity, now/next and
+  quick actions; landscape is fullscreen video with the channel list one tap away as a sheet.
+  Back collapses to a **mini player bar** above the navigation bar and playback continues
+  (audio only — the video track is dropped while nothing displays it).
+- The channel list opens anchored to the playing channel, and each row's second line says
+  what that channel is showing now.
+- PiP on Home press from the Now Playing screen; background audio optional.
 - Tablet: two-pane master/detail.
 - Chromecast **sender** support (cast the current stream to a Chromecast) — **COULD**,
   and notably absent from the benchmark.
