@@ -29,6 +29,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
@@ -70,6 +71,13 @@ fun TvRoot(
     // Loaded when the details dialog opens so a series recording can claim the episodes the
     // guide already lists, without querying on every recomposition.
     var upcoming by remember { mutableStateOf<List<Programme>>(emptyList()) }
+    // A series picked out of search, handed to the on-demand overlay so it opens on that series
+    // rather than on the grid the user would then have to search again.
+    var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
+
+    // Dropped as soon as on demand is left, so returning to it later opens where it left off
+    // rather than reopening a series chosen some time ago.
+    LaunchedEffect(overlay) { if (overlay != TvOverlay.VOD) pendingSeries = null }
 
     LaunchedEffect(details?.first?.id) {
         val channel = details?.first
@@ -151,6 +159,10 @@ fun TvRoot(
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onOpenProgramme = { channel, programme -> details = channel to programme },
                         onPlayVod = { item -> vm.playVod(item); onOverlayChange(TvOverlay.NONE) },
+                        onOpenSeries = { item ->
+                            pendingSeries = item
+                            onOverlayChange(TvOverlay.VOD)
+                        },
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -169,6 +181,7 @@ fun TvRoot(
                             onOverlayChange(TvOverlay.NONE)
                         },
                         modifier = Modifier.fillMaxSize(),
+                        openSeriesRequest = pendingSeries,
                     )
 
                     TvOverlay.SETTINGS -> SettingsScreen(

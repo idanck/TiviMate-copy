@@ -313,6 +313,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        // Where an on-demand title got to, written before the player can be torn down. The
+        // position has to be read here, on the thread that owns ExoPlayer, and while it still
+        // has one (FR-PLB-29).
+        vm.saveVodProgress()
         // Playback is released only when the activity really goes away; a recording keeps
         // running in its own foreground service either way.
         if (isFinishing) ServiceLocator.player.release()
