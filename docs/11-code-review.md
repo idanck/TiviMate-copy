@@ -458,3 +458,68 @@ Still JVM-only: the PiP action's behaviour on real launchers, the clamped window
 ultra-wide streams, rotation mid-playback on a device, and whether 48dp holds the longest
 channel numbers real playlists issue. The suite compiles and passes; the phone in the hand is
 the next reviewer.
+
+---
+
+## Requested review of the merged state, 2026-08-20
+
+Asked for outright rather than prompted by a defect: a fresh pass over everything that merged
+today. Two sweeps ran — one over the series-playback round (#5), which had never been reviewed
+by other eyes, and one over the *seams* between the two interface rounds (#6, #7), each of which
+had been reviewed only in isolation. Six findings from the first, eight from the second, plus
+two races the first sweep's own fix opened. All **fixed (`e26e496`, `b85c8ff`)**.
+
+### The series round
+
+- **Resume marks were lost to stale snapshots.** `playVod` started from the tile's
+  `resumePositionMs`; the lists only re-read on their own triggers, so the snapshot went stale
+  the moment another episode saved its place — and the next save overwrote the real mark.
+  Play-time now reads the mark from the database, pinned by test (FR-PLB-29).
+- **Pruned episodes lingered and 404'd.** `refreshEpisodes` only ever upserted. A successful
+  fetch now deletes what the panel stopped listing, inside the same transaction, sparing the
+  survivors' marks and the container row. Pinned by test.
+- **A full disk could crash the app on exit** — `appScope` has no exception handler and the
+  resume write was unguarded. Guarded.
+- **Every series open walked the playlist's whole vod set** — no index served `episodes()`.
+  `idx_vod_series(playlist_id, series_id)`: schema version 2, the first real migration.
+- **The on-demand screen forgot everything on unmount** (tab switch, search overlay) because
+  its state lived inside the screen the shells unmount wholesale. `VodScreenState` is hoisted
+  into both shells now — the same lesson the episode list itself taught in the series round,
+  one level higher.
+- The favourite toggle was copy-pasted per tile; one helper serves the grid.
+
+### The seams
+
+- **Backgrounding without a PiP window kept the stream fully alive**: video decoded for no
+  surface, and audio from a backgrounded app with no notification, no media session and no way
+  to stop it short of reopening the app. `onStop` now pauses and drops the video track when
+  nothing is showing the stream; `onStart` undoes both. Background audio as a *feature* needs
+  a foreground media service and is future work, recorded here rather than half-shipped.
+- **Recreation inside the PiP window lost the shell state.** Locale is not in `configChanges`,
+  so a language change recreates the activity; `inPip`/`playerOpen` reset and the browse shell
+  rendered squeezed into the window over a disabled video track. Both are restored on create.
+- **A terminal failure made every play button a liar**: the player sits in IDLE after retries
+  are exhausted, and the intent flag alone starts nothing. Resuming from IDLE now prepares
+  again, which retries the source.
+- **`release()` kept the dead session's URLs**, and `applySettingsChange` read a non-empty URL
+  list as "had a source": the next session's first settings change resurrected the previous
+  session's stream — silently, on the phone, as audio nothing on screen owned.
+- **Zapping from the player screen walked the browse list** even when the playing channel was
+  filtered out of it, leaping to the first row of a list the user cannot see; it now falls
+  back to the playlist in its own order around the playing channel.
+- Smaller: the landscape sheet stayed latched through portrait and popped back open on the
+  next rotate; a language change dumped the user from Settings onto the Live tab (the tab is
+  saveable now, and the guide start-redirect is one-shot across recreation); the screen stayed
+  awake for video-less browsing; the mini bar's progress strip computed once and sat frozen —
+  it ticks by the minute now; `twoPane` classified a tall phone lying down as a tablet
+  (`smallestScreenWidthDp` now decides).
+- **The fix's own races:** the deferred VOD start (reading the resume mark) could lose a
+  two-tap race, or land after a live channel had interrupted it and replace it. A play
+  generation, bumped on every source switch, pins the start to the latest tap.
+
+### Not proved here
+
+The suite compiles and passes (113 tests); backgrounding, PiP recreation, IDLE recovery and
+the zap fallback are lifecycle behaviours only a device can exercise. Known gaps recorded, not
+fixed: no media session (headset and Bluetooth keys do nothing on the phone), no error surface
+on the mini bar, a recording's resume position is still never written.
