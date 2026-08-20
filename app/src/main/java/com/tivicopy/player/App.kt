@@ -16,6 +16,7 @@ import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.repo.EpgRepository
 import com.tivicopy.player.data.repo.SourceRepository
+import com.tivicopy.player.data.update.UpdateManager
 import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.record.RecordingScheduler
 import com.tivicopy.player.work.RefreshScheduler
@@ -43,6 +44,7 @@ object ServiceLocator {
     lateinit var cache: CacheBudget private set
     lateinit var backup: BackupManager private set
     lateinit var recordings: RecordingScheduler private set
+    lateinit var updates: UpdateManager private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -89,6 +91,7 @@ object ServiceLocator {
         cache = CacheBudget(appContext)
         backup = BackupManager(dao, settings)
         recordings = RecordingScheduler(appContext, dao, settings)
+        updates = UpdateManager(appContext, settings, dao)
         initialised = true
     }
 }

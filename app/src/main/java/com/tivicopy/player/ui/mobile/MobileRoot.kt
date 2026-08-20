@@ -70,6 +70,7 @@ import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
+import com.tivicopy.player.ui.common.UpdatePrompt
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
@@ -401,6 +402,10 @@ fun MobileRoot(
                 upcoming = upcoming,
             )
         }
+
+        // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
+        // is absent in picture-in-picture, which returns above this point.
+        UpdatePrompt()
     }
 }
 

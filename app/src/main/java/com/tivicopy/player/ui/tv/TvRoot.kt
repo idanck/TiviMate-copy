@@ -47,6 +47,7 @@ import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
+import com.tivicopy.player.ui.common.UpdatePrompt
 
 /** Which overlay, if any, sits on top of the video. Nothing here ever stops playback. */
 enum class TvOverlay { NONE, CHANNELS, MINI_GUIDE, GUIDE, SEARCH, RECORDINGS, VOD, SETTINGS, ADD_SOURCE, INFO }
@@ -225,6 +226,10 @@ fun TvRoot(
                 upcoming = upcoming,
             )
         }
+
+        // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
+        // is absent in picture-in-picture, which returns above this point.
+        UpdatePrompt()
     }
 }
 

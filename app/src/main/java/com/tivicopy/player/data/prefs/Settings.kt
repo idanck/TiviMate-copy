@@ -121,6 +121,10 @@ class Settings(context: Context) {
         val hideLockedChannels: Boolean,
         val activePlaylistId: Long,
         val verboseLogging: Boolean,
+        val updateAutoCheck: Boolean,
+        val updateWifiOnly: Boolean,
+        val updateSkippedVersionCode: Int,
+        val updateLastCheckUtc: Long,
     )
 
     private fun read() = Snapshot(
@@ -176,6 +180,10 @@ class Settings(context: Context) {
         hideLockedChannels = prefs.getBoolean(K_HIDE_LOCKED, false),
         activePlaylistId = prefs.getLong(K_ACTIVE_PLAYLIST, 0),
         verboseLogging = prefs.getBoolean(K_VERBOSE, false),
+        updateAutoCheck = prefs.getBoolean(K_UPDATE_AUTO, true),
+        updateWifiOnly = prefs.getBoolean(K_UPDATE_WIFI_ONLY, true),
+        updateSkippedVersionCode = prefs.getInt(K_UPDATE_SKIPPED, 0),
+        updateLastCheckUtc = prefs.getLong(K_UPDATE_LAST_CHECK, 0),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -245,6 +253,23 @@ class Settings(context: Context) {
     fun setHideLockedChannels(v: Boolean) = commit { putBoolean(K_HIDE_LOCKED, v) }
     fun setActivePlaylist(id: Long) = commit { putLong(K_ACTIVE_PLAYLIST, id) }
     fun setVerboseLogging(v: Boolean) = commit { putBoolean(K_VERBOSE, v) }
+
+    /** FR-UPD-06: the background check and the metered-network guard are both opt-out. */
+    fun setUpdateAutoCheck(v: Boolean) = commit { putBoolean(K_UPDATE_AUTO, v) }
+    fun setUpdateWifiOnly(v: Boolean) = commit { putBoolean(K_UPDATE_WIFI_ONLY, v) }
+
+    /**
+     * Silences one version. Stored as a floor rather than a set: skipping 12 also means
+     * nothing older than 12 is worth asking about, and a later build clears it by being
+     * greater than the floor.
+     */
+    fun setUpdateSkippedVersion(versionCode: Int) = commit { putInt(K_UPDATE_SKIPPED, versionCode) }
+
+    /** Records that a check happened, and drops a stale skip once that version is installed. */
+    fun rememberUpdateCheck(atUtc: Long, seenVersionCode: Int) = commit {
+        putLong(K_UPDATE_LAST_CHECK, atUtc)
+        if (seenVersionCode <= com.tivicopy.player.BuildInfo.versionCode) remove(K_UPDATE_SKIPPED)
+    }
 
     /** Remembers the current and previous channel so a single key can toggle (FR-PLB-20). */
     fun rememberChannel(id: Long) {
@@ -340,5 +365,9 @@ class Settings(context: Context) {
         const val K_HIDE_LOCKED = "hide_locked"
         const val K_ACTIVE_PLAYLIST = "active_playlist"
         const val K_VERBOSE = "verbose_logging"
+        const val K_UPDATE_AUTO = "update_auto_check"
+        const val K_UPDATE_WIFI_ONLY = "update_wifi_only"
+        const val K_UPDATE_SKIPPED = "update_skipped_code"
+        const val K_UPDATE_LAST_CHECK = "update_last_check"
     }
 }

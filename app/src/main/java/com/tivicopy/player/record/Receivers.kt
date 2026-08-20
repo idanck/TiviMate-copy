@@ -33,20 +33,25 @@ class RecordingAlarmReceiver : BroadcastReceiver() {
 /**
  * Re-arms every pending schedule after a reboot (FR-REC-15) and, when the user asked for it,
  * brings the app back up on a TV that has just powered on (FR-SET-02).
+ *
+ * Replacing the package clears its alarms exactly as a reboot does, so an update — in-app
+ * (FR-UPD-04) or sideloaded by hand — would otherwise drop every scheduled recording on the
+ * floor. `MY_PACKAGE_REPLACED` re-arms them; it deliberately does not re-launch the app, which
+ * is a boot-time courtesy and would be an ambush mid-update.
  */
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        if (action != Intent.ACTION_BOOT_COMPLETED &&
-            action != Intent.ACTION_LOCKED_BOOT_COMPLETED &&
-            action != "android.intent.action.QUICKBOOT_POWERON"
-        ) return
+        val booted = action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_LOCKED_BOOT_COMPLETED ||
+            action == "android.intent.action.QUICKBOOT_POWERON"
+        if (!booted && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
 
         ServiceLocator.init(context)
         ServiceLocator.recordings.rearmAll()
 
-        if (ServiceLocator.settings.state.value.autoStartOnBoot) {
+        if (booted && ServiceLocator.settings.state.value.autoStartOnBoot) {
             val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
             launch?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             launch?.let(context::startActivity)
