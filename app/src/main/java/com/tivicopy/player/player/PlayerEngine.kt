@@ -148,6 +148,16 @@ class PlayerEngine(
 
     fun exoPlayer(): ExoPlayer = player ?: build().also { player = it }
 
+    /**
+     * Where playback has reached, and how long the item is, or null when there is no player.
+     *
+     * [exoPlayer] builds one on demand, which is right for a caller about to play something and
+     * wrong for one that only wants to note a position: that caller would construct a player,
+     * read zero out of it, and leave it behind. Duration is [C.TIME_UNSET] until the source has
+     * been read, so the caller must treat a non-positive value as unknown.
+     */
+    fun positionAndDuration(): Pair<Long, Long>? = player?.let { it.currentPosition to it.duration }
+
     // ------------------------------------------------------------------- build
 
     private fun build(): ExoPlayer {

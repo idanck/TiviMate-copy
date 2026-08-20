@@ -151,60 +151,29 @@ class XtreamClient(
         val categories = get(api("get_series_categories")).getOrNull()
             ?.let(::parseCategories).orEmpty()
 
-        return get(api("get_series")).map { body ->
-            val array = runCatching { JSONArray(body) }.getOrNull() ?: JSONArray()
-            (0 until array.length()).mapNotNull { i ->
-                val o = array.optJSONObject(i) ?: return@mapNotNull null
-                val seriesId = o.optNumberAsString("series_id") ?: return@mapNotNull null
-                VodItem(
-                    playlistId = 0,
-                    streamId = "series:$seriesId",
-                    name = o.optString("name").takeIf { it.isNotBlank() } ?: "Series $seriesId",
-                    categoryName = categories[o.optNumberAsString("category_id")],
-                    posterUrl = o.optString("cover").takeIf { it.isNotBlank() && it != "null" },
-                    plot = o.optString("plot").takeIf { it.isNotBlank() && it != "null" },
-                    year = o.optString("releaseDate").takeIf { it.isNotBlank() && it != "null" }?.take(4),
-                    rating = o.optString("rating").takeIf { it.isNotBlank() && it != "null" },
-                    seriesId = seriesId,
-                )
-            }
-        }
+        return get(api("get_series")).map { body -> parseSeries(body, categories) }
     }
 
     /** Episodes of one series, flattened into VOD rows keyed by season/episode. */
     fun seriesEpisodes(seriesId: String): Outcome<List<VodItem>> =
-        get(api("get_series_info", mapOf("series_id" to seriesId))).map { body ->
-            val root = runCatching { JSONObject(body) }.getOrNull() ?: return@map emptyList<VodItem>()
-            val seasons = root.optJSONObject("episodes") ?: return@map emptyList<VodItem>()
-            val out = ArrayList<VodItem>()
-            seasons.keys().forEach { seasonKey ->
-                val arr = seasons.optJSONArray(seasonKey) ?: return@forEach
-                for (i in 0 until arr.length()) {
-                    val e = arr.optJSONObject(i) ?: continue
-                    val id = e.optNumberAsString("id") ?: continue
-                    val info = e.optJSONObject("info")
-                    out += VodItem(
-                        playlistId = 0,
-                        streamId = id,
-                        name = e.optString("title").takeIf { it.isNotBlank() } ?: "Episode $id",
-                        posterUrl = info?.optString("movie_image")?.takeIf { it.isNotBlank() && it != "null" },
-                        plot = info?.optString("plot")?.takeIf { it.isNotBlank() && it != "null" },
-                        durationSeconds = info?.optNumberAsString("duration_secs")?.toIntOrNull() ?: 0,
-                        containerExtension = e.optString("container_extension").takeIf { it.isNotBlank() } ?: "mp4",
-                        seriesId = seriesId,
-                        seasonNumber = seasonKey.toIntOrNull(),
-                        episodeNumber = e.optNumberAsString("episode_num")?.toIntOrNull(),
-                    )
-                }
-            }
-            out
-        }
+        get(api("get_series_info", mapOf("series_id" to seriesId)))
+            .map { body -> parseSeriesEpisodes(body, seriesId) }
 
     fun streamUrl(kind: String, streamId: String, extension: String): String =
         "$root/$kind/${enc(username)}/${enc(password)}/$streamId.$extension"
 
     fun vodUrl(streamId: String, containerExtension: String): String =
         "$root/movie/${enc(username)}/${enc(password)}/$streamId.$containerExtension"
+
+    /**
+     * The playback URL for one episode.
+     *
+     * Episodes are served from `/series/`, never from `/movie/`. Sending an episode — or worse a
+     * series — through [vodUrl] produces a path the panel does not serve, which surfaces as a
+     * generic playback failure and reads like a broken provider.
+     */
+    fun episodeUrl(streamId: String, containerExtension: String): String =
+        streamUrl("series", streamId.removePrefix(EPISODE_PREFIX), containerExtension)
 
     private fun parseCategories(body: String): Map<String, String> {
         val array = runCatching { JSONArray(body) }.getOrNull() ?: return emptyMap()
@@ -216,6 +185,108 @@ class XtreamClient(
         }.toMap()
     }
 
+    companion object {
+        /**
+         * Local prefixes that keep the three kinds of `vod.stream_id` apart.
+         *
+         * One table holds movies, series and episodes, keyed by `UNIQUE(playlist_id, stream_id)`.
+         * A series has no provider stream id at all — it is a container, not a stream — and some
+         * panels issue episode ids from the same space as movie ids, so an unprefixed episode
+         * could overwrite a movie's row and take its favourite and resume position with it.
+         * The prefix settles that for nothing; the panel only ever sees the id it issued,
+         * recovered by [episodeUrl].
+         */
+        const val SERIES_PREFIX = "series:"
+        const val EPISODE_PREFIX = "episode:"
+    }
+}
+
+/**
+ * A series row is a container: it lists episodes and has no stream of its own.
+ *
+ * The two predicates are complementary and exhaustive over the rows that carry a `seriesId`;
+ * anything with neither is a film. They are the single definition of that distinction, so the
+ * screens, the queries and the URL builder cannot drift apart on it.
+ */
+internal val VodItem.isSeriesContainer: Boolean
+    get() = seriesId != null && seasonNumber == null
+
+/** An episode is the only part of a series that is actually a stream. */
+internal val VodItem.isEpisode: Boolean
+    get() = seriesId != null && seasonNumber != null
+
+/**
+ * Series rows from `get_series`.
+ *
+ * Split out of [XtreamClient.series] so the shape it produces can be asserted without a panel.
+ * Two things about that shape are load-bearing: the id carries [XtreamClient.SERIES_PREFIX], and
+ * `seasonNumber` stays null. Together they mark a row as a container, which is what keeps it out
+ * of the playback path and out of the episode queries.
+ */
+internal fun parseSeries(body: String, categories: Map<String, String>): List<VodItem> {
+    val array = runCatching { JSONArray(body) }.getOrNull() ?: JSONArray()
+    return (0 until array.length()).mapNotNull { i ->
+        val o = array.optJSONObject(i) ?: return@mapNotNull null
+        val seriesId = o.optNumberAsString("series_id") ?: return@mapNotNull null
+        VodItem(
+            playlistId = 0,
+            streamId = XtreamClient.SERIES_PREFIX + seriesId,
+            name = o.optString("name").takeIf { it.isNotBlank() } ?: "Series $seriesId",
+            categoryName = categories[o.optNumberAsString("category_id")],
+            posterUrl = o.optString("cover").takeIf { it.isNotBlank() && it != "null" },
+            plot = o.optString("plot").takeIf { it.isNotBlank() && it != "null" },
+            year = o.optString("releaseDate").takeIf { it.isNotBlank() && it != "null" }?.take(4),
+            rating = o.optString("rating").takeIf { it.isNotBlank() && it != "null" },
+            seriesId = seriesId,
+        )
+    }
+}
+
+/**
+ * Episodes from `get_series_info`.
+ *
+ * Panels disagree about this payload more than about any other. `episodes` is usually an object
+ * keyed by season number, but some send a flat array; ids arrive as JSON numbers or strings; and
+ * `container_extension` is often missing. Anything unreadable is skipped rather than failing the
+ * whole series.
+ *
+ * `seasonNumber` is never left null, even when the payload does not say: a null there would mean
+ * "series container" everywhere else in the app, and the episode would surface as a tile in the
+ * on-demand grid that plays nothing.
+ */
+internal fun parseSeriesEpisodes(body: String, seriesId: String): List<VodItem> {
+    val root = runCatching { JSONObject(body) }.getOrNull() ?: return emptyList()
+    val out = ArrayList<VodItem>()
+
+    fun add(season: Int?, e: JSONObject) {
+        val id = e.optNumberAsString("id") ?: return
+        val info = e.optJSONObject("info")
+        out += VodItem(
+            playlistId = 0,
+            streamId = XtreamClient.EPISODE_PREFIX + id,
+            name = e.optString("title").takeIf { it.isNotBlank() } ?: "Episode $id",
+            posterUrl = info?.optString("movie_image")?.takeIf { it.isNotBlank() && it != "null" },
+            plot = info?.optString("plot")?.takeIf { it.isNotBlank() && it != "null" },
+            durationSeconds = info?.optNumberAsString("duration_secs")?.toIntOrNull() ?: 0,
+            containerExtension = e.optString("container_extension").takeIf { it.isNotBlank() } ?: "mp4",
+            seriesId = seriesId,
+            seasonNumber = season ?: e.optNumberAsString("season")?.toIntOrNull() ?: 1,
+            episodeNumber = e.optNumberAsString("episode_num")?.toIntOrNull(),
+        )
+    }
+
+    val seasons = root.optJSONObject("episodes")
+    if (seasons != null) {
+        seasons.keys().forEach { key ->
+            val arr = seasons.optJSONArray(key) ?: return@forEach
+            for (i in 0 until arr.length()) add(key.toIntOrNull(), arr.optJSONObject(i) ?: continue)
+        }
+        return out
+    }
+
+    val flat = root.optJSONArray("episodes") ?: return out
+    for (i in 0 until flat.length()) add(null, flat.optJSONObject(i) ?: continue)
+    return out
 }
 
 /** Panels return ids as either a JSON number or a JSON string; accept both. */

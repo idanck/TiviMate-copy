@@ -44,6 +44,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.data.prefs.StartBehaviour
@@ -100,6 +101,9 @@ fun MobileRoot(
     // The bottom bar is already at Material's five-item limit, so search is a destination the top
     // bar opens over the current tab rather than a sixth tab (FR-UI-09).
     var searching by remember { mutableStateOf(false) }
+    // A series picked out of search, handed to the on-demand tab so it opens on that series
+    // rather than on the grid the user would then have to search again.
+    var pendingSeries by remember { mutableStateOf<VodItem?>(null) }
     // Landscape hides the bottom bar, so a tap on the video brings the channel list back.
     var landscapeOverlay by remember { mutableStateOf(false) }
 
@@ -136,7 +140,14 @@ fun MobileRoot(
 
     // Picking a tab also abandons the add screen; otherwise the flag stays latched and the tab
     // bar looks broken, moving its selection while the content underneath never changes.
-    val selectTab: (MobileTab) -> Unit = { addingSource = false; searching = false; tab = it }
+    val selectTab: (MobileTab) -> Unit = {
+        addingSource = false
+        searching = false
+        // The screen drops the request itself once it has taken it; this only covers the request
+        // that is never taken, because another tab was chosen before it composed.
+        pendingSeries = null
+        tab = it
+    }
 
     // Registered from composition, so it takes precedence over the activity's exit handler for
     // exactly as long as there is somewhere to go back to.
@@ -276,6 +287,11 @@ fun MobileRoot(
                                 onPlay = { channel -> vm.play(channel); searching = false },
                                 onOpenProgramme = { channel, programme -> details = channel to programme },
                                 onPlayVod = { item -> vm.playVod(item); searching = false },
+                                onOpenSeries = { item ->
+                                    pendingSeries = item
+                                    searching = false
+                                    tab = MobileTab.VOD
+                                },
                                 modifier = Modifier.fillMaxSize(),
                             )
                             return@Box
@@ -302,6 +318,8 @@ fun MobileRoot(
                                 vm = vm,
                                 onPlay = vm::playVod,
                                 modifier = Modifier.fillMaxSize(),
+                                openSeriesRequest = pendingSeries,
+                                onSeriesRequestConsumed = { pendingSeries = null },
                             )
                             MobileTab.RECORDINGS -> RecordingsScreen(
                                 onPlayRecording = vm::playRecording,

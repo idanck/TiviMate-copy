@@ -264,6 +264,7 @@ threads — but a map that only grows is still a leak. Pre-existing. **Fixed** �
   the grid sends it through the movie URL, which no panel serves, so every series tile answers
   with a playback error. `seriesEpisodes` exists with no caller. The honest fix is an episode
   list, which is a feature; `docs/10` now says plainly that series do not play.
+  **Fixed on 2026-08-20** — see the section below.
 - **Scheduling a recording blocks the main thread.** `ProgrammeDetailsDialog` calls the scheduler
   straight from `onClick`, and each schedule does a query, an insert and a `StatFs`. "Record
   series" iterates a fortnight of episodes, so it is dozens of blocking calls in one frame. The
@@ -282,3 +283,57 @@ threads — but a map that only grows is still a leak. Pre-existing. **Fixed** �
   matcher fail to place", which belongs next to the match breakdown in Diagnostics as the
   one-tap route into mapping that FR-EPG-09 asks for. Now that the mapping dialog exists there
   is somewhere for it to lead, but wiring it is a separate change.
+
+
+---
+
+## Series playback, 2026-08-20
+
+Raised as a question about the entry above rather than as a review finding, but it went the same
+way: tracing why series did not play turned up a second dead feature next to the first.
+
+### What was wrong
+
+One URL carried three separate mistakes:
+
+```
+http://host/movie/user/pass/series:31.mp4
+```
+
+`series:31` is not a stream id; `/movie/` is the films endpoint and episodes are served from
+`/series/`; and `.mp4` was a default, because `XtreamClient.series` never read
+`container_extension`. The panel answered 404, and `PlayerEngine.handleError` classified that as
+transient — so the viewer watched a spinner through the whole retry budget before getting a
+generic failure that read like a broken provider.
+
+The mistake underneath was conceptual. **A series has no URL. Only an episode does.** What was
+missing was not a correct id but the step where a viewer picks one.
+
+### Found while fixing it
+
+- **`Dao.saveResume` had no callers.** `resumePositionMs` was read when playback started and
+  never written by anything, so continue-watching (FR-PLB-29) could not fill and every title
+  restarted from zero. `docs/10` claimed Done; corrected. Fixed here, because an episode list
+  that cannot remember where you were is not worth much.
+- **`Dao.vod`'s `seriesOnly` and `movieOnly` had no callers either**, and `seriesOnly` was wrong
+  in a way that only mattered once episodes existed: `series_id IS NOT NULL` matches episodes too.
+
+### Decisions worth keeping
+
+- **Episodes are fetched when a series opens, not during a refresh.** `get_series_info` is one
+  request per series; a playlist with a thousand series would make a thousand requests for
+  screens nobody opened. They are then stored and read back, which is what gives each episode a
+  row to hold a resume position and a favourite — and what a failed fetch falls back to.
+- **Episodes carry an `episode:` stream id.** `vod` is keyed by `(playlist_id, stream_id)` and
+  some panels issue film and episode ids from one space, so an unprefixed episode could overwrite
+  a film's row and take its favourite and resume position with it. No schema change; `VERSION`
+  stays at 1.
+- **The episode list lives inside `VodScreen` with its own `BackHandler`.** It is registered from
+  composition, which is what makes it outrank the handlers both shells set up beforehand — so
+  Back returns to the grid without a new TV overlay, a new activity back rule, or a new term in
+  the phone's `canGoBack`.
+
+### Not proved here
+
+That a panel actually streams from `/series/` needs a real subscription. CI proves the URLs and
+the queries; `docs/10` says as much rather than claiming more.

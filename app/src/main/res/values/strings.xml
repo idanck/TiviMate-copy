@@ -342,4 +342,10 @@
 
     <string name="exit_confirm">Press Back again to exit.</string>
     <string name="loading">Loading…</string>
+
+    <!-- On-demand: series and episodes (FR-PLB-28). -->
+    <string name="vod_season">Season %1$d</string>
+    <string name="vod_episode_label">S%1$02dE%2$02d</string>
+    <string name="vod_no_episodes">The provider listed no episodes for this series.</string>
+    <string name="vod_open_series_to_play">Open the series and choose an episode.</string>
 </resources>

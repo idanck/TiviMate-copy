@@ -28,6 +28,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.VodItem
+import com.tivicopy.player.data.xtream.isSeriesContainer
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
@@ -50,6 +51,11 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     onOpenProgramme: (Channel, Programme) -> Unit = { _, _ -> },
     onPlayVod: (VodItem) -> Unit = {},
+    /**
+     * A series result opens its episodes instead of playing, because a series is not a stream.
+     * The shells route this to the on-demand screen, which owns the one episode list.
+     */
+    onOpenSeries: (VodItem) -> Unit = {},
 ) {
     val results by vm.searchState.collectAsState()
     var query by remember { mutableStateOf(results.query) }
@@ -113,7 +119,8 @@ fun SearchScreen(
             if (results.vod.isNotEmpty()) {
                 item { SectionHeader(stringResource(R.string.nav_vod)) }
                 items(results.vod, key = { "v${it.id}" }) { item ->
-                    FocusableRow(onClick = { onPlayVod(item) }, contentDescription = item.name) {
+                    val open = { if (item.isSeriesContainer) onOpenSeries(item) else onPlayVod(item) }
+                    FocusableRow(onClick = open, contentDescription = item.name) {
                         TwoLine(primary = item.name, secondary = item.year, modifier = Modifier.weight(1f))
                     }
                 }
