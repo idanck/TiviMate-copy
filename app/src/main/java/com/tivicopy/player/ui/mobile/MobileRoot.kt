@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
@@ -262,31 +263,31 @@ fun MobileRoot(
                             selected = tab == MobileTab.LIVE,
                             onClick = { selectTab(MobileTab.LIVE) },
                             icon = { Icon(Icons.Filled.LiveTv, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_live)) },
+                            label = { Text(stringResource(R.string.nav_live), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
                             selected = tab == MobileTab.GUIDE,
                             onClick = { selectTab(MobileTab.GUIDE) },
                             icon = { Icon(Icons.Filled.DateRange, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_guide)) },
+                            label = { Text(stringResource(R.string.nav_guide), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
                             selected = tab == MobileTab.VOD,
                             onClick = { selectTab(MobileTab.VOD) },
                             icon = { Icon(Icons.Filled.Star, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_vod)) },
+                            label = { Text(stringResource(R.string.nav_vod), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
                             selected = tab == MobileTab.RECORDINGS,
                             onClick = { selectTab(MobileTab.RECORDINGS) },
                             icon = { Icon(Icons.Filled.List, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_recordings)) },
+                            label = { Text(stringResource(R.string.nav_recordings), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
                             selected = tab == MobileTab.SETTINGS,
                             onClick = { selectTab(MobileTab.SETTINGS) },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_settings)) },
+                            label = { Text(stringResource(R.string.nav_settings), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                     }
                 }

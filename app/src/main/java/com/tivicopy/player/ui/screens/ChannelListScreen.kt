@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -369,7 +370,10 @@ private fun ChannelRow(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(36.dp),
+            // A minimum keeps short numbers aligned; five-digit providers grow the slot
+            // instead of wrapping "16035" into two lines.
+            maxLines = 1,
+            modifier = Modifier.widthIn(min = 36.dp),
         )
         ChannelLogo(channel = channel, sizeDp = 36)
         TwoLine(
