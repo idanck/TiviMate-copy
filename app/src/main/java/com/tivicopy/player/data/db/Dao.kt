@@ -15,6 +15,9 @@ import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.data.model.VodItem
 
+/** Declares the escape character used by every `LIKE` clause here. See [Dao.likePattern]. */
+private const val LIKE_ESCAPE = " ESCAPE '\\'"
+
 /**
  * Data access for [Database]. Every method takes or opens a writable handle; SQLiteOpenHelper
  * caches a single connection, and WAL lets guide writes proceed while the UI reads.
@@ -163,10 +166,22 @@ class Dao(private val helper: Database) {
 
     // ----------------------------------------------------------------- channels
 
+    /**
+     * A `LIKE` pattern that matches [query] literally.
+     *
+     * `%` and `_` are wildcards, so a search for "100%" without this matches everything that
+     * starts with "100". The escape character has to be declared per clause with `ESCAPE`.
+     */
+    fun likePattern(query: String): String = "%" + query
+        .replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_") + "%"
+
     fun channels(
         playlistId: Long,
         groupId: Long? = null,
         favouritesOnly: Boolean = false,
+        hiddenOnly: Boolean = false,
         includeHidden: Boolean = false,
         search: String? = null,
         limit: Int = 0,
@@ -175,15 +190,33 @@ class Dao(private val helper: Database) {
         val args = mutableListOf(playlistId.toString())
         if (groupId != null) { where.append(" AND group_id=?"); args += groupId.toString() }
         if (favouritesOnly) where.append(" AND favourite=1")
-        if (!includeHidden) where.append(" AND hidden=0")
+        when {
+            hiddenOnly -> where.append(" AND hidden=1")
+            !includeHidden -> where.append(" AND hidden=0")
+        }
         if (!search.isNullOrBlank()) {
-            where.append(" AND (name LIKE ? OR IFNULL(custom_name,'') LIKE ?)")
-            args += "%$search%"; args += "%$search%"
+            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
         }
         val sql = "SELECT * FROM channels WHERE $where ORDER BY sort_index, number, name" +
             if (limit > 0) " LIMIT $limit" else ""
         return db.rawQuery(sql, args.toTypedArray()).mapAll(::readChannel)
     }
+
+    /** The channel a guide entry belongs to, so a search hit on a programme can be played. */
+    fun channelForEpgId(epgId: String): Channel? = db.rawQuery(
+        "SELECT * FROM channels WHERE (manual_epg_id=? OR resolved_epg_id=?) AND hidden=0 LIMIT 1",
+        arrayOf(epgId, epgId),
+    ).firstOrNull(::readChannel)
+
+    /** Puts every hidden channel in a playlist back on screen. Returns how many were restored. */
+    fun showAllHidden(playlistId: Long): Int = db.update(
+        "channels",
+        ContentValues().apply { put("hidden", 0) },
+        "playlist_id=? AND hidden=1",
+        arrayOf(playlistId.toString()),
+    )
 
     fun allChannels(includeHidden: Boolean = true): List<Channel> {
         val where = if (includeHidden) "1=1" else "hidden=0"
@@ -198,11 +231,25 @@ class Dao(private val helper: Database) {
         db.rawQuery("SELECT * FROM channels WHERE favourite=1 AND hidden=0 ORDER BY sort_index, number, name", null)
             .mapAll(::readChannel)
 
-    fun recentChannels(limit: Int = 25): List<Channel> =
-        db.rawQuery(
-            "SELECT * FROM channels WHERE last_watched_utc>0 AND hidden=0 ORDER BY last_watched_utc DESC LIMIT ?",
-            arrayOf(limit.toString()),
+    /**
+     * Recently watched, newest first. Deliberately spans every playlist — the same choice
+     * `continueWatching` makes for on-demand — because "what was I just watching" is not a
+     * question about the playlist that happens to be selected.
+     */
+    fun recentChannels(search: String? = null, limit: Int = 25): List<Channel> {
+        val where = StringBuilder("last_watched_utc>0 AND hidden=0")
+        val args = mutableListOf<String>()
+        if (!search.isNullOrBlank()) {
+            where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
+        }
+        args += limit.toString()
+        return db.rawQuery(
+            "SELECT * FROM channels WHERE $where ORDER BY last_watched_utc DESC LIMIT ?",
+            args.toTypedArray(),
         ).mapAll(::readChannel)
+    }
 
     fun channelValues(ch: Channel): ContentValues = ContentValues().apply {
         put("playlist_id", ch.playlistId)
@@ -383,8 +430,9 @@ class Dao(private val helper: Database) {
         val sql = StringBuilder("SELECT * FROM epg_channels")
         val args = mutableListOf<String>()
         if (!search.isNullOrBlank()) {
-            sql.append(" WHERE epg_id LIKE ? OR display_names LIKE ?")
-            args += "%$search%"; args += "%$search%"
+            sql.append(" WHERE epg_id LIKE ?$LIKE_ESCAPE OR display_names LIKE ?$LIKE_ESCAPE")
+            val pattern = likePattern(search)
+            args += pattern; args += pattern
         }
         sql.append(" ORDER BY epg_id LIMIT ").append(limit)
         return db.rawQuery(sql.toString(), args.toTypedArray()).mapAll { c ->
@@ -459,8 +507,8 @@ class Dao(private val helper: Database) {
 
     fun searchProgrammes(query: String, fromUtc: Long, limit: Int = 200): List<Programme> =
         db.rawQuery(
-            "SELECT * FROM programmes WHERE title LIKE ? AND end_utc>=? ORDER BY start_utc LIMIT ?",
-            arrayOf("%$query%", fromUtc.toString(), limit.toString()),
+            "SELECT * FROM programmes WHERE title LIKE ?$LIKE_ESCAPE AND end_utc>=? ORDER BY start_utc LIMIT ?",
+            arrayOf(likePattern(query), fromUtc.toString(), limit.toString()),
         ).mapAll(::readProgramme)
 
     fun programmeCount(): Int =
@@ -533,7 +581,9 @@ class Dao(private val helper: Database) {
         if (seriesOnly) where.append(" AND series_id IS NOT NULL")
         if (movieOnly) where.append(" AND series_id IS NULL")
         if (favouritesOnly) where.append(" AND favourite=1")
-        if (!search.isNullOrBlank()) { where.append(" AND name LIKE ?"); args += "%$search%" }
+        if (!search.isNullOrBlank()) {
+            where.append(" AND name LIKE ?$LIKE_ESCAPE"); args += likePattern(search)
+        }
         return db.rawQuery(
             "SELECT * FROM vod WHERE $where ORDER BY name LIMIT $limit", args.toTypedArray(),
         ).mapAll(::readVod)

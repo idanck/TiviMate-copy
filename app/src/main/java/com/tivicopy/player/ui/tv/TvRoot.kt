@@ -133,6 +133,7 @@ fun TvRoot(
                     TvOverlay.CHANNELS -> ChannelListScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
+                        onSearch = { onOverlayChange(TvOverlay.SEARCH) },
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -148,6 +149,8 @@ fun TvRoot(
                     TvOverlay.SEARCH -> SearchScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
+                        onOpenProgramme = { channel, programme -> details = channel to programme },
+                        onPlayVod = { item -> vm.playVod(item); onOverlayChange(TvOverlay.NONE) },
                         modifier = Modifier.fillMaxSize(),
                     )
 

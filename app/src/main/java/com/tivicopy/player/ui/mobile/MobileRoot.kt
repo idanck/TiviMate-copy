@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +56,7 @@ import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
+import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
@@ -95,6 +97,9 @@ fun MobileRoot(
         }
     }
     var addingSource by remember { mutableStateOf(false) }
+    // The bottom bar is already at Material's five-item limit, so search is a destination the top
+    // bar opens over the current tab rather than a sixth tab (FR-UI-09).
+    var searching by remember { mutableStateOf(false) }
     // Landscape hides the bottom bar, so a tap on the video brings the channel list back.
     var landscapeOverlay by remember { mutableStateOf(false) }
 
@@ -119,15 +124,19 @@ fun MobileRoot(
     val inSettingsSubSection =
         !landscape && tab == MobileTab.SETTINGS && settingsSection != SettingsSection.ROOT
     val canGoBack = (addingSource && state.playlists.isNotEmpty()) ||
-        (!showAddSource && inSettingsSubSection)
+        (!showAddSource && (searching || inSettingsSubSection))
 
     val goBack: () -> Unit = {
-        if (addingSource) addingSource = false else onSettingsSection(SettingsSection.ROOT)
+        when {
+            addingSource -> addingSource = false
+            searching -> searching = false
+            else -> onSettingsSection(SettingsSection.ROOT)
+        }
     }
 
     // Picking a tab also abandons the add screen; otherwise the flag stays latched and the tab
     // bar looks broken, moving its selection while the content underneath never changes.
-    val selectTab: (MobileTab) -> Unit = { addingSource = false; tab = it }
+    val selectTab: (MobileTab) -> Unit = { addingSource = false; searching = false; tab = it }
 
     // Registered from composition, so it takes precedence over the activity's exit handler for
     // exactly as long as there is somewhere to go back to.
@@ -141,19 +150,34 @@ fun MobileRoot(
         modifier = modifier,
         topBar = {
             // Touch has no D-pad Back, and a phone's gesture bar is easy to miss, so the way
-            // out of a sub-screen is on the screen itself.
-            if (canGoBack) {
+            // out of a sub-screen is on the screen itself. The bar also carries search, which
+            // otherwise has no entry point at all on the phone.
+            val searchable = !landscape && !showAddSource && !searching &&
+                tab in setOf(MobileTab.LIVE, MobileTab.GUIDE, MobileTab.VOD)
+            if (canGoBack || searchable) {
                 TopAppBar(
                     // Every destination behind this bar draws its own heading — the add screen
                     // and each settings section alike — so the bar is the back arrow on its
                     // own rather than the same words twice, one above the other.
                     title = {},
                     navigationIcon = {
-                        IconButton(onClick = goBack) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.action_back),
-                            )
+                        if (canGoBack) {
+                            IconButton(onClick = goBack) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.action_back),
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        if (searchable) {
+                            IconButton(onClick = { searching = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Search,
+                                    contentDescription = stringResource(R.string.nav_search),
+                                )
+                            }
                         }
                     },
                 )
@@ -246,12 +270,26 @@ fun MobileRoot(
 
                 if (!landscape) {
                     Box(modifier = Modifier.fillMaxSize()) {
+                        if (searching) {
+                            SearchScreen(
+                                vm = vm,
+                                onPlay = { channel -> vm.play(channel); searching = false },
+                                onOpenProgramme = { channel, programme -> details = channel to programme },
+                                onPlayVod = { item -> vm.playVod(item); searching = false },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                            return@Box
+                        }
                         when (tab) {
                             MobileTab.LIVE -> ChannelListScreen(
                                 vm = vm,
                                 onPlay = vm::play,
                                 compact = !twoPane,
                                 showNowNext = twoPane,
+                                // A tablet is still touch, so it gets the filter box even though
+                                // it is wide enough to drop the compact layout.
+                                showFilter = true,
+                                onSearch = { searching = true },
                                 modifier = Modifier.fillMaxSize(),
                             )
                             MobileTab.GUIDE -> GuideScreen(
@@ -294,6 +332,7 @@ fun MobileRoot(
                         onPlay = { channel -> vm.play(channel); landscapeOverlay = false },
                         compact = !twoPane,
                         showNowNext = twoPane,
+                        showFilter = true,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

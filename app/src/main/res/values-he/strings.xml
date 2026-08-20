@@ -194,6 +194,12 @@
     <string name="guide_shift_back_hours">⁦-2ש⁩</string>
     <string name="guide_shift_forward_hours">⁦+2ש⁩</string>
     <string name="guide_shift_forward_day">⁦+1י⁩</string>
+    <string name="filter_channels">סינון ערוצים</string>
+    <string name="filter_active">מסונן: %1$s</string>
+    <string name="action_clear">ניקוי</string>
+    <string name="hidden_channels">ערוצים מוסתרים</string>
+    <string name="hidden_channels_empty">אין ערוצים מוסתרים. הסתרת ערוץ מתפריט האפשרויות שלו מסירה אותו מכל הרשימות עד שתציג אותו מחדש.</string>
+    <string name="action_show_all">הצג הכול</string>
     <string name="settings_language">שפה</string>
     <string name="settings_language_hint">חל מיד. בחירה בעברית גם הופכת את פריסת המסך מימין לשמאל.</string>
     <string name="language_system">לפי הגדרות המכשיר</string>

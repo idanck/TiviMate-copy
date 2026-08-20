@@ -21,6 +21,8 @@ import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.player.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -29,19 +31,44 @@ import kotlinx.coroutines.withContext
 /** A transient message for the user: a toast-style line with an optional error behind it. */
 data class UiMessage(val text: String? = null, val error: AppError? = null, val id: Long = System.nanoTime())
 
-/** Pseudo-group ids for the two synthetic views in the channel list. */
+/** Pseudo-group ids for the synthetic views in the channel list. */
 object VirtualGroup {
     const val ALL = -1L
     const val FAVOURITES = -2L
     const val RECENT = -3L
+
+    /**
+     * The only way back from hiding a channel (FR-ORG-03). A virtual group rather than a screen of
+     * its own: it is reachable with a D-pad, identical on both shells, and needs no navigation.
+     */
+    const val HIDDEN = -4L
 }
 
 data class ChannelListState(
     val groups: List<ChannelGroup> = emptyList(),
     val selectedGroupId: Long = VirtualGroup.ALL,
     val channels: List<Channel> = emptyList(),
+    /** The channel-list filter box. Scoped to the selected group, and always visible when set. */
     val search: String = "",
 )
+
+/**
+ * The search screen's own results (FR-UI-09).
+ *
+ * Deliberately separate from [ChannelListState.search]. They were one field, so opening search
+ * filtered the Live list and closing it left the filter in place with nothing on screen to explain
+ * it — and results were silently limited to whichever group happened to be selected. A filter and
+ * a search are different questions.
+ */
+data class SearchState(
+    val query: String = "",
+    val running: Boolean = false,
+    val channels: List<Channel> = emptyList(),
+    val programmes: List<Programme> = emptyList(),
+    val vod: List<com.tivicopy.player.data.model.VodItem> = emptyList(),
+) {
+    val isEmpty: Boolean get() = channels.isEmpty() && programmes.isEmpty() && vod.isEmpty()
+}
 
 data class AppUiState(
     val loading: Boolean = true,
@@ -143,6 +170,58 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         loadChannels()
     }
 
+    // ---------------------------------------------------------------- search
+
+    private val _searchState = MutableStateFlow(SearchState())
+    val searchState: StateFlow<SearchState> = _searchState
+
+    private var searchJob: Job? = null
+
+    /**
+     * FR-UI-09: one query across channels, the guide and on-demand, over the whole playlist.
+     *
+     * Debounced and cancellable. `searchProgrammes` is a `LIKE` over a table that holds a
+     * programme per channel per half hour for a week — six figures of rows, with no index that can
+     * serve a leading wildcard — and it used to run once per keystroke.
+     */
+    fun search(query: String) {
+        searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.length < MIN_SEARCH_LENGTH) {
+            _searchState.value = SearchState(query = query)
+            return
+        }
+        _searchState.value = _searchState.value.copy(query = query, running = true)
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MS)
+            val playlistId = _state.value.activePlaylist?.id
+            val results = withContext(Dispatchers.IO) {
+                Triple(
+                    playlistId?.let { dao.channels(it, search = trimmed) }.orEmpty(),
+                    epg.searchProgrammes(trimmed, System.currentTimeMillis()),
+                    playlistId?.let { dao.vod(it, search = trimmed) }.orEmpty(),
+                )
+            }
+            _searchState.value = SearchState(
+                query = query,
+                running = false,
+                channels = results.first,
+                programmes = results.second,
+                vod = results.third,
+            )
+        }
+    }
+
+    /** Drops the results when the search surface closes, so reopening it starts clean. */
+    fun clearSearch() {
+        searchJob?.cancel()
+        _searchState.value = SearchState()
+    }
+
+    /** The channel a guide hit belongs to, so a programme result is something you can act on. */
+    suspend fun channelForProgramme(programme: Programme): Channel? =
+        withContext(Dispatchers.IO) { dao.channelForEpgId(programme.epgChannelId) }
+
     private fun loadChannels() {
         val active = _state.value.activePlaylist ?: run {
             _state.value = _state.value.copy(list = _state.value.list.copy(channels = emptyList()))
@@ -152,11 +231,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val channels = withContext(Dispatchers.IO) {
                 val hideLocked = settings.state.value.hideLockedChannels
+                val search = listState.search.takeIf { it.isNotBlank() }
                 val raw = when (listState.selectedGroupId) {
-                    VirtualGroup.ALL -> dao.channels(active.id, search = listState.search.takeIf { it.isNotBlank() })
-                    VirtualGroup.FAVOURITES -> dao.channels(active.id, favouritesOnly = true, search = listState.search.takeIf { it.isNotBlank() })
-                    VirtualGroup.RECENT -> dao.recentChannels()
-                    else -> dao.channels(active.id, groupId = listState.selectedGroupId, search = listState.search.takeIf { it.isNotBlank() })
+                    VirtualGroup.ALL -> dao.channels(active.id, search = search)
+                    VirtualGroup.FAVOURITES ->
+                        dao.channels(active.id, favouritesOnly = true, search = search)
+                    // The filter box used to do nothing at all here, because the argument was
+                    // simply not passed on.
+                    VirtualGroup.RECENT -> dao.recentChannels(search = search)
+                    VirtualGroup.HIDDEN -> dao.channels(active.id, hiddenOnly = true, search = search)
+                    else -> dao.channels(active.id, groupId = listState.selectedGroupId, search = search)
                 }
                 if (hideLocked) raw.filter { !it.locked } else raw
             }
@@ -453,9 +537,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun programmesFor(channel: Channel, fromUtc: Long, toUtc: Long): List<Programme> =
         withContext(Dispatchers.IO) { epg.programmesFor(channel, fromUtc, toUtc) }
 
-    suspend fun searchProgrammes(query: String): List<Programme> =
-        withContext(Dispatchers.IO) { epg.searchProgrammes(query, System.currentTimeMillis()) }
-
     suspend fun unmatchedChannels(): List<Channel> = withContext(Dispatchers.IO) {
         _state.value.activePlaylist?.let { epg.unmatchedChannels(it.id) }.orEmpty()
     }
@@ -482,5 +563,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         player.onScheduleRetry = null
         player.onNotice = null
         super.onCleared()
+    }
+
+    private companion object {
+        /** A single letter matches most of a playlist; two is where a result list means something. */
+        const val MIN_SEARCH_LENGTH = 2
+        const val SEARCH_DEBOUNCE_MS = 250L
     }
 }

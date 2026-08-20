@@ -219,6 +219,12 @@
     <string name="guide_shift_back_hours">⁦-2h⁩</string>
     <string name="guide_shift_forward_hours">⁦+2h⁩</string>
     <string name="guide_shift_forward_day">⁦+1d⁩</string>
+    <string name="filter_channels">Filter channels</string>
+    <string name="filter_active">Filtered: %1$s</string>
+    <string name="action_clear">Clear</string>
+    <string name="hidden_channels">Hidden channels</string>
+    <string name="hidden_channels_empty">Nothing is hidden. Hiding a channel from its options menu removes it from every list until you show it again.</string>
+    <string name="action_show_all">Show all</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_hint">Applies immediately. Choosing Hebrew also mirrors the layout right to left.</string>
     <string name="language_system">Follow the device</string>

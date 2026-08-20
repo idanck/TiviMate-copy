@@ -13,12 +13,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -59,6 +61,15 @@ fun ChannelListScreen(
     modifier: Modifier = Modifier,
     compact: Boolean = false,
     showNowNext: Boolean = true,
+    /**
+     * Whether to draw a filter field. Touch gets one; the ten-foot shell does not, because a text
+     * field inside a D-pad overlay takes the first focus and turns the remote into a keyboard.
+     * There, [FilterBanner] reports an active filter instead and the remote's Search key opens the
+     * search overlay.
+     */
+    showFilter: Boolean = compact,
+    /** Opens the full search surface. Null hides the entry point. */
+    onSearch: (() -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
@@ -82,18 +93,28 @@ fun ChannelListScreen(
         if (!compact) {
             GroupColumn(
                 vm = vm,
+                onSearch = onSearch,
                 modifier = Modifier.width(220.dp).fillMaxHeight(),
             )
             VerticalDivider()
         }
 
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            if (showFilter) {
+                FilterField(query = state.list.search, onQuery = vm::setSearch)
+            } else {
+                FilterBanner(query = state.list.search, onClear = { vm.setSearch("") })
+            }
             if (compact) GroupChips(vm)
             val channels = state.list.channels
             if (channels.isEmpty()) {
                 EmptyState(
-                    text = if (state.list.search.isBlank()) stringResource(R.string.empty_no_channels)
-                    else stringResource(R.string.empty_no_results),
+                    text = when {
+                        state.list.selectedGroupId == VirtualGroup.HIDDEN ->
+                            stringResource(R.string.hidden_channels_empty)
+                        state.list.search.isBlank() -> stringResource(R.string.empty_no_channels)
+                        else -> stringResource(R.string.empty_no_results)
+                    },
                 )
             } else {
                 val listState = rememberLazyListState()
@@ -175,14 +196,55 @@ private fun ChannelRow(
     }
 }
 
+/** The touch filter box. Always visible once set, which is what makes the leak impossible. */
 @Composable
-private fun GroupColumn(vm: AppViewModel, modifier: Modifier = Modifier) {
+private fun FilterField(query: String, onQuery: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQuery,
+        label = { Text(stringResource(R.string.filter_channels)) },
+        singleLine = true,
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQuery("") }) {
+                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+/**
+ * The ten-foot equivalent: no keyboard, but never a silently filtered list either. Search on the
+ * TV shell is its own overlay, and this is what says so afterwards.
+ */
+@Composable
+private fun FilterBanner(query: String, onClear: () -> Unit) {
+    if (query.isBlank()) return
+    androidx.compose.material3.AssistChip(
+        onClick = onClear,
+        label = { Text(stringResource(R.string.filter_active, query), maxLines = 1) },
+        trailingIcon = {
+            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+        },
+        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+@Composable
+private fun GroupColumn(vm: AppViewModel, onSearch: (() -> Unit)?, modifier: Modifier = Modifier) {
     val state by vm.state.collectAsState()
     LazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        if (onSearch != null) {
+            // Search was reachable only through the remote's Search key, which plenty of remotes
+            // do not have. It needs somewhere on screen to live.
+            item { GroupRow(stringResource(R.string.nav_search), selected = false, onClick = onSearch) }
+        }
         item {
             GroupRow(stringResource(R.string.all_channels), state.list.selectedGroupId == VirtualGroup.ALL) {
                 vm.selectGroup(VirtualGroup.ALL)
@@ -196,6 +258,11 @@ private fun GroupColumn(vm: AppViewModel, modifier: Modifier = Modifier) {
         item {
             GroupRow(stringResource(R.string.recently_watched), state.list.selectedGroupId == VirtualGroup.RECENT) {
                 vm.selectGroup(VirtualGroup.RECENT)
+            }
+        }
+        item {
+            GroupRow(stringResource(R.string.hidden_channels), state.list.selectedGroupId == VirtualGroup.HIDDEN) {
+                vm.selectGroup(VirtualGroup.HIDDEN)
             }
         }
         item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
@@ -238,6 +305,20 @@ private fun GroupChips(vm: AppViewModel) {
                 selected = state.list.selectedGroupId == VirtualGroup.FAVOURITES,
                 onClick = { vm.selectGroup(VirtualGroup.FAVOURITES) },
                 label = { Text(stringResource(R.string.favourites)) },
+            )
+        }
+        item {
+            androidx.compose.material3.FilterChip(
+                selected = state.list.selectedGroupId == VirtualGroup.RECENT,
+                onClick = { vm.selectGroup(VirtualGroup.RECENT) },
+                label = { Text(stringResource(R.string.recently_watched)) },
+            )
+        }
+        item {
+            androidx.compose.material3.FilterChip(
+                selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
+                onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
+                label = { Text(stringResource(R.string.hidden_channels)) },
             )
         }
         items(state.list.groups, key = { it.id }) { group ->
