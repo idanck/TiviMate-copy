@@ -397,3 +397,64 @@ composes the new screens: portrait/landscape on a phone, the four start behaviou
 and exit, RTL Hebrew layout, TV focus landing on the playing channel, and the cost of the
 video-track drop on real streams all need a device pass. CI proves compilation and the 111-test
 suite, not the phone in the hand.
+
+---
+
+## First device pass on the new phone shell, 2026-08-20
+
+The 0.3.0 build reached its user's phone the same day, and the screenshots came back with four
+reports: five-digit channel numbers wrapped inside their 36dp cell, the tab labels broke
+mid-word ("Recording / s"), the landscape picture was "suddenly cropped", and two asks — a
+play/pause control with quality details on the player screen, and a floating window on leaving
+the app with pause and close controls. The cropped picture was not a bug in the mapping
+(`AspectMode.FIT` renders letterboxed): the long-press gesture cycles the aspect mode, fires
+easily by accident, and persisted a Zoom with nothing on screen to explain or undo it.
+
+The round went through review before the push; eleven findings, all **fixed (`08dfd4c`)**.
+
+### What was wrong
+
+- **Every play/pause surface rendered `isPlaying` and toggled `playWhenReady`.** A rebuffering
+  stream is not playing but has not been paused, so mid-stall the button showed Play and
+  tapping it *paused* — the button then read correctly and the stream never came back. All
+  surfaces now render and act on the intent flag, which `PlaybackStatus` carries explicitly.
+- **Four copies of the toggle, one of them dangerous.** The mini bar, the transport row, the
+  remote key and the floating window's action each flipped `playWhenReady` themselves, and the
+  window's copy called `exoPlayer()` — which *builds* a player — so an action landing after
+  `release()` on the way out of the app would construct and leak a codec. One
+  `PlayerEngine.togglePlayPause()` now serves all four and refuses to build.
+- **`pointerInput(Unit)` froze the gesture closures.** The activity handles rotation itself
+  (`configChanges`), so the handlers kept their first composition's captures for the life of
+  the screen: rotate mid-playback and the tap-for-channel-list still thought it was portrait.
+  Keyed on the orientation now, with `size` read per event instead of cached.
+- **The floating-window default exposed the TV shell.** `pipOnHome` on by default meant a
+  Home press on an Android TV box squeezed whatever overlay was open into the window; only the
+  phone shell had an `inPip` branch. The TV shell now renders bare video there too.
+- **`Rational` went to Android unclamped.** Outside the 1:2.39–2.39:1 band the PiP call
+  throws; `runCatching` swallowed it, so an ultra-wide stream would simply never get a window.
+  Clamped now, and the in-window params refresh is keyed on the stream's dimensions so a
+  failover reshapes the window instead of leaving the old shape.
+- **Two hand-written aspect-label maps.** The player's new map duplicated Settings' list, and
+  `getValue` on it turned any future `AspectMode` entry into a runtime crash on long-press.
+  One exhaustive `AspectMode.labelRes()` now serves both, compiler-checked.
+- Smaller: the channel-number cell is fixed at 48dp (a per-row minimum un-aligned the logo
+  column), the transport KDoc contradicted the code it documented, and a duplicated
+  channel re-lookup was hoisted.
+
+### Decisions worth keeping
+
+- **Aspect changes announce themselves.** Both routes into the cycle — the long press and the
+  new button — post the mode they switched to. A persisted display mode with no feedback is
+  how "the picture is suddenly cropped" happens.
+- **The floating window adds only play/pause.** Expand and close are the system's own PiP
+  controls; duplicating them as RemoteActions would spend the tiny action budget on buttons
+  the window already has.
+- **The quality line shows only what is known.** Resolution, frame rate, bitrate and codec
+  each appear once the stream reports them, isolated LTR so the run cannot reorder in Hebrew.
+
+### Not proved here
+
+Still JVM-only: the PiP action's behaviour on real launchers, the clamped window on actually
+ultra-wide streams, rotation mid-playback on a device, and whether 48dp holds the longest
+channel numbers real playlists issue. The suite compiles and passes; the phone in the hand is
+the next reviewer.

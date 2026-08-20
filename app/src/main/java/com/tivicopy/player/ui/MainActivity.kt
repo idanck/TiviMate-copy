@@ -408,7 +408,7 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val filter = IntentFilter(ACTION_PIP_PLAY_PAUSE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(pipActionReceiver, filter, RECEIVER_NOT_EXPORTED)
+            registerReceiver(pipActionReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(pipActionReceiver, filter)
