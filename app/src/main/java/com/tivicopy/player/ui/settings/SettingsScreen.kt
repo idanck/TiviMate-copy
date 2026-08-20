@@ -127,24 +127,24 @@ fun SettingsScreen(
                     onSelect = settings::setAspectMode,
                 )
                 TextSetting(
-                    title = stringResource(R.string.audio_track),
+                    title = stringResource(R.string.settings_audio_language),
                     value = s.preferredAudioLanguage,
                     placeholder = "en, he, ru…",
                     onChange = settings::setPreferredAudioLanguage,
                 )
                 SettingsSwitch(
-                    title = stringResource(R.string.subtitle_track),
+                    title = stringResource(R.string.settings_subtitles_enabled),
                     checked = s.subtitlesEnabled,
                     onChange = settings::setSubtitlesEnabled,
                 )
                 TextSetting(
-                    title = stringResource(R.string.subtitle_track),
+                    title = stringResource(R.string.settings_subtitle_language),
                     value = s.preferredSubtitleLanguage,
                     placeholder = "en, he…",
                     onChange = settings::setPreferredSubtitleLanguage,
                 )
                 SettingsSlider(
-                    title = stringResource(R.string.settings_font_scale),
+                    title = stringResource(R.string.settings_subtitle_scale),
                     valueLabel = "%.1f×".format(s.subtitleTextScale),
                     value = s.subtitleTextScale,
                     range = 0.5f..2.5f,
@@ -246,7 +246,7 @@ fun SettingsScreen(
                     range = 2f..60f,
                 ) { settings.setOverlayAutoHideSeconds(it.toInt()) }
                 SettingsSlider(
-                    title = stringResource(R.string.settings_overlay_hide),
+                    title = stringResource(R.string.settings_overlay_opacity),
                     valueLabel = "%.0f%%".format(s.overlayOpacity * 100),
                     value = s.overlayOpacity,
                     range = 0.3f..1f,

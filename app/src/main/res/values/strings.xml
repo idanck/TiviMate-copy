@@ -210,6 +210,15 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_amoled">AMOLED black</string>
+    <!--
+      The isolate characters around the signed offsets are deliberate: a leading "+" or "-" is
+      bidirectionally neutral, so in a Hebrew layout it migrates to the far side and "-1d" is
+      drawn as "1d-". U+2066/U+2069 keep each one whole (NFR-UX-08).
+    -->
+    <string name="guide_shift_back_day">⁦-1d⁩</string>
+    <string name="guide_shift_back_hours">⁦-2h⁩</string>
+    <string name="guide_shift_forward_hours">⁦+2h⁩</string>
+    <string name="guide_shift_forward_day">⁦+1d⁩</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_hint">Applies immediately. Choosing Hebrew also mirrors the layout right to left.</string>
     <string name="language_system">Follow the device</string>
@@ -217,6 +226,11 @@
     <string name="language_hebrew">עברית</string>
     <string name="settings_font_scale">Text size</string>
     <string name="settings_overlay_hide">Hide overlays after</string>
+    <string name="settings_overlay_opacity">Overlay opacity</string>
+    <string name="settings_audio_language">Preferred audio language</string>
+    <string name="settings_subtitles_enabled">Show subtitles</string>
+    <string name="settings_subtitle_language">Preferred subtitle language</string>
+    <string name="settings_subtitle_scale">Subtitle size</string>
     <string name="settings_seconds">%1$d s</string>
     <string name="settings_epg_offset">Guide time offset</string>
     <string name="settings_epg_offset_channel">Offset for this channel</string>

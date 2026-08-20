@@ -57,9 +57,14 @@ fun ProgrammeDetailsDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    text = "${channel.displayName} · ${TimeModel.formatDay(programme.startUtc)} " +
-                        "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
-                        "(${TimeModel.formatDuration(programme.durationMillis)})",
+                    // The channel name may be Hebrew and the rest is numeric, so the numeric part
+                    // is isolated as one run: otherwise the day, the times and the duration merge
+                    // into a single left-to-right run and land in the wrong order (NFR-UX-08).
+                    text = "${channel.displayName} · " + TimeModel.ltr(
+                        "${TimeModel.formatDay(programme.startUtc)} " +
+                            "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
+                            "(${TimeModel.formatDuration(programme.durationMillis)})",
+                    ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

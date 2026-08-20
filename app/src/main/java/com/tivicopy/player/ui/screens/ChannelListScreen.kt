@@ -254,7 +254,7 @@ fun NowNextPane(
             )
         } else {
             Text(
-                text = "${TimeModel.formatClock(now.startUtc)} – ${TimeModel.formatClock(now.endUtc)}",
+                text = TimeModel.formatClockRange(now.startUtc, now.endUtc),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

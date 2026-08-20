@@ -78,7 +78,7 @@ fun SearchScreen(
                     FocusableRow(onClick = {}, contentDescription = programme.title) {
                         TwoLine(
                             primary = programme.title,
-                            secondary = "${TimeModel.formatDay(programme.startUtc)} ${TimeModel.formatClock(programme.startUtc)}",
+                            secondary = TimeModel.formatDayTime(programme.startUtc),
                             modifier = Modifier.weight(1f),
                         )
                         Text(

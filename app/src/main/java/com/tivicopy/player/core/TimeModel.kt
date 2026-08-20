@@ -44,6 +44,31 @@ object TimeModel {
     fun formatDay(utcMillis: Long, zone: ZoneId = zone()): String =
         local(utcMillis, zone).format(dayMonth)
 
+    /**
+     * Wraps [text] so it keeps its own direction inside a paragraph of the opposite one
+     * (NFR-UX-08).
+     *
+     * Isolate characters, not marks: U+2066 opens a left-to-right isolate and U+2069 closes it,
+     * which tells the bidirectional algorithm to resolve what is inside independently and to treat
+     * the whole run as neutral from the outside. A mark would only nudge the characters next to it.
+     */
+    fun ltr(text: String): String = "⁦$text⁩"
+
+    /**
+     * A start–end clock range that still reads start-then-end in a Hebrew layout (FR-UI-21).
+     *
+     * `"$start – $end"` is three runs of strong left-to-right digits joined by a dash, and the dash
+     * is bidirectionally neutral: in a right-to-left paragraph it takes the paragraph's direction
+     * and the two times swap places on screen, so 14:00 – 15:30 is read as ending before it began.
+     * Isolating the whole range fixes it once, here, rather than at each call site.
+     */
+    fun formatClockRange(startUtc: Long, endUtc: Long, zone: ZoneId = zone()): String =
+        ltr("${formatClock(startUtc, zone)} – ${formatClock(endUtc, zone)}")
+
+    /** `dd/MM HH:mm`, isolated for the same reason as [formatClockRange]. */
+    fun formatDayTime(utcMillis: Long, zone: ZoneId = zone()): String =
+        ltr("${formatDay(utcMillis, zone)} ${formatClock(utcMillis, zone)}")
+
     fun formatForFilename(utcMillis: Long, zone: ZoneId = zone()): String =
         local(utcMillis, zone).format(fileStamp)
 

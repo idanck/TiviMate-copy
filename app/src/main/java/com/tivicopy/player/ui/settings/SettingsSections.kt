@@ -73,7 +73,7 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
             } else {
                 stringResource(
                     R.string.playlist_last_refresh,
-                    "${TimeModel.formatDay(playlist.lastRefreshUtc)} ${TimeModel.formatClock(playlist.lastRefreshUtc)}",
+                    TimeModel.formatDayTime(playlist.lastRefreshUtc),
                 ) + (playlist.lastRefreshMessage?.let { " · $it" } ?: "")
             },
             onClick = { vm.selectPlaylist(playlist.id) },

@@ -224,7 +224,7 @@ fun AddSourceScreen(
                     busy = true
                     scope.launch {
                         val playlist = Playlist(
-                            name = name.ifBlank { defaultName(type) },
+                            name = name.ifBlank { defaultName(context, type) },
                             type = type,
                             url = url.trim(),
                             username = username.takeIf { it.isNotBlank() },
@@ -245,8 +245,14 @@ fun AddSourceScreen(
     }
 }
 
-private fun defaultName(type: SourceType) = when (type) {
-    SourceType.XTREAM -> "Xtream"
-    SourceType.M3U_URL -> "Playlist"
-    SourceType.M3U_FILE -> "Local playlist"
-}
+/**
+ * The name a source gets when the user leaves the field blank. It is written to the database and
+ * shown in the playlist switcher, so it is a resource like anything else the user reads.
+ */
+private fun defaultName(context: android.content.Context, type: SourceType): String = context.getString(
+    when (type) {
+        SourceType.XTREAM -> R.string.setup_type_xtream
+        SourceType.M3U_URL -> R.string.setup_type_m3u
+        SourceType.M3U_FILE -> R.string.setup_type_m3u_file
+    },
+)

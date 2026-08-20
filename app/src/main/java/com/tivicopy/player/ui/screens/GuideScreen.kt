@@ -159,11 +159,11 @@ private fun GuideToolbar(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Box(modifier = Modifier.weight(1f))
-        TextButton(onClick = { onShift(-24) }) { Text("-1d") }
-        TextButton(onClick = { onShift(-2) }) { Text("-2h") }
+        TextButton(onClick = { onShift(-24) }) { Text(stringResource(R.string.guide_shift_back_day)) }
+        TextButton(onClick = { onShift(-2) }) { Text(stringResource(R.string.guide_shift_back_hours)) }
         Button(onClick = onJumpNow) { Text(stringResource(R.string.guide_jump_now)) }
-        TextButton(onClick = { onShift(2) }) { Text("+2h") }
-        TextButton(onClick = { onShift(24) }) { Text("+1d") }
+        TextButton(onClick = { onShift(2) }) { Text(stringResource(R.string.guide_shift_forward_hours)) }
+        TextButton(onClick = { onShift(24) }) { Text(stringResource(R.string.guide_shift_forward_day)) }
     }
 }
 

@@ -115,8 +115,10 @@ private fun RecordingRow(
         Column(modifier = Modifier.weight(1f)) {
             TwoLine(
                 primary = recording.title,
-                secondary = "${recording.channelName} · ${TimeModel.formatDay(recording.startUtc)} " +
-                    "${TimeModel.formatClock(recording.startUtc)}–${TimeModel.formatClock(recording.endUtc)}",
+                secondary = "${recording.channelName} · " + TimeModel.ltr(
+                    "${TimeModel.formatDay(recording.startUtc)} " +
+                        "${TimeModel.formatClock(recording.startUtc)}–${TimeModel.formatClock(recording.endUtc)}",
+                ),
             )
             recording.message?.let {
                 Text(

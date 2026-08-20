@@ -245,7 +245,7 @@ fun ChannelInfoCard(
         }
         now?.let {
             Text(
-                text = "${TimeModel.formatClock(it.startUtc)} – ${TimeModel.formatClock(it.endUtc)}",
+                text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -253,7 +253,7 @@ fun ChannelInfoCard(
         }
         next?.let {
             Text(
-                text = "${TimeModel.formatClock(it.startUtc)} · ${it.title}",
+                text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
