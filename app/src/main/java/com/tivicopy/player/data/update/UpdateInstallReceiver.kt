@@ -24,7 +24,15 @@ class UpdateInstallReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 // The user pressed "update" a moment ago, so the app is foreground and this
                 // activity start is permitted; the flag is needed because a receiver has no task.
-                confirmIntent(intent)?.let { confirm ->
+                val confirm = confirmIntent(intent)
+                if (confirm == null) {
+                    // The platform asked for confirmation and then described none. Reporting it
+                    // is the only way out: the state that says an install is under way would
+                    // otherwise stand until the process ends, suppressing every later check.
+                    ServiceLocator.updates.onInstallFailed(
+                        AppError(AppError.Kind.Unknown, "no confirmation intent"),
+                    )
+                } else {
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     runCatching { context.startActivity(confirm) }
                         .onFailure { ServiceLocator.updates.onInstallFailed(AppError.of(it)) }

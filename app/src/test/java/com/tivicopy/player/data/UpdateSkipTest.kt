@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.tivicopy.player.BuildInfo
 import com.tivicopy.player.data.prefs.Settings
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,5 +69,28 @@ class UpdateSkipTest {
         settings.rememberUpdateCheck(1L, BuildInfo.versionCode)
 
         assertEquals(0, settings.state.value.updateSkippedVersionCode)
+    }
+
+    /**
+     * The check interval is a day and the process rarely lives that long, so the manifest has
+     * to be readable by whoever starts next: without this, an update found overnight would stay
+     * invisible until the interval expired.
+     */
+    @Test
+    fun `a check keeps the manifest it read, for the next process to find`() {
+        val json = """{"versionCode":99,"versionName":"9.9.9"}"""
+        Settings(context).rememberUpdateCheck(1L, 99, json)
+
+        assertEquals(json, Settings(context).state.value.updateLastManifest)
+    }
+
+    @Test
+    fun `a check that found nothing drops the manifest it was holding`() {
+        val settings = Settings(context)
+        settings.rememberUpdateCheck(1L, 99, """{"versionCode":99}""")
+
+        settings.rememberUpdateCheck(2L, BuildInfo.versionCode)
+
+        assertNull(settings.state.value.updateLastManifest)
     }
 }

@@ -563,3 +563,38 @@ the APK carries it before publishing anything (`docs/adr/ADR-012`).
 Not proven, and stated as such: no part of the install path has run on a device. The permission
 prompt, the installer session, the silent self-update on Android 12+, and whether a scheduled
 recording really survives the replacement are all first provable on the first signed build.
+
+### Requested review of the update feature, 2026-08-20
+
+A second pass over the same diff, run as a review rather than as self-review. Six findings, all
+fixed before the merge.
+
+- **The published version name would have read "040".** The workflow squeezed whitespace out of
+  the whole `version.properties` stream before joining the three numbers, so `tr` ate the
+  newlines `paste` was about to join on. Every device would have been offered "version 040".
+  Reproduced against the repository's own file; the fix squeezes spaces per line and is verified
+  to print `0.4.0`.
+- **An update found overnight stayed invisible until the next day.** The daily interval outlives
+  the process, so a check inside it returned nothing and left the UI idle — while Settings
+  accurately reported that it had looked recently. The manifest is now persisted verbatim and
+  the rate-limited path restores the offer from it.
+- **Two taps started two downloads.** `downloadAndInstall` published `Downloading` only after
+  suspending over the blocking checks, so both callers passed the guard and then raced over the
+  same cache file, ending in a checksum mismatch. The claim is now taken atomically before the
+  first suspension point.
+- **A dropped confirmation wedged the feature.** If the platform asked for user action but named
+  no intent — or the activity start was silently dropped, which is not an exception on Android 10
+  and later — nothing moved the state on, and `Installing` then suppressed every later check for
+  the life of the process. A missing intent is now reported as a failure, and the state carries
+  when it began so it can lapse.
+- **Failed installs leaked staged sessions.** Nothing abandoned the `PackageInstaller` session
+  when writing or committing threw, so repeated failures burned through the per-UID session
+  limit at ~16 MB each. The session is abandoned on failure, and stale ones from earlier
+  attempts are dropped before a new one is created.
+- **The retry re-fetched a file the device already had.** `download` wiped the cache directory
+  unconditionally, including the verified APK the daily check had deliberately kept, which made
+  the `keep` argument dead code. A file that still matches the manifest's size and hash is now
+  reused.
+
+Two tests cover the persistence half of the second finding; the suite is 129 tests. The install path itself
+is still unproven on a device, for the reason given above.

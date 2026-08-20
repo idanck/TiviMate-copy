@@ -142,8 +142,10 @@ jobs:
           sha=$(sha256sum "$apk" | cut -d' ' -f1)
           size=$(stat -c%s "$apk")
           versionCode=$(grep '^versionCode=' version.properties | cut -d= -f2 | tr -d '[:space:]')
+          # Squeeze spaces per line, never newlines: `tr -d '[:space:]'` across the stream
+          # would glue the three numbers into "040" before paste ever saw a line to join.
           versionName=$(grep -E '^versionM(ajor|inor)=|^versionPatch=' version.properties |
-            cut -d= -f2 | tr -d '[:space:]' | paste -sd.)
+            cut -d= -f2 | tr -d ' \r' | paste -sd.)
           minSdk=$(grep -m1 'minSdk = ' app/build.gradle.kts | tr -dc '0-9')
           notes=$(git log -1 --pretty=%s)
 

@@ -125,6 +125,8 @@ class Settings(context: Context) {
         val updateWifiOnly: Boolean,
         val updateSkippedVersionCode: Int,
         val updateLastCheckUtc: Long,
+        /** The manifest the last successful check read, verbatim; null when it found none. */
+        val updateLastManifest: String?,
     )
 
     private fun read() = Snapshot(
@@ -184,6 +186,7 @@ class Settings(context: Context) {
         updateWifiOnly = prefs.getBoolean(K_UPDATE_WIFI_ONLY, true),
         updateSkippedVersionCode = prefs.getInt(K_UPDATE_SKIPPED, 0),
         updateLastCheckUtc = prefs.getLong(K_UPDATE_LAST_CHECK, 0),
+        updateLastManifest = prefs.getString(K_UPDATE_MANIFEST, null),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -265,9 +268,16 @@ class Settings(context: Context) {
      */
     fun setUpdateSkippedVersion(versionCode: Int) = commit { putInt(K_UPDATE_SKIPPED, versionCode) }
 
-    /** Records that a check happened, and drops a stale skip once that version is installed. */
-    fun rememberUpdateCheck(atUtc: Long, seenVersionCode: Int) = commit {
+    /**
+     * Records that a check happened, and drops a stale skip once that version is installed.
+     *
+     * [manifestJson] is kept verbatim because the check interval outlives the process: an
+     * update the background sweep found overnight has to survive until someone opens the app,
+     * and re-asking the host on every start is exactly what the interval exists to avoid.
+     */
+    fun rememberUpdateCheck(atUtc: Long, seenVersionCode: Int, manifestJson: String? = null) = commit {
         putLong(K_UPDATE_LAST_CHECK, atUtc)
+        if (manifestJson == null) remove(K_UPDATE_MANIFEST) else putString(K_UPDATE_MANIFEST, manifestJson)
         if (seenVersionCode <= com.tivicopy.player.BuildInfo.versionCode) remove(K_UPDATE_SKIPPED)
     }
 
@@ -369,5 +379,6 @@ class Settings(context: Context) {
         const val K_UPDATE_WIFI_ONLY = "update_wifi_only"
         const val K_UPDATE_SKIPPED = "update_skipped_code"
         const val K_UPDATE_LAST_CHECK = "update_last_check"
+        const val K_UPDATE_MANIFEST = "update_last_manifest"
     }
 }

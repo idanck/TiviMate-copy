@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Why an install cannot start. Each one is a different sentence to the user, which is why these
@@ -45,8 +46,14 @@ sealed interface UpdateState {
                 (downloadedBytes.toFloat() / manifest.sizeBytes).coerceIn(0f, 1f)
     }
     data class Verifying(val manifest: UpdateManifest) : UpdateState
-    /** The session is committed; the platform now owns the outcome, prompt included. */
-    data class Installing(val manifest: UpdateManifest) : UpdateState
+    /**
+     * The session is committed; the platform now owns the outcome, prompt included.
+     *
+     * [startedUtc] is here because that hand-off is not always answered: an activity start the
+     * system drops leaves nothing to move this state on, and a state that suppresses every
+     * later check has to be able to expire.
+     */
+    data class Installing(val manifest: UpdateManifest, val startedUtc: Long) : UpdateState
     data class Failed(val error: AppError) : UpdateState
     /** Refused before anything was fetched, for a reason the user can act on. */
     data class Blocked(val manifest: UpdateManifest, val blocker: UpdateBlocker) : UpdateState
@@ -77,6 +84,15 @@ class UpdateManager(
     private val updateDir: File get() = File(context.cacheDir, "updates")
 
     /**
+     * Claimed for the length of one install attempt.
+     *
+     * [_state] cannot be the guard on its own: [downloadAndInstall] suspends over the blocking
+     * checks before it publishes `Downloading`, and two taps inside that window would both pass
+     * and then race over the same cache file.
+     */
+    private val installing = AtomicBoolean(false)
+
+    /**
      * Looks for a newer build.
      *
      * [force] distinguishes the user pressing "check now" from the background sweep: the sweep
@@ -93,12 +109,12 @@ class UpdateManager(
         if (!force) {
             if (!settings.state.value.updateAutoCheck) return Outcome.Ok(null)
             val since = now - settings.state.value.updateLastCheckUtc
-            if (since in 0 until CHECK_INTERVAL_MS) return Outcome.Ok(null)
+            if (since in 0 until CHECK_INTERVAL_MS) return Outcome.Ok(restorePending())
         }
 
         if (force) _state.value = UpdateState.Checking
         val fetched = withContext(Dispatchers.IO) { fetchManifest() }
-        val manifest = when (fetched) {
+        val (manifest, json) = when (fetched) {
             is Outcome.Err -> {
                 // A background sweep that cannot reach the host says nothing: the user did not
                 // ask, and a settings screen reporting a failure nobody triggered is noise.
@@ -108,7 +124,7 @@ class UpdateManager(
             is Outcome.Ok -> fetched.value
         }
 
-        settings.rememberUpdateCheck(now, manifest.versionCode)
+        settings.rememberUpdateCheck(now, manifest.versionCode, json)
         val newer = manifest.isNewerThan(BuildInfo.versionCode)
         // An APK that was installed, superseded or abandoned is 16 MB of cache nobody will read
         // again. The daily check is the natural place to notice.
@@ -121,9 +137,29 @@ class UpdateManager(
         return Outcome.Ok(manifest.takeIf { newer })
     }
 
-    private fun inFlight(): Boolean = when (_state.value) {
-        is UpdateState.Downloading, is UpdateState.Verifying, is UpdateState.Installing -> true
+    private fun inFlight(): Boolean = when (val current = _state.value) {
+        is UpdateState.Downloading, is UpdateState.Verifying -> true
+        // A committed session normally ends this process. When the platform's confirmation
+        // never appeared, nothing else will ever clear the state, so it lapses rather than
+        // silencing every future check for the life of the process.
+        is UpdateState.Installing ->
+            System.currentTimeMillis() - current.startedUtc < INSTALL_HANDOFF_TIMEOUT_MS
         else -> false
+    }
+
+    /**
+     * The newer build the last successful check found, when there still is one.
+     *
+     * The check interval outlives the process, so without this a sweep that found an update at
+     * 3am would have nothing to show at 8am — while the settings screen reported, accurately
+     * and uselessly, that it had looked recently.
+     */
+    private fun restorePending(): UpdateManifest? {
+        val json = settings.state.value.updateLastManifest ?: return null
+        val manifest = UpdateManifest.parse(json).getOrNull() ?: return null
+        if (!manifest.isNewerThan(BuildInfo.versionCode)) return null
+        if (_state.value is UpdateState.Idle) _state.value = UpdateState.Available(manifest)
+        return manifest
     }
 
     /** True when this version was dismissed with "skip" and should stay quiet (FR-UPD-06). */
@@ -153,6 +189,18 @@ class UpdateManager(
      * and a cache partition with no room fails halfway through otherwise.
      */
     suspend fun downloadAndInstall(manifest: UpdateManifest): Outcome<Unit> {
+        // Two entry points reach this — the banner and the settings row — and either can be
+        // pressed twice. The claim is taken before the first suspension point, so the loser
+        // returns to a screen that is already showing the winner's progress.
+        if (inFlight() || !installing.compareAndSet(false, true)) return Outcome.Ok(Unit)
+        try {
+            return install(manifest)
+        } finally {
+            installing.set(false)
+        }
+    }
+
+    private suspend fun install(manifest: UpdateManifest): Outcome<Unit> {
         // Off the caller's thread: the recording check reads the database.
         withContext(Dispatchers.IO) { blockingReason(manifest) }?.let { blocker ->
             _state.value = UpdateState.Blocked(manifest, blocker)
@@ -179,7 +227,7 @@ class UpdateManager(
             return verified
         }
 
-        _state.value = UpdateState.Installing(manifest)
+        _state.value = UpdateState.Installing(manifest, System.currentTimeMillis())
         val committed = withContext(Dispatchers.IO) { commitSession(file) }
         if (committed is Outcome.Err) {
             file.delete()
@@ -245,7 +293,7 @@ class UpdateManager(
         }
     }
 
-    private fun fetchManifest(): Outcome<UpdateManifest> {
+    private fun fetchManifest(): Outcome<Pair<UpdateManifest, String>> {
         // The default profile deliberately, rather than the user's source profile: "allow
         // insecure TLS" is a concession to one broken provider, never to the update channel.
         val profile = RequestProfile(connectTimeoutSeconds = 15, readTimeoutSeconds = 20)
@@ -257,7 +305,7 @@ class UpdateManager(
                     if (!response.isSuccessful) return Outcome.Err(AppError.fromHttp(response.code))
                     val body = response.body?.string()
                     if (body.isNullOrBlank()) Outcome.Err(AppError(AppError.Kind.EmptyResponse))
-                    else UpdateManifest.parse(body)
+                    else UpdateManifest.parse(body).map { it to body }
                 }
         } catch (t: Throwable) {
             if (t is kotlinx.coroutines.CancellationException) throw t
@@ -271,9 +319,16 @@ class UpdateManager(
         onProgress: (Long) -> Unit,
     ): Outcome<File> {
         updateDir.mkdirs()
-        // Anything left by an interrupted attempt, or by a version that is already installed.
-        updateDir.listFiles()?.forEach { it.delete() }
         val target = File(updateDir, "tivicopy-${manifest.versionCode}.apk")
+        // Anything left by an interrupted attempt, or by a version that is already installed.
+        updateDir.listFiles()?.forEach { if (it.name != target.name) it.delete() }
+        // The retry after a failed install would otherwise re-fetch 16 MB the device already
+        // holds; hashing it costs a local read and proves it is still the manifest's file.
+        if (target.length() == manifest.sizeBytes && hashOf(target) == manifest.sha256) {
+            onProgress(manifest.sizeBytes)
+            return Outcome.Ok(target)
+        }
+        target.delete()
 
         val profile = RequestProfile(connectTimeoutSeconds = 20, readTimeoutSeconds = 60)
         return try {
@@ -306,7 +361,7 @@ class UpdateManager(
                     if (total != manifest.sizeBytes) {
                         return fail(target, AppError.Kind.EmptyResponse, "truncated download")
                     }
-                    val hex = digest.digest().joinToString("") { "%02x".format(it) }
+                    val hex = digest.digest().hex()
                     if (hex != manifest.sha256) {
                         return fail(target, AppError.Kind.UnsupportedFormat, "checksum mismatch")
                     }
@@ -318,6 +373,19 @@ class UpdateManager(
             Outcome.Err(AppError.of(t))
         }
     }
+
+    private fun hashOf(file: File): String? = runCatching {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read <= 0) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        digest.digest().hex()
+    }.getOrNull()
 
     private fun fail(target: File, kind: AppError.Kind, detail: String): Outcome<File> {
         target.delete()
@@ -363,12 +431,17 @@ class UpdateManager(
         }
         val digest = MessageDigest.getInstance("SHA-256")
         return signatures.orEmpty().mapNotNull { signature ->
-            signature?.toByteArray()?.let { digest.digest(it).joinToString("") { b -> "%02x".format(b) } }
+            signature?.toByteArray()?.let { digest.digest(it).hex() }
         }.toSet()
     }
 
-    private fun commitSession(file: File): Outcome<Unit> = try {
+    private fun commitSession(file: File): Outcome<Unit> {
         val installer = context.packageManager.packageInstaller
+        // Sessions this app opened and never finished: each holds its own staged copy of a
+        // 16 MB APK, and the per-UID session limit is small enough to reach by failing a few
+        // times. Nothing of ours is in flight here — the claim in `downloadAndInstall` says so.
+        runCatching { installer.mySessions.forEach { installer.abandonSession(it.sessionId) } }
+
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(context.packageName)
         params.setSize(file.length())
@@ -379,17 +452,25 @@ class UpdateManager(
             params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         }
 
-        val sessionId = installer.createSession(params)
-        installer.openSession(sessionId).use { session ->
-            session.openWrite(SESSION_ENTRY, 0, file.length()).use { sink ->
-                file.inputStream().use { it.copyTo(sink) }
-                session.fsync(sink)
-            }
-            session.commit(statusIntent(sessionId).intentSender)
+        val sessionId = try {
+            installer.createSession(params)
+        } catch (t: Throwable) {
+            return Outcome.Err(AppError.of(t))
         }
-        Outcome.Ok(Unit)
-    } catch (t: Throwable) {
-        Outcome.Err(AppError.of(t))
+        return try {
+            installer.openSession(sessionId).use { session ->
+                session.openWrite(SESSION_ENTRY, 0, file.length()).use { sink ->
+                    file.inputStream().use { it.copyTo(sink) }
+                    session.fsync(sink)
+                }
+                session.commit(statusIntent(sessionId).intentSender)
+            }
+            Outcome.Ok(Unit)
+        } catch (t: Throwable) {
+            // Staged bytes with no commit behind them; the next attempt starts clean.
+            runCatching { installer.abandonSession(sessionId) }
+            Outcome.Err(AppError.of(t))
+        }
     }
 
     private fun statusIntent(sessionId: Int): PendingIntent {
@@ -418,6 +499,16 @@ class UpdateManager(
         /** One background check a day; the user can always ask sooner. */
         const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L
 
+        /**
+         * How long a committed session may sit unanswered before the app stops treating an
+         * install as live. Long enough for a person to read the platform's dialog, short
+         * enough that a prompt which never appeared does not wedge the feature.
+         */
+        const val INSTALL_HANDOFF_TIMEOUT_MS = 15 * 60 * 1000L
+
         private const val SESSION_ENTRY = "tivicopy-update"
     }
 }
+
+/** Lower-case hex, the form every checksum in this feature is compared in. */
+private fun ByteArray.hex(): String = joinToString("") { "%02x".format(it) }
