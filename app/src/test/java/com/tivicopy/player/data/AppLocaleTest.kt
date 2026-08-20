@@ -11,7 +11,6 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,17 +33,8 @@ class AppLocaleTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
-    private lateinit var systemDefault: Locale
-
-    @Before
-    fun rememberDefault() {
-        systemDefault = Locale.getDefault()
-    }
-
-    /** `wrap` sets the process default, so it is put back rather than left for the next test. */
     @After
-    fun restoreDefault() {
-        Locale.setDefault(systemDefault)
+    fun clearStoredLanguage() {
         store(null)
     }
 
@@ -101,8 +91,23 @@ class AppLocaleTest {
         store(AppLanguage.HEBREW)
 
         assertNotSame(context, AppLocale.wrap(context))
-        // `wrap` also moves the process default, which is what non-resource formatting follows.
-        assertEquals("he", Locale.getDefault().language)
+    }
+
+    /**
+     * The process default is left alone deliberately.
+     *
+     * Moving it leaked: the "follow the device" branch returns early, so it would never have been
+     * put back, and the process would keep formatting in a language the user had abandoned.
+     * Resources come from the configuration, and every formatter in this app passes a locale.
+     */
+    @Test
+    fun `wrapping does not move the process default locale`() {
+        val before = Locale.getDefault()
+        store(AppLanguage.HEBREW)
+
+        AppLocale.wrap(context)
+
+        assertEquals(before, Locale.getDefault())
     }
 
     /**
