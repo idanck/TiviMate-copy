@@ -104,7 +104,10 @@ class RecordingService : Service() {
         jobs[recordingId]?.cancel()
     }
 
-    private suspend fun runRecording(recording: Recording) {
+    private suspend fun runRecording(scheduled: Recording) {
+        // Mutable, because the destination is only known once storage has been opened and every
+        // exit path below builds its final update from this snapshot.
+        var recording = scheduled
         val dao = ServiceLocator.dao
         val settings = ServiceLocator.settings.state.value
         val channel = dao.channel(recording.channelId)
@@ -128,7 +131,12 @@ class RecordingService : Service() {
             return
         }
 
-        dao.upsertRecording(recording.copy(state = RecordingState.RECORDING, filePath = target.locator))
+        // Carried on the local snapshot, not only written to the row: every `finish` below builds
+        // its update from `recording`, so a locator that lived only in the database was written
+        // straight back to NULL when the recording ended — leaving a file on disk that the
+        // library could neither play nor delete.
+        recording = recording.copy(state = RecordingState.RECORDING, filePath = target.locator)
+        dao.upsertRecording(recording)
         notify(recording, ongoing = true)
 
         var written = 0L

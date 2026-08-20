@@ -197,7 +197,7 @@ fun TvRoot(
                 onDismiss = { details = null },
                 onWatch = { vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                 onCatchup = { vm.playCatchup(channel, programme); onOverlayChange(TvOverlay.NONE) },
-                onFavourite = { vm.toggleFavourite(channel) },
+                onFavourite = { favourite -> vm.setFavourite(channel, favourite) },
                 onMessage = { text -> vm.post(com.tivicopy.player.ui.UiMessage(text = text)) },
                 upcoming = upcoming,
             )

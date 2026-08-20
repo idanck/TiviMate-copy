@@ -84,6 +84,7 @@ fun ChannelListScreen(
     var groupMenuFor by remember { mutableStateOf<ChannelGroup?>(null) }
     var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
     var creatingGroup by remember { mutableStateOf(false) }
+    var managingGroups by remember { mutableStateOf(false) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -117,7 +118,7 @@ fun ChannelListScreen(
             } else {
                 FilterBanner(query = state.list.search, onClear = { vm.setSearch("") })
             }
-            if (compact) GroupChips(vm)
+            if (compact) GroupChips(vm, onManageGroups = { managingGroups = true })
             if (state.list.selectedGroupId == VirtualGroup.HIDDEN && state.list.channels.isNotEmpty()) {
                 androidx.compose.material3.TextButton(
                     onClick = { vm.showAllHidden() },
@@ -148,7 +149,7 @@ fun ChannelListScreen(
                             selected = state.currentChannel?.id == channel.id,
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
-                            onToggleFavourite = { vm.toggleFavourite(channel) },
+                            onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
                             onOptions = { menuFor = channel },
                         )
                     }
@@ -186,7 +187,7 @@ fun ChannelListScreen(
             canReorder = vm.canReorder,
             onDismiss = { menuFor = null },
             onPlay = { onPlay(channel) },
-            onToggleFavourite = { vm.toggleFavourite(channel) },
+            onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
             onToggleHidden = { vm.setHidden(channel, !channel.hidden) },
             onToggleLocked = { vm.setLocked(channel, !channel.locked) },
             onEdit = { menuFor = null; editing = channel },
@@ -246,6 +247,15 @@ fun ChannelListScreen(
             initial = group.name,
             onDismiss = { renamingGroup = null },
             onConfirm = { vm.renameGroup(group, it) },
+        )
+    }
+
+    if (managingGroups) {
+        GroupManagerDialog(
+            groups = state.list.groups,
+            onDismiss = { managingGroups = false },
+            onNewGroup = { managingGroups = false; creatingGroup = true },
+            onGroupOptions = { managingGroups = false; groupMenuFor = it },
         )
     }
 
@@ -431,7 +441,7 @@ private fun GroupRow(
 
 /** Narrow-screen replacement for the group column. */
 @Composable
-private fun GroupChips(vm: AppViewModel) {
+private fun GroupChips(vm: AppViewModel, onManageGroups: () -> Unit) {
     val state by vm.state.collectAsState()
     androidx.compose.foundation.lazy.LazyRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
@@ -470,6 +480,14 @@ private fun GroupChips(vm: AppViewModel) {
                 selected = state.list.selectedGroupId == group.id,
                 onClick = { vm.selectGroup(group.id) },
                 label = { Text(group.name, maxLines = 1) },
+            )
+        }
+        item {
+            // A chip has no long press to hang a context menu on, so the phone reaches the group
+            // actions through a manager instead of not at all.
+            androidx.compose.material3.AssistChip(
+                onClick = onManageGroups,
+                label = { Text(stringResource(R.string.group_manage)) },
             )
         }
     }

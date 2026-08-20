@@ -289,6 +289,57 @@ fun GroupMenuDialog(
     )
 }
 
+/**
+ * Every group in one list, for the compact layout.
+ *
+ * The wide layout puts groups in a column where each row takes a long press, but a phone gets a
+ * chip row instead, and a `FilterChip` has no secondary action to hang this on. Without it,
+ * creating, hiding, renaming and deleting a group — all of FR-ORG-02 and half of FR-ORG-03 —
+ * were reachable on a television and on nothing else.
+ */
+@Composable
+fun GroupManagerDialog(
+    groups: List<ChannelGroup>,
+    onDismiss: () -> Unit,
+    onNewGroup: () -> Unit,
+    onGroupOptions: (ChannelGroup) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.group_manage), style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                MenuRow(stringResource(R.string.group_new)) { onNewGroup() }
+                groups.forEach { group ->
+                    FocusableRow(
+                        onClick = { onGroupOptions(group) },
+                        contentDescription = group.name,
+                    ) {
+                        Text(
+                            text = group.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            // Same dimming as the group column, so a hidden group reads the same
+                            // way wherever it is listed.
+                            color = if (group.hidden) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    )
+}
+
 /** A single-field dialog, used for naming a new group and for renaming a custom one. */
 @Composable
 fun TextEntryDialog(

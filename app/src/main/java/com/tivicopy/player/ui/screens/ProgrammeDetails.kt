@@ -26,7 +26,6 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
-import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.record.ScheduleResult
 
 /**
@@ -43,7 +42,8 @@ fun ProgrammeDetailsDialog(
     onDismiss: () -> Unit,
     onWatch: () -> Unit,
     onCatchup: () -> Unit,
-    onFavourite: () -> Unit,
+    /** Receives the state to write, not a toggle — see [com.tivicopy.player.ui.AppViewModel.setFavourite]. */
+    onFavourite: (Boolean) -> Unit,
     onMessage: (String) -> Unit,
     /** Later programmes on this channel, so a series recording can claim them immediately. */
     upcoming: List<Programme> = emptyList(),
@@ -136,7 +136,7 @@ fun ProgrammeDetailsDialog(
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { onFavourite(); favourite = !favourite }) {
+                TextButton(onClick = { favourite = !favourite; onFavourite(favourite) }) {
                     // The label has to say what the press will do; a fixed "Favourite" left the
                     // user unable to tell whether they had just added or removed one.
                     Text(
@@ -162,7 +162,7 @@ private fun scheduleSeries(channel: Channel, programme: Programme, upcoming: Lis
 
 private fun describe(result: ScheduleResult, title: String): String {
     // The application context keeps whatever language it was attached with (FR-UI-23).
-    val context = ServiceLocator.appContext.localised
+    val context = ServiceLocator.locale
     return when (result) {
         is ScheduleResult.Rejected -> context.getString(warningString(result.reason))
         is ScheduleResult.Scheduled -> buildString {

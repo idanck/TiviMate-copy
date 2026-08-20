@@ -210,6 +210,8 @@ fun SettingsScreen(
                 ) { chosen ->
                     if (chosen != s.language) {
                         settings.setLanguage(chosen)
+                        // The cached application-language context is now stale.
+                        ServiceLocator.refreshLocale()
                         // Channel names are stored by the platform at creation, so they only
                         // follow the language if we re-declare them.
                         com.tivicopy.player.App.createNotificationChannels(context)

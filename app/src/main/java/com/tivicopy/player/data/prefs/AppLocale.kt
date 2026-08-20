@@ -39,9 +39,16 @@ object AppLocale {
      * [AppLanguage.SYSTEM] returns [base] untouched, so the platform's own locale — including an
      * Android 13+ per-app language — keeps working exactly as it did.
      */
+    /**
+     * Deliberately does not touch [Locale.setDefault]. Doing so leaked: the
+     * [AppLanguage.SYSTEM] branch returns early, so switching back to "follow the device" left
+     * the process default on the language the user had just abandoned, for every call that does
+     * not pass a locale explicitly. Resource resolution comes from the configuration, which is
+     * what this returns; the formatters in `TimeModel`, `TextNormalizer`, `CatchupUrlBuilder` and
+     * `CacheBudget` all pass [Locale.ROOT] by hand and never wanted the default anyway.
+     */
     fun wrap(base: Context): Context {
         val locale = stored(base).locale() ?: return base
-        Locale.setDefault(locale)
         return base.createConfigurationContext(configurationFor(base.resources.configuration, locale))
     }
 
@@ -65,11 +72,3 @@ object AppLocale {
     }
 }
 
-/**
- * A context that resolves strings in the chosen language, for code that is not an Activity.
- *
- * `Application` is not rebuilt when the language changes — only the activity is recreated — so a
- * long-lived `Application` context keeps whatever locale it was attached with. Anything reading a
- * string outside the composition should go through this.
- */
-val Context.localised: Context get() = AppLocale.wrap(this)

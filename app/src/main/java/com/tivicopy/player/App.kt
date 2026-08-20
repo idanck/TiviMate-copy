@@ -14,7 +14,6 @@ import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.db.Database
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
-import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.data.repo.EpgRepository
 import com.tivicopy.player.data.repo.SourceRepository
 import com.tivicopy.player.player.PlayerEngine
@@ -41,6 +40,24 @@ object ServiceLocator {
     lateinit var cache: CacheBudget private set
     lateinit var backup: BackupManager private set
     lateinit var recordings: RecordingScheduler private set
+
+    @Volatile private var localeContext: Context? = null
+
+    /**
+     * The application context, resolving strings in the chosen interface language (FR-UI-23).
+     *
+     * `Application` is attached once and is not rebuilt when the language changes — only the
+     * activity is recreated — so anything reading a string outside a composition needs this
+     * rather than [appContext]. Cached, because building it allocates a `Configuration` and a
+     * context and it is read once per user-facing message.
+     */
+    val locale: Context
+        get() = localeContext ?: AppLocale.wrap(appContext).also { localeContext = it }
+
+    /** Called when the language setting changes, so the next read rebuilds. */
+    fun refreshLocale() {
+        localeContext = null
+    }
 
     /** The player is created lazily so a headless recording run never builds one. */
     val player: PlayerEngine by lazy { PlayerEngine(appContext, settings) }
@@ -119,7 +136,7 @@ class App : Application(), ImageLoaderFactory {
         fun createNotificationChannels(context: Context) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
             val manager = context.getSystemService(NotificationManager::class.java) ?: return
-            val strings = context.localised
+            val strings = ServiceLocator.locale
             manager.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_RECORDING,

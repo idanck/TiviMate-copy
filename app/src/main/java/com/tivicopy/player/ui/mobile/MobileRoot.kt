@@ -346,7 +346,7 @@ fun MobileRoot(
                 onDismiss = { details = null },
                 onWatch = { vm.play(channel) },
                 onCatchup = { vm.playCatchup(channel, programme) },
-                onFavourite = { vm.toggleFavourite(channel) },
+                onFavourite = { favourite -> vm.setFavourite(channel, favourite) },
                 onMessage = { text -> vm.post(UiMessage(text = text)) },
                 upcoming = upcoming,
             )

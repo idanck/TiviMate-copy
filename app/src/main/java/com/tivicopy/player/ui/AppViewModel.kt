@@ -13,12 +13,12 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgMatchStats
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.RefreshReport
-import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.player.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
@@ -109,6 +109,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val main = Handler(Looper.getMainLooper())
 
+    private var listJob: Job? = null
+
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
         player.onNotice = { error, what ->
@@ -117,11 +119,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         reload()
     }
 
-    // `localised` rather than the application context itself: `Application` is attached once and
+    // `ServiceLocator.locale`, not the application context: `Application` is attached once and
     // never rebuilt, so after a language change it still resolves the previous one until the
     // process dies (FR-UI-23).
     private fun noticeText(error: AppError, what: String): String {
-        val strings = getApplication<Application>().localised
+        val strings = ServiceLocator.locale
         return when {
             what == "software" -> strings.getString(com.tivicopy.player.R.string.decoder_fell_back)
             else -> strings.getString(com.tivicopy.player.R.string.failover_switched, what)
@@ -170,7 +172,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSearch(query: String) {
         _state.value = _state.value.copy(list = _state.value.list.copy(search = query))
-        loadChannels()
+        // Debounced, unlike a group change: the filter field calls this on every keystroke.
+        loadChannels(debounceMs = FILTER_DEBOUNCE_MS)
     }
 
     // ---------------------------------------------------------------- search
@@ -225,13 +228,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun channelForProgramme(programme: Programme): Channel? =
         withContext(Dispatchers.IO) { dao.channelForEpgId(programme.epgChannelId) }
 
-    private fun loadChannels() {
+    /**
+     * Reads the list the current group and filter describe.
+     *
+     * The job is held and cancelled, because this is called on every keystroke and every group
+     * change: without it, overlapping queries commit in whatever order they finish, so a slow
+     * query for "b" could land after the one for "bbc" and leave the box and the list disagreeing.
+     */
+    private fun loadChannels(debounceMs: Long = 0) {
+        listJob?.cancel()
         val active = _state.value.activePlaylist ?: run {
             _state.value = _state.value.copy(list = _state.value.list.copy(channels = emptyList()))
             return
         }
         val listState = _state.value.list
-        viewModelScope.launch {
+        listJob = viewModelScope.launch {
+            if (debounceMs > 0) delay(debounceMs)
             val channels = withContext(Dispatchers.IO) {
                 val prefs = settings.state.value
                 val hideLocked = prefs.hideLockedChannels
@@ -384,9 +396,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- editing
 
-    fun toggleFavourite(channel: Channel) {
+    /**
+     * FR-ORG-07. Takes the state to write rather than toggling, because not every caller is
+     * holding a fresh channel: the programme dialog is handed a snapshot when it opens and never
+     * re-reads it, so a toggle derived from `channel.favourite` there wrote the same value every
+     * time and could add a favourite but never remove one.
+     */
+    fun setFavourite(channel: Channel, favourite: Boolean) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = !channel.favourite) }
+            withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = favourite) }
             loadChannels()
         }
     }
@@ -454,7 +472,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun string(resId: Int, vararg args: Any): String =
-        getApplication<Application>().localised.getString(resId, *args)
+        ServiceLocator.locale.getString(resId, *args)
 
     // ----------------------------------------------------------------- groups
 
@@ -519,7 +537,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * nothing on screen and silently reorders somewhere else entirely.
      */
     val canReorder: Boolean
-        get() = _state.value.list.selectedGroupId.let { it == VirtualGroup.ALL || it >= 0 }
+        get() {
+            // A sort preset orders the list by something other than `sort_index`, so a swap there
+            // changes nothing on screen while quietly rearranging the order the user built by
+            // hand. The group test alone was not enough once FR-ORG-06 existed.
+            if (settings.state.value.channelSort != ChannelSort.PROVIDER) return false
+            val group = _state.value.list.selectedGroupId
+            return group == VirtualGroup.ALL || group >= 0
+        }
 
     /** FR-ORG-05: move-mode reordering, one step at a time so a D-pad can drive it. */
     fun moveChannel(channel: Channel, delta: Int) {
@@ -644,5 +669,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         /** A single letter matches most of a playlist; two is where a result list means something. */
         const val MIN_SEARCH_LENGTH = 2
         const val SEARCH_DEBOUNCE_MS = 250L
+
+        /** Shorter than the search debounce: this one only re-queries a single indexed table. */
+        const val FILTER_DEBOUNCE_MS = 150L
     }
 }

@@ -140,12 +140,14 @@ class EpgRepository(
     /** FR-EPG-08: a manual binding is written once and then treated as authoritative. */
     fun bindManually(channelId: Long, epgId: String?) {
         val ch = dao.channel(channelId) ?: return
-        dao.upsertChannel(
-            ch.copy(
-                manualEpgId = epgId,
-                resolvedEpgId = epgId ?: ch.resolvedEpgId,
-                matchKind = if (epgId != null) MatchKind.MANUAL.name else ch.matchKind,
-            ),
+        // Three columns, written as three columns. `upsertChannel` would rewrite the whole row
+        // from this read, which a refresh landing in between would lose — the same race the
+        // per-channel edits were moved off, and this one is now reachable from the UI too.
+        dao.setChannelBinding(
+            id = channelId,
+            manualEpgId = epgId,
+            resolvedEpgId = epgId ?: ch.resolvedEpgId,
+            matchKind = if (epgId != null) MatchKind.MANUAL.name else ch.matchKind,
         )
     }
 

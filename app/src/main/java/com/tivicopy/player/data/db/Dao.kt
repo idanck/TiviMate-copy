@@ -192,11 +192,20 @@ class Dao(private val helper: Database) {
             put("locked", if (g.locked) 1 else 0)
             put("sort_index", g.sortIndex)
         }
-        return if (g.id == 0L) db.insertWithOnConflict("channel_groups", null, v, SQLiteDatabase.CONFLICT_IGNORE)
-        else {
+        if (g.id != 0L) {
             db.update("channel_groups", v, "id=?", arrayOf(g.id.toString()))
-            g.id
+            return g.id
         }
+        val inserted = db.insertWithOnConflict("channel_groups", null, v, SQLiteDatabase.CONFLICT_IGNORE)
+        if (inserted != -1L) return inserted
+        // The unique index on (playlist_id, name) rejected the insert. Ignoring that silently is
+        // what made restoring a backup drop the hidden flag and the ordering of every group the
+        // refresh had already recreated, while still reporting them as restored.
+        db.update("channel_groups", v, "playlist_id=? AND name=?", arrayOf(g.playlistId.toString(), g.name))
+        return db.query(
+            "channel_groups", arrayOf("id"), "playlist_id=? AND name=?",
+            arrayOf(g.playlistId.toString(), g.name), null, null, null,
+        ).use { c -> if (c.moveToFirst()) c.getLong(0) else -1L }
     }
 
     fun deleteGroup(id: Long) {
@@ -418,6 +427,17 @@ class Dao(private val helper: Database) {
             put("audio_decoder", audio.name)
         },
     )
+
+    /** FR-EPG-08: the guide entry a channel is bound to, and how it was arrived at. */
+    fun setChannelBinding(id: Long, manualEpgId: String?, resolvedEpgId: String?, matchKind: String) =
+        writeChannelFields(
+            id,
+            ContentValues().apply {
+                put("manual_epg_id", manualEpgId)
+                put("resolved_epg_id", resolvedEpgId)
+                put("match_kind", matchKind)
+            },
+        )
 
     /** Drops every local customisation, leaving the provider's own values in place. */
     fun resetChannelCustomisations(id: Long) = writeChannelFields(

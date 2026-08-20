@@ -272,6 +272,43 @@ class ChannelQueriesTest {
         assertNull(dao.channels(playlist).single().groupId)
     }
 
+    /**
+     * A restore recreates groups it has no id for. The insert loses to the unique index on
+     * (playlist_id, name), and ignoring that silently dropped the hidden flag and the ordering of
+     * every group a refresh had already created — while the report still counted them as restored.
+     */
+    @Test
+    fun `upserting a group by name updates the existing one instead of doing nothing`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val existing = dao.upsertGroup(ChannelGroup(playlistId = playlist, name = "Adult"))
+
+        val returned = dao.upsertGroup(
+            ChannelGroup(playlistId = playlist, name = "Adult", hidden = true, sortIndex = 9),
+        )
+
+        assertEquals(existing, returned)
+        assertTrue(dao.group(existing)!!.hidden)
+        assertEquals(9, dao.group(existing)!!.sortIndex)
+        assertEquals(1, dao.groups(playlist, includeHidden = true).size)
+    }
+
+    /** FR-EPG-08, written as three columns so a refresh landing mid-edit is not undone. */
+    @Test
+    fun `binding a channel to a guide entry leaves the provider's fields alone`() {
+        val dao = dao()
+        val playlist = dao.newPlaylist()
+        val id = dao.newChannel(playlist, "Sport")
+
+        dao.setChannelBinding(id, manualEpgId = "sport.he", resolvedEpgId = "sport.he", matchKind = "MANUAL")
+
+        val after = dao.channel(id)!!
+        assertEquals("sport.he", after.manualEpgId)
+        assertEquals("sport.he", after.resolvedEpgId)
+        assertEquals("MANUAL", after.matchKind)
+        assertEquals("Sport", after.name)
+    }
+
     @Test
     fun `a playlist cannot hold two groups with the same name`() {
         val dao = dao()
