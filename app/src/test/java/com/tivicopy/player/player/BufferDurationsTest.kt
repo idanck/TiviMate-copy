@@ -1,5 +1,6 @@
 package com.tivicopy.player.player
 
+import android.app.Application
 import androidx.media3.exoplayer.DefaultLoadControl
 import com.tivicopy.player.data.prefs.BufferPreset
 import org.junit.Assert.assertEquals
@@ -18,7 +19,9 @@ import org.robolectric.annotation.Config
  * rejecting one of these presets.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34])
+// The plain platform Application, not this app's: `App.onCreate` starts WorkManager, which is
+// not initialised under Robolectric and fails every test in the class before it begins.
+@Config(sdk = [34], application = Application::class)
 class BufferDurationsTest {
 
     /** Fails if media3 rejects the combination, which is the whole point of the test. */
