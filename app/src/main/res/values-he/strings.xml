@@ -213,6 +213,7 @@
     <string name="channel_move_down">הזז למטה</string>
     <string name="channel_move_unavailable">שינוי הסדר פועל ב\"כל הערוצים\" ובתוך קבוצה, שם הרשימה מסודרת לפי הסדר שלך.</string>
     <string name="channel_edit">עריכת ערוץ</string>
+    <string name="channel_advanced">לוח שידורים ופענוח</string>
     <string name="channel_custom_name">שם</string>
     <string name="channel_custom_logo">כתובת הלוגו</string>
     <string name="channel_number">מספר ערוץ</string>

@@ -419,41 +419,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun renameChannel(channel: Channel, name: String) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                dao.setChannelCustomName(channel.id, name.takeIf { it.isNotBlank() })
-            }
-            loadChannels()
-        }
-    }
-
-    /** FR-ORG-10: a logo of the user's own, for when the provider supplies a bad one or none. */
-    fun setChannelLogo(channel: Channel, url: String?) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                dao.setChannelCustomLogo(channel.id, url?.trim()?.takeIf { it.isNotBlank() })
-            }
-            loadChannels()
-        }
-    }
-
-    /** FR-ORG-09: the number the numeric keys jump to. */
-    fun setChannelNumber(channel: Channel, number: Int) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) { dao.setChannelNumber(channel.id, number.coerceIn(0, 9999)) }
-            loadChannels()
-        }
-    }
-
-    /** FR-ORG-02: move a channel into a group, or out of every group. */
-    fun assignGroup(channel: Channel, groupId: Long?) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) { dao.setChannelGroup(channel.id, groupId) }
-            loadChannels()
-        }
-    }
-
     /** Puts a channel back the way the provider sent it, keeping favourite/hidden/order. */
     fun resetChannelCustomisations(channel: Channel) {
         viewModelScope.launch {

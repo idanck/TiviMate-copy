@@ -79,6 +79,8 @@ fun ChannelListScreen(
     // hoisted twice into TvRoot and MobileRoot.
     var menuFor by remember { mutableStateOf<Channel?>(null) }
     var editing by remember { mutableStateOf<Channel?>(null) }
+    var advancedFor by remember { mutableStateOf<Channel?>(null) }
+    var bindingGuideFor by remember { mutableStateOf<Channel?>(null) }
     var groupMenuFor by remember { mutableStateOf<ChannelGroup?>(null) }
     var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
     var creatingGroup by remember { mutableStateOf(false) }
@@ -188,7 +190,29 @@ fun ChannelListScreen(
             onToggleHidden = { vm.setHidden(channel, !channel.hidden) },
             onToggleLocked = { vm.setLocked(channel, !channel.locked) },
             onEdit = { menuFor = null; editing = channel },
+            onAdvanced = { menuFor = null; advancedFor = channel },
             onMove = { delta -> vm.moveChannel(channel, delta) },
+        )
+    }
+
+    advancedFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelAdvancedDialog(
+            channel = channel,
+            onDismiss = { advancedFor = null },
+            onOffset = { minutes -> vm.setChannelEpgOffset(channel, minutes) },
+            onDecoders = { video, audio -> vm.setChannelDecoders(channel, video, audio) },
+            onBindGuide = { advancedFor = null; bindingGuideFor = channel },
+        )
+    }
+
+    bindingGuideFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        GuideBindingDialog(
+            channel = channel,
+            onDismiss = { bindingGuideFor = null },
+            onSearch = vm::searchGuideEntries,
+            onBind = { epgId -> vm.bindGuide(channel, epgId) },
         )
     }
 

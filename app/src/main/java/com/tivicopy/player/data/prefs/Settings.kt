@@ -42,6 +42,9 @@ enum class AppLanguage(val tag: String?) {
     ENGLISH("en"),
     HEBREW("he");
 
+    /** Null for [SYSTEM], which means "do not intervene". */
+    fun locale(): java.util.Locale? = tag?.let(java.util.Locale::forLanguageTag)
+
     companion object {
         /** Kept free of [android.content.Context] so the resolution itself is unit-testable. */
         fun fromStored(raw: String?): AppLanguage =

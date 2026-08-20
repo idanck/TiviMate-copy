@@ -58,11 +58,11 @@ feature that was otherwise in scope is simply available.
 | FR-EPG-05 | Done | Scheduled through `RefreshWorker`, plus "Update guide now". |
 | FR-EPG-06 | Done | Pull parser, nothing accumulated, progress reported every 2,000 programmes. |
 | FR-EPG-07 | Done | `EpgMatcher`, four stages in strict order. |
-| FR-EPG-08 | Done | `manualEpgId` wins over every other stage and is never recomputed. |
+| FR-EPG-08 | Done | `manualEpgId` wins over every other stage and is never recomputed, and is now settable — the channel options offer a searchable list of guide entries. Until this change the binding could only be reached from the database. |
 | FR-EPG-09 | Partial | The match breakdown is reported in Settings and Diagnostics; the one-tap jump into mapping is not wired. |
 | FR-EPG-10 | Done | Epoch-millis UTC throughout; rendered in the device zone. |
 | FR-EPG-11 | Done | ±15-minute steps. |
-| FR-EPG-12 | Done | See `docs/adr/ADR-008` — offsets shift the query, not the rows. |
+| FR-EPG-12 | Done | See `docs/adr/ADR-008` — offsets shift the query, not the rows. The per-channel override is set from the channel options; zero means no override, so the channel falls back to the global offset. |
 | FR-EPG-13 | Done | Covered by `TimeModelTest`. |
 | FR-EPG-14 | Done | Whatever the source provides is stored. |
 | FR-EPG-15 | Done | Retention is the longest catch-up window in the library, floored by the setting. |
@@ -74,7 +74,7 @@ feature that was otherwise in scope is simply available.
 |---|---|---|
 | FR-PLB-01 | Done | HLS, DASH, MPEG-TS, progressive; RTSP module included. |
 | FR-PLB-02 / 03 | Done | Whatever the device's `MediaCodec` offers. |
-| FR-PLB-04 | Done | `SelectiveRenderersFactory`, independent per renderer family, global and per channel. |
+| FR-PLB-04 | Done | `SelectiveRenderersFactory`, independent per renderer family, global from Settings and per channel from the channel options. |
 | FR-PLB-05 | Done | One software retry, with a notice saying what changed. |
 | FR-PLB-06 | Done | `PlayerEngine.audioTracks` / `selectTrack`. |
 | FR-PLB-07 | Done | `setPreferredAudioLanguage` on the track selector. |

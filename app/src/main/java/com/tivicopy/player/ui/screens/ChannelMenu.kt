@@ -14,6 +14,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,8 +26,12 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
+import com.tivicopy.player.data.model.DecoderMode
+import com.tivicopy.player.data.model.EpgChannel
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.settings.OffsetRow
 import com.tivicopy.player.ui.settings.SettingsChoice
+import kotlinx.coroutines.delay
 
 /**
  * Everything you can do to one channel, in one place (FR-ORG-03..05, FR-ORG-07, FR-ORG-09/10).
@@ -50,6 +55,7 @@ fun ChannelMenuDialog(
     onToggleHidden: () -> Unit,
     onToggleLocked: () -> Unit,
     onEdit: () -> Unit,
+    onAdvanced: () -> Unit,
     onMove: (Int) -> Unit,
 ) {
     AlertDialog(
@@ -67,6 +73,7 @@ fun ChannelMenuDialog(
                     ),
                 ) { onToggleFavourite(); onDismiss() }
                 MenuRow(stringResource(R.string.channel_edit)) { onEdit() }
+                MenuRow(stringResource(R.string.channel_advanced)) { onAdvanced() }
                 MenuRow(
                     stringResource(if (channel.hidden) R.string.action_show else R.string.action_hide),
                 ) { onToggleHidden(); onDismiss() }
@@ -81,6 +88,146 @@ fun ChannelMenuDialog(
                     // Saying why beats a greyed-out row with no explanation at ten feet.
                     Text(
                         text = stringResource(R.string.channel_move_unavailable),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    )
+}
+
+/**
+ * The per-channel overrides that are not about identity: a guide offset, a decoder choice, and
+ * which guide entry the channel is bound to (FR-EPG-08, FR-EPG-12, FR-PLB-04).
+ *
+ * All three have been implemented in the view model since the first release with nothing able to
+ * call them. They live behind the editor rather than in the main menu because they are the
+ * controls a user reaches for when something is wrong — a guide an hour out, a channel that only
+ * decodes in software — not part of everyday use.
+ */
+@Composable
+fun ChannelAdvancedDialog(
+    channel: Channel,
+    onDismiss: () -> Unit,
+    onOffset: (Int?) -> Unit,
+    onDecoders: (DecoderMode, DecoderMode) -> Unit,
+    onBindGuide: () -> Unit,
+) {
+    var offset by remember(channel.id) { mutableStateOf(channel.epgOffsetMinutes) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(channel.displayName, style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OffsetRow(
+                    title = stringResource(R.string.settings_epg_offset_channel),
+                    minutes = offset ?: 0,
+                ) { minutes ->
+                    // Zero means "no override", so the channel falls back to the global offset
+                    // rather than pinning itself to the same value for ever.
+                    offset = minutes.takeIf { it != 0 }
+                    onOffset(offset)
+                }
+
+                Text(
+                    text = stringResource(R.string.decoder_for_channel),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+                SettingsChoice(
+                    title = stringResource(R.string.decoder_video),
+                    options = decoderOptions(),
+                    selected = channel.videoDecoder,
+                ) { onDecoders(it, channel.audioDecoder) }
+                SettingsChoice(
+                    title = stringResource(R.string.decoder_audio),
+                    options = decoderOptions(),
+                    selected = channel.audioDecoder,
+                ) { onDecoders(channel.videoDecoder, it) }
+
+                MenuRow(
+                    channel.resolvedEpgId
+                        ?.let { stringResource(R.string.guide_mapped, it) }
+                        ?: stringResource(R.string.action_map_guide),
+                ) { onBindGuide() }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    )
+}
+
+@Composable
+private fun decoderOptions(): List<Pair<DecoderMode, String>> = listOf(
+    DecoderMode.AUTO to stringResource(R.string.decoder_auto),
+    DecoderMode.HARDWARE to stringResource(R.string.decoder_hardware),
+    DecoderMode.SOFTWARE to stringResource(R.string.decoder_software),
+)
+
+/**
+ * FR-EPG-08: binding a channel to a guide entry by hand, for the ones the matcher could not
+ * place. The binding is sticky — a refresh does not clear it.
+ */
+@Composable
+fun GuideBindingDialog(
+    channel: Channel,
+    onDismiss: () -> Unit,
+    onSearch: suspend (String) -> List<EpgChannel>,
+    onBind: (String?) -> Unit,
+) {
+    var query by remember { mutableStateOf(channel.displayName) }
+    var entries by remember { mutableStateOf<List<EpgChannel>>(emptyList()) }
+
+    LaunchedEffect(query) {
+        delay(250)
+        entries = if (query.isBlank()) emptyList() else onSearch(query)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                stringResource(R.string.guide_map_channel, channel.displayName),
+                style = MaterialTheme.typography.titleMedium,
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    label = { Text(stringResource(R.string.action_search)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (channel.manualEpgId != null) {
+                    MenuRow(stringResource(R.string.guide_unmap)) { onBind(null); onDismiss() }
+                }
+                entries.forEach { entry ->
+                    MenuRow(entry.displayNames.firstOrNull()?.takeIf { it.isNotBlank() } ?: entry.id) {
+                        onBind(entry.id)
+                        onDismiss()
+                    }
+                }
+                if (query.isNotBlank() && entries.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.empty_no_results),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),

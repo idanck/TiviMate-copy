@@ -146,7 +146,7 @@ Read against the requirements the first pass marked done, asking not "does the c
 "can anyone reach it".
 
 **13. Every per-channel edit rewrote the whole row, and the refresh was the loser.**
-`renameChannel`, `moveChannel`, `setChannelEpgOffset` and `setChannelDecoders` all went through
+Renaming, reordering, the guide offset and the decoder choice all went through
 `Dao.upsertChannel(snapshot.copy(...))`, which writes all thirty columns from whatever `Channel`
 the caller is holding. A refresh landing between reading that snapshot and writing the edit would
 have its provider fields — name, logo, urls, catch-up — pushed back to the stale values. The
@@ -201,3 +201,7 @@ channels. **Fixed** — a subquery, and a test.
 - **The guide grid's mirroring is reasoned, not observed.** It is laid out in widths with no
   pixel offsets and one shared scroll state, so it should mirror by construction. FR-UI-21 is
   marked Partial rather than Done for exactly this reason.
+- **`AppViewModel.unmatchedChannels` still has no caller.** It answers "which channels did the
+  matcher fail to place", which belongs next to the match breakdown in Diagnostics as the
+  one-tap route into mapping that FR-EPG-09 asks for. Now that the mapping dialog exists there
+  is somewhere for it to lead, but wiring it is a separate change.

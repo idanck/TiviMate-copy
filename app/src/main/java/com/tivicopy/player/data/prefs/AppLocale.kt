@@ -40,19 +40,28 @@ object AppLocale {
      * Android 13+ per-app language — keeps working exactly as it did.
      */
     fun wrap(base: Context): Context {
-        val tag = stored(base).tag ?: return base
-        val locale = Locale.forLanguageTag(tag)
+        val locale = stored(base).locale() ?: return base
         Locale.setDefault(locale)
-        val config = Configuration(base.resources.configuration)
+        return base.createConfigurationContext(configurationFor(base.resources.configuration, locale))
+    }
+
+    /**
+     * The configuration [wrap] applies.
+     *
+     * Split out from [wrap] so it can be asserted directly. What this has to get right is our
+     * side — the locale *and* the layout direction — rather than the platform's resource lookup,
+     * which is what `createConfigurationContext` exists to do.
+     */
+    fun configurationFor(base: Configuration, locale: Locale): Configuration = Configuration(base).apply {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            config.setLocales(LocaleList(locale))
+            setLocales(LocaleList(locale))
         } else {
-            config.setLocale(locale)
+            setLocale(locale)
         }
-        // Without this, choosing Hebrew on an English device gives Hebrew text in a left-to-right
-        // layout: Compose derives LocalLayoutDirection from the configuration, not from the script.
-        config.setLayoutDirection(locale)
-        return base.createConfigurationContext(config)
+        // Without this, choosing Hebrew on an English device gives Hebrew text inside a
+        // left-to-right layout — a half-finished translation rather than a Hebrew interface.
+        // Compose derives LocalLayoutDirection from the configuration, not from the script.
+        setLayoutDirection(locale)
     }
 }
 
