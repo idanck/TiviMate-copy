@@ -22,6 +22,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.cache.CacheBudget
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
 import com.tivicopy.player.data.prefs.AppLanguage
@@ -238,6 +239,29 @@ fun SettingsScreen(
                     value = s.fontScale,
                     range = 0.8f..1.6f,
                     onChange = settings::setFontScale,
+                )
+                // FR-ORG-06. Manual moves live in `sort_index`, which only the provider order
+                // reads, so switching away from it parks your own ordering rather than losing it.
+                SettingsChoice(
+                    title = stringResource(R.string.settings_channel_sort),
+                    options = listOf(
+                        ChannelSort.PROVIDER to stringResource(R.string.sort_provider),
+                        ChannelSort.NAME_ASC to stringResource(R.string.sort_name),
+                        ChannelSort.MOST_WATCHED to stringResource(R.string.sort_most_watched),
+                        ChannelSort.RECENTLY_WATCHED to stringResource(R.string.sort_recent),
+                    ),
+                    selected = s.channelSort,
+                ) { settings.setChannelSort(it); vm.reload() }
+                Text(
+                    text = stringResource(R.string.sort_manual_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_show_new_groups),
+                    checked = s.showNewGroups,
+                    onChange = settings::setShowNewGroups,
                 )
                 SettingsSlider(
                     title = stringResource(R.string.settings_overlay_hide),

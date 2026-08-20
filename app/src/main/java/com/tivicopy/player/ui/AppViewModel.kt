@@ -136,7 +136,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val playlists = dao.playlists()
                 val activeId = settings.state.value.activePlaylistId
                 val active = playlists.firstOrNull { it.id == activeId } ?: playlists.firstOrNull()
-                val groups = active?.let { dao.groups(it.id) }.orEmpty()
+                // Hidden groups are listed too, drawn dimmed, so that hiding one is not a one-way
+                // door — there would otherwise be nothing left on screen to show it again.
+                val groups = active?.let { dao.groups(it.id, includeHidden = true) }.orEmpty()
                 val stats = active?.let { epg.stats(it.id) } ?: EpgMatchStats()
                 Triple(playlists, active, groups) to stats
             }
@@ -231,17 +233,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val listState = _state.value.list
         viewModelScope.launch {
             val channels = withContext(Dispatchers.IO) {
-                val hideLocked = settings.state.value.hideLockedChannels
+                val prefs = settings.state.value
+                val hideLocked = prefs.hideLockedChannels
+                val sort = prefs.channelSort
                 val search = listState.search.takeIf { it.isNotBlank() }
                 val raw = when (listState.selectedGroupId) {
-                    VirtualGroup.ALL -> dao.channels(active.id, search = search)
+                    VirtualGroup.ALL -> dao.channels(active.id, search = search, sort = sort)
                     VirtualGroup.FAVOURITES ->
-                        dao.channels(active.id, favouritesOnly = true, search = search)
+                        dao.channels(active.id, favouritesOnly = true, search = search, sort = sort)
                     // The filter box used to do nothing at all here, because the argument was
                     // simply not passed on.
                     VirtualGroup.RECENT -> dao.recentChannels(search = search)
+                    // Always in the playlist's own order: this is a repair screen, and the point
+                    // is to find the channel you hid, not to browse.
                     VirtualGroup.HIDDEN -> dao.channels(active.id, hiddenOnly = true, search = search)
-                    else -> dao.channels(active.id, groupId = listState.selectedGroupId, search = search)
+                    else -> dao.channels(
+                        active.id,
+                        groupId = listState.selectedGroupId,
+                        search = search,
+                        sort = sort,
+                    )
                 }
                 if (hideLocked) raw.filter { !it.locked } else raw
             }
@@ -479,6 +490,61 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun string(resId: Int, vararg args: Any): String =
         getApplication<Application>().localised.getString(resId, *args)
+
+    // ----------------------------------------------------------------- groups
+
+    /** FR-ORG-02: a group of the user's own, alongside the ones the playlist supplies. */
+    fun createGroup(name: String) {
+        val active = _state.value.activePlaylist ?: return
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            val id = withContext(Dispatchers.IO) {
+                val next = (_state.value.list.groups.maxOfOrNull { it.sortIndex } ?: 0) + 1
+                dao.createCustomGroup(active.id, trimmed, next)
+            }
+            // The unique index on (playlist_id, name) rejected it; say so rather than appearing
+            // to have worked.
+            if (id == -1L) post(UiMessage(text = string(R.string.group_exists, trimmed)))
+            reload()
+        }
+    }
+
+    /**
+     * FR-ORG-03 for whole groups. Hidden groups stay in the column, drawn dimmed, so this can be
+     * undone; their channels drop out of every list.
+     */
+    fun setGroupHidden(group: ChannelGroup, hidden: Boolean) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.setGroupHidden(group.id, hidden) }
+            reload()
+        }
+    }
+
+    /**
+     * Renaming is offered for custom groups only. A provider group is matched by name on every
+     * refresh, so renaming one would leave the old group orphaned and its replacement recreated
+     * under the provider's name — that needs a column to remember the original, and a migration.
+     */
+    fun renameGroup(group: ChannelGroup, name: String) {
+        val trimmed = name.trim()
+        if (!group.custom || trimmed.isBlank()) return
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { dao.renameGroup(group.id, trimmed) }
+            if (!ok) post(UiMessage(text = string(R.string.group_exists, trimmed)))
+            reload()
+        }
+    }
+
+    /** Deletes a custom group. Its channels survive, ungrouped — `deleteGroup` clears their id. */
+    fun deleteGroup(group: ChannelGroup) {
+        if (!group.custom) return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.deleteGroup(group.id) }
+            if (_state.value.list.selectedGroupId == group.id) selectGroup(VirtualGroup.ALL)
+            reload()
+        }
+    }
 
     /**
      * Whether the list currently on screen is ordered by `sort_index`, which is the only case

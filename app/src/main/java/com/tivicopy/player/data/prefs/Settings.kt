@@ -3,6 +3,7 @@ package com.tivicopy.player.data.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,6 +81,7 @@ class Settings(context: Context) {
         val subtitleTextScale: Float,
         val theme: ThemeMode,
         val language: AppLanguage,
+        val channelSort: ChannelSort,
         val overlayAutoHideSeconds: Int,
         val overlayOpacity: Float,
         val fontScale: Float,
@@ -132,6 +134,7 @@ class Settings(context: Context) {
         subtitleTextScale = prefs.getFloat(K_SUB_SCALE, 1.0f),
         theme = prefs.enum(K_THEME, ThemeMode.DARK),
         language = prefs.enum(K_LANGUAGE, AppLanguage.SYSTEM),
+        channelSort = prefs.enum(K_CHANNEL_SORT, ChannelSort.PROVIDER),
         overlayAutoHideSeconds = prefs.getInt(K_OVERLAY_HIDE, 5),
         overlayOpacity = prefs.getFloat(K_OVERLAY_OPACITY, 0.85f),
         fontScale = prefs.getFloat(K_FONT_SCALE, 1.0f),
@@ -198,6 +201,9 @@ class Settings(context: Context) {
      * [AppLocale] reads this key straight from preferences during `attachBaseContext`.
      */
     fun setLanguage(v: AppLanguage) = commit { putString(K_LANGUAGE, v.name) }
+
+    /** FR-ORG-06. Manual reordering only means anything under [ChannelSort.PROVIDER]. */
+    fun setChannelSort(v: ChannelSort) = commit { putString(K_CHANNEL_SORT, v.name) }
     fun setOverlayAutoHideSeconds(v: Int) = commit { putInt(K_OVERLAY_HIDE, v.coerceIn(2, 60)) }
     fun setOverlayOpacity(v: Float) = commit { putFloat(K_OVERLAY_OPACITY, v.coerceIn(0.3f, 1f)) }
     fun setFontScale(v: Float) = commit { putFloat(K_FONT_SCALE, v.coerceIn(0.8f, 1.6f)) }
@@ -292,6 +298,7 @@ class Settings(context: Context) {
         const val K_SUB_SCALE = "subtitle_scale"
         const val K_THEME = "theme"
         const val K_LANGUAGE = "app_language"
+        const val K_CHANNEL_SORT = "channel_sort"
         const val K_OVERLAY_HIDE = "overlay_hide_seconds"
         const val K_OVERLAY_OPACITY = "overlay_opacity"
         const val K_FONT_SCALE = "font_scale"

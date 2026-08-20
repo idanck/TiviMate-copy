@@ -95,6 +95,88 @@ fun ChannelMenuDialog(
     )
 }
 
+/**
+ * What can be done to a group (FR-ORG-02, FR-ORG-03).
+ *
+ * Renaming and deleting are offered for the user's own groups only. A group that came with the
+ * playlist is matched by name on every refresh, so renaming one would orphan it and have the
+ * provider's version recreated beside it — that needs a column remembering the original name, and
+ * a migration to add it. The dialog says so rather than offering a control that would misbehave.
+ */
+@Composable
+fun GroupMenuDialog(
+    group: ChannelGroup,
+    onDismiss: () -> Unit,
+    onToggleHidden: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(group.name, style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                MenuRow(
+                    stringResource(if (group.hidden) R.string.action_show else R.string.action_hide),
+                ) { onToggleHidden(); onDismiss() }
+                if (group.custom) {
+                    MenuRow(stringResource(R.string.action_edit)) { onRename() }
+                    MenuRow(stringResource(R.string.group_delete)) { onDelete(); onDismiss() }
+                } else {
+                    Text(
+                        text = stringResource(R.string.group_rename_provider),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    )
+}
+
+/** A single-field dialog, used for naming a new group and for renaming a custom one. */
+@Composable
+fun TextEntryDialog(
+    title: String,
+    label: String,
+    initial: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var value by remember { mutableStateOf(initial) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
+        text = {
+            OutlinedTextField(
+                value = value,
+                onValueChange = { value = it },
+                label = { Text(label) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            Button(
+                enabled = value.isNotBlank(),
+                onClick = { onConfirm(value.trim()); onDismiss() },
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+    )
+}
+
 @Composable
 private fun MenuRow(label: String, onClick: () -> Unit) {
     FocusableRow(onClick = onClick, contentDescription = label) {

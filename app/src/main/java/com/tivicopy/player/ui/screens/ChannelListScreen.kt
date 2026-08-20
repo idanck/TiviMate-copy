@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.ChannelGroup
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.VirtualGroup
@@ -78,6 +79,9 @@ fun ChannelListScreen(
     // hoisted twice into TvRoot and MobileRoot.
     var menuFor by remember { mutableStateOf<Channel?>(null) }
     var editing by remember { mutableStateOf<Channel?>(null) }
+    var groupMenuFor by remember { mutableStateOf<ChannelGroup?>(null) }
+    var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
+    var creatingGroup by remember { mutableStateOf(false) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -98,6 +102,8 @@ fun ChannelListScreen(
             GroupColumn(
                 vm = vm,
                 onSearch = onSearch,
+                onNewGroup = { creatingGroup = true },
+                onGroupOptions = { groupMenuFor = it },
                 modifier = Modifier.width(220.dp).fillMaxHeight(),
             )
             VerticalDivider()
@@ -198,6 +204,35 @@ fun ChannelListScreen(
             onReset = { vm.resetChannelCustomisations(channel) },
         )
     }
+
+    groupMenuFor?.let { group ->
+        GroupMenuDialog(
+            group = group,
+            onDismiss = { groupMenuFor = null },
+            onToggleHidden = { vm.setGroupHidden(group, !group.hidden) },
+            onRename = { groupMenuFor = null; renamingGroup = group },
+            onDelete = { vm.deleteGroup(group) },
+        )
+    }
+
+    renamingGroup?.let { group ->
+        TextEntryDialog(
+            title = stringResource(R.string.group_options),
+            label = stringResource(R.string.group_name),
+            initial = group.name,
+            onDismiss = { renamingGroup = null },
+            onConfirm = { vm.renameGroup(group, it) },
+        )
+    }
+
+    if (creatingGroup) {
+        TextEntryDialog(
+            title = stringResource(R.string.group_new),
+            label = stringResource(R.string.group_name),
+            onDismiss = { creatingGroup = false },
+            onConfirm = vm::createGroup,
+        )
+    }
 }
 
 @Composable
@@ -286,7 +321,13 @@ private fun FilterBanner(query: String, onClear: () -> Unit) {
 }
 
 @Composable
-private fun GroupColumn(vm: AppViewModel, onSearch: (() -> Unit)?, modifier: Modifier = Modifier) {
+private fun GroupColumn(
+    vm: AppViewModel,
+    onSearch: (() -> Unit)?,
+    onNewGroup: () -> Unit,
+    onGroupOptions: (ChannelGroup) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val state by vm.state.collectAsState()
     LazyColumn(
         modifier = modifier,
@@ -319,21 +360,47 @@ private fun GroupColumn(vm: AppViewModel, onSearch: (() -> Unit)?, modifier: Mod
             }
         }
         item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
+        item {
+            GroupRow(stringResource(R.string.group_new), selected = false, onClick = onNewGroup)
+        }
         items(state.list.groups, key = { it.id }) { group ->
-            GroupRow(group.name, state.list.selectedGroupId == group.id) { vm.selectGroup(group.id) }
+            GroupRow(
+                name = group.name,
+                selected = state.list.selectedGroupId == group.id,
+                // A hidden group stays listed, drawn dimmed, because otherwise nothing on screen
+                // could ever show it again.
+                dimmed = group.hidden,
+                onClick = { vm.selectGroup(group.id) },
+                onLongClick = { onGroupOptions(group) },
+            )
         }
     }
 }
 
 @Composable
-private fun GroupRow(name: String, selected: Boolean, onClick: () -> Unit) {
-    FocusableRow(onClick = onClick, selected = selected, contentDescription = name) {
+private fun GroupRow(
+    name: String,
+    selected: Boolean,
+    dimmed: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onClick: () -> Unit,
+) {
+    FocusableRow(
+        onClick = onClick,
+        selected = selected,
+        contentDescription = name,
+        onLongClick = onLongClick,
+    ) {
         Text(
             text = name,
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = if (dimmed) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
         )
     }
 }

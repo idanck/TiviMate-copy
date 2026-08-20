@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
+import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.CatchupMode
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgChannel
@@ -120,18 +121,67 @@ class Dao(private val helper: Database) {
         db.query("channel_groups", null, "id=?", arrayOf(id.toString()), null, null, null)
             .firstOrNull(::readGroup)
 
-    /** Returns the id of an existing group with this name, or creates one. */
-    fun ensureGroup(d: SQLiteDatabase, playlistId: Long, name: String, sortIndex: Int): Long {
+    /**
+     * Returns the id of an existing group with this name, or creates one.
+     *
+     * [hiddenWhenNew] applies only on creation (FR-ORG-11): a group the user has already chosen to
+     * show must not be hidden again by the next refresh.
+     */
+    fun ensureGroup(
+        d: SQLiteDatabase,
+        playlistId: Long,
+        name: String,
+        sortIndex: Int,
+        hiddenWhenNew: Boolean = false,
+    ): Long {
         d.query("channel_groups", arrayOf("id"), "playlist_id=? AND name=?", arrayOf(playlistId.toString(), name), null, null, null)
             .use { c -> if (c.moveToFirst()) return c.getLong(0) }
         val v = ContentValues().apply {
             put("playlist_id", playlistId)
             put("name", name)
             put("custom", 0)
+            put("hidden", if (hiddenWhenNew) 1 else 0)
             put("sort_index", sortIndex)
         }
         return d.insert("channel_groups", null, v)
     }
+
+    /**
+     * Creates a group the user owns (FR-ORG-02). Returns -1 when the playlist already has one by
+     * that name, which the unique index enforces — the caller reports that rather than silently
+     * doing nothing.
+     */
+    fun createCustomGroup(playlistId: Long, name: String, sortIndex: Int): Long = db.insertWithOnConflict(
+        "channel_groups",
+        null,
+        ContentValues().apply {
+            put("playlist_id", playlistId)
+            put("name", name)
+            put("custom", 1)
+            put("hidden", 0)
+            put("sort_index", sortIndex)
+        },
+        SQLiteDatabase.CONFLICT_IGNORE,
+    )
+
+    fun setGroupHidden(id: Long, hidden: Boolean) {
+        db.update(
+            "channel_groups",
+            ContentValues().apply { put("hidden", if (hidden) 1 else 0) },
+            "id=?",
+            arrayOf(id.toString()),
+        )
+    }
+
+    /** Renames a group. Returns false when the playlist already has one by that name. */
+    fun renameGroup(id: Long, name: String): Boolean = runCatching {
+        db.update(
+            "channel_groups",
+            ContentValues().apply { put("name", name) },
+            "id=?",
+            arrayOf(id.toString()),
+        ) > 0
+    }.getOrDefault(false)
 
     fun upsertGroup(g: ChannelGroup): Long {
         val v = ContentValues().apply {
@@ -184,6 +234,7 @@ class Dao(private val helper: Database) {
         hiddenOnly: Boolean = false,
         includeHidden: Boolean = false,
         search: String? = null,
+        sort: ChannelSort = ChannelSort.PROVIDER,
         limit: Int = 0,
     ): List<Channel> {
         val where = StringBuilder("playlist_id=?")
@@ -192,14 +243,23 @@ class Dao(private val helper: Database) {
         if (favouritesOnly) where.append(" AND favourite=1")
         when {
             hiddenOnly -> where.append(" AND hidden=1")
-            !includeHidden -> where.append(" AND hidden=0")
+            !includeHidden -> {
+                where.append(" AND hidden=0")
+                // FR-ORG-03 covers whole groups, not just channels. Hiding a group used to remove
+                // only its row from the group column, leaving its channels under All channels.
+                where.append(
+                    " AND (group_id IS NULL OR group_id NOT IN " +
+                        "(SELECT id FROM channel_groups WHERE hidden=1))",
+                )
+            }
         }
         if (!search.isNullOrBlank()) {
             where.append(" AND (name LIKE ?$LIKE_ESCAPE OR IFNULL(custom_name,'') LIKE ?$LIKE_ESCAPE)")
             val pattern = likePattern(search)
             args += pattern; args += pattern
         }
-        val sql = "SELECT * FROM channels WHERE $where ORDER BY sort_index, number, name" +
+        // `sort.orderBy` is a constant on the enum, never anything the user typed.
+        val sql = "SELECT * FROM channels WHERE $where ORDER BY ${sort.orderBy}" +
             if (limit > 0) " LIMIT $limit" else ""
         return db.rawQuery(sql, args.toTypedArray()).mapAll(::readChannel)
     }
