@@ -137,6 +137,9 @@ class PlayerEngine(
         const val MIN_BUFFER_BAND_MS = 500
     }
 
+    /** Bumped whenever the source changes, so a retry armed for the previous one is dropped. */
+    private var playbackGeneration = 0
+
     /** Set by the host so a failover can be scheduled off the player's callback thread. */
     var onScheduleRetry: ((delayMillis: Long, action: () -> Unit) -> Unit)? = null
 
@@ -251,6 +254,7 @@ class PlayerEngine(
     // ------------------------------------------------------------------- play
 
     fun play(channel: Channel, profileForChannel: RequestProfile, urlOverride: String? = null) {
+        playbackGeneration++
         currentChannel = channel
         profile = profileForChannel
         currentUrls = urlOverride?.let(::listOf) ?: channel.urls
@@ -266,6 +270,7 @@ class PlayerEngine(
 
     /** Plays an arbitrary URL (catch-up, VOD, a recording) with the channel's request profile. */
     fun playUrl(title: String, url: String, profileForItem: RequestProfile, startPositionMs: Long = 0) {
+        playbackGeneration++
         currentChannel = null
         profile = profileForItem
         currentUrls = listOf(url)
@@ -343,6 +348,8 @@ class PlayerEngine(
     }
 
     fun release() {
+        // Anything already queued belongs to a player that is about to stop existing.
+        playbackGeneration++
         releasePlayer()
         trackSelector = null
         // The engine hangs off the process-wide ServiceLocator, so it outlives the activity,
@@ -548,9 +555,19 @@ class PlayerEngine(
         )
     }
 
+    /**
+     * Runs [action] after [delayMillis], unless whatever it was scheduled for has been replaced.
+     *
+     * The host posts these to a `Handler` and nothing removes the callback, so a retry armed for
+     * one channel used to fire against whichever channel was playing when it landed — up to
+     * fifteen seconds later, re-preparing a stream that was working and reporting the wrong
+     * title. The generation is bumped by every new source, so a stale action becomes a no-op.
+     */
     private fun schedule(delayMillis: Long, action: () -> Unit) {
+        val generation = playbackGeneration
+        val guarded = { if (generation == playbackGeneration) action() }
         val scheduler = onScheduleRetry
-        if (scheduler != null) scheduler(delayMillis, action) else action()
+        if (scheduler != null) scheduler(delayMillis, guarded) else guarded()
     }
 
     private fun mapError(error: PlaybackException): AppError = when (error.errorCode) {

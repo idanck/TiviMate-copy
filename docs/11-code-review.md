@@ -185,6 +185,58 @@ declared per clause. Covered by a regression test.
 channel query never consulted `channel_groups.hidden`, so a hidden group's channels stayed in All
 channels. **Fixed** — a subquery, and a test.
 
+### Third pass — a review of the whole branch, 2026-08-20
+
+Run over `main..HEAD` at high effort. It found seven things this branch had caused or made
+reachable, and eight that were already on `main`. The first group is fixed in `cded323`; the
+second is split between the small ones, fixed alongside them, and the rest, recorded below.
+
+**20. The programme dialog's favourite button could not un-favourite.** It flipped its own label
+while calling the view model with the snapshot the shell captured when the dialog opened, so every
+press wrote the same value. **Fixed** — the view model takes the state to write.
+
+**21. Move up/down was offered under the sort presets added in the same branch.** A preset orders
+by something other than `sort_index`, so the swap changed nothing visible and rearranged the
+user's hand-made order. **Fixed** — `canReorder` checks the sort too.
+
+**22. `AppLocale.wrap` moved the JVM default locale and never restored it,** so switching back to
+"follow the device" left the process on the abandoned language. **Fixed** — it no longer touches
+the default; resources come from the configuration, and every formatter here passes `Locale.ROOT`.
+
+**23. The string context for non-composition code was rebuilt per access** — a `Configuration` and
+a context per toast, from background threads. **Fixed** — cached on the locator, invalidated when
+the language changes.
+
+**24. The channel-list filter queried per keystroke with nothing cancelling the last one,** so
+results could commit out of order. **Fixed** — held, cancelled and debounced.
+
+**25. Group actions were reachable only from the group column, which phones do not draw.**
+**Fixed** — the compact layout gets a manager dialog, since a chip has no long press.
+
+**26. `EpgRepository.bindManually` still wrote all thirty columns.** **Fixed** — three columns,
+written as three.
+
+**27. Recordings ended with a null file path.** The destination was written to the row but not to
+the snapshot every exit path builds its final update from, so `finish` put it back to NULL: the
+library could neither play the file nor delete it. Pre-existing. **Fixed.**
+
+**28. The recording concurrency limit counted only SCHEDULED recordings,** so one already running
+did not count against it. Pre-existing. **Fixed.**
+
+**29. Restoring a backup silently dropped group state.** The insert lost to the unique index on
+`(playlist_id, name)` and nothing updated instead, so the hidden flag and ordering of every group
+a refresh had recreated were discarded — and still reported as restored. Pre-existing. **Fixed.**
+
+**30. A retry could fire against the wrong channel.** Retries are posted to a `Handler` with
+nothing removing the callback and a backoff reaching fifteen seconds, so a retry armed for one
+channel re-prepared whichever was playing when it landed. Pre-existing. **Fixed** — a generation
+counter, bumped by every new source.
+
+**31. The HTTP client cache was unbounded.** `RequestProfile` is built from live settings, so
+dragging the timeouts slider added an entry per value for the life of the process. Less severe
+than it looks — `newBuilder` shares the base client's pool and dispatcher, so no entry owns
+threads — but a map that only grows is still a leak. Pre-existing. **Fixed** — bounded LRU.
+
 ### Not addressed in this pass
 
 - **Backup skips a channel whose only change is its position.** `BackupManager.export` decides a
@@ -201,6 +253,31 @@ channels. **Fixed** — a subquery, and a test.
 - **The guide grid's mirroring is reasoned, not observed.** It is laid out in widths with no
   pixel offsets and one shared scroll state, so it should mirror by construction. FR-UI-21 is
   marked Partial rather than Done for exactly this reason.
+- **Parental controls are stored but never enforced (FR-PRF-04/05/07/08).** The PIN is hashed
+  correctly and the lock-scope switches persist, but `ParentalPin.verify` and `PinAttemptLimiter`
+  have no callers anywhere: Settings opens unprompted, a locked channel plays on the first press,
+  and `hideLockedChannels` only filters the list and can be unticked in the same unprotected
+  screen. This is a missing feature rather than a defect in a working one, and it is outside what
+  this branch set out to do, so it is recorded here and `docs/10` is corrected from Done to Not
+  implemented rather than half-built.
+- **Series do not play (FR-PLB-28).** `XtreamClient.series` stores a `series:<id>` stream id and
+  the grid sends it through the movie URL, which no panel serves, so every series tile answers
+  with a playback error. `seriesEpisodes` exists with no caller. The honest fix is an episode
+  list, which is a feature; `docs/10` now says plainly that series do not play.
+- **Scheduling a recording blocks the main thread.** `ProgrammeDetailsDialog` calls the scheduler
+  straight from `onClick`, and each schedule does a query, an insert and a `StatFs`. "Record
+  series" iterates a fortnight of episodes, so it is dozens of blocking calls in one frame. The
+  earlier entry above under-described it; the rule it breaks is the one `VodScreen` cites.
+- **Free space is measured on the wrong volume.** `RecordingScheduler.freeSpaceBytes` runs
+  `StatFs` against internal storage whenever the destination is a SAF tree, which is the only
+  thing the picker can produce on Android 10 and later — so the space check and the low-space
+  warning are both wrong in both directions for the common case.
+- **Cold start does disk I/O on the main thread.** `Application.onCreate` opens the database,
+  re-arms recordings and walks the whole cache tree before the first frame; `BootReceiver` does
+  the same inside a broadcast's ten-second window.
+- **`EpgMatcher` scores every unmatched channel against every guide entry** with a Levenshtein,
+  after each guide refresh. Finding 9 bounded the normalisation; the comparison itself is still
+  quadratic in the worst case.
 - **`AppViewModel.unmatchedChannels` still has no caller.** It answers "which channels did the
   matcher fail to place", which belongs next to the match breakdown in Diagnostics as the
   one-tap route into mapping that FR-EPG-09 asks for. Now that the mapping dialog exists there

@@ -43,7 +43,22 @@ data class RequestProfile(
  */
 object HttpFactory {
 
-    private val cache = HashMap<RequestProfile, OkHttpClient>()
+    /**
+     * A bounded, least-recently-used cache.
+     *
+     * [RequestProfile] is a data class built from live settings, so dragging the timeouts slider
+     * or editing the user-agent produces a distinct key per value and an unbounded map grew one
+     * entry per keystroke for the life of the process. Each entry is cheap — `newBuilder` shares
+     * [base]'s connection pool and dispatcher, so nothing here owns threads — but a map that only
+     * ever grows is still a leak, and a handful of profiles is all any session uses at once.
+     * Evicted clients are simply dropped: shutting one down would take the shared pool with it.
+     */
+    private const val MAX_CLIENTS = 8
+
+    private val cache = object : LinkedHashMap<RequestProfile, OkHttpClient>(0, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<RequestProfile, OkHttpClient>) =
+            size > MAX_CLIENTS
+    }
 
     private val base: OkHttpClient by lazy {
         OkHttpClient.Builder()

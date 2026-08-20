@@ -95,7 +95,7 @@ feature that was otherwise in scope is simply available.
 | FR-PLB-22 | Not implemented | Timeshift within the live buffer. |
 | FR-PLB-23 | Partial | PiP on Home; no explicit in-app trigger. |
 | FR-PLB-24..27 | Not implemented | Multi-view, presets, adjacent pre-buffering. |
-| FR-PLB-28 | Partial | VOD and series browse with artwork; the season/episode tree is fetched but not yet navigated. |
+| FR-PLB-28 | Partial | VOD browses and plays. **Series do not play**: `XtreamClient.series` stores them with a `series:<id>` stream id and the grid sends that through the movie URL, which no panel serves, so a series tile answers with a playback error. `seriesEpisodes` is written and has no caller. Found by the review of 2026-08-20; see `docs/11`. |
 | FR-PLB-29 | Done | Resume positions stored; continue-watching row in the VOD grid. |
 | FR-PLB-30 | Partial | The RTSP module is on the classpath; untested. |
 
@@ -118,9 +118,9 @@ feature that was otherwise in scope is simply available.
 | FR-UI-22 | Not implemented | Chromecast sender. |
 | FR-UI-23 | Done | Follow the device, English or Hebrew, from Appearance; applied by wrapping the base context, and the activity is recreated. See `docs/adr/ADR-009`. |
 | FR-PRF-01..03 | Not implemented | Profiles. |
-| FR-PRF-04 / 05 / 08 | Done | PBKDF2 salted hash, lock scope settings, documented recovery. |
+| FR-PRF-04 / 05 / 08 | **Not implemented** | The PIN is stored correctly — PBKDF2 with a salt — and the lock-scope switches persist, but **nothing ever asks for the PIN**: `ParentalPin.verify` has no caller, Settings opens unprompted and a locked channel plays on the first press. `hideLockedChannels` only filters the list, and it can be unticked in the same unprotected screen. Previously recorded here as Done. Found by the review of 2026-08-20; see `docs/11`. |
 | FR-PRF-06 | Not implemented | Lock by EPG rating. The `rating` column is populated. |
-| FR-PRF-07 | Done | `PinAttemptLimiter`, exponential backoff. |
+| FR-PRF-07 | **Not implemented** | `PinAttemptLimiter` is written and has no caller, because nothing prompts for a PIN to rate-limit. Previously recorded here as Done. |
 | FR-CU-01..04 | Done | Detection, backward scrolling, four URL conventions, standard transport controls. |
 | FR-CU-05 | Done | Outside-window and unsupported are distinct messages. |
 | FR-CU-06 | Not implemented | Dedicated catch-up browse view. |
