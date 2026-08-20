@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
@@ -379,10 +380,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * FR-ORG-03. This is what "remove this channel" means here, and deliberately so: a refresh
+     * re-imports every channel the provider still lists, so a real delete would come back on the
+     * next refresh with the favourite, name, number and order the user gave it all reset. Hiding
+     * survives a refresh and can be undone. See ADR-010.
+     */
     fun setHidden(channel: Channel, hidden: Boolean) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, hidden = hidden) }
             loadChannels()
+            post(
+                UiMessage(
+                    text = string(
+                        if (hidden) R.string.channel_hidden_done else R.string.channel_shown_done,
+                        channel.displayName,
+                    ),
+                ),
+            )
         }
     }
 
@@ -433,8 +448,37 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.resetChannelCustomisations(channel.id) }
             loadChannels()
+            post(UiMessage(text = string(R.string.channel_reset_done, channel.name)))
         }
     }
+
+    /**
+     * Applies the channel editor in one pass. Each field is written on its own, and only when it
+     * changed, so an edit never rewrites a column the user did not touch.
+     */
+    fun saveChannelEdits(channel: Channel, name: String?, logo: String?, number: Int, groupId: Long?) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                if (name != channel.customName) dao.setChannelCustomName(channel.id, name)
+                if (logo != channel.customLogoUrl) dao.setChannelCustomLogo(channel.id, logo)
+                if (number != channel.number) dao.setChannelNumber(channel.id, number.coerceIn(0, 9999))
+                if (groupId != channel.groupId) dao.setChannelGroup(channel.id, groupId)
+            }
+            loadChannels()
+        }
+    }
+
+    /** FR-ORG-03: hiding has to be reversible, and this is the way back for all of them at once. */
+    fun showAllHidden() {
+        val active = _state.value.activePlaylist ?: return
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { dao.showAllHidden(active.id) }
+            loadChannels()
+        }
+    }
+
+    private fun string(resId: Int, vararg args: Any): String =
+        getApplication<Application>().localised.getString(resId, *args)
 
     /**
      * Whether the list currently on screen is ordered by `sort_index`, which is the only case

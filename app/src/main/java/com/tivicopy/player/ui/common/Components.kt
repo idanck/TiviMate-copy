@@ -2,7 +2,7 @@ package com.tivicopy.player.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -28,7 +28,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -104,6 +109,7 @@ private fun monogramColour(name: String): Color {
  * A row that is focusable for D-pad use and clickable for touch, with a visible focus ring.
  * NFR-UX-02 asks for a 3:1 focus contrast, which the primary colour on any surface here meets.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun FocusableRow(
     onClick: () -> Unit,
@@ -111,6 +117,12 @@ fun FocusableRow(
     selected: Boolean = false,
     contentDescription: String? = null,
     onFocused: () -> Unit = {},
+    /**
+     * The row's secondary action: a long press on touch, and the remote's Menu key on a
+     * television. Both routes are needed — a D-pad has no long press worth relying on, and a
+     * phone has no Menu key.
+     */
+    onLongClick: (() -> Unit)? = null,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -140,7 +152,22 @@ fun FocusableRow(
                 if (it.hasFocus) onFocused()
             }
             .focusable(interactionSource = interaction)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            // The activity binds Menu to Settings, but `dispatchKeyEvent` offers the view
+            // hierarchy the key first, so a focused row claims it before that ever runs.
+            .onKeyEvent { event ->
+                val wanted = event.key == Key.Menu || event.key == Key.F1
+                if (onLongClick != null && wanted && event.type == KeyEventType.KeyDown) {
+                    onLongClick(); true
+                } else {
+                    false
+                }
+            }
+            .combinedClickable(
+                interactionSource = interaction,
+                indication = null,
+                onLongClick = onLongClick,
+                onClick = onClick,
+            )
             .semantics { contentDescription?.let { this.contentDescription = it } }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         content = content,

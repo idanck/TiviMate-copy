@@ -74,6 +74,10 @@ fun ChannelListScreen(
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
     var preview by remember { mutableStateOf<Pair<Programme?, Programme?>>(null to null) }
+    // Both shells render this screen, so the per-channel dialogs live here rather than being
+    // hoisted twice into TvRoot and MobileRoot.
+    var menuFor by remember { mutableStateOf<Channel?>(null) }
+    var editing by remember { mutableStateOf<Channel?>(null) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -106,6 +110,12 @@ fun ChannelListScreen(
                 FilterBanner(query = state.list.search, onClear = { vm.setSearch("") })
             }
             if (compact) GroupChips(vm)
+            if (state.list.selectedGroupId == VirtualGroup.HIDDEN && state.list.channels.isNotEmpty()) {
+                androidx.compose.material3.TextButton(
+                    onClick = { vm.showAllHidden() },
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) { Text(stringResource(R.string.action_show_all)) }
+            }
             val channels = state.list.channels
             if (channels.isEmpty()) {
                 EmptyState(
@@ -131,6 +141,17 @@ fun ChannelListScreen(
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
                             onToggleFavourite = { vm.toggleFavourite(channel) },
+                            onOptions = { menuFor = channel },
+                        )
+                    }
+                    item {
+                        // The gesture is invisible otherwise, and on a television there is no
+                        // convention to fall back on.
+                        Text(
+                            text = stringResource(R.string.channel_options_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 16.dp),
                         )
                     }
                 }
@@ -147,6 +168,36 @@ fun ChannelListScreen(
             )
         }
     }
+
+    // Re-read from the current list so the dialog reflects a change made in a previous pass —
+    // toggling a favourite and reopening the menu should not still offer "Add to favourites".
+    menuFor?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelMenuDialog(
+            channel = channel,
+            canReorder = vm.canReorder,
+            onDismiss = { menuFor = null },
+            onPlay = { onPlay(channel) },
+            onToggleFavourite = { vm.toggleFavourite(channel) },
+            onToggleHidden = { vm.setHidden(channel, !channel.hidden) },
+            onToggleLocked = { vm.setLocked(channel, !channel.locked) },
+            onEdit = { menuFor = null; editing = channel },
+            onMove = { delta -> vm.moveChannel(channel, delta) },
+        )
+    }
+
+    editing?.let { target ->
+        val channel = state.list.channels.firstOrNull { it.id == target.id } ?: target
+        ChannelEditDialog(
+            channel = channel,
+            groups = state.list.groups,
+            onDismiss = { editing = null },
+            onSave = { name, logo, number, groupId ->
+                vm.saveChannelEdits(channel, name, logo, number, groupId)
+            },
+            onReset = { vm.resetChannelCustomisations(channel) },
+        )
+    }
 }
 
 @Composable
@@ -156,12 +207,14 @@ private fun ChannelRow(
     onClick: () -> Unit,
     onFocused: () -> Unit,
     onToggleFavourite: () -> Unit,
+    onOptions: () -> Unit,
 ) {
     FocusableRow(
         onClick = onClick,
         selected = selected,
         contentDescription = channel.displayName,
         onFocused = onFocused,
+        onLongClick = onOptions,
     ) {
         Text(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
