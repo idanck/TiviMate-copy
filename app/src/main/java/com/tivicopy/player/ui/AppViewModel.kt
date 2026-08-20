@@ -18,6 +18,7 @@ import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgMatchStats
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RefreshReport
 import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.data.repo.EpgProgress
@@ -98,12 +99,26 @@ data class SearchState(
     val isEmpty: Boolean get() = channels.isEmpty() && programmes.isEmpty() && vod.isEmpty()
 }
 
+/**
+ * What the player is actually carrying, for the surfaces that describe it — the phone's
+ * Now Playing screen and mini bar. [AppUiState.currentChannel] is not enough: it deliberately
+ * survives an on-demand session (so live state can be restored afterwards), which would put a
+ * live channel's name and guide over a film.
+ */
+sealed interface NowPlayingInfo {
+    data class Live(val channel: Channel) : NowPlayingInfo
+    data class Catchup(val channel: Channel, val programme: Programme) : NowPlayingInfo
+    data class OnDemand(val item: VodItem) : NowPlayingInfo
+    data class RecordingFile(val recording: Recording) : NowPlayingInfo
+}
+
 data class AppUiState(
     val loading: Boolean = true,
     val playlists: List<Playlist> = emptyList(),
     val activePlaylist: Playlist? = null,
     val list: ChannelListState = ChannelListState(),
     val currentChannel: Channel? = null,
+    val nowPlaying: NowPlayingInfo? = null,
     val now: Programme? = null,
     val next: Programme? = null,
     val refreshing: Boolean = false,
@@ -308,7 +323,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             ?: com.tivicopy.player.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
         player.play(channel, profile)
         settings.rememberChannel(channel.id)
-        _state.value = _state.value.copy(currentChannel = channel)
+        _state.value = _state.value.copy(
+            currentChannel = channel,
+            nowPlaying = NowPlayingInfo.Live(channel),
+        )
         viewModelScope.launch(Dispatchers.IO) {
             dao.recordWatch(channel.id, System.currentTimeMillis())
         }
@@ -341,8 +359,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** FR-SET-04 / FR-PLB-21: what to put on screen when the app opens. */
-    fun resumeStartChannel() {
+    /**
+     * FR-SET-04 / FR-PLB-21: what to put on screen when the app opens.
+     *
+     * Answers whether a start channel was resolved, so the phone shell knows to open its
+     * Now Playing screen over the tuning stream rather than leaving it playing behind a list.
+     */
+    fun resumeStartChannel(): Boolean {
         val s = settings.state.value
         val id = when (s.startBehaviour) {
             com.tivicopy.player.data.prefs.StartBehaviour.SPECIFIC_CHANNEL -> s.startChannelId
@@ -352,11 +375,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // and starting a stream underneath it would waste a provider connection.
             else -> 0L
         }
-        if (id == 0L) return
+        if (id == 0L) return false
         viewModelScope.launch {
             val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return@launch
             play(channel)
         }
+        return true
     }
 
     fun refreshNowNext(channel: Channel? = _state.value.currentChannel) {
@@ -381,21 +405,26 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** FR-CU-03/04: play a past programme from the provider's archive. */
-    fun playCatchup(channel: Channel, programme: Programme) {
+    /**
+     * FR-CU-03/04: play a past programme from the provider's archive.
+     *
+     * Answers whether playback actually started: the guards abandon the attempt with a message,
+     * and the phone shell must not open its Now Playing screen over nothing.
+     */
+    fun playCatchup(channel: Channel, programme: Programme): Boolean {
         val now = System.currentTimeMillis()
         if (!channel.hasCatchup) {
             post(UiMessage(error = AppError(AppError.Kind.CatchupUnsupported)))
-            return
+            return false
         }
         if (!CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)) {
             post(UiMessage(error = AppError(AppError.Kind.OutsideCatchupWindow)))
-            return
+            return false
         }
         val url = CatchupUrlBuilder.build(channel, programme.startUtc, programme.endUtc, now)
         if (url == null) {
             post(UiMessage(error = AppError(AppError.Kind.CatchupUnsupported)))
-            return
+            return false
         }
         val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
         val profile = playlist?.let { sources.profileFor(it) }
@@ -405,7 +434,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // that film had reached without anything having replaced it.
         leaveVod()
         player.playUrl(programme.title, url, profile)
-        _state.value = _state.value.copy(currentChannel = channel, now = programme)
+        _state.value = _state.value.copy(
+            currentChannel = channel,
+            now = programme,
+            nowPlaying = NowPlayingInfo.Catchup(channel, programme),
+        )
+        return true
     }
 
     /**
@@ -416,16 +450,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * replaced: a 404 the player spends its whole retry budget on before showing a message that
      * reads like the provider is broken.
      */
-    fun playVod(item: VodItem) {
+    fun playVod(item: VodItem): Boolean {
         val playlist = _state.value.playlists.firstOrNull { it.id == item.playlistId }
             ?: _state.value.activePlaylist
-            ?: return
+            ?: return false
         if (item.isSeriesContainer) {
             post(UiMessage(text = string(R.string.vod_open_series_to_play)))
-            return
+            return false
         }
         val client = sources.xtreamClient(playlist)
-            ?: return post(UiMessage(error = AppError(AppError.Kind.NotFound, "on-demand needs an Xtream source")))
+        if (client == null) {
+            post(UiMessage(error = AppError(AppError.Kind.NotFound, "on-demand needs an Xtream source")))
+            return false
+        }
         val url = if (item.isEpisode) {
             client.episodeUrl(item.streamId, item.containerExtension)
         } else {
@@ -434,6 +471,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         leaveVod()
         playingVod = item
         player.playUrl(item.name, url, sources.profileFor(playlist), item.resumePositionMs)
+        _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.OnDemand(item))
+        return true
     }
 
     /**
@@ -530,12 +569,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Plays a completed recording from wherever it was written. */
-    fun playRecording(recording: com.tivicopy.player.data.model.Recording) {
+    fun playRecording(recording: Recording): Boolean {
         val path = recording.filePath
-            ?: return post(UiMessage(error = AppError(AppError.Kind.NotFound, "recording has no file")))
+        if (path == null) {
+            post(UiMessage(error = AppError(AppError.Kind.NotFound, "recording has no file")))
+            return false
+        }
         val uri = if (path.startsWith("/")) "file://$path" else path
         leaveVod()
         player.playUrl(recording.title, uri, com.tivicopy.player.data.net.RequestProfile(), recording.resumePositionMs)
+        _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.RecordingFile(recording))
+        return true
     }
 
     // ---------------------------------------------------------------- editing
