@@ -554,6 +554,11 @@ the APK carries it before publishing anything (`docs/adr/ADR-012`).
   once-a-day limit inside the manager keeps it free.
 - **An unescaped quotation mark in a string resource** would have failed the resource compiler
   outright. Rewritten without it.
+- **The installer's callback would never have arrived.** The status `PendingIntent` named an
+  action and a package, and since Android 8 a manifest receiver does not receive implicit
+  broadcasts — so the confirmation dialog would never have been launched and every install would
+  have hung on "Installing…". The intent now names the receiver class outright, which also means
+  the status can reach nothing else.
 
 Not proven, and stated as such: no part of the install path has run on a device. The permission
 prompt, the installer session, the silent self-update on Android 12+, and whether a scheduled

@@ -393,9 +393,12 @@ class UpdateManager(
     }
 
     private fun statusIntent(sessionId: Int): PendingIntent {
-        val intent = Intent(UpdateInstallReceiver.ACTION_STATUS).setPackage(context.packageName)
-        // Mutable because the platform fills the result in; the explicit package keeps the
-        // broadcast inside the app either way.
+        // An explicit component, not an action with a package: since Android 8 a manifest
+        // receiver does not receive implicit broadcasts, and naming the class also means the
+        // status can never reach anything but this app.
+        val intent = Intent(context, UpdateInstallReceiver::class.java)
+            .setAction(UpdateInstallReceiver.ACTION_STATUS)
+        // Mutable because the platform fills the result in.
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
         } else {

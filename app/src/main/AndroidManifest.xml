@@ -82,13 +82,11 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- Addressed by class from the installer session's PendingIntent, so it needs no
+             intent filter and is never reachable from outside the app. -->
         <receiver
             android:name=".data.update.UpdateInstallReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="com.tivicopy.player.UPDATE_STATUS" />
-            </intent-filter>
-        </receiver>
+            android:exported="false" />
 
     </application>
 </manifest>
