@@ -123,6 +123,11 @@ fun FocusableRow(
      * phone has no Menu key.
      */
     onLongClick: (() -> Unit)? = null,
+    /**
+     * Lets a caller focus this row programmatically — the TV shell's jump-to-the-playing-channel
+     * when the list opens. Null (the default) changes nothing for every other row.
+     */
+    focusRequester: FocusRequester? = null,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -151,6 +156,7 @@ fun FocusableRow(
                 focused = it.hasFocus
                 if (it.hasFocus) onFocused()
             }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             .focusable(interactionSource = interaction)
             // The activity binds Menu to Settings, but `dispatchKeyEvent` offers the view
             // hierarchy the key first, so a focused row claims it before that ever runs.

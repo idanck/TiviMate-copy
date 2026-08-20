@@ -308,6 +308,7 @@ fun MobileRoot(
                             // it is wide enough to drop the compact layout.
                             showFilter = true,
                             onSearch = { searching = true },
+                            scrollToCurrent = true,
                             modifier = Modifier.fillMaxSize(),
                         )
                         MobileTab.GUIDE -> GuideScreen(

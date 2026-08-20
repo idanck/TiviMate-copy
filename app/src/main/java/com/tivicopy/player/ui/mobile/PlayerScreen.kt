@@ -198,6 +198,7 @@ fun PlayerScreen(
                         compact = !twoPane,
                         showNowNext = twoPane,
                         showFilter = true,
+                        scrollToCurrent = true,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
