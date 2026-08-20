@@ -71,6 +71,7 @@ import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
+import kotlinx.coroutines.delay
 
 enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
 
@@ -129,6 +130,25 @@ fun MobileRoot(
     // start channel opens the player screen instead, and MainActivity owns that flag.
     LaunchedEffect(Unit) {
         if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
+    }
+
+    // Re-query now/next when the running programme ends, so neither the mini bar nor the player
+    // screen captions the channel with a programme that is over. It lives here, not in
+    // PlayerScreen, because collapsing the player must not stop it — the collapsed bar is
+    // exactly where a stale title would sit unnoticed. Keyed on the end time: a zap replaces
+    // `now` and re-arms it.
+    LaunchedEffect(state.now?.endUtc) {
+        val end = state.now?.endUtc ?: return@LaunchedEffect
+        val wait = end - System.currentTimeMillis() + PROGRAMME_TURNOVER_GRACE_MS
+        if (wait > 0) delay(wait)
+        vm.refreshNowNext()
+    }
+
+    // While the player screen is closed and the app is not in PiP, nothing anywhere shows the
+    // video track — only the mini bar's audio matters — so decoding it is pure battery and
+    // bandwidth. The engine re-applies this over instance rebuilds.
+    LaunchedEffect(playerOpen, inPip) {
+        ServiceLocator.player.setVideoOutputWanted(playerOpen || inPip)
     }
 
     // In the PiP window the app is its video and nothing else: the browse chrome would be
@@ -438,3 +458,6 @@ private fun MiniPlayerBar(
         }
     }
 }
+
+/** How long past a programme's end to wait before re-asking the guide, absorbing clock skew. */
+private const val PROGRAMME_TURNOVER_GRACE_MS = 5_000L

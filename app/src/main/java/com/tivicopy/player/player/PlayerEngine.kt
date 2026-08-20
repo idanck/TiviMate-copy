@@ -207,8 +207,36 @@ class PlayerEngine(
         exo.addListener(listener)
         exo.addAnalyticsListener(analytics)
         exo.playWhenReady = true
+        // A rebuild while the phone's player screen is collapsed must come up video-less too,
+        // or the saving below silently ends at the first decoder or buffer change.
+        applyVideoOutputWanted(exo)
         _currentPlayer.value = exo
         return exo
+    }
+
+    // ---------------------------------------------------------- video output
+
+    private var videoOutputWanted = true
+
+    /**
+     * Whether anything on screen is actually showing the video track.
+     *
+     * The phone's browse screens keep the stream running behind a mini player with no surface
+     * anywhere, so decoding video there is battery and bandwidth spent on frames nothing
+     * displays. Disabling the track — rather than pausing — keeps the audio alive, and
+     * re-enabling it picks the video back up at the live edge. [build] re-applies the flag so
+     * an instance rebuild while collapsed stays video-less.
+     */
+    fun setVideoOutputWanted(wanted: Boolean) {
+        if (videoOutputWanted == wanted) return
+        videoOutputWanted = wanted
+        player?.let(::applyVideoOutputWanted)
+    }
+
+    private fun applyVideoOutputWanted(exo: ExoPlayer) {
+        exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
+            .setTrackTypeDisabled(C.TRACK_TYPE_VIDEO, !videoOutputWanted)
+            .build()
     }
 
     private fun bufferValues(s: Settings.Snapshot): BufferDurations {

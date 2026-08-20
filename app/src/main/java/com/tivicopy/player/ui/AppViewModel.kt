@@ -359,13 +359,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** [resumeStartChannel] is once per process: a recreated activity must not restart it. */
+    private var startBehaviourConsumed = false
+
     /**
      * FR-SET-04 / FR-PLB-21: what to put on screen when the app opens.
      *
-     * Answers whether a start channel was resolved, so the phone shell knows to open its
+     * Answers whether a start channel actually started, so the phone shell knows to open its
      * Now Playing screen over the tuning stream rather than leaving it playing behind a list.
+     * Suspends for the lookup: answering early on the id alone would open that screen over
+     * nothing whenever a refresh has since deleted the channel. One-shot per process — the
+     * activity re-runs its start effect on every recreate (a language change does one
+     * deliberately), and replaying the start channel there would tear down whatever the user
+     * was actually watching.
      */
-    fun resumeStartChannel(): Boolean {
+    suspend fun resumeStartChannel(): Boolean {
+        if (startBehaviourConsumed) return false
+        startBehaviourConsumed = true
         val s = settings.state.value
         val id = when (s.startBehaviour) {
             com.tivicopy.player.data.prefs.StartBehaviour.SPECIFIC_CHANNEL -> s.startChannelId
@@ -376,10 +386,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             else -> 0L
         }
         if (id == 0L) return false
-        viewModelScope.launch {
-            val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return@launch
-            play(channel)
-        }
+        val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return false
+        play(channel)
         return true
     }
 

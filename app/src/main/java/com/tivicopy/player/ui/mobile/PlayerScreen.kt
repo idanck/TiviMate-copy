@@ -33,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +57,6 @@ import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NowNextPane
-import kotlinx.coroutines.delay
 
 /**
  * The phone's Now Playing screen (ADR-011): a full-screen surface over the browse shell, the
@@ -80,7 +78,6 @@ fun PlayerScreen(
     inPip: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val state by vm.state.collectAsState()
     val prefs by vm.settingsState.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
 
@@ -107,17 +104,10 @@ fun PlayerScreen(
 
     // Close is registered first so the sheet's handler, registered after, wins while the sheet
     // is open: Back then dismisses the list before it collapses the screen.
+    // The programme-turnover refresh lives in MobileRoot, which is always composed — here it
+    // would stop the moment the user collapsed the screen, exactly when the mini bar needs it.
     BackHandler(onBack = onClose)
     BackHandler(enabled = landscape && channelSheet) { channelSheet = false }
-
-    // Re-query now/next when the running programme ends, so the titles under the video do not
-    // go stale mid-viewing. Keyed on the end time: a zap replaces `now` and re-arms this.
-    LaunchedEffect(state.now?.endUtc) {
-        val end = state.now?.endUtc ?: return@LaunchedEffect
-        val wait = end - System.currentTimeMillis() + PROGRAMME_TURNOVER_GRACE_MS
-        if (wait > 0) delay(wait)
-        vm.refreshNowNext()
-    }
 
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -424,6 +414,3 @@ private fun Modifier.gestureControls(
 
 /** A full-width horizontal sweep seeks this far. */
 private const val SEEK_SWEEP_MS = 120_000f
-
-/** How long past a programme's end to wait before re-asking the guide, absorbing clock skew. */
-private const val PROGRAMME_TURNOVER_GRACE_MS = 5_000L

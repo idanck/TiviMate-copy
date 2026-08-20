@@ -51,6 +51,7 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.TwoLine
+import kotlinx.coroutines.delay
 
 /**
  * Groups on one side, channels in the middle, now/next on the other (docs/03 section 3.2).
@@ -103,6 +104,10 @@ fun ChannelListScreen(
     var renamingGroup by remember { mutableStateOf<ChannelGroup?>(null) }
     var creatingGroup by remember { mutableStateOf(false) }
     var managingGroups by remember { mutableStateOf(false) }
+    // The one-shot for [scrollToCurrent], held at screen level rather than inside the list
+    // branch: a filter that momentarily empties the list tears that branch down, and a guard
+    // living there would reset and re-hijack the scroll when the list refills.
+    var anchored by remember { mutableStateOf(false) }
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -157,15 +162,15 @@ fun ChannelListScreen(
                 val listState = rememberLazyListState()
                 val currentFocus = remember { FocusRequester() }
 
-                if (scrollToCurrent) {
-                    // Once per appearance of this list, not per data change: `anchored` lives in
-                    // this branch, so it resets when the screen closes and holds while a filter
-                    // empties and refills the list underneath the user.
-                    var anchored by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) {
+                if (scrollToCurrent && !anchored) {
+                    // Keyed on both the list and the playing channel: at startup the list can
+                    // land before `resumeStartChannel` has decided what is playing, so the
+                    // anchor waits for the channel rather than firing once against null.
+                    LaunchedEffect(channels, state.currentChannel?.id) {
                         if (anchored) return@LaunchedEffect
+                        val currentId = state.currentChannel?.id ?: return@LaunchedEffect
                         anchored = true
-                        val index = channels.indexOfFirst { it.id == state.currentChannel?.id }
+                        val index = channels.indexOfFirst { it.id == currentId }
                         if (index > 0) listState.scrollToItem(index)
                         if (focusCurrent && index >= 0) {
                             // One frame so the scrolled-to row is composed and carries the
@@ -177,23 +182,27 @@ fun ChannelListScreen(
                 }
 
                 // What every visible channel is showing, fetched the way the guide grid does it:
-                // the visible slice drives one windowed query (per distinct EPG offset), replaced
-                // rather than accumulated, so a thousand-channel list costs what a screenful costs.
+                // the visible rows drive one windowed query (per distinct EPG offset), replaced
+                // rather than accumulated, so a thousand-channel list costs what a screenful
+                // costs. Quantised to blocks of rows so a fling crosses a handful of keys, not
+                // one per row, and debounced so a restart cancels a query the scroll has
+                // already made stale.
                 var nowByChannel by remember { mutableStateOf<Map<Long, Programme>>(emptyMap()) }
                 if (showNowLine) {
-                    val visibleSlice by remember(channels) {
-                        derivedStateOf {
-                            val first = (listState.firstVisibleItemIndex - NOW_PREFETCH_ROWS)
-                                .coerceAtLeast(0)
-                            val last = (listState.firstVisibleItemIndex + NOW_VISIBLE_ROWS + NOW_PREFETCH_ROWS)
-                                .coerceAtMost(channels.size)
-                            if (first >= last) emptyList() else channels.subList(first, last).toList()
-                        }
+                    val visibleBlock by remember {
+                        derivedStateOf { listState.firstVisibleItemIndex / NOW_PREFETCH_ROWS }
                     }
-                    LaunchedEffect(visibleSlice) {
+                    LaunchedEffect(channels, visibleBlock) {
+                        delay(NOW_QUERY_DEBOUNCE_MS)
+                        val first = ((visibleBlock - 1) * NOW_PREFETCH_ROWS).coerceAtLeast(0)
+                        val last = (visibleBlock * NOW_PREFETCH_ROWS + NOW_VISIBLE_ROWS + NOW_PREFETCH_ROWS)
+                            .coerceAtMost(channels.size)
+                        if (first >= last) {
+                            nowByChannel = emptyMap()
+                            return@LaunchedEffect
+                        }
                         val now = System.currentTimeMillis()
-                        nowByChannel = if (visibleSlice.isEmpty()) emptyMap()
-                        else vm.guideWindow(visibleSlice, now, now + 1)
+                        nowByChannel = vm.guideWindow(channels.subList(first, last).toList(), now, now + 1)
                             .mapNotNull { (id, list) ->
                                 list.firstOrNull { now in it.startUtc until it.endUtc }
                                     ?.let { id to it }
@@ -627,3 +636,6 @@ private const val NOW_VISIBLE_ROWS = 15
 
 /** Extra rows fetched on either side so a slow scroll never shows a blank second line. */
 private const val NOW_PREFETCH_ROWS = 5
+
+/** How long a scroll must rest on a block before its now-line query runs. */
+private const val NOW_QUERY_DEBOUNCE_MS = 120L
