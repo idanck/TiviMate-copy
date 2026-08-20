@@ -24,12 +24,14 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
+import com.tivicopy.player.data.prefs.AppLanguage
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.data.prefs.BufferPreset
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.findActivity
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
@@ -192,6 +194,33 @@ fun SettingsScreen(
 
             SettingsSection.APPEARANCE -> {
                 SettingsSectionTitle(stringResource(R.string.settings_appearance))
+                // FR-UI-23. Unlike every other setting here, this one cannot be applied to the
+                // running composition: resources are resolved from the activity's base context,
+                // which is only attached once. Recreating the activity re-runs
+                // `attachBaseContext`, which is where the choice is read.
+                SettingsChoice(
+                    title = stringResource(R.string.settings_language),
+                    options = listOf(
+                        AppLanguage.SYSTEM to stringResource(R.string.language_system),
+                        AppLanguage.ENGLISH to stringResource(R.string.language_english),
+                        AppLanguage.HEBREW to stringResource(R.string.language_hebrew),
+                    ),
+                    selected = s.language,
+                ) { chosen ->
+                    if (chosen != s.language) {
+                        settings.setLanguage(chosen)
+                        // Channel names are stored by the platform at creation, so they only
+                        // follow the language if we re-declare them.
+                        com.tivicopy.player.App.createNotificationChannels(context)
+                        context.findActivity()?.recreate()
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.settings_language_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                )
                 SettingsChoice(
                     title = stringResource(R.string.settings_theme),
                     options = listOf(

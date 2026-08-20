@@ -22,6 +22,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
+import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.record.ScheduleResult
 
 /**
@@ -140,7 +141,8 @@ private fun scheduleSeries(channel: Channel, programme: Programme, upcoming: Lis
     describe(ServiceLocator.recordings.scheduleSeries(channel, programme, upcoming), programme.title)
 
 private fun describe(result: ScheduleResult, title: String): String {
-    val context = ServiceLocator.appContext
+    // The application context keeps whatever language it was attached with (FR-UI-23).
+    val context = ServiceLocator.appContext.localised
     return when (result) {
         is ScheduleResult.Rejected -> context.getString(warningString(result.reason))
         is ScheduleResult.Scheduled -> buildString {

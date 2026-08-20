@@ -17,6 +17,7 @@ import com.tivicopy.player.data.model.EpgMatchStats
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.RefreshReport
+import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.player.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
@@ -88,9 +89,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         reload()
     }
 
-    private fun noticeText(error: AppError, what: String): String = when {
-        what == "software" -> getApplication<Application>().getString(com.tivicopy.player.R.string.decoder_fell_back)
-        else -> getApplication<Application>().getString(com.tivicopy.player.R.string.failover_switched, what)
+    // `localised` rather than the application context itself: `Application` is attached once and
+    // never rebuilt, so after a language change it still resolves the previous one until the
+    // process dies (FR-UI-23).
+    private fun noticeText(error: AppError, what: String): String {
+        val strings = getApplication<Application>().localised
+        return when {
+            what == "software" -> strings.getString(com.tivicopy.player.R.string.decoder_fell_back)
+            else -> strings.getString(com.tivicopy.player.R.string.failover_switched, what)
+        }
     }
 
     // ------------------------------------------------------------------ load

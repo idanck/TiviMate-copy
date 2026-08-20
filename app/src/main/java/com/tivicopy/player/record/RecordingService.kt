@@ -22,6 +22,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.net.HttpFactory
+import com.tivicopy.player.data.prefs.AppLocale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -54,6 +55,16 @@ class RecordingService : Service() {
     private var wifiLock: WifiManager.WifiLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /**
+     * FR-UI-23. A service is handed a fresh context by the framework rather than the one
+     * `Application` was attached with, so without this every string below — the ongoing recording
+     * notification included — would come back in the system language while the UI spoke the
+     * user's chosen one.
+     */
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val recordingId = intent?.getLongExtra(EXTRA_RECORDING_ID, 0L) ?: 0L

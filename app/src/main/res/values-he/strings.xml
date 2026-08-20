@@ -190,6 +190,11 @@
     <string name="theme_light">בהיר</string>
     <string name="theme_dark">כהה</string>
     <string name="theme_amoled">שחור AMOLED</string>
+    <string name="settings_language">שפה</string>
+    <string name="settings_language_hint">חל מיד. בחירה בעברית גם הופכת את פריסת המסך מימין לשמאל.</string>
+    <string name="language_system">לפי הגדרות המכשיר</string>
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
     <string name="settings_font_scale">גודל טקסט</string>
     <string name="settings_overlay_hide">הסתר שכבות אחרי</string>
     <string name="settings_seconds">%1$d שנ\'</string>

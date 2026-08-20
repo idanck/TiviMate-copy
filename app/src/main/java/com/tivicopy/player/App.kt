@@ -12,7 +12,9 @@ import com.tivicopy.player.data.backup.BackupManager
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.db.Database
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
+import com.tivicopy.player.data.prefs.localised
 import com.tivicopy.player.data.repo.EpgRepository
 import com.tivicopy.player.data.repo.SourceRepository
 import com.tivicopy.player.player.PlayerEngine
@@ -84,10 +86,20 @@ class App : Application(), ImageLoaderFactory {
             .build()
     }
 
+    /**
+     * FR-UI-23: the chosen language has to be in place before anything reads a string, and
+     * `Application` resolves resources through this base context. Without it the notification
+     * channels below, and everything else resolved off the application context, would speak the
+     * system language while the UI spoke the user's.
+     */
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLocale.wrap(base))
+    }
+
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
-        createNotificationChannels()
+        createNotificationChannels(this)
         RefreshScheduler.scheduleAll(this)
         // Re-arm anything that survived a process death but not a reboot.
         ServiceLocator.recordings.rearmAll()
@@ -95,27 +107,33 @@ class App : Application(), ImageLoaderFactory {
         ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
     }
 
-    private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = getSystemService(NotificationManager::class.java) ?: return
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_RECORDING,
-                getString(R.string.channel_recording),
-                NotificationManager.IMPORTANCE_LOW,
-            ).apply { description = getString(R.string.channel_recording_desc) },
-        )
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CHANNEL_ALERTS,
-                getString(R.string.channel_alerts),
-                NotificationManager.IMPORTANCE_DEFAULT,
-            ).apply { description = getString(R.string.channel_alerts_desc) },
-        )
-    }
-
     companion object {
         const val CHANNEL_RECORDING = "recording"
         const val CHANNEL_ALERTS = "alerts"
+
+        /**
+         * The platform stores a channel's name at creation and never re-reads it, so changing the
+         * interface language has to re-declare them. Creating a channel that already exists
+         * updates its name and description, which is exactly what is wanted here.
+         */
+        fun createNotificationChannels(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+            val manager = context.getSystemService(NotificationManager::class.java) ?: return
+            val strings = context.localised
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_RECORDING,
+                    strings.getString(R.string.channel_recording),
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply { description = strings.getString(R.string.channel_recording_desc) },
+            )
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_ALERTS,
+                    strings.getString(R.string.channel_alerts),
+                    NotificationManager.IMPORTANCE_DEFAULT,
+                ).apply { description = strings.getString(R.string.channel_alerts_desc) },
+            )
+        }
     }
 }

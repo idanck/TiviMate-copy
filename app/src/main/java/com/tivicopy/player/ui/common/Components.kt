@@ -39,6 +39,18 @@ import coil.compose.AsyncImage
 import com.tivicopy.player.data.model.Channel
 
 /**
+ * The activity behind a composition's context.
+ *
+ * A bare `as? Activity` is not enough here: the language setting wraps the activity in a
+ * `ContextWrapper` (see `data/prefs/AppLocale.kt`), so the activity sits one link down the chain.
+ */
+tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+/**
  * A channel tile that falls back to a generated monogram when the provider supplies no logo or
  * the logo fails to load (FR-ORG-10). The fallback colour is derived from the name so the same
  * channel always gets the same tile.

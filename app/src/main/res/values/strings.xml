@@ -210,6 +210,11 @@
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_amoled">AMOLED black</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_language_hint">Applies immediately. Choosing Hebrew also mirrors the layout right to left.</string>
+    <string name="language_system">Follow the device</string>
+    <string name="language_english">English</string>
+    <string name="language_hebrew">עברית</string>
     <string name="settings_font_scale">Text size</string>
     <string name="settings_overlay_hide">Hide overlays after</string>
     <string name="settings_seconds">%1$d s</string>

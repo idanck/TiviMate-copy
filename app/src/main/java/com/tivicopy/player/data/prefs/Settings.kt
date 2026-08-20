@@ -28,6 +28,26 @@ enum class AspectMode { FIT, FILL, ZOOM, STRETCH, RATIO_16_9, RATIO_4_3, ORIGINA
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
 
+/**
+ * The interface language (FR-UI-23).
+ *
+ * [SYSTEM] means "do not intervene", which is what makes an Android 13+ per-app language, or a
+ * plain device-language change, keep working. [tag] is a BCP-47 tag, and the set is bounded by
+ * `resourceConfigurations` in the build file — there is no point offering a language whose strings
+ * are stripped from the APK.
+ */
+enum class AppLanguage(val tag: String?) {
+    SYSTEM(null),
+    ENGLISH("en"),
+    HEBREW("he");
+
+    companion object {
+        /** Kept free of [android.content.Context] so the resolution itself is unit-testable. */
+        fun fromStored(raw: String?): AppLanguage =
+            raw?.let { stored -> entries.firstOrNull { it.name == stored } } ?: SYSTEM
+    }
+}
+
 enum class StartBehaviour { LAST_CHANNEL, SPECIFIC_CHANNEL, CHANNEL_LIST, GUIDE }
 
 enum class ExternalPlayerScope { NEVER, VOD_ONLY, ALWAYS }
@@ -41,7 +61,7 @@ enum class ExternalPlayerScope { NEVER, VOD_ONLY, ALWAYS }
 class Settings(context: Context) {
 
     private val prefs: SharedPreferences =
-        context.applicationContext.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _state = MutableStateFlow(read())
     val state: StateFlow<Snapshot> = _state
@@ -59,6 +79,7 @@ class Settings(context: Context) {
         val subtitlesEnabled: Boolean,
         val subtitleTextScale: Float,
         val theme: ThemeMode,
+        val language: AppLanguage,
         val overlayAutoHideSeconds: Int,
         val overlayOpacity: Float,
         val fontScale: Float,
@@ -110,6 +131,7 @@ class Settings(context: Context) {
         subtitlesEnabled = prefs.getBoolean(K_SUBS_ON, false),
         subtitleTextScale = prefs.getFloat(K_SUB_SCALE, 1.0f),
         theme = prefs.enum(K_THEME, ThemeMode.DARK),
+        language = prefs.enum(K_LANGUAGE, AppLanguage.SYSTEM),
         overlayAutoHideSeconds = prefs.getInt(K_OVERLAY_HIDE, 5),
         overlayOpacity = prefs.getFloat(K_OVERLAY_OPACITY, 0.85f),
         fontScale = prefs.getFloat(K_FONT_SCALE, 1.0f),
@@ -170,6 +192,12 @@ class Settings(context: Context) {
     fun setSubtitlesEnabled(v: Boolean) = commit { putBoolean(K_SUBS_ON, v) }
     fun setSubtitleTextScale(v: Float) = commit { putFloat(K_SUB_SCALE, v.coerceIn(0.5f, 2.5f)) }
     fun setTheme(t: ThemeMode) = commit { putString(K_THEME, t.name) }
+
+    /**
+     * FR-UI-23. Takes effect when the activity is next attached, so the caller recreates it;
+     * [AppLocale] reads this key straight from preferences during `attachBaseContext`.
+     */
+    fun setLanguage(v: AppLanguage) = commit { putString(K_LANGUAGE, v.name) }
     fun setOverlayAutoHideSeconds(v: Int) = commit { putInt(K_OVERLAY_HIDE, v.coerceIn(2, 60)) }
     fun setOverlayOpacity(v: Float) = commit { putFloat(K_OVERLAY_OPACITY, v.coerceIn(0.3f, 1f)) }
     fun setFontScale(v: Float) = commit { putFloat(K_FONT_SCALE, v.coerceIn(0.8f, 1.6f)) }
@@ -248,6 +276,9 @@ class Settings(context: Context) {
     }
 
     companion object {
+        /** Also opened directly by [AppLocale], which runs before this class is constructed. */
+        const val PREFS_NAME = "settings"
+
         const val K_EPG_OFFSET = "epg_offset"
         const val K_BUFFER_PRESET = "buffer_preset"
         const val K_BUFFER_MIN = "buffer_min_ms"
@@ -260,6 +291,7 @@ class Settings(context: Context) {
         const val K_SUBS_ON = "subtitles_enabled"
         const val K_SUB_SCALE = "subtitle_scale"
         const val K_THEME = "theme"
+        const val K_LANGUAGE = "app_language"
         const val K_OVERLAY_HIDE = "overlay_hide_seconds"
         const val K_OVERLAY_OPACITY = "overlay_opacity"
         const val K_FONT_SCALE = "font_scale"

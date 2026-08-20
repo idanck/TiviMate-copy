@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.mobile.MobileRoot
@@ -58,6 +59,15 @@ class MainActivity : ComponentActivity() {
         pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
             pm.hasSystemFeature("android.software.leanback_only") ||
             !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+    }
+
+    /**
+     * FR-UI-23: the interface language is applied here, before any resource is resolved.
+     * [android.app.Activity.recreate] runs this again, which is how a change in Settings takes
+     * effect without restarting the process.
+     */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocale.wrap(newBase))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
