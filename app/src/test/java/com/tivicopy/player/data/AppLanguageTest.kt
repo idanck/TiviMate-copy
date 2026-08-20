@@ -44,4 +44,34 @@ class AppLanguageTest {
         assertEquals("en", AppLanguage.ENGLISH.tag)
         assertEquals("he", AppLanguage.HEBREW.tag)
     }
+
+    /**
+     * Reading back what Android 13's per-app language setting is applying. Only the first tag is
+     * applied, and only the language subtag decides — a region or a script is still that
+     * language.
+     */
+    @Test
+    fun `a platform locale list resolves to its language`() {
+        assertEquals(AppLanguage.HEBREW, AppLanguage.fromLocaleTags("he"))
+        assertEquals(AppLanguage.HEBREW, AppLanguage.fromLocaleTags("he-IL"))
+        assertEquals(AppLanguage.ENGLISH, AppLanguage.fromLocaleTags("en-US,he-IL"))
+    }
+
+    /**
+     * Android's `java.util.Locale` still reports Hebrew under `iw`, the code `he` replaced, so a
+     * tag read back from the platform can arrive either way and both are the same language.
+     */
+    @Test
+    fun `the legacy Hebrew code is still Hebrew`() {
+        assertEquals(AppLanguage.HEBREW, AppLanguage.fromLocaleTags("iw"))
+        assertEquals(AppLanguage.HEBREW, AppLanguage.fromLocaleTags("iw_IL"))
+    }
+
+    /** An empty list is the platform saying the user has not chosen one. */
+    @Test
+    fun `no platform locale means follow the device`() {
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.fromLocaleTags(""))
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.fromLocaleTags(null))
+        assertEquals(AppLanguage.SYSTEM, AppLanguage.fromLocaleTags("ru-RU"))
+    }
 }

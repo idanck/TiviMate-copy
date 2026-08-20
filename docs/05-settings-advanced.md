@@ -37,9 +37,11 @@
 
 - **Interface language** (FR-UI-23): follow the device, English, or Hebrew — chosen in the app,
   not by switching the whole device. Choosing a right-to-left language mirrors the layout and the
-  remote's horizontal bindings with it. Applied by wrapping the base context and recreating the
-  activity; `docs/adr/ADR-009` records why, and why the AppCompat route was rejected. The set of
-  languages is bounded by `resourceConfigurations` in the build file.
+  remote's horizontal bindings with it. Handed to the platform's own per-app language setting on
+  Android 13 and later, and below that applied by wrapping the base context, registering the
+  locale as the activity's override configuration, and recreating the activity;
+  `docs/adr/ADR-009` records why, and why the AppCompat route was rejected. The set of languages
+  is bounded by `resourceConfigurations` in the build file.
 - **Channel order** (FR-ORG-06): the playlist's own order, A–Z, most watched, or recently
   watched. Manual moves are stored in `sort_index`, which only the first of those reads, so
   switching away parks a hand-made order rather than losing it.

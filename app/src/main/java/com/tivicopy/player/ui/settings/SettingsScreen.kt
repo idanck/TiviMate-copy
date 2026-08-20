@@ -26,6 +26,7 @@ import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
 import com.tivicopy.player.data.prefs.AppLanguage
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.data.prefs.BufferPreset
@@ -205,10 +206,14 @@ fun SettingsScreen(
                         settings.setLanguage(chosen)
                         // The cached application-language context is now stale.
                         ServiceLocator.refreshLocale()
-                        // Channel names are stored by the platform at creation, so they only
-                        // follow the language if we re-declare them.
-                        com.tivicopy.player.App.createNotificationChannels(context)
-                        context.findActivity()?.recreate()
+                        // Android 13 and later apply the choice themselves and recreate the
+                        // activity with it; below that it is applied from `attachBaseContext`,
+                        // which only runs again on a recreate. Either way the notification
+                        // channels are re-declared in `MainActivity.onCreate`, because the
+                        // platform stores their names when they are created.
+                        if (!AppLocale.applyToPlatform(context, chosen)) {
+                            context.findActivity()?.recreate()
+                        }
                     }
                 }
                 Text(
