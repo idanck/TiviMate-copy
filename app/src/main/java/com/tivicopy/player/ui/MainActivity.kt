@@ -325,9 +325,29 @@ class MainActivity : ComponentActivity() {
             return true
         }
 
+        // The dedicated channel keys and the transport keys act on the stream, not on whatever is
+        // drawn over it, so they stay live for as long as the video is still the screen. Only the
+        // *arrows* are ambiguous — Up over the filmstrip means "move focus", not "next channel" —
+        // and those are handled below, after the overlay has had its say.
+        if (overlay.isPassthrough) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_CHANNEL_UP -> { zap(1); return true }
+                KeyEvent.KEYCODE_CHANNEL_DOWN -> { zap(-1); return true }
+                KeyEvent.KEYCODE_LAST_CHANNEL, KeyEvent.KEYCODE_TV -> {
+                    vm.toggleLastChannel()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                    ServiceLocator.player.togglePlayPause()
+                    return true
+                }
+            }
+        }
+
         // While an overlay owns the D-pad, the arrows belong to it. The filmstrip, the transport
         // bar and the playback menu draw focusable controls over playing video, so they take the
-        // arrows too — but zapping and numeric entry stay live underneath them.
+        // arrows — while the channel and transport keys above keep working underneath, as does
+        // numeric channel entry.
         if (!overlay.leavesDpadToShell) {
             return super.onKeyDown(keyCode, event)
         }
