@@ -169,7 +169,9 @@ class Settings(context: Context) {
         readTimeoutSeconds = prefs.getInt(K_READ_TIMEOUT, 30),
         retries = prefs.getInt(K_RETRIES, 2),
         allowInsecureTls = prefs.getBoolean(K_INSECURE_TLS, false),
-        startBehaviour = prefs.enum(K_START_BEHAVIOUR, StartBehaviour.LAST_CHANNEL),
+        // Defaults to the channel list rather than resuming playback, so opening the app never
+        // starts a stream on its own — the user lands on the channel picker and chooses one.
+        startBehaviour = prefs.enum(K_START_BEHAVIOUR, StartBehaviour.CHANNEL_LIST),
         resumeLastChannel = prefs.getBoolean(K_RESUME_LAST, true),
         lastChannelId = prefs.getLong(K_LAST_CHANNEL, 0),
         previousChannelId = prefs.getLong(K_PREV_CHANNEL, 0),
