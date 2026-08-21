@@ -414,7 +414,7 @@ class UpdateManager(
             candidate.packageName != context.packageName ->
                 Outcome.Err(AppError(AppError.Kind.UnsupportedFormat, "different package"))
             certificates(candidate) != certificates(installed) ->
-                Outcome.Err(AppError(AppError.Kind.Forbidden, "signature mismatch"))
+                Outcome.Err(AppError(AppError.Kind.SignatureMismatch, "signature mismatch"))
             else -> Outcome.Ok(Unit)
         }
     } catch (t: Throwable) {

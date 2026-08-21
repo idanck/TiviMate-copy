@@ -137,6 +137,7 @@
     <string name="err_storage">אין מספיק מקום פנוי.</string>
     <string name="err_permission">הרשאה נדרשת נדחתה.</string>
     <string name="err_cancelled">בוטל.</string>
+    <string name="err_signature_mismatch">העדכון הזה חתום במפתח שונה מהאפליקציה המותקנת, ולכן הוא לא יכול להחליף אותה. יש להסיר קודם את האפליקציה הנוכחית ואז להתקין את העדכון — פעולה זו תמחק את הנתונים המקומיים שלה.</string>
     <string name="err_unknown">משהו השתבש: %1$s</string>
     <string name="rec_title">הקלטות</string>
     <string name="rec_scheduled">מתוזמנות</string>

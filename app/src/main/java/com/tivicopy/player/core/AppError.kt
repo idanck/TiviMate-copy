@@ -27,6 +27,8 @@ data class AppError(
         InsufficientStorage,
         PermissionDenied,
         Cancelled,
+        /** A downloaded update APK is signed with a different key than the running app. */
+        SignatureMismatch,
         Unknown,
     }
 

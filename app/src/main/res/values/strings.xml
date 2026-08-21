@@ -153,6 +153,7 @@
     <string name="err_storage">There is not enough free space.</string>
     <string name="err_permission">A required permission was refused.</string>
     <string name="err_cancelled">Cancelled.</string>
+    <string name="err_signature_mismatch">This update is signed with a different key than the app you have installed, so it can\'t replace it. Uninstall the current app first, then install this update — this will erase its local data.</string>
     <string name="err_unknown">Something went wrong: %1$s</string>
 
     <!-- Recording -->
