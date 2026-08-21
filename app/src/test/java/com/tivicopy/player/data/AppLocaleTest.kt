@@ -24,9 +24,11 @@ import java.util.Locale
  * the layout direction, and following the device means not intervening at all.
  *
  * These assert the configuration this code builds, not the strings the platform then resolves
- * from it. `createConfigurationContext` is Android's job; a JVM unit test that appears to prove
- * it would be proving Robolectric's emulation of it instead. That the Hebrew resources are
- * complete and in sync is checked in the build, and that they actually render needs a device.
+ * from it. That split was drawn too widely once: it left the resource lookup itself untested on
+ * the grounds that testing it would only prove Robolectric's emulation — and the lookup was
+ * where the feature broke, because the translation was compiled under a language name Android
+ * never asks for. `HebrewStringsTest` covers that lookup now. What still needs a device is the
+ * rendering: whether the interface redraws in the language once it resolves.
  *
  * The `platformApplied` overloads are called directly rather than running the suite twice under
  * two SDK levels: the branch is the interesting part, and choosing it by hand keeps the whole

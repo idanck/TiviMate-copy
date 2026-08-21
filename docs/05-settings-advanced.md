@@ -41,7 +41,9 @@
   Android 13 and later, and below that applied by wrapping the base context, registering the
   locale as the activity's override configuration, and recreating the activity;
   `docs/adr/ADR-009` records why, and why the AppCompat route was rejected. The set of languages
-  is bounded by `resourceConfigurations` in the build file.
+  is bounded by `resourceConfigurations` in the build file, and each one needs a `values-` folder
+  named the way Android asks for it — Hebrew is `values-iw`, the code `he` retired, because that
+  is what the resource lookup requests.
 - **Channel order** (FR-ORG-06): the playlist's own order, A–Z, most watched, or recently
   watched. Manual moves are stored in `sort_index`, which only the first of those reads, so
   switching away parks a hand-made order rather than losing it.

@@ -4,8 +4,13 @@
   Declaring them lets Android 13 and later list the app under the system per-app language setting.
   That setting changes the locale the platform hands us, which the in-app picker's default
   (AppLanguage.SYSTEM) follows; picking a language in the app overrides it (FR-UI-23, ADR-009).
+
+  Hebrew is `iw`, the code `he` retired, because that is the name of the resource folder it has
+  to point at — see the note in `app/build.gradle.kts`. Android's own sample locale-config
+  declares it the same way. Either spelling produces the same `java.util.Locale`, so the tag the
+  picker hands to `LocaleManager` stays the current one.
 -->
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
     <locale android:name="en" />
-    <locale android:name="he" />
+    <locale android:name="iw" />
 </locale-config>
