@@ -2,6 +2,7 @@ package com.tivicopy.player.data
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
 import android.view.View
 import androidx.test.core.app.ApplicationProvider
 import com.tivicopy.player.data.prefs.AppLanguage
@@ -10,6 +11,7 @@ import com.tivicopy.player.data.prefs.Settings
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,6 +27,10 @@ import java.util.Locale
  * from it. `createConfigurationContext` is Android's job; a JVM unit test that appears to prove
  * it would be proving Robolectric's emulation of it instead. That the Hebrew resources are
  * complete and in sync is checked in the build, and that they actually render needs a device.
+ *
+ * The `platformApplied` overloads are called directly rather than running the suite twice under
+ * two SDK levels: the branch is the interesting part, and choosing it by hand keeps the whole
+ * matrix on one Robolectric image.
  */
 @RunWith(RobolectricTestRunner::class)
 // The plain platform Application: `App.onCreate` would drag WorkManager into a unit test.
@@ -86,11 +92,57 @@ class AppLocaleTest {
         assertEquals(base.uiMode, config.uiMode)
     }
 
+    /**
+     * The delta an activity registers as its own override configuration. It carries the locale
+     * and nothing else: a "default" configuration would also carry `fontScale = 1`, and applying
+     * that would quietly undo the device's own font scale for the activity.
+     */
+    @Test
+    fun `the activity override carries the locale and nothing else`() {
+        val override = AppLocale.overrideFor(AppLanguage.HEBREW.locale()!!)
+
+        assertEquals("he", override.locales[0].language)
+        assertEquals(View.LAYOUT_DIRECTION_RTL, override.layoutDirection)
+        assertEquals(0f, override.fontScale, 0f)
+        assertEquals(Configuration.DENSITY_DPI_UNDEFINED, override.densityDpi)
+        assertEquals(Configuration.SCREEN_WIDTH_DP_UNDEFINED, override.screenWidthDp)
+        assertEquals(Configuration.UI_MODE_TYPE_UNDEFINED, override.uiMode)
+    }
+
+    @Test
+    fun `a stored choice becomes an activity override`() {
+        store(AppLanguage.HEBREW)
+
+        val override = AppLocale.activityOverride(context, platformApplied = false)
+
+        assertEquals("he", override!!.locales[0].language)
+    }
+
+    @Test
+    fun `following the device overrides nothing`() {
+        store(null)
+
+        assertNull(AppLocale.activityOverride(context, platformApplied = false))
+    }
+
     @Test
     fun `a stored choice reaches the wrapper as a different context`() {
         store(AppLanguage.HEBREW)
 
-        assertNotSame(context, AppLocale.wrap(context))
+        assertNotSame(context, AppLocale.wrap(context, platformApplied = false))
+    }
+
+    /**
+     * Android 13 and later apply the choice to the whole process themselves. Wrapping on top of
+     * that would apply it twice, and would override a language the user had just chosen from the
+     * device's own per-app screen with a stale stored one.
+     */
+    @Test
+    fun `nothing is applied on top of the platform`() {
+        store(AppLanguage.HEBREW)
+
+        assertSame(context, AppLocale.wrap(context, platformApplied = true))
+        assertNull(AppLocale.activityOverride(context, platformApplied = true))
     }
 
     /**
@@ -105,7 +157,7 @@ class AppLocaleTest {
         val before = Locale.getDefault()
         store(AppLanguage.HEBREW)
 
-        AppLocale.wrap(context)
+        AppLocale.wrap(context, platformApplied = false)
 
         assertEquals(before, Locale.getDefault())
     }
@@ -118,7 +170,7 @@ class AppLocaleTest {
     fun `following the device hands back the same context`() {
         store(null)
 
-        assertSame(context, AppLocale.wrap(context))
+        assertSame(context, AppLocale.wrap(context, platformApplied = false))
     }
 
     @Test
@@ -127,6 +179,6 @@ class AppLocaleTest {
             .edit().putString(Settings.K_LANGUAGE, "KLINGON").commit()
 
         assertEquals(AppLanguage.SYSTEM, AppLocale.stored(context))
-        assertSame(context, AppLocale.wrap(context))
+        assertSame(context, AppLocale.wrap(context, platformApplied = false))
     }
 }

@@ -49,6 +49,23 @@ enum class AppLanguage(val tag: String?) {
         /** Kept free of [android.content.Context] so the resolution itself is unit-testable. */
         fun fromStored(raw: String?): AppLanguage =
             raw?.let { stored -> entries.firstOrNull { it.name == stored } } ?: SYSTEM
+
+        /**
+         * What a list of BCP-47 tags resolves to, for reading back the language Android 13's
+         * per-app setting is applying (FR-UI-23).
+         *
+         * Only the first tag counts — it is the one the platform applies — and only its language
+         * subtag, so `he-IL` is Hebrew. Hebrew is also accepted under `iw`: Android's
+         * `java.util.Locale` still reports the legacy code, so a tag can come back either way.
+         * An empty list means the user has not chosen one, and so does a language this build
+         * does not ship.
+         */
+        fun fromLocaleTags(tags: String?): AppLanguage {
+            val first = tags?.split(',')?.firstOrNull { it.isNotBlank() }?.trim() ?: return SYSTEM
+            val language = first.substringBefore('-').substringBefore('_').lowercase()
+            val current = if (language == "iw") "he" else language
+            return entries.firstOrNull { it.tag == current } ?: SYSTEM
+        }
     }
 }
 
@@ -213,8 +230,9 @@ class Settings(context: Context) {
     fun setTheme(t: ThemeMode) = commit { putString(K_THEME, t.name) }
 
     /**
-     * FR-UI-23. Takes effect when the activity is next attached, so the caller recreates it;
-     * [AppLocale] reads this key straight from preferences during `attachBaseContext`.
+     * FR-UI-23. Records the choice; applying it is [AppLocale]'s job, which either hands it to
+     * the platform (Android 13+) or reads this key straight from preferences during
+     * `attachBaseContext` on the recreate the caller then asks for.
      */
     fun setLanguage(v: AppLanguage) = commit { putString(K_LANGUAGE, v.name) }
 

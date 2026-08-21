@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.view.View
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
@@ -443,6 +445,14 @@ private fun buildDiagnosticReport(
     val status by vm.playbackStatus.collectAsState()
     return buildString {
         append(BuildInfo.full(context))
+        // FR-UI-23: what the app is actually speaking, which is the one thing only the device
+        // can answer when someone reports that the interface ignored their choice.
+        appendLine(
+            "Language: ${ServiceLocator.settings.state.value.language}" +
+                " · platform ${AppLocale.platformLanguage(context)?.name ?: "—"}" +
+                " · resolved ${AppLocale.resolved(context).toLanguageTag()}" +
+                " · ${if (context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL) "RTL" else "LTR"}",
+        )
         appendLine("Playlists: ${state.playlists.size}")
         state.playlists.forEach { p ->
             appendLine("  - ${p.name} [${p.type}] ${TextNormalizer.redactUrl(p.url)} ok=${p.lastRefreshOk}")

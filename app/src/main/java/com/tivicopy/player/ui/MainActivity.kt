@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.tivicopy.player.App
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.prefs.AppLocale
@@ -91,14 +92,32 @@ class MainActivity : ComponentActivity() {
      * FR-UI-23: the interface language is applied here, before any resource is resolved.
      * [android.app.Activity.recreate] runs this again, which is how a change in Settings takes
      * effect without restarting the process.
+     *
+     * Both halves are needed below Android 13. The wrap puts the locale on the context this
+     * activity resolves resources from; registering it as the activity's override configuration
+     * is what keeps it there. `ResourcesManager` rebases every `Resources` held under an
+     * activity token onto that override whenever the configuration changes, and a locale that
+     * was only ever on the base context is not in it — so it is dropped, and the interface
+     * quietly returns to the system language. On Android 13 and later both are no-ops: the
+     * platform has the choice and has already applied it to the whole process.
      */
     override fun attachBaseContext(newBase: Context) {
-        super.attachBaseContext(AppLocale.wrap(newBase))
+        val platformApplied = AppLocale.platformApplied(newBase)
+        super.attachBaseContext(AppLocale.wrap(newBase, platformApplied))
+        AppLocale.activityOverride(newBase, platformApplied)
+            ?.let { runCatching { applyOverrideConfiguration(it) } }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         ServiceLocator.init(this)
+        // FR-UI-23. The picker has to show what the app is actually speaking, and on Android 13
+        // and later the language can also be changed from the device's own per-app screen.
+        AppLocale.reconcile(this, ServiceLocator.settings)
+        // Channel names are stored by the platform when the channel is created, so they only
+        // follow a language change if they are re-declared. Doing it here covers both routes to
+        // one: the recreate below Android 13, and the platform's own above it.
+        App.createNotificationChannels(this)
         onBackPressedDispatcher.addCallback(this) { handleBack() }
         registerPipActionReceiver()
 

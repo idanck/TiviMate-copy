@@ -134,6 +134,11 @@ class App : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
+        // FR-UI-23. On Android 13 and later the platform is the one applying the language, so
+        // this is where a choice made in an older build — or restored from a backup — is handed
+        // over to it, and where a change made from the device's own per-app language screen is
+        // taken back. Before the channels below, which are declared in whatever it settles on.
+        AppLocale.reconcile(this, ServiceLocator.settings)
         createNotificationChannels(this)
         RefreshScheduler.scheduleAll(this)
         // Re-arm anything that survived a process death but not a reboot.
