@@ -6,10 +6,11 @@
 
 TiviCopy seeds a single fixed playlist on first cold start — Kan 11, Kan Educational, Makan 33,
 Channel 12, Channel 13, Channel 14, and the Knesset Channel — pointed at a curated `channels.m3u`
-and `guide.xml` hosted on a dedicated Cloudflare Worker + R2 bucket (`il-epg-host`, separate from
-the app's own update host). It is inserted through the ordinary playlist pipeline
-(`SourceRepository.ensureBuiltInPlaylist`, `data/builtin/IsraelPublicChannels.kt`) and refreshed by
-the existing `RefreshWorker` — no new subsystem, no schema change.
+and `guide.xml` hosted at `il-epg.idanck.com`, a dedicated Cloudflare Worker + R2 bucket
+(`il-epg-host`) separate from the app's own update host. It is inserted through the ordinary
+playlist pipeline (`SourceRepository.ensureBuiltInPlaylist`,
+`data/builtin/IsraelPublicChannels.kt`) and refreshed by the existing `RefreshWorker` — no new
+subsystem, no schema change.
 
 This is the one deliberate exception to `docs/00-scope-and-platforms.md` §0.1 ("no default/bundled
 provider") and `docs/05-settings-advanced.md` §5.7 ("no bundled default playlist"). It is narrow on
@@ -44,5 +45,12 @@ purpose:
   twice daily) that re-filters `iptv-org/iptv`'s `il.m3u` and re-runs `iptv-org/epg`'s `yes.co.il`
   grabber for the 7 channels, publishing both to the Worker. That job lives outside this repository.
 - Channel logos are not supplied by any upstream feed, so they are hosted alongside the playlist
-  and EPG on the same Worker (`il-epg-host.idanck.workers.dev/logos/*.png`), sourced from Wikimedia
-  Commons and the Knesset's own site.
+  and EPG on the same Worker (`il-epg.idanck.com/logos/*.png`), sourced from Wikimedia Commons and
+  the Knesset's own site.
+- 0.4.4 shipped pointing at `updates.idanck.com/il-epg/*` — an address on the update host that was
+  never created, because the decision to use a dedicated host landed after those constants were
+  written. Every install showed the playlist as `NotFound` until 0.4.5. Two things follow: the
+  Worker now answers on a domain of its own rather than a `workers.dev` name that a DNS filter
+  could quietly swallow, and `IsraelPublicChannels.LEGACY_M3U_URLS` records superseded addresses so
+  bootstrap corrects an existing row in place instead of stranding it beside a new one. Any future
+  move of this host must add the outgoing URL to that list.

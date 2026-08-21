@@ -72,13 +72,38 @@ class SourceRepository(
      * time, and quietly reinstates it if the user ever deletes it — no separate "first run" flag,
      * matching the rest of the app's preference for idempotent bootstrap over stored one-shot state.
      *
-     * Deliberately does not fetch here: a freshly inserted [Playlist] keeps [Playlist.lastRefreshUtc]
-     * at its `0` default, which the periodic [com.tivicopy.player.work.RefreshWorker] already
-     * treats as immediately due — so the first real refresh happens on its normal worker cadence
-     * without this bootstrap step needing its own network call (and its own failure handling).
+     * A row seeded at one of [IsraelPublicChannels.LEGACY_M3U_URLS] is this same playlist at an
+     * address that has stopped serving it, so it is corrected in place — keeping its id, and with
+     * it the user's ordering, colour and per-channel edits — rather than abandoned next to a
+     * freshly inserted duplicate.
+     *
+     * Deliberately does not fetch here: a [Playlist] left with [Playlist.lastRefreshUtc] at `0` is
+     * what the periodic [com.tivicopy.player.work.RefreshWorker] already treats as immediately due
+     * — so the first real refresh happens on its normal worker cadence without this bootstrap step
+     * needing its own network call (and its own failure handling). A corrected row is reset to `0`
+     * for the same reason: its stored timestamp is from a refresh against the dead URL, and waiting
+     * out the interval before retrying the working one would strand it for another day.
      */
     suspend fun ensureBuiltInPlaylist() = withContext(Dispatchers.IO) {
-        if (dao.playlists().any { it.url == IsraelPublicChannels.M3U_URL }) return@withContext
+        val playlists = dao.playlists()
+        if (playlists.any { it.url == IsraelPublicChannels.M3U_URL }) return@withContext
+
+        val stale = playlists.firstOrNull { it.url in IsraelPublicChannels.LEGACY_M3U_URLS }
+        if (stale != null) {
+            // Straight through the DAO, not savePlaylist: this row came out of the database with
+            // its credentials already encrypted, and savePlaylist would encrypt them a second time.
+            dao.upsertPlaylist(
+                stale.copy(
+                    url = IsraelPublicChannels.M3U_URL,
+                    epgUrl = IsraelPublicChannels.EPG_URL,
+                    lastRefreshUtc = 0,
+                    lastRefreshOk = true,
+                    lastRefreshMessage = null,
+                ),
+            )
+            return@withContext
+        }
+
         savePlaylist(
             Playlist(
                 name = IsraelPublicChannels.NAME,
