@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -398,13 +399,22 @@ private fun GuideRow(
                                 TimeGap(widthMillis = start - cursor)
                             }
                             val end = programme.endUtc.coerceAtMost(windowEnd)
-                            ProgrammeCell(
-                                programme = programme,
-                                widthMillis = (end - start).coerceAtLeast(60_000L),
-                                archived = channel.hasCatchup && programme.endUtc < System.currentTimeMillis(),
-                                recordingState = recordings.stateFor(programme),
-                                onClick = { onProgrammeClick(programme) },
-                            )
+                            // Keyed so a refetch matches each cell to the programme it was drawing
+                            // rather than to whatever now sits in that position. Scrolling the
+                            // channel axis replaces the whole programme map, and unkeyed cells are
+                            // recreated on every one of those — disposing whichever one the remote
+                            // was focused on, which drops focus to the root and leaves the D-pad
+                            // apparently dead.
+                            key(programme.id) {
+                                ProgrammeCell(
+                                    programme = programme,
+                                    widthMillis = (end - start).coerceAtLeast(60_000L),
+                                    archived = channel.hasCatchup &&
+                                        programme.endUtc < System.currentTimeMillis(),
+                                    recordingState = recordings.stateFor(programme),
+                                    onClick = { onProgrammeClick(programme) },
+                                )
+                            }
                             cursor = end
                         }
                     if (cursor < windowEnd) TimeGap(widthMillis = windowEnd - cursor)
