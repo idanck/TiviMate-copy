@@ -51,6 +51,7 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.TwoLine
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import kotlinx.coroutines.delay
 
 /**
@@ -130,7 +131,7 @@ fun ChannelListScreen(
                 onSearch = onSearch,
                 onNewGroup = { creatingGroup = true },
                 onGroupOptions = { groupMenuFor = it },
-                modifier = Modifier.width(220.dp).fillMaxHeight(),
+                modifier = Modifier.width(LocalTvMetrics.current.groupColumnWidth).fillMaxHeight(),
             )
             VerticalDivider()
         }
@@ -250,7 +251,10 @@ fun ChannelListScreen(
                 channel = previewChannel ?: state.currentChannel,
                 now = preview.first,
                 next = preview.second,
-                modifier = Modifier.width(280.dp).fillMaxHeight().padding(12.dp),
+                modifier = Modifier
+                    .width(LocalTvMetrics.current.nowNextPaneWidth)
+                    .fillMaxHeight()
+                    .padding(12.dp),
             )
         }
     }
@@ -376,7 +380,7 @@ private fun ChannelRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.width(48.dp),
         )
-        ChannelLogo(channel = channel, sizeDp = 36)
+        ChannelLogo(channel = channel, sizeDp = LocalTvMetrics.current.rowLogoSize)
         TwoLine(
             primary = channel.displayName,
             secondary = nowProgramme?.title,

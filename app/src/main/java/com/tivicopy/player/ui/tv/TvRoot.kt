@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.tv
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -33,6 +35,8 @@ import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
+import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.tvMetricsFor
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
@@ -116,7 +120,7 @@ fun TvRoot(
                 channel = state.currentChannel,
                 now = state.now,
                 next = state.next,
-                modifier = Modifier.align(Alignment.BottomStart).padding(32.dp),
+                modifier = Modifier.align(Alignment.BottomStart).padding(TV_CONTENT_INSET),
             )
         }
 
@@ -127,7 +131,7 @@ fun TvRoot(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(48.dp)
+                    .padding(TV_CONTENT_INSET)
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = prefs.overlayOpacity))
                     .padding(horizontal = 24.dp, vertical = 12.dp),
             )
@@ -136,7 +140,7 @@ fun TvRoot(
         status.error?.let { error ->
             PlaybackErrorBanner(
                 error = error,
-                modifier = Modifier.align(Alignment.TopStart).padding(32.dp),
+                modifier = Modifier.align(Alignment.TopStart).padding(TV_CONTENT_INSET),
             )
         }
 
@@ -233,16 +237,43 @@ fun TvRoot(
     }
 }
 
+/**
+ * The container every browse overlay is drawn in.
+ *
+ * The background is painted on the full-size box and the inset is applied *inside* it. It used to
+ * be the other way round, which drew the scrim within a 32dp/24dp margin and left every surface —
+ * the channel list, the guide, settings — floating in a frame of raw video. That was the second of
+ * the three reasons the interface was reported as not filling the screen, and the most visible.
+ *
+ * The inset itself is kept, as content padding rather than a frame: dropping it altogether would
+ * put settings rows and on-demand titles flush against the edge of the panel, and a television
+ * that still overscans would eat them. [TV_CONTENT_INSET] is what remains of the old overscan
+ * margin — the surface reaches the edge, the words do not.
+ */
 @Composable
 private fun OverlayScaffold(opacity: Float, content: @Composable () -> Unit) {
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            // Overscan safety: 10-foot displays crop the outer few percent (docs/03).
-            .padding(horizontal = 32.dp, vertical = 24.dp)
-            .background(MaterialTheme.colorScheme.background.copy(alpha = opacity)),
-    ) { content() }
+            .background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
+            .padding(TV_CONTENT_INSET),
+    ) {
+        // Measured here rather than read from the Configuration: this box is what the screens
+        // actually get, insets and all, and it is the only honest input to how wide an hour of
+        // guide should be.
+        val metrics = tvMetricsFor(maxWidth.value, maxHeight.value)
+        CompositionLocalProvider(LocalTvMetrics provides metrics) { content() }
+    }
 }
+
+/**
+ * How far the ten-foot shell keeps text from the edge of the panel.
+ *
+ * Not a safe area — the surfaces themselves are full-bleed by decision (docs/03 section 3.1). This
+ * is only the breathing room any readable layout wants, and it happens to absorb the small crop an
+ * older overscanning television applies.
+ */
+internal val TV_CONTENT_INSET = 24.dp
 
 /** The zapping info card (FR-PLB-18). */
 @Composable

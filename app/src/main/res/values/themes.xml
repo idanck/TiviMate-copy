@@ -4,11 +4,18 @@
       A bare platform theme: everything visible is drawn by Compose, so the only job here is to
       give the window a black background so a cold start does not flash white before the first
       video frame.
+
+      The system bars are transparent, not black. Painting them black was the visible half of the
+      "the television interface does not fill the screen" report: with `decorFitsSystemWindows`
+      left at its default the window was inset by whatever bars the device claimed, and those
+      insets were then filled with black — a letterbox drawn by the app itself. MainActivity now
+      lays out edge to edge and hides the bars outright on a television, so nothing should be
+      painted behind them either.
     -->
     <style name="Theme.TiviCopy" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
-        <item name="android:statusBarColor">@android:color/black</item>
-        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

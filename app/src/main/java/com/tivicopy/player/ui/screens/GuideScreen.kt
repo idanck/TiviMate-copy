@@ -3,7 +3,6 @@ package com.tivicopy.player.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +39,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
@@ -48,11 +48,11 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
+import com.tivicopy.player.ui.common.LocalTvMetrics
 
-/** Width of one hour of the time axis. Programme width is derived from this alone. */
-private val HOUR_WIDTH = 240.dp
-private val ROW_HEIGHT = 64.dp
-private val CHANNEL_COLUMN_WIDTH = 190.dp
+// The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
+// television shell fills in from the real viewport (see `ui/common/TvMetrics.kt`). The touch shell
+// leaves the default in place, so the phone's grid is unchanged.
 
 /**
  * The grid guide: channels down, time across (FR-UI-05).
@@ -90,11 +90,19 @@ fun GuideScreen(
 
     // The visible slice of the channel axis drives the query, so a 500-channel guide costs the
     // same as a 20-channel one.
+    //
+    // How many rows are visible is asked of the layout rather than assumed. It used to be a
+    // constant twelve, which was a guess at a phone's row count and wrong on a television in both
+    // directions: too many rows on a small overlay meant querying guide data nothing showed, and
+    // too few on a large panel meant every row past the eighteenth rendered "no guide data" while
+    // the data sat in the database. That was a correctness bug, not a tuning one.
     val visibleChannels by remember(channels) {
         derivedStateOf {
-            val first = (listState.firstVisibleItemIndex - PREFETCH_ROWS).coerceAtLeast(0)
-            val last = (listState.firstVisibleItemIndex + VISIBLE_ROWS + PREFETCH_ROWS)
-                .coerceAtMost(channels.size)
+            val visible = listState.layoutInfo.visibleItemsInfo
+            val firstVisible = visible.firstOrNull()?.index ?: listState.firstVisibleItemIndex
+            val lastVisible = visible.lastOrNull()?.index ?: (firstVisible + FALLBACK_ROWS)
+            val first = (firstVisible - PREFETCH_ROWS).coerceAtLeast(0)
+            val last = (lastVisible + 1 + PREFETCH_ROWS).coerceAtMost(channels.size)
             if (first >= last) emptyList() else channels.subList(first, last).toList()
         }
     }
@@ -173,13 +181,16 @@ private fun GuideToolbar(
  */
 @Composable
 private fun TimeAxis(windowStart: Long, scrollState: androidx.compose.foundation.ScrollState) {
+    val metrics = LocalTvMetrics.current
     Row(modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.width(CHANNEL_COLUMN_WIDTH))
+        Box(modifier = Modifier.width(metrics.guideChannelColumnWidth))
         Row(modifier = Modifier.horizontalScroll(scrollState)) {
             repeat(WINDOW_HOURS) { hour ->
                 val at = windowStart + hour * 60 * 60_000L
                 Box(
-                    modifier = Modifier.width(HOUR_WIDTH).padding(start = 6.dp, top = 6.dp, bottom = 6.dp),
+                    modifier = Modifier
+                        .width(metrics.guideHourWidth)
+                        .padding(start = 6.dp, top = 6.dp, bottom = 6.dp),
                 ) {
                     Text(
                         text = TimeModel.formatClock(at),
@@ -202,17 +213,20 @@ private fun GuideRow(
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT)) {
+    val metrics = LocalTvMetrics.current
+    Row(modifier = Modifier.fillMaxWidth().height(metrics.guideRowHeight)) {
         Row(
             modifier = Modifier
-                .width(CHANNEL_COLUMN_WIDTH)
-                .focusable()
+                .width(metrics.guideChannelColumnWidth)
+                // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
+                // so the pair produced two focus targets and cost a remote an invisible extra
+                // press to cross each row.
                 .clickable(onClick = onChannelClick)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ChannelLogo(channel = channel, sizeDp = 32)
+            ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
             Text(
                 text = channel.displayName,
                 style = MaterialTheme.typography.bodyMedium,
@@ -227,8 +241,8 @@ private fun GuideRow(
                 // FR-EPG-16: say so, rather than leaving an unexplained empty lane.
                 Box(
                     modifier = Modifier
-                        .width(HOUR_WIDTH * WINDOW_HOURS)
-                        .height(ROW_HEIGHT)
+                        .width(metrics.guideHourWidth * WINDOW_HOURS)
+                        .height(metrics.guideRowHeight)
                         .padding(2.dp)
                         .clip(RoundedCornerShape(6.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
@@ -269,7 +283,12 @@ private fun GuideRow(
 /** Blank space for a stretch of time the guide has no entry for. */
 @Composable
 private fun TimeGap(widthMillis: Long) {
-    Box(modifier = Modifier.width(millisToDp(widthMillis)).height(ROW_HEIGHT))
+    val metrics = LocalTvMetrics.current
+    Box(
+        modifier = Modifier
+            .width(millisToDp(widthMillis, metrics.guideHourWidth))
+            .height(metrics.guideRowHeight),
+    )
 }
 
 @Composable
@@ -287,10 +306,11 @@ private fun ProgrammeCell(
         live -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.surfaceVariant
     }
+    val metrics = LocalTvMetrics.current
     Column(
         modifier = Modifier
-            .width(millisToDp(widthMillis))
-            .height(ROW_HEIGHT)
+            .width(millisToDp(widthMillis, metrics.guideHourWidth))
+            .height(metrics.guideRowHeight)
             .padding(2.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(background)
@@ -300,7 +320,8 @@ private fun ProgrammeCell(
                 RoundedCornerShape(6.dp),
             )
             .onFocusChanged { focused = it.isFocused }
-            .focusable()
+            // As in the channel cell above: `clickable` carries the focus target, and pairing it
+            // with `focusable()` made every cell cost two D-pad presses to pass.
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -330,13 +351,20 @@ private fun ProgrammeCell(
     }
 }
 
-private fun millisToDp(millis: Long) = HOUR_WIDTH * (millis.toFloat() / 3_600_000f)
+private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
 
 private fun snapToHalfHour(utcMillis: Long): Long = (utcMillis / 1_800_000L) * 1_800_000L
 
 /** Hours rendered at once; anything wider is reached by scrolling the window, not the layout. */
 private const val WINDOW_HOURS = 6
 
-/** Rows assumed visible plus a small prefetch margin either side. */
-private const val VISIBLE_ROWS = 12
+/**
+ * How many rows to assume before the list has measured itself.
+ *
+ * Only ever used for the first composition, when `visibleItemsInfo` is still empty; one frame
+ * later the real count replaces it.
+ */
+private const val FALLBACK_ROWS = 8
+
+/** Prefetch margin either side of what is on screen. */
 private const val PREFETCH_ROWS = 6

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Android 9 introduced display cutouts, and with them a default that letterboxes the window
+      away from the notch in portrait. The app is edge to edge on both form factors, so it opts
+      into drawing through the cutout instead; on a television there is never a cutout and this
+      attribute costs nothing.
+
+      `shortEdges` rather than `always`: the app should use the cutout area on the short edges,
+      which is where a notch lives, without also being asked to lay out under the rounded corners
+      of a landscape display.
+    -->
+    <style name="Theme.TiviCopy" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>

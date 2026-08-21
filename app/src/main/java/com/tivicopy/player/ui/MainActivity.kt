@@ -21,6 +21,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,6 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.tivicopy.player.App
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
@@ -81,11 +85,51 @@ class MainActivity : ComponentActivity() {
     private val isRtl: Boolean
         get() = resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
 
-    private val isTelevision: Boolean by lazy {
-        val pm = packageManager
-        pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
-            pm.hasSystemFeature("android.software.leanback_only") ||
-            !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+    /**
+     * Which shell this device gets (ADR-002).
+     *
+     * Read per call rather than cached: `uiMode` is in the manifest's `configChanges`, so a device
+     * that switches into or out of television mode is *not* recreated, and a `by lazy` answer
+     * taken at the first composition would outlive the truth.
+     *
+     * [android.app.UiModeManager] is asked first because it is the canonical question. The feature
+     * flags alone missed television boxes and sticks that report a touchscreen they do not have —
+     * those devices were handed the phone shell, which draws a top app bar, a bottom navigation
+     * bar and inset padding, and that is one of the three reasons the interface was reported as
+     * not filling the screen.
+     */
+    private val isTelevision: Boolean
+        get() {
+            val uiMode = (getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager)
+                ?.currentModeType
+            if (uiMode == Configuration.UI_MODE_TYPE_TELEVISION) return true
+            val pm = packageManager
+            return pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+                pm.hasSystemFeature("android.software.leanback_only") ||
+                !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+        }
+
+    /**
+     * Lay the window out edge to edge, and on a television hide the system bars outright.
+     *
+     * Nothing in this app ever asked for this before, so `decorFitsSystemWindows` stayed at its
+     * default and the whole Compose tree was inset by whatever bars the device reported — which
+     * `themes.xml` then painted black. That is the letterbox the user reported. `targetSdk` is 35,
+     * where Android 15 forces edge to edge anyway, so without this the same build behaved
+     * differently either side of that version: content under the bars on 15, a shrunken window
+     * below it. One call settles both.
+     *
+     * The bars are hidden only on the television. The phone needs them, and [MobileRoot]'s own
+     * `Scaffold` keeps its default insets so its chrome stays clear of them.
+     */
+    private fun goEdgeToEdge() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        if (!isTelevision) return
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     /**
@@ -110,6 +154,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        goEdgeToEdge()
         ServiceLocator.init(this)
         // FR-UI-23. The picker has to show what the app is actually speaking, and on Android 13
         // and later the language can also be changed from the device's own per-app screen.
@@ -190,6 +235,11 @@ class MainActivity : ComponentActivity() {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     Scaffold(
                         snackbarHost = { SnackbarHost(snackbar) },
+                        // This Scaffold exists only to host the snackbar; its content padding was
+                        // already discarded below. Saying so explicitly keeps it from insetting
+                        // anything now that the window is edge to edge — each shell handles its
+                        // own insets, and MobileRoot's Scaffold is the one that must keep them.
+                        contentWindowInsets = WindowInsets(0),
                     ) { _ ->
                         if (isTelevision) {
                             // Android TV boxes do PiP too, and the window must be bare video:
@@ -232,6 +282,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * The system puts its bars back whenever the window loses focus — a dialog, a launcher
+     * overlay, the way out of picture-in-picture. Hiding them once in [onCreate] would therefore
+     * hold only until the first such interruption, after which the television would quietly go
+     * back to being letterboxed.
+     */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus && isTelevision) {
+            WindowInsetsControllerCompat(window, window.decorView)
+                .hide(WindowInsetsCompat.Type.systemBars())
         }
     }
 
