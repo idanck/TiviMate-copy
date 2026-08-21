@@ -61,7 +61,8 @@ composes in its own sub-composition.
   `Locale.ROOT` explicitly, so setting the process default cannot destabilise parsing, matching
   or filenames.
 - The set of languages stays bounded by `resourceConfigurations` in the build file. Adding one
-  means adding it there, in `locales_config.xml`, and in `AppLanguage`.
+  means adding it there, in `locales_config.xml`, in `AppLanguage`, and as a `values-` folder
+  named the way Android asks for it — see the second amendment.
 
 ## Amendment — what the device said
 
@@ -95,3 +96,37 @@ The consequences of that split:
 - Diagnostics now reports the stored choice, the platform's, the locale the app actually
   resolved, and the layout direction. A report of this shape is the only way to tell these
   failures apart without the device in hand.
+
+## Amendment — the language the resource table has to be called
+
+The mechanism above was right and the interface still came up in English. The device made the
+second cause visible in the same screenshot: the layout was mirrored right to left, which only
+happens when a Hebrew locale is in the configuration — so the locale *was* applied, and every
+string still resolved to the default language.
+
+That leaves one possibility, and it is a name. Android resolves resources against the language
+`ResourcesImpl.adjustLanguageTag` produces, and it maps `he` to `iw` — the code `he` retired —
+on every release since Lollipop, precisely because the resource system predates the rename:
+
+```java
+case "he":
+    adjustedLanguage = "iw";
+```
+
+The translation was compiled from `values-he`, and aapt2 writes the qualifier as given: the
+built table held `he`, verified by reading the `ResTable_config` of every type chunk in the
+released APK. The request said `iw`, the table said `he`, so the lookup fell through to the
+default language — with no error, no log line, and a correctly mirrored layout, because layout
+direction is derived from the locale rather than from a resource match.
+
+- The translation now lives in `values-iw`, which is the name the runtime asks for on every
+  supported version. Android's own sample `locale-config` declares Hebrew the same way, and
+  `locales_config.xml` follows it.
+- `resourceConfigurations` lists both spellings. It is matched against the qualifier as written,
+  so naming only one of them is what silently strips a whole translation out of the APK.
+- `AppLanguage.tag` stays `he`. It is what goes to `LocaleManager`, which takes BCP-47, and both
+  spellings produce the same `java.util.Locale` anyway.
+- `HebrewStringsTest` resolves a string through a Hebrew configuration and asserts the Hebrew
+  value. The locale tests had deliberately stopped short of the resource lookup, on the grounds
+  that a JVM test of it would only be testing Robolectric — but the lookup is compiled from the
+  same folder the APK ships, and it is where this failed twice.

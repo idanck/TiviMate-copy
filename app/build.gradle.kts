@@ -55,7 +55,14 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
 
-        resourceConfigurations += listOf("en", "he")
+        // `iw` is Hebrew, and it has to be spelled that way. Android asks its resource table for
+        // the language that `ResourcesImpl.adjustLanguageTag` produces, which maps `he` back to
+        // the retired `iw` on every release since Lollipop — so `values-iw` is the folder that
+        // gets found, and a filter naming only `he` would strip the whole translation out of the
+        // APK. `he` stays in the list because this filter is matched against the qualifier as
+        // written: if a future build tool starts normalising the folder name the other way, the
+        // translation survives either spelling.
+        resourceConfigurations += listOf("en", "iw", "he")
         vectorDrawables.useSupportLibrary = true
     }
 
