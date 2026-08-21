@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ADR-015: declares this app as a media-category Android Auto app, browsable through
+     RadioMediaLibraryService. Sideload-only — tested via Auto's own "Unknown sources" developer
+     setting, not Play Store review. -->
+<automotiveApp>
+    <uses name="media" />
+</automotiveApp>

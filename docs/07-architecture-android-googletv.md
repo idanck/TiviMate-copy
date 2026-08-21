@@ -29,10 +29,32 @@ To ship one binary for phone and TV:
 - `DefaultRenderersFactory` with
   `EXTENSION_RENDERER_MODE_PREFER` when software/extension decoders are selected.
 - `DefaultLoadControl` values driven by the buffer preset.
-- `MediaSession` + `MediaSessionService` for notification controls, background audio,
-  Android Auto/Assistant integration and TV playback controls.
 - Custom `DataSource.Factory` wrapping OkHttp to inject per-playlist User-Agent, headers,
   cookies, and to handle redirects and retry policy.
+
+## 7.2a Android Auto (ADR-015)
+
+The in-app player (`PlayerEngine`) has no `MediaSession` — it is not needed there, since
+in-app playback is always driven by the visible UI. Android Auto is a separate, additive
+surface with its own small player, not a `MediaSession` bolted onto `PlayerEngine`:
+
+- `auto/RadioMediaLibraryService.kt` — a `MediaLibraryService`, manifest-declared, discoverable
+  and bindable by the Android Auto host independently of whether `MainActivity` has ever run.
+- `auto/RadioBrowseTree.kt` — a flat browse tree (root → stations) built from the bundled radio
+  playlist (FR-SRC-16) via the ordinary `Dao`, not a new data path.
+- `auto/RadioPlayerFactory.kt` — one ExoPlayer, built once per service lifetime (every station
+  in the playlist shares one `RequestProfile`, so no per-station rebuild is needed), entirely
+  separate from `ServiceLocator.player`.
+- `auto/RadioSessionCallback.kt` — resolves a tapped station into the *whole* station list as
+  the player's queue, positioned at the selection, so the car's native skip-next/previous
+  controls work with no custom session commands.
+- Distribution is sideload-only: tested via Android Auto's own "Unknown sources" developer
+  setting, never submitted to Google's Android-Auto-specific Play Store review.
+
+No live-video-in-the-car feature exists or is planned — Android Auto's video template is a
+Google-gated partner program, out of reach for a personal app; the scope here is audio-only,
+through the standard Media browse/playback template. See
+`docs/adr/ADR-015-built-in-israeli-radio-and-android-auto.md`.
 
 ## 7.3 Recording pipeline
 

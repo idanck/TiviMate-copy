@@ -3,6 +3,7 @@ package com.tivicopy.player.data.repo
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.data.builtin.IsraelPublicChannels
+import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.m3u.M3uEntry
 import com.tivicopy.player.data.m3u.M3uParser
@@ -110,6 +111,39 @@ class SourceRepository(
                 type = SourceType.M3U_URL,
                 url = IsraelPublicChannels.M3U_URL,
                 epgUrl = IsraelPublicChannels.EPG_URL,
+                refreshIntervalMinutes = 24 * 60,
+            ),
+        )
+    }
+
+    /**
+     * The second bundled playlist (ADR-015): curated Israeli radio stations, audio-only. Same
+     * idempotent, self-healing bootstrap contract as [ensureBuiltInPlaylist] — a deliberate
+     * second copy of that shape rather than a shared helper, matching this app's preference for
+     * explicit code over an abstraction serving exactly two call sites.
+     */
+    suspend fun ensureRadioPlaylist() = withContext(Dispatchers.IO) {
+        val playlists = dao.playlists()
+        if (playlists.any { it.url == IsraelRadioStations.M3U_URL }) return@withContext
+
+        val stale = playlists.firstOrNull { it.url in IsraelRadioStations.LEGACY_M3U_URLS }
+        if (stale != null) {
+            dao.upsertPlaylist(
+                stale.copy(
+                    url = IsraelRadioStations.M3U_URL,
+                    lastRefreshUtc = 0,
+                    lastRefreshOk = true,
+                    lastRefreshMessage = null,
+                ),
+            )
+            return@withContext
+        }
+
+        savePlaylist(
+            Playlist(
+                name = IsraelRadioStations.NAME,
+                type = SourceType.M3U_URL,
+                url = IsraelRadioStations.M3U_URL,
                 refreshIntervalMinutes = 24 * 60,
             ),
         )

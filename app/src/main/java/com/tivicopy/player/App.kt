@@ -142,9 +142,10 @@ class App : Application(), ImageLoaderFactory {
         AppLocale.reconcile(this, ServiceLocator.settings)
         createNotificationChannels(this)
         RefreshScheduler.scheduleAll(this)
-        // The one bundled playlist this app ships with (docs/00-scope-and-platforms.md §0.1);
-        // idempotent, so this is a no-op after the first cold start.
+        // The bundled playlists this app ships with (docs/00-scope-and-platforms.md §0.1);
+        // idempotent, so these are no-ops after the first cold start.
         ServiceLocator.appScope.launch { ServiceLocator.sources.ensureBuiltInPlaylist() }
+        ServiceLocator.appScope.launch { ServiceLocator.sources.ensureRadioPlaylist() }
         // Re-arm anything that survived a process death but not a reboot.
         ServiceLocator.recordings.rearmAll()
         // Keep the on-disk cache inside its budget on every cold start (FR-SET-15).

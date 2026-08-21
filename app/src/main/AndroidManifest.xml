@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- ADR-015: the Android Auto radio session's foreground promotion. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -40,6 +42,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
+        <!-- ADR-015: sideload-only Android Auto support, tested via Auto's own "Unknown
+             sources" developer setting rather than Play Store review. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <activity
             android:name=".ui.MainActivity"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboard|keyboardHidden|navigation|uiMode|density|fontScale"
@@ -61,6 +69,18 @@
             android:name=".record.RecordingService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- ADR-015: browsable/playable from Android Auto's media template. Exported because the
+             car host process binds to it from outside this app. -->
+        <service
+            android:name=".auto.RadioMediaLibraryService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
 
         <receiver
             android:name=".record.RecordingAlarmReceiver"

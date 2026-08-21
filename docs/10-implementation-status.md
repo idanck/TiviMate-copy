@@ -28,6 +28,7 @@ feature that was otherwise in scope is simply available.
 | FR-SRC-13 | Done | `RefreshReport`, shown in Settings. |
 | FR-SRC-14 | Not implemented | Deleting a playlist cascades; no retain-favourites offer. |
 | FR-SRC-15 | Partial | Account status and connection count are read and shown when testing a connection; no scheduled expiry warning. |
+| FR-SRC-16 | Done | `SourceRepository.ensureRadioPlaylist`, `data/builtin/IsraelRadioStations.kt` — same idempotent bootstrap as the TV channels playlist (ADR-015). |
 
 ## ORG — Channel organization
 
@@ -167,6 +168,19 @@ feature that was otherwise in scope is simply available.
 | FR-TVI-05 | Partial | Widevine/PlayReady/ClearKey configured from `#KODIPROP`; untested. |
 | FR-TVI-06 | Done | DRM failure is terminal with an explanatory message. |
 | FR-TVI-07 | Won't | Out of scope, as specified. |
+
+## AUTO — Android Auto
+
+Sideload-only, per ADR-015 — no code here is gated on, or blocked by, Google Play's
+Android-Auto-specific review. Not exercisable by the JVM unit test suite; requires a phone with
+Android Auto's "Unknown sources" developer setting and a car or Desktop Head Unit.
+
+| ID | Status | Notes |
+|---|---|---|
+| FR-AUTO-01 | Done | `auto/RadioMediaLibraryService.kt`, `auto/RadioBrowseTree.kt` — flat browse tree over the FR-SRC-16 playlist. |
+| FR-AUTO-02 | Done | `auto/RadioPlayerFactory.kt` builds a dedicated ExoPlayer, never `ServiceLocator.player`. |
+| FR-AUTO-03 | Done | `RadioSessionCallback.onSetMediaItems` hands the whole station list to the player positioned at the selection, so native skip-next/previous walks it. |
+| FR-AUTO-04 | Done | `res/xml/automotive_app_desc.xml` + manifest service declaration; no Play-review-gated code path. |
 
 ## UPD — In-app updates
 
