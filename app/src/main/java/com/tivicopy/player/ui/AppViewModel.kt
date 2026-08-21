@@ -880,6 +880,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     suspend fun programmesFor(channel: Channel, fromUtc: Long, toUtc: Long): List<Programme> =
         withContext(Dispatchers.IO) { epg.programmesFor(channel, fromUtc, toUtc) }
 
+    /**
+     * What is being recorded, or is going to be, over a stretch of the guide — grouped by channel.
+     *
+     * FR-UI-10 asks for recording state to be badged in the grid alongside catch-up availability.
+     * Only the archive badge was ever drawn, so a programme you had scheduled looked exactly like
+     * one you had not, and the only way to check was to leave the guide for the recordings list.
+     *
+     * Matched by overlap rather than by an equal start time, because a scheduled recording is
+     * padded by the pre- and post-roll settings (`RecordingScheduler.scheduleProgramme`): its
+     * window is deliberately wider than the programme's, so the two are never equal.
+     */
+    suspend fun recordingsIn(fromUtc: Long, toUtc: Long): Map<Long, List<Recording>> =
+        withContext(Dispatchers.IO) {
+            ServiceLocator.dao.recordings()
+                .filter { it.endUtc > fromUtc && it.startUtc < toUtc }
+                .groupBy { it.channelId }
+        }
+
     suspend fun unmatchedChannels(): List<Channel> = withContext(Dispatchers.IO) {
         _state.value.activePlaylist?.let { epg.unmatchedChannels(it.id) }.orEmpty()
     }

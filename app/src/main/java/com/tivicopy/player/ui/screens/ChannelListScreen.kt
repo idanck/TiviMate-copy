@@ -51,7 +51,16 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.TwoLine
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import kotlinx.coroutines.delay
+
+/**
+ * Somewhere the shell can go, listed above the groups in the channel list's first column.
+ *
+ * @param label what the row says
+ * @param onSelect what opening it does
+ */
+data class NavDestination(val label: String, val onSelect: () -> Unit)
 
 /**
  * Groups on one side, channels in the middle, now/next on the other (docs/03 section 3.2).
@@ -75,6 +84,19 @@ fun ChannelListScreen(
     showFilter: Boolean = compact,
     /** Opens the full search surface. Null hides the entry point. */
     onSearch: (() -> Unit)? = null,
+    /**
+     * Where else the shell can go from here, drawn above the groups in the same column.
+     *
+     * This is the ten-foot answer to the phone's bottom navigation bar. The television had no
+     * on-screen navigation at all: every destination was a remote key, and two of them were keys
+     * plenty of remotes do not have. On demand was worse than hard to reach — it could only be
+     * opened by searching for a series and picking it, so a viewer who did not already know a
+     * title in the catalogue could not open the catalogue. That failed NFR-UX-01, which asks that
+     * every screen be reachable with D-pad, OK and Back alone.
+     *
+     * Empty on touch, which has a navigation bar of its own.
+     */
+    destinations: List<NavDestination> = emptyList(),
     /**
      * Opens the list scrolled to the playing channel instead of the top. One-shot per
      * appearance: a later filter or group change never fights the user's own scrolling.
@@ -128,9 +150,10 @@ fun ChannelListScreen(
             GroupColumn(
                 vm = vm,
                 onSearch = onSearch,
+                destinations = destinations,
                 onNewGroup = { creatingGroup = true },
                 onGroupOptions = { groupMenuFor = it },
-                modifier = Modifier.width(220.dp).fillMaxHeight(),
+                modifier = Modifier.width(LocalTvMetrics.current.groupColumnWidth).fillMaxHeight(),
             )
             VerticalDivider()
         }
@@ -250,7 +273,10 @@ fun ChannelListScreen(
                 channel = previewChannel ?: state.currentChannel,
                 now = preview.first,
                 next = preview.second,
-                modifier = Modifier.width(280.dp).fillMaxHeight().padding(12.dp),
+                modifier = Modifier
+                    .width(LocalTvMetrics.current.nowNextPaneWidth)
+                    .fillMaxHeight()
+                    .padding(12.dp),
             )
         }
     }
@@ -376,7 +402,7 @@ private fun ChannelRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.width(48.dp),
         )
-        ChannelLogo(channel = channel, sizeDp = 36)
+        ChannelLogo(channel = channel, sizeDp = LocalTvMetrics.current.rowLogoSize)
         TwoLine(
             primary = channel.displayName,
             secondary = nowProgramme?.title,
@@ -443,6 +469,7 @@ private fun FilterBanner(query: String, onClear: () -> Unit) {
 private fun GroupColumn(
     vm: AppViewModel,
     onSearch: (() -> Unit)?,
+    destinations: List<NavDestination>,
     onNewGroup: () -> Unit,
     onGroupOptions: (ChannelGroup) -> Unit,
     modifier: Modifier = Modifier,
@@ -457,6 +484,15 @@ private fun GroupColumn(
             // Search was reachable only through the remote's Search key, which plenty of remotes
             // do not have. It needs somewhere on screen to live.
             item { GroupRow(stringResource(R.string.nav_search), selected = false, onClick = onSearch) }
+        }
+        // The same argument as Search above, applied to the rest of the shell: the guide, the
+        // catalogue, the recordings and settings were each behind a remote key, and on demand
+        // behind no key at all.
+        items(destinations, key = { it.label }) { destination ->
+            GroupRow(destination.label, selected = false, onClick = destination.onSelect)
+        }
+        if (destinations.isNotEmpty()) {
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
         }
         item {
             GroupRow(stringResource(R.string.all_channels), state.list.selectedGroupId == VirtualGroup.ALL) {

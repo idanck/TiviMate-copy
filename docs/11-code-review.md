@@ -598,3 +598,77 @@ fixed before the merge.
 
 Two tests cover the persistence half of the second finding; the suite is 129 tests. The install path itself
 is still unproven on a device, for the reason given above.
+
+---
+
+## The television shell, 2026-08-21
+
+Three reports, taken together: the interface does not fill the screen, it lags behind the phone,
+and it should move to the Picture-in-Guide direction. The first two turned out to be the same
+kind of finding as the ones above — requirements recorded as met that were not — so they are
+listed here rather than only in the changelog.
+
+### Found
+
+- **The app drew its own letterbox.** There was no `WindowInsets`, `enableEdgeToEdge` or
+  `setDecorFitsSystemWindows` call anywhere in the codebase. `decorFitsSystemWindows` stayed at
+  its default, so the Compose tree was inset by whatever system bars the device reported, and
+  `themes.xml` painted those insets black. With `targetSdk` at 35 the same build then behaved
+  differently either side of Android 15, which forces edge to edge: content under the bars there,
+  a shrunken window below it.
+- **Every browse surface floated in a frame.** `OverlayScaffold` applied its 32dp/24dp padding
+  *before* its background, so the scrim stopped short of the edges. The margin was also absolute
+  where `docs/03` asked for a proportion, so it was the wrong size on every panel but the one it
+  was guessed against.
+- **Television detection missed televisions.** It asked only about leanback and the absence of a
+  touchscreen, never `UiModeManager`. A box or stick reporting a touchscreen it does not have was
+  handed the *phone* shell — top app bar, bottom navigation bar, inset padding — on a television.
+  It was also `by lazy`-cached while `uiMode` sits in the manifest's `configChanges`, so a device
+  entering television mode never re-evaluated.
+- **The guide queried the wrong rows.** The visible-row count was a hardcoded twelve, used to size
+  the database query. On a panel fitting more than eighteen rows, every row past that rendered
+  "no guide data" while the data sat in the database. A correctness bug, not a tuning one.
+- **`focusable()` beside `clickable()`, in three places.** Clickable is focusable in its own
+  right, so each element carried two focus targets and cost a remote an invisible extra press.
+- **`PlayerView` was a D-pad stop.** It is a focusable `FrameLayout`, and Compose hands focus
+  across the interop boundary — so focus could land on the video with nothing on screen to say so.
+- **The catalogue had an invisible cursor.** `VodTile` was focusable with no `onFocusChanged` and
+  no focus visual at all (NFR-UX-02).
+- **On demand could not be opened.** `TvOverlay.VOD` was reachable only by searching for a series
+  and picking it, so a viewer who did not already know a title in the catalogue could not open the
+  catalogue (NFR-UX-01).
+- **Opening the catalogue popped the keyboard.** Compose gives initial focus to the first
+  focusable in the tree, which was the search box.
+- **Three requirements were recorded as Done and were not**: the guide's current-time marker and
+  jump-to-date (FR-UI-05), recording badges in the grid (FR-UI-10), and a selectable mini guide
+  (FR-UI-04). See `docs/10`.
+- **The track API had no callers.** `PlayerEngine.audioTracks`, `textTracks`, `selectTrack` and
+  `disableTrackType` were all implemented and called from nowhere in either shell.
+
+### Manual matrix — needs a real television or the Android TV emulator
+
+Nothing below is covered by the JVM suite. This repository has no Compose UI tests and no
+instrumentation tier, so every item here is a human check.
+
+| # | Check |
+|---|---|
+| 1 | The interface reaches all four panel edges, with no black frame, on 1080p **and** on a 4K panel |
+| 2 | Opening the guide keeps the picture playing and visible in the docked preview; it does not re-tune, stutter or go black |
+| 3 | Leaving the guide returns the picture to full screen |
+| 4 | The preview is not tinted by the overlay-opacity setting |
+| 5 | Subtitles and the aspect choice apply to the full-size picture and are suppressed in the preview |
+| 6 | D-pad reaches every destination from the channel list with no dead ends, and focus is visible on every focusable element — guide cells, posters, filmstrip tiles, transport buttons |
+| 7 | Opening on demand does not raise the on-screen keyboard |
+| 8 | The filmstrip tunes without interrupting playback; Left and Right walk it |
+| 9 | OK opens the transport bar; a long OK opens the playback menu; Back steps menu → bar → video |
+| 10 | Zapping and numeric channel entry still work while the filmstrip is up |
+| 11 | Transport bar and playback menu each operate on live, catch-up, on-demand and recording playback |
+| 12 | Audio and subtitle pickers list the stream's real tracks and switching takes effect |
+| 13 | A track choice survives a failover or a re-tune |
+| 14 | Every visible guide row carries data on a large panel |
+| 15 | The current-time marker sits at the right hour and advances |
+| 16 | A scheduled programme is badged in the grid, and the badge changes while it records |
+| 17 | Jump-to-date moves the window to the chosen day |
+| 18 | Hebrew: the three-pane guide mirrors, the filmstrip's direction mirrors, the time axis stays right-anchored |
+| 19 | Picture-in-picture still shows bare video, and returning from it restores the shell |
+| 20 | The phone shell is unregressed — the window change applies to both form factors |

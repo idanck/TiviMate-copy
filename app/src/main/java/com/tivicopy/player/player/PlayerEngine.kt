@@ -210,8 +210,17 @@ class PlayerEngine(
 
         val selector = DefaultTrackSelector(context).apply {
             parameters = buildUponParameters()
-                .setPreferredAudioLanguage(s.preferredAudioLanguage.takeIf { it.isNotBlank() })
-                .setPreferredTextLanguage(s.preferredSubtitleLanguage.takeIf { it.isNotBlank() })
+                // A choice made in the playback menu outranks the stored preference, and outlives
+                // this instance: a failover or a decoder change rebuilds the player from scratch,
+                // and without carrying the choice here the audio silently reverted to the
+                // provider's default mid-programme.
+                .setPreferredAudioLanguage(
+                    chosenAudioLanguage ?: s.preferredAudioLanguage.takeIf { it.isNotBlank() },
+                )
+                .setPreferredTextLanguage(
+                    chosenTextLanguage ?: s.preferredSubtitleLanguage.takeIf { it.isNotBlank() },
+                )
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, textTracksDisabled)
                 .setSelectUndeterminedTextLanguage(false)
                 .setTunnelingEnabled(false)
                 .build()
@@ -506,13 +515,50 @@ class PlayerEngine(
         return out
     }
 
+    /**
+     * What the user picked in the playback menu, remembered as a *language* rather than an index.
+     *
+     * The override itself cannot survive a rebuild: group indices belong to the stream the current
+     * instance parsed, and a failover to another URL — or a decoder change — reparses it. The
+     * language does survive, and is what the viewer actually chose; re-applying it as the
+     * preferred language in [build] is what keeps a Hebrew audio track selected across a failover
+     * instead of silently reverting to the provider's default mid-programme.
+     *
+     * Null means "no choice made", so the stored preference in Settings still applies.
+     */
+    private var chosenAudioLanguage: String? = null
+    private var chosenTextLanguage: String? = null
+    private var textTracksDisabled = false
+
     fun selectTrack(option: TrackOption) {
         val exo = player ?: return
         val group = exo.currentTracks.groups.getOrNull(option.groupIndex) ?: return
+        when (group.type) {
+            C.TRACK_TYPE_AUDIO -> chosenAudioLanguage = option.language
+            C.TRACK_TYPE_TEXT -> {
+                chosenTextLanguage = option.language
+                textTracksDisabled = false
+            }
+        }
         exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
             .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, option.trackIndex))
             .setTrackTypeDisabled(group.type, false)
             .build()
+    }
+
+    /**
+     * Turns subtitles off for this stream.
+     *
+     * A named wrapper so the UI does not have to reach for a media3 track-type constant to say
+     * something as ordinary as "off"; the picker in the playback menu is the only caller, and the
+     * alternative was importing `C` into a Compose file.
+     */
+    fun disableTextTracks() {
+        // Remembered for the same reason a chosen language is: subtitles turned off before a
+        // failover should stay off after it.
+        textTracksDisabled = true
+        chosenTextLanguage = null
+        disableTrackType(C.TRACK_TYPE_TEXT)
     }
 
     fun disableTrackType(type: Int) {

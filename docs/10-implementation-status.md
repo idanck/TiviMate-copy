@@ -76,7 +76,7 @@ feature that was otherwise in scope is simply available.
 | FR-PLB-02 / 03 | Done | Whatever the device's `MediaCodec` offers. |
 | FR-PLB-04 | Done | `SelectiveRenderersFactory`, independent per renderer family, global from Settings and per channel from the channel options. |
 | FR-PLB-05 | Done | One software retry, with a notice saying what changed. |
-| FR-PLB-06 | Done | `PlayerEngine.audioTracks` / `selectTrack`. |
+| FR-PLB-06 | Done | `PlayerEngine.audioTracks` / `selectTrack` — which until now had **no callers in either shell**. A preferred language could be set in Settings; the track on the stream in front of you could not be chosen. The television's playback menu is the first caller. The phone still has no picker. |
 | FR-PLB-07 | Done | `setPreferredAudioLanguage` on the track selector. |
 | FR-PLB-08 | Not implemented | Media3 exposes no audio offset; a stub would have read as a working control. |
 | FR-PLB-09 | Partial | Media3 passes through where the device allows; no explicit UI switch. |
@@ -103,17 +103,20 @@ feature that was otherwise in scope is simply available.
 
 | ID | Status | Notes |
 |---|---|---|
-| FR-UI-01..06 | Done | D-pad throughout; overlays draw over playing video. |
-| FR-UI-07 | Done by construction | Lazy channel axis plus a windowed query per visible page; not measured on a TV box. |
+| FR-UI-01..03 | Done | D-pad throughout; overlays draw over playing video. |
+| FR-UI-04 | Done | **Previously recorded as Done and was not.** The mini guide was a `LazyRow` of the current channel's programmes with neither `focusable()` nor `clickable()` on any of them — on a remote, a picture of a schedule with nothing in it that could be selected. Replaced by a channel filmstrip: neighbouring channels captioned with what is on now, Left/Right to walk, OK to tune, playback uninterrupted. See `docs/adr/ADR-014`. |
+| FR-UI-05 | Done | **Previously recorded as Done with two of its named parts missing.** The current-time marker was never drawn, and jump-to-date had a string resource but no control — reaching next Tuesday meant pressing +1 day seven times. Both are now in. The marker ticks on its own timer, because left to the grid's recompositions it froze wherever it was when the guide opened. |
+| FR-UI-06 | Done | Satisfied literally before — the stream kept decoding under an 85%-opaque sheet, so opening the guide cost you the picture. The television guide now docks the live preview beside the grid instead of covering it (`docs/adr/ADR-013`). |
+| FR-UI-07 | Done by construction | Lazy channel axis plus a windowed query per visible page; not measured on a TV box. The window used to be sized from a hardcoded guess of twelve visible rows, which was a correctness bug as well as a tuning one: on a panel fitting more than eighteen rows, every row past that rendered "no guide data" while the data sat in the database. It now asks the layout what is on screen. |
 | FR-UI-08 | Partial | Details, watch, catch-up, record and favourite; no reminder or series action. |
 | FR-UI-09 | Done | Channels, guide entries and VOD in one query over the whole playlist, debounced, reachable from the top bar on the phone and from the group column on the television. The channel clause also matches group names — typing a category surfaces its channels — outside a selected group, without resurrecting hidden groups (`ChannelQueriesTest`). Catch-up programmes are covered only in so far as they are still in the guide window. |
-| FR-UI-10 | Done | Archive badge in the grid; recording state in the library. |
+| FR-UI-10 | Done | **Previously recorded as Done on half the requirement.** The requirement is "catch-up availability *and recording state* are badged in the guide"; only the archive badge was drawn, so a scheduled programme looked exactly like an unscheduled one and the only way to check was to leave the guide for the recordings list. Both badges are now in the grid, matched by overlap of the programme's midpoint — a scheduled recording carries the pre- and post-roll padding, so its window is deliberately wider than the programme's and an equal-start match would never fire. Cancelled and failed recordings are not badged. |
 | FR-UI-11 | Not implemented | Remappable keys. Defaults are as `docs/03` specifies. |
 | FR-UI-12 | Done | Key-code probe in Diagnostics. |
 | FR-UI-13..15 | Done | Bottom navigation and full-screen browse screens; playback lives in `PlayerScreen` (portrait video-plus-details, landscape fullscreen with the list as a sheet) with `MiniPlayerBar` collapsing it Apple-Music-style (ADR-011, FR-UI-15 as reworded). Gestures unchanged, now on the player screen's video. The list opens anchored to the playing channel with a now-programme second line per visible row. Verified by construction and the JVM suite only — no Compose UI tests exist; the manual matrix is in `docs/11`. |
 | FR-UI-16 | Partial | Two-pane above sw600dp — the smallest width, so a tall phone lying down is still a phone; no master/detail split view. |
 | FR-UI-17..19 | Done | Four themes, overlay opacity and timeout, font scale that reflows. |
-| FR-UI-20 | Not implemented | Configurable playback menu. |
+| FR-UI-20 | Partial | The menu exists — a long OK over playing video opens it, with play/pause, aspect, and the audio and subtitle track pickers. It is not yet user-configurable in content or order, which is what the requirement actually asks for. Until this it was the *whole* thing that was missing: a long OK opened Settings ▸ Playback, a preferences screen that left the programme to change a default. See `docs/adr/ADR-014`. |
 | FR-UI-21 | Partial | `supportsRtl`, start/end padding throughout, Hebrew resources, D-pad Left/Right mirrored to the layout direction, and clock ranges isolated so they no longer render end-first in a Hebrew paragraph. This was previously marked Done on the strength of the padding alone, while the remote and every composed time range were still wrong. The guide grid should mirror by construction — it is laid out in widths, with no pixel offsets — but that has not been checked on a device. |
 | FR-UI-22 | Not implemented | Chromecast sender. |
 | FR-UI-23 | Done | Follow the device, English or Hebrew, from Appearance. Android 13 and later hand the choice to `LocaleManager`, which applies it to the whole process and recreates the activity; below that it is applied by wrapping the base context *and* registering the locale as the activity's own override configuration — the wrap alone was reported as changing nothing on a device, because the platform rebases an activity's resources onto that override and drops what is not in it. Preferences and the platform are reconciled on start, so an upgraded install keeps its choice and a change made from the device's per-app language screen wins. The translation is compiled under `values-iw`: Android resolves resources against the language `ResourcesImpl.adjustLanguageTag` returns, which is `iw` for Hebrew, so a `values-he` folder is never looked up — the layout mirrored while every string stayed English. Diagnostics reports the stored choice, the platform's, the resolved locale and the layout direction. See `docs/adr/ADR-009`. |
@@ -195,3 +198,22 @@ reference device, and this file does not claim otherwise.
 
 NFR-SEC-01/02 are implemented: credentials are Keystore-encrypted at rest and redacted
 everywhere they could be shared. NFR-SEC-04 holds trivially — there is no telemetry code.
+
+Two ten-foot requirements were failing outright until 2026-08-21 and are worth naming, because
+neither had ever been recorded as failing:
+
+- **NFR-UX-01** ("every TV screen is reachable and operable using only D-pad, OK and Back").
+  It was not. Recordings sat behind a colour key many remotes do not carry, and on demand had no
+  entry point at all — it could only be reached by searching for a series and picking it, so a
+  viewer who did not already know a title in the catalogue could not open the catalogue. The
+  channel list's group column now carries the guide, on demand, recordings and settings above the
+  playlist's own groups.
+- **NFR-UX-02** ("focus is always visible on TV, with a contrast ratio of at least 3:1").
+  `VodTile` was `focusable()` with no `onFocusChanged` and no focus visual of any kind, so the
+  catalogue was a grid of posters with an invisible cursor somewhere in it. The video surface was
+  also a focus stop — `PlayerView` is a focusable `FrameLayout` and Compose hands focus across the
+  interop boundary — so focus could land on the picture with nothing on screen to say so.
+
+Several `focusable()` calls sat beside `clickable()`, which is focusable in its own right. Each
+pair was two focus targets on one element, so a remote spent an invisible extra press crossing
+every guide cell and every poster.

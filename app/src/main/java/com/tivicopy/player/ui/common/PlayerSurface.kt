@@ -26,6 +26,15 @@ fun PlayerSurface(
     aspectMode: AspectMode,
     subtitleScale: Float,
     modifier: Modifier = Modifier,
+    /**
+     * Whether this surface is the small preview docked beside the guide rather than the screen.
+     *
+     * Two things have to change at that size. The user's aspect choice is ignored in favour of
+     * fitting, because the zooming modes crop hard enough at preview size to look like a fault;
+     * and subtitles are dropped, because their size is a fraction of the view's height and a
+     * fraction of 220dp is not readable. The full-size surface behind is where both belong.
+     */
+    docked: Boolean = false,
 ) {
     // Collected, not fetched: when the engine replaces its instance the view must re-attach,
     // and only a state read makes AndroidView's update block run again.
@@ -42,14 +51,25 @@ fun PlayerSurface(
                 )
                 setKeepContentOnPlayerReset(true)
                 setShutterBackgroundColor(android.graphics.Color.BLACK)
+                // `PlayerView` is a focusable `FrameLayout`, and Compose hands focus across the
+                // interop boundary — so on a remote the video itself became a D-pad stop, and
+                // once focus landed there nothing on screen showed where it had gone. It is
+                // decoration, never a control: every control in this app is drawn by Compose.
+                isFocusable = false
+                isFocusableInTouchMode = false
+                descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
             }
         },
         update = { view ->
             view.player = exo ?: engine.exoPlayer()
-            view.resizeMode = aspectMode.toResizeMode()
-            view.subtitleView?.setFractionalTextSize(
-                androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subtitleScale,
-            )
+            view.resizeMode =
+                if (docked) AspectRatioFrameLayout.RESIZE_MODE_FIT else aspectMode.toResizeMode()
+            view.subtitleView?.apply {
+                visibility = if (docked) android.view.View.GONE else android.view.View.VISIBLE
+                setFractionalTextSize(
+                    androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subtitleScale,
+                )
+            }
         },
         onRelease = { view -> view.player = null },
     )

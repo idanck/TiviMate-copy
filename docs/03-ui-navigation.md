@@ -8,9 +8,16 @@
 | Distance | 10-foot | 1-foot |
 | Type scale | Large, high contrast, no text smaller than 12sp effective | Standard Material scale |
 | Focus | Explicit focus state on every element, no hover-only affordances | Ripple/press states |
-| Overscan | 5% safe margins | Edge-to-edge, insets-aware |
+| Overscan | Edge-to-edge surfaces; content padding only | Edge-to-edge, insets-aware |
 
 Both share the same domain layer, so a channel hidden on the phone is hidden on the TV.
+
+The overscan row used to read "5% safe margins", and the code implemented it as a fixed
+32dp/24dp frame drawn *outside* every overlay's own background — so each browse surface floated
+in a border of raw video and the interface visibly failed to fill the screen. The decision now is
+that television surfaces are full-bleed: backgrounds reach the panel edge, and each surface keeps
+ordinary content padding so text is not flush against it. The trade is explicit — on an older
+television that still overscans, content near the edge can be cropped. See `docs/adr/ADR-013`.
 
 ## 3.2 Core TV screens
 
@@ -31,9 +38,14 @@ Both share the same domain layer, so a channel hidden on the phone is hidden on 
    - Moving a channel is offered only where the list is in the playlist's own order. In
      Favourites the row above is not the row above in the full list, and in Recently watched the
      order comes from watch times.
-3. **Mini guide** — a single-row horizontal timeline for the current channel.
+3. **Channel filmstrip** — a horizontal reel of neighbouring channels over playing video, each
+   captioned with what is on it now. Left and Right walk it, OK tunes, playback never stops.
+   This replaces the single-channel timeline the mini guide used to draw: on a remote that was a
+   picture of a schedule, with nothing in it that could be selected.
 4. **Full guide** — the classic grid: channels down, time across, current-time marker,
-   horizontal scroll by hours/days, jump-to-now, jump-to-date.
+   horizontal scroll by hours/days, jump-to-now, jump-to-date. On the television it is laid out
+   *around* the picture rather than over it — a persistent channel rail on one side, a docked
+   live preview that keeps playing, and the grid below (`docs/adr/ADR-013`).
 5. **Programme details** — title, times, description, category, series/episode, poster,
    plus actions: watch, record, schedule series, catch-up, remind, add to favourites.
 6. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
@@ -42,6 +54,15 @@ Both share the same domain layer, so a channel hidden on the phone is hidden on 
    visible while it is set, and is scoped to the group you are in.
 7. **Recordings** — completed and scheduled.
 8. **Settings**.
+9. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
+   section 3.4 and section 3.6.
+
+The group column of the channel-list overlay doubles as the television's navigation: Search, the
+guide, on demand, recordings and settings sit above the playlist's own groups. This is the
+ten-foot answer to the phone's bottom bar, and it exists because every destination was otherwise
+behind a remote key — two of them keys many remotes do not have, and on demand behind no key at
+all, reachable only by searching for a title and picking it. NFR-UX-01 asks that every screen be
+reachable with D-pad, OK and Back alone.
 
 ## 3.3 Guide behaviour requirements
 
@@ -58,8 +79,19 @@ Both share the same domain layer, so a channel hidden on the phone is hidden on 
 - Configurable actions bound to: OK short/long, Up, Down, Left, Right, Back, Back-double,
   numeric keys, colour keys, Play/Pause, FFwd/Rew, Channel Up/Down, Menu, Info, Guide.
 - Default bindings must be sane before customization: Up/Down = zap, Left = channel list,
-  Right = mini guide, OK = info card, OK-long = playback menu, Back = up one level,
+  Right = channel filmstrip, OK = transport bar, OK-long = playback menu, Back = up one level,
   Back-double = exit with confirm.
+  - **OK** was the info card, which named what was playing and offered nothing to do about it.
+    It now opens the transport bar, which carries the same identity plus play/pause, zapping,
+    the favourite toggle, the aspect control and the quality readout. The info card still exists
+    and still auto-dismisses — it is what a zap or a numeric channel entry flashes up.
+  - **OK-long** opened Settings ▸ Playback, a preferences screen: it left the programme to change
+    a default. It now opens the playback menu described in section 3.6, which acts on the stream
+    in front of you and is where the audio and subtitle track pickers live.
+  - **Right** opened a read-only strip of the current channel's schedule with nothing in it a
+    remote could select. It now opens a filmstrip of neighbouring channels, each captioned with
+    what is on now; Left and Right walk it and OK tunes, without leaving playback.
+  - See `docs/adr/ADR-014`.
 - A **learn/diagnostic screen** showing raw keycodes, so users of odd remotes can bind
   whatever their device actually sends. Cheap to build, disproportionately valuable.
 

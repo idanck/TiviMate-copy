@@ -149,7 +149,14 @@ private fun RecordingRow(
     }
 }
 
-private fun RecordingState.label(): Int = when (this) {
+/**
+ * The one user-facing name per recording state.
+ *
+ * Package-visible rather than private because the guide grid badges the same states (FR-UI-10),
+ * and two hand-written maps are exactly how the two surfaces would drift apart.
+ */
+@androidx.annotation.StringRes
+internal fun RecordingState.label(): Int = when (this) {
     RecordingState.SCHEDULED -> R.string.rec_state_scheduled
     RecordingState.RECORDING -> R.string.rec_state_recording
     RecordingState.COMPLETED -> R.string.rec_state_completed
