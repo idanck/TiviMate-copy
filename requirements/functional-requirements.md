@@ -25,6 +25,7 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-SRC-13 | After a refresh the app reports added / removed / renamed channel counts. | SHOULD | Free | Both |
 | FR-SRC-14 | Deleting a playlist offers to retain its favourites and groups for re-import. | COULD | Free | Both |
 | FR-SRC-15 | Account information from Xtream (expiry date, max connections, status) is displayed and a warning is raised before expiry. | SHOULD | Free | Both |
+| FR-SRC-16 | The app ships a single bundled playlist of curated Israeli radio stations (audio-only), sourced from an externally-hosted feed the same way as the built-in TV channels (see ADR-015). | MUST | Free | Both |
 
 ## ORG — Channel Organization
 
@@ -239,6 +240,15 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-TVI-05 | Widevine-protected streams play where the device supports the required security level, with licence configuration read from playlist properties. | SHOULD | Free | Both |
 | FR-TVI-06 | A stream requiring unsupported DRM produces a clear explanatory message, never a silent black screen. | MUST | Free | Both |
 | FR-TVI-07 | The app registers as a TV Input Framework input so channels appear in the system Live TV app. | WON'T | — | TV |
+
+## AUTO — Android Auto
+
+| ID | Requirement | Prio | Tier | Plat |
+|---|---|---|---|---|
+| FR-AUTO-01 | The bundled Israeli radio stations (FR-SRC-16) are browsable and playable through Android Auto's media template. | MUST | Free | Mobile |
+| FR-AUTO-02 | Android Auto radio playback uses a player instance isolated from in-app playback: playing a station in the car does not interrupt, and is not interrupted by, whatever is playing in the phone/TV UI. | MUST | Free | Mobile |
+| FR-AUTO-03 | The car's native skip-next/previous controls cycle through the radio station list in order. | SHOULD | Free | Mobile |
+| FR-AUTO-04 | The app is distributed to Android Auto sideload-only, via Android Auto's own "Unknown sources" developer setting — not through Google's Android-Auto-specific Play Store review. | MUST | — | Mobile |
 
 ## UPD — In-app Updates
 
