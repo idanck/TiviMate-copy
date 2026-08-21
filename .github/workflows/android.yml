@@ -44,11 +44,13 @@ jobs:
             echo "::warning::No release keystore configured — this build falls back to a per-run"
             echo "::warning::debug key, so it cannot update an existing install and is not published."
             echo "SIGNED=false" >> "$GITHUB_ENV"
+            echo "INSTALL_NOTE=This build carries a throwaway debug key. Android refuses to replace an install whose signature differs, so it CANNOT update an existing TiviCopy - uninstall first, which erases its local data." >> "$GITHUB_ENV"
             exit 0
           fi
           printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           echo "SIGNED=true" >> "$GITHUB_ENV"
+          echo "INSTALL_NOTE=Signed with the release key, so it installs straight over an existing TiviCopy as an ordinary update." >> "$GITHUB_ENV"
 
       - name: Unit tests
         run: ./gradlew --no-daemon testReleaseUnitTest
@@ -194,8 +196,10 @@ jobs:
           name: TiviCopy build ${{ github.run_number }}
           body: |
             Automated build of `${{ github.sha }}`.
-            Install the APK below on the device; it is signed with the standard debug key,
-            so enable "install from unknown sources" for the file manager you use.
+
+            ${{ env.INSTALL_NOTE }}
+
+            Enable "install from unknown sources" for whichever file manager you use.
           files: dist/*.apk
           draft: false
           prerelease: false
