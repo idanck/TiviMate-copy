@@ -2,8 +2,8 @@ package com.tivicopy.player.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,9 +40,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -206,6 +211,19 @@ private fun VodGrid(
             return@Column
         }
 
+        // Focus is claimed by the grid, not left to Compose's own search — which picks the first
+        // focusable in the tree, and that is the search box above. On a remote that meant opening
+        // the catalogue popped the on-screen keyboard over it, every time, when what the viewer
+        // asked for was to look at the posters. The box is still one Up press away.
+        val firstTile = remember { FocusRequester() }
+        var claimedFocus by remember { mutableStateOf(false) }
+        LaunchedEffect(items.isNotEmpty(), resumeRow.isNotEmpty()) {
+            if (claimedFocus || (items.isEmpty() && resumeRow.isEmpty())) return@LaunchedEffect
+            claimedFocus = true
+            withFrameNanos { }
+            runCatching { firstTile.requestFocus() }
+        }
+
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 130.dp),
             state = state.gridScroll,
@@ -217,15 +235,26 @@ private fun VodGrid(
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionHeader(stringResource(R.string.recently_watched))
                 }
-                items(resumeRow, key = { "cw${it.id}" }) { item ->
-                    VodTile(item = item, onOpen = open, onToggleFavourite = { toggleFavourite(item) })
+                itemsIndexed(resumeRow, key = { _, it -> "cw${it.id}" }) { index, item ->
+                    VodTile(
+                        item = item,
+                        onOpen = open,
+                        onToggleFavourite = { toggleFavourite(item) },
+                        focusRequester = firstTile.takeIf { index == 0 },
+                    )
                 }
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     SectionHeader(stringResource(R.string.nav_vod))
                 }
             }
-            items(items, key = { it.id }) { item ->
-                VodTile(item = item, onOpen = open, onToggleFavourite = { toggleFavourite(item) })
+            itemsIndexed(items, key = { _, it -> it.id }) { index, item ->
+                VodTile(
+                    item = item,
+                    onOpen = open,
+                    onToggleFavourite = { toggleFavourite(item) },
+                    // Only when there is no continue-watching row above to take it instead.
+                    focusRequester = firstTile.takeIf { index == 0 && resumeRow.isEmpty() },
+                )
             }
         }
     }
@@ -374,12 +403,34 @@ private fun EpisodeRow(episode: VodItem, onPlay: () -> Unit, onToggleFavourite: 
 }
 
 @Composable
-private fun VodTile(item: VodItem, onOpen: (VodItem) -> Unit, onToggleFavourite: () -> Unit) {
+private fun VodTile(
+    item: VodItem,
+    onOpen: (VodItem) -> Unit,
+    onToggleFavourite: () -> Unit,
+    /** Set on the first tile so the grid can claim focus before the search box does. */
+    focusRequester: FocusRequester? = null,
+) {
+    // This tile was focusable with nothing to show for it — no `onFocusChanged`, no ring, no
+    // scale. On a remote the catalogue was a grid of posters with an invisible cursor somewhere
+    // in it, which is NFR-UX-02 ("focus is always visible on TV") failing outright.
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(8.dp)
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .focusable()
-            .clickable { onOpen(item) },
+            .clip(shape)
+            .border(
+                width = if (focused) 3.dp else 0.dp,
+                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = shape,
+            )
+            .onFocusChanged { focused = it.hasFocus }
+            .then(
+                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
+            )
+            // `clickable` is focusable in its own right; the `focusable()` that used to sit
+            // beside it made every tile cost the remote two presses to pass.
+            .clickable { onOpen(item) }
+            .padding(2.dp),
     ) {
         Box(
             modifier = Modifier

@@ -49,6 +49,7 @@ import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
+import com.tivicopy.player.ui.screens.NavDestination
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
@@ -261,6 +262,23 @@ fun TvRoot(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onSearch = { onOverlayChange(TvOverlay.SEARCH) },
+                        // The ten-foot equivalent of the phone's bottom bar. On demand had no
+                        // entry point at all before this — it could only be opened by searching
+                        // for a series and picking it (NFR-UX-01).
+                        destinations = listOf(
+                            NavDestination(stringResource(R.string.nav_guide)) {
+                                onOverlayChange(TvOverlay.GUIDE)
+                            },
+                            NavDestination(stringResource(R.string.nav_vod)) {
+                                onOverlayChange(TvOverlay.VOD)
+                            },
+                            NavDestination(stringResource(R.string.nav_recordings)) {
+                                onOverlayChange(TvOverlay.RECORDINGS)
+                            },
+                            NavDestination(stringResource(R.string.nav_settings)) {
+                                onOverlayChange(TvOverlay.SETTINGS)
+                            },
+                        ),
                         // Opening the list lands on the playing channel, focused, so zapping
                         // onward is one press instead of a scroll from the top.
                         scrollToCurrent = true,

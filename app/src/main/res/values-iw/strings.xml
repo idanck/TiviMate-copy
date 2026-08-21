@@ -321,7 +321,6 @@
     <!-- The phone's Now Playing screen and mini player bar (ADR-011). -->
     <string name="now_playing">מתנגן עכשיו</string>
     <string name="playback_menu_hint">לחיצה ארוכה על OK לאפשרויות נוספות</string>
-    <string name="playback_menu">אפשרויות ניגון</string>
     <string name="action_collapse_player">מזעור הנגן</string>
     <string name="action_play">נגן</string>
     <string name="action_pause">השהה</string>
