@@ -54,9 +54,12 @@ requirements/ Numbered, testable requirements (FR / NFR) + roadmap
 ## Legal position
 
 - The app is a media player. It does not host, index, resell or bundle any channel,
-  stream, or subscription.
+  stream, or subscription — except one fixed built-in playlist of Israel's free-to-air
+  public channels (see `docs/00-scope-and-platforms.md` §0.1), included only because this
+  is personal software that is never distributed through a store.
 - Store listing and in-app copy must contain no reference to obtaining content, and no
-  provider names, to stay inside Google Play policy for streaming apps.
+  provider names, to stay inside Google Play policy for streaming apps, should this ever
+  be distributed through one.
 - Features and behaviours are not protected expression; **code, assets and layouts are**.
   Everything in this project is authored independently: no TiviMate source, binary, icon,
   layout, string or artwork is reproduced or reused.

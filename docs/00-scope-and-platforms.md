@@ -7,7 +7,14 @@ credentials); the app turns it into a cable-like experience: channel list, elect
 programme guide, favourites, catch-up, recording, VOD/series browsing.
 
 The app is **content-neutral infrastructure**. It ships with zero channels, performs no
-content discovery of its own, and has no default/bundled provider.
+content discovery of its own, and has no default/bundled provider — with one narrow,
+deliberate exception: a single fixed built-in playlist of Israel's free-to-air public
+channels (Kan 11, Kan Educational, Makan 33, Channel 12, Channel 13, Channel 14, the
+Knesset Channel). This exists only because the app is personal software that never goes
+through a store — the store-policy concern this section otherwise guards against does not
+apply — and it is scoped to broadcasters whose signal is already free and open to the
+public, not a general-purpose provider list. See `docs/adr/ADR-013-built-in-israeli-public-channels.md`
+for the rationale.
 
 ## 0.2 Benchmark summary
 

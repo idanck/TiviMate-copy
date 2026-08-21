@@ -163,4 +163,30 @@ class M3uParserTest {
         assertNull(result.entries[2].tvgId)
         assertTrue(result.entries.all { it.url.isNotBlank() })
     }
+
+    /**
+     * Shaped like the hosted `il-epg/channels.m3u` (docs/00-scope-and-platforms.md §0.1): Hebrew
+     * display names, iptv-org-style tvg-id, and a self-hosted tvg-logo per entry.
+     */
+    @Test
+    fun `reads a built-in-playlist-shaped entry with Hebrew name and hosted logo`() {
+        val result = parse(
+            """
+            #EXTM3U url-tvg="https://updates.idanck.com/il-epg/guide.xml"
+            #EXTINF:-1 tvg-id="Kan11.il@SD" tvg-logo="https://updates.idanck.com/il-epg/logos/kan11.png" group-title="ישראל",כאן 11
+            https://kancdn.medonecdn.net/livehls/oil/kancdn-live/live/kan11/live.livx/playlist.m3u8
+            #EXTINF:-1 tvg-id="KnessetChannel.il@SD" tvg-logo="https://updates.idanck.com/il-epg/logos/knesset.png" group-title="ישראל",ערוץ הכנסת
+            http://stream.mcquack.net/48/index.m3u8
+            """.trimIndent(),
+        )
+        assertEquals("https://updates.idanck.com/il-epg/guide.xml", result.epgUrl)
+        assertEquals(2, result.entries.size)
+        val kan11 = result.entries[0]
+        assertEquals("Kan11.il@SD", kan11.tvgId)
+        assertEquals("https://updates.idanck.com/il-epg/logos/kan11.png", kan11.tvgLogo)
+        assertEquals("כאן 11", kan11.name)
+        val knesset = result.entries[1]
+        assertEquals("KnessetChannel.il@SD", knesset.tvgId)
+        assertEquals("ערוץ הכנסת", knesset.name)
+    }
 }
