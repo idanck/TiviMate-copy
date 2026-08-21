@@ -515,6 +515,15 @@ class PlayerEngine(
             .build()
     }
 
+    /**
+     * Turns subtitles off for this stream.
+     *
+     * A named wrapper so the UI does not have to reach for a media3 track-type constant to say
+     * something as ordinary as "off"; the picker in the playback menu is the only caller, and the
+     * alternative was importing `C` into a Compose file.
+     */
+    fun disableTextTracks() = disableTrackType(C.TRACK_TYPE_TEXT)
+
     fun disableTrackType(type: Int) {
         val exo = player ?: return
         exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()

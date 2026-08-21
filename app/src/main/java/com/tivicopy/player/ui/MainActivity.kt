@@ -303,7 +303,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Default D-pad bindings from `docs/03` section 3.4: Up/Down zap, Left opens the channel
-     * list, Right opens the mini guide, OK shows the info card, a long OK opens the playback
+     * list, Right opens the filmstrip, OK opens the transport bar, a long OK opens the playback
      * menu, Back goes up one level and a second Back exits.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -315,8 +315,20 @@ class MainActivity : ComponentActivity() {
             return true
         }
 
-        // While an overlay owns the screen, the D-pad belongs to it.
-        if (overlay != TvOverlay.NONE && overlay != TvOverlay.INFO) {
+        // OK is tracked wherever a long press means something, which is now everywhere the video
+        // is still the screen — not only over the bare screen. Registering it inside the branch
+        // below would have meant that once the transport bar was up, holding OK stopped opening
+        // the menu: `onKeyLongPress` only ever fires for a key the activity asked to track.
+        val isOk = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
+        if (isOk && overlay.isPassthrough) {
+            event.startTracking()
+            return true
+        }
+
+        // While an overlay owns the D-pad, the arrows belong to it. The filmstrip, the transport
+        // bar and the playback menu draw focusable controls over playing video, so they take the
+        // arrows too — but zapping and numeric entry stay live underneath them.
+        if (!overlay.leavesDpadToShell) {
             return super.onKeyDown(keyCode, event)
         }
 
@@ -330,7 +342,6 @@ class MainActivity : ComponentActivity() {
                 { overlay = if (isRtl) TvOverlay.MINI_GUIDE else TvOverlay.CHANNELS; true }
             KeyEvent.KEYCODE_DPAD_RIGHT ->
                 { overlay = if (isRtl) TvOverlay.CHANNELS else TvOverlay.MINI_GUIDE; true }
-            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> { event.startTracking(); true }
             KeyEvent.KEYCODE_GUIDE, KeyEvent.KEYCODE_PROG_YELLOW -> { overlay = TvOverlay.GUIDE; true }
             KeyEvent.KEYCODE_INFO -> { showInfoCard(); true }
             KeyEvent.KEYCODE_SEARCH -> { overlay = TvOverlay.SEARCH; true }
@@ -352,8 +363,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         val isOk = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-        if (isTelevision && isOk && (overlay == TvOverlay.NONE || overlay == TvOverlay.INFO)) {
-            if (!event.isCanceled) showInfoCard()
+        if (isTelevision && isOk && overlay.leavesDpadToShell) {
+            // A short OK opens the transport bar. It used to open the info card, which said what
+            // was playing and offered nothing to do about it: the television had no play, no
+            // pause, no aspect control and no way to pick an audio track, while the phone had all
+            // four. The bar carries the same identity the card did, plus the controls.
+            if (!event.isCanceled) overlay = TvOverlay.TRANSPORT
             return true
         }
         return super.onKeyUp(keyCode, event)
@@ -361,8 +376,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (isTelevision && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)) {
-            overlay = TvOverlay.SETTINGS
-            settingsSection = SettingsSection.PLAYBACK
+            // Was Settings ▸ Playback, which is a preferences screen rather than a playback menu:
+            // it left the programme to change a default. This is the menu docs/03 section 3.6
+            // describes, acting on the stream in front of you.
+            overlay = TvOverlay.PLAYBACK_MENU
             return true
         }
         return super.onKeyLongPress(keyCode, event)
@@ -373,6 +390,12 @@ class MainActivity : ComponentActivity() {
         when {
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT
+
+            // "Up one level" now has a level to go up to. The playback menu is opened *from* the
+            // transport bar as often as from a long press, and collapsing both to bare video in a
+            // single press — which is what a flat `overlay = NONE` did — threw away the bar the
+            // user was working in and made Back feel like a cancel.
+            overlay == TvOverlay.PLAYBACK_MENU -> overlay = TvOverlay.TRANSPORT
 
             overlay != TvOverlay.NONE -> overlay = TvOverlay.NONE
 
