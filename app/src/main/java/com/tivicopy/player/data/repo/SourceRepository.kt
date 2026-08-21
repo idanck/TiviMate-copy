@@ -2,6 +2,7 @@ package com.tivicopy.player.data.repo
 
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
+import com.tivicopy.player.data.builtin.IsraelPublicChannels
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.m3u.M3uEntry
 import com.tivicopy.player.data.m3u.M3uParser
@@ -64,6 +65,30 @@ class SourceRepository(
             password = playlist.password?.let(SecureStore::encrypt),
         ),
     )
+
+    /**
+     * The one bundled playlist this app ships with (docs/00-scope-and-platforms.md §0.1).
+     * Idempotent and self-healing: run on every cold start, it only inserts the row the first
+     * time, and quietly reinstates it if the user ever deletes it — no separate "first run" flag,
+     * matching the rest of the app's preference for idempotent bootstrap over stored one-shot state.
+     *
+     * Deliberately does not fetch here: a freshly inserted [Playlist] keeps [Playlist.lastRefreshUtc]
+     * at its `0` default, which the periodic [com.tivicopy.player.work.RefreshWorker] already
+     * treats as immediately due — so the first real refresh happens on its normal worker cadence
+     * without this bootstrap step needing its own network call (and its own failure handling).
+     */
+    suspend fun ensureBuiltInPlaylist() = withContext(Dispatchers.IO) {
+        if (dao.playlists().any { it.url == IsraelPublicChannels.M3U_URL }) return@withContext
+        savePlaylist(
+            Playlist(
+                name = IsraelPublicChannels.NAME,
+                type = SourceType.M3U_URL,
+                url = IsraelPublicChannels.M3U_URL,
+                epgUrl = IsraelPublicChannels.EPG_URL,
+                refreshIntervalMinutes = 24 * 60,
+            ),
+        )
+    }
 
     suspend fun refresh(playlistId: Long, localFileReader: (() -> BufferedReader)? = null): Outcome<RefreshReport> =
         withContext(Dispatchers.IO) {

@@ -104,5 +104,7 @@ do (FR-UPD-01..08, `docs/adr/ADR-012`):
 ## 5.7 Settings that must NOT exist
 
 - Anything that fetches, aggregates or suggests content sources.
-- Any bundled default playlist.
+- Any bundled default playlist, **except** the single fixed built-in playlist of Israeli
+  free-to-air public channels described in `docs/00-scope-and-platforms.md` §0.1 — a
+  personal, non-store build only, not a general content-source feature.
 - Any "community" list of provider URLs.
