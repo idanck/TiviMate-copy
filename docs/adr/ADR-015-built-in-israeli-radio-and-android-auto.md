@@ -104,6 +104,18 @@ other stations for free — no custom session commands.
   a feed that did not yet exist at the URL it pointed to, so the bundled playlist stayed at zero
   channels (and so invisible in practice) until the feed was actually built and published,
   after the fact, in this same change.
+- `radio.m3u` carries two `group-title`s — "רדיו ישראלי" (the original 8 national stations) and
+  "רדיו אזורי" (8 Second Authority-licensed geographic regional stations — Radio Darom, Radio
+  Haifa, Radio Jerusalem, 104.5FM Tzafon, Lev Hamedina, Radio Tel Aviv, Kol Rega, Radio 90),
+  added later. The regional set was verified against the regulator's own registry
+  (`rashut2.org.il`), not just `radio-browser.info`'s name matching, after an initial pass turned
+  up a few similarly-named but unlicensed small/internet-only stations. No app code change was
+  needed for the second category: `M3uParser`/`SourceRepository.merge()` already turns each
+  distinct `group-title` into its own `ChannelGroup`, so it surfaces as a separate, selectable
+  category in the phone/TV UI on its own (visible by default — `Settings.showNewGroups` defaults
+  to `true`). Android Auto's `RadioBrowseTree` is unaffected either way: it queries every channel
+  in the playlist with no `groupId` filter, so it has always shown (and continues to show) both
+  groups together as one flat list, regardless of category.
 - Testing Android Auto integration requires physical or emulated ("Desktop Head Unit") car
   hardware and a phone with "Unknown sources" enabled in Android Auto's developer settings —
   it cannot be exercised by the JVM unit test suite, only by `IsraelRadioStationsBootstrapTest`
