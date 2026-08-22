@@ -89,8 +89,21 @@ other stations for free — no custom session commands.
 - If the user deletes the radio playlist from Settings, the next cold start silently reinstates
   it, same as the TV channels playlist.
 - Curation, stream URLs and logos for the radio feed live outside this repo, on the same host
-  as the TV channels (`il-epg.idanck.com/radio.m3u`) — maintained the same way (see ADR-013's
-  Consequences for the equivalent TV-channel pipeline).
+  as the TV channels (`il-epg.idanck.com/radio.m3u`), published by
+  `/home/idan/iptv-epg-il/build_radio_m3u.py` and the existing `sync.sh` cron (twice daily,
+  alongside `channels.m3u`/`guide.xml` — ADR-013's Consequences). Unlike the TV channels, there
+  is no single free/legal upstream aggregate for Israeli radio to filter (`iptv-org/iptv`'s
+  `streams/il.m3u` — the source ADR-013 already uses — carries no radio entries at all), so
+  `build_radio_m3u.py` instead filters `radio-browser.info`'s public station index down to 8
+  curated stations by name, the same "narrow curated set, not a general feature" posture as the
+  TV channels. Logos are published once at setup (Wikimedia Commons where available, otherwise
+  each station's own site), not re-published every cron run — matching how the TV logos already
+  work.
+- This ADR shipped (PR #18) before `radio.m3u` itself was ever published — the same class of gap
+  ADR-013's Consequences already records for `channels.m3u` in 0.4.4: the app-side code assumed
+  a feed that did not yet exist at the URL it pointed to, so the bundled playlist stayed at zero
+  channels (and so invisible in practice) until the feed was actually built and published,
+  after the fact, in this same change.
 - Testing Android Auto integration requires physical or emulated ("Desktop Head Unit") car
   hardware and a phone with "Unknown sources" enabled in Android Auto's developer settings —
   it cannot be exercised by the JVM unit test suite, only by `IsraelRadioStationsBootstrapTest`
