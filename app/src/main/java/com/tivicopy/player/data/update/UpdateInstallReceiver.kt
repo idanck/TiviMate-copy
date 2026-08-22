@@ -59,9 +59,12 @@ class UpdateInstallReceiver : BroadcastReceiver() {
         PackageInstaller.STATUS_FAILURE_ABORTED -> AppError.Kind.Cancelled
         PackageInstaller.STATUS_FAILURE_STORAGE -> AppError.Kind.InsufficientStorage
         PackageInstaller.STATUS_FAILURE_BLOCKED -> AppError.Kind.Forbidden
+        // The platform's own "signing certificate doesn't match the installed app" status —
+        // verifySignature() catches this ahead of time, but a race or an older-API path could
+        // still reach the installer with it, and it deserves the same actionable message.
+        PackageInstaller.STATUS_FAILURE_CONFLICT -> AppError.Kind.SignatureMismatch
         PackageInstaller.STATUS_FAILURE_INCOMPATIBLE,
         PackageInstaller.STATUS_FAILURE_INVALID,
-        PackageInstaller.STATUS_FAILURE_CONFLICT,
         -> AppError.Kind.UnsupportedFormat
         else -> AppError.Kind.Unknown
     }

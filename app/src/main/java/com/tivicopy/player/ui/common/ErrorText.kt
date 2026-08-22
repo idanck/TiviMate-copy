@@ -25,5 +25,6 @@ fun AppError.describe(context: Context): String = when (kind) {
     AppError.Kind.InsufficientStorage -> context.getString(R.string.err_storage)
     AppError.Kind.PermissionDenied -> context.getString(R.string.err_permission)
     AppError.Kind.Cancelled -> context.getString(R.string.err_cancelled)
+    AppError.Kind.SignatureMismatch -> context.getString(R.string.err_signature_mismatch)
     AppError.Kind.Unknown -> context.getString(R.string.err_unknown, detail ?: "—")
 }
