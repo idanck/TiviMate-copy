@@ -67,7 +67,7 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     val s by settings.state.collectAsState()
     val context = LocalContext.current
 
-    SettingsSectionTitle(stringResource(R.string.playlists_title))
+    SettingsSectionTitle(stringResource(R.string.playlists_title), topDivider = false)
     state.playlists.forEach { playlist ->
         // The radio playlist has its own destination (the Radio tab) and can never become the
         // Channels tab's active playlist (AppViewModel.selectPlaylist), so tapping this row
@@ -177,7 +177,7 @@ fun RecordingSection(vm: AppViewModel) {
         }
     }
 
-    SettingsSectionTitle(stringResource(R.string.settings_recording))
+    SettingsSectionTitle(stringResource(R.string.settings_recording), topDivider = false)
     SettingsRow(
         title = stringResource(R.string.rec_destination),
         subtitle = s.recordingFolderUri.ifBlank { stringResource(R.string.rec_no_destination) },
@@ -239,7 +239,7 @@ fun ParentalSection() {
     var feedback by remember { mutableStateOf<String?>(null) }
     val invalidPinMessage = stringResource(R.string.pin_hint)
 
-    SettingsSectionTitle(stringResource(R.string.settings_parental))
+    SettingsSectionTitle(stringResource(R.string.settings_parental), topDivider = false)
     OutlinedTextField(
         value = pin,
         onValueChange = { pin = it.filter(Char::isDigit).take(6) },
@@ -348,7 +348,7 @@ fun BackupSection(vm: AppViewModel) {
         }
     }
 
-    SettingsSectionTitle(stringResource(R.string.settings_backup))
+    SettingsSectionTitle(stringResource(R.string.settings_backup), topDivider = false)
     SettingsSwitch(
         title = stringResource(R.string.backup_include_credentials),
         subtitle = stringResource(R.string.backup_credentials_warning),
@@ -382,7 +382,7 @@ fun DiagnosticsSection(vm: AppViewModel) {
         }
     }
 
-    SettingsSectionTitle(stringResource(R.string.diag_title))
+    SettingsSectionTitle(stringResource(R.string.diag_title), topDivider = false)
     SettingsRow(title = stringResource(R.string.diag_version), subtitle = BuildInfo.short)
     SettingsRow(
         title = stringResource(R.string.diag_stream),

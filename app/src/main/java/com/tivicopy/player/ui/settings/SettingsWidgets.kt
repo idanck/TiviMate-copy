@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
@@ -15,14 +16,32 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.common.SectionHeader
 
+/**
+ * A thin wrapper over the shared [SectionHeader] with Settings' own, more prominent look (it
+ * doubles as each section's page title, not just a mid-list group label) — a single header
+ * implementation, so it draws the same top divider between categories as every other menu.
+ * [topDivider] should be `false` only for the header that opens a whole Settings screen, where a
+ * rule above it would imply content that is not there.
+ */
 @Composable
-fun SettingsSectionTitle(text: String) {
-    Text(
+fun SettingsSectionTitle(text: String, topDivider: Boolean = true) {
+    SectionHeader(
         text = text,
+        modifier = if (topDivider) Modifier else Modifier.padding(top = 12.dp),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 12.dp, top = 20.dp, bottom = 6.dp),
+        topDivider = topDivider,
+    )
+}
+
+/** A low-emphasis rule between adjacent options, so two unrelated settings never sit flush. */
+@Composable
+private fun RowDivider() {
+    HorizontalDivider(
+        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+        modifier = Modifier.padding(horizontal = 12.dp),
     )
 }
 
@@ -50,6 +69,7 @@ fun SettingsRow(
         }
         trailing()
     }
+    RowDivider()
 }
 
 @Composable
@@ -84,6 +104,7 @@ fun <T> SettingsChoice(
             }
         }
     }
+    RowDivider()
 }
 
 @Composable
@@ -106,4 +127,5 @@ fun SettingsSlider(
         }
         Slider(value = value, onValueChange = onChange, valueRange = range, steps = steps)
     }
+    RowDivider()
 }

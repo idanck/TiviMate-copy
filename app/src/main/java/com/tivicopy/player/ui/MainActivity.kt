@@ -64,6 +64,14 @@ class MainActivity : ComponentActivity() {
     private val vm: AppViewModel by viewModels()
 
     private var overlay by mutableStateOf(TvOverlay.NONE)
+
+    /**
+     * The channel/radio list Back returns to from bare fullscreen video (FR-SET-06). Fullscreen
+     * playback is no longer the app's root screen — this is — so Back goes up to it first, and
+     * only a further Back from here reaches the exit confirmation. Kept as whichever of
+     * [TvOverlay.CHANNELS]/[TvOverlay.RADIO] was opened last, updated alongside `overlay` below.
+     */
+    private var lastBrowseOverlay by mutableStateOf(TvOverlay.CHANNELS)
     private var settingsSection by mutableStateOf(SettingsSection.ROOT)
     private var numericEntry by mutableStateOf("")
     private var lastBackPress = 0L
@@ -256,6 +264,11 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             } else {
+                                LaunchedEffect(overlay) {
+                                    if (overlay == TvOverlay.CHANNELS || overlay == TvOverlay.RADIO) {
+                                        lastBrowseOverlay = overlay
+                                    }
+                                }
                                 TvRoot(
                                     vm = vm,
                                     overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
@@ -417,7 +430,11 @@ class MainActivity : ComponentActivity() {
             // user was working in and made Back feel like a cancel.
             overlay == TvOverlay.PLAYBACK_MENU -> overlay = TvOverlay.TRANSPORT
 
-            overlay != TvOverlay.NONE -> overlay = TvOverlay.NONE
+            // Bare fullscreen video is no longer the root: it goes back to the channel/radio list
+            // it was opened from first. Only Back from that list itself (below) reaches exit.
+            overlay == TvOverlay.NONE -> overlay = lastBrowseOverlay
+
+            overlay != lastBrowseOverlay -> overlay = TvOverlay.NONE
 
             !ServiceLocator.settings.state.value.confirmExit -> finish()
 

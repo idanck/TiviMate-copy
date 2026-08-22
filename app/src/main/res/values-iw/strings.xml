@@ -67,6 +67,11 @@
     <string name="interval_12h">כל 12 שעות</string>
     <string name="interval_daily">יומי</string>
     <string name="interval_weekly">שבועי</string>
+    <string name="filter_quick">סינון מהיר</string>
+    <string name="filter_categories">קטגוריות</string>
+    <string name="radio_category_national">ארצי</string>
+    <string name="radio_category_regional">אזורי</string>
+    <string name="radio_category_other">אחר</string>
     <string name="all_channels">כל הערוצים</string>
     <string name="favourites">מועדפים</string>
     <string name="recently_watched">נצפו לאחרונה</string>
@@ -91,6 +96,7 @@
     <string name="playback_menu">ניגון</string>
     <string name="playback_connecting">מתחבר…</string>
     <string name="playback_reconnecting">מתחבר מחדש — ניסיון %1$d…</string>
+    <string name="playback_audio_only">מתנגן — שידור שמע בלבד, אין תמונה</string>
     <string name="decoder_video">מפענח וידאו</string>
     <string name="decoder_audio">מפענח אודיו</string>
     <string name="decoder_auto">אוטומטי</string>

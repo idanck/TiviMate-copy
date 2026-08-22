@@ -180,14 +180,35 @@ fun FocusableRow(
     )
 }
 
+/**
+ * The one category-header look shared by every list/menu in the app — Settings' own
+ * [com.tivicopy.player.ui.settings.SettingsSectionTitle] is a thin wrapper over this rather than
+ * a second definition, so "a category header" reads the same everywhere. [topDivider] draws a
+ * full-width rule above the label, which is what actually separates one category's options from
+ * the previous one's; turn it off for a header that opens a screen with nothing above it.
+ */
 @Composable
-fun SectionHeader(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-    )
+fun SectionHeader(
+    text: String,
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.labelLarge,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    topDivider: Boolean = true,
+) {
+    Column(modifier = modifier) {
+        if (topDivider) {
+            androidx.compose.material3.HorizontalDivider(
+                color = MaterialTheme.colorScheme.outlineVariant,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+        }
+        Text(
+            text = text,
+            style = style,
+            color = color,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
 }
 
 @Composable

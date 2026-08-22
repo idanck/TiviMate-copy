@@ -203,6 +203,20 @@ fun TvRoot(
             modifier = Modifier.fillMaxSize(),
         )
 
+        // Radio (and any other audio-only stream) never produces a video frame, so the surface
+        // above is a steady black rectangle with sound and nothing to look at — indistinguishable
+        // from broken. Detected the same way PlaybackStatus already reports it (no video track),
+        // not a new "isRadio" flag, so this also covers a TV channel that happens to be audio-only.
+        val audioOnly = status.playing && !status.buffering && status.error == null &&
+            status.width == 0 && status.height == 0
+        if (audioOnly) {
+            AudioOnlyNowPlayingCard(
+                channel = state.currentChannel,
+                title = status.title,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+
         // The info card auto-dismisses; everything else waits for Back.
         if (overlay == TvOverlay.INFO) {
             ChannelInfoCard(
@@ -334,6 +348,7 @@ fun TvRoot(
                         scrollToCurrent = true,
                         focusCurrent = true,
                         showNowLine = true,
+                        isRadio = true,
                         modifier = Modifier.fillMaxSize(),
                     )
 
@@ -413,6 +428,37 @@ fun TvRoot(
         // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
         // is absent in picture-in-picture, which returns above this point.
         UpdatePrompt()
+    }
+}
+
+/**
+ * What replaces the bare black surface while an audio-only stream (radio, or any channel with no
+ * video track) plays steadily: the station's logo and name, so "playing with nothing to look at"
+ * reads as radio rather than as a stuck or failed screen.
+ */
+@Composable
+private fun AudioOnlyNowPlayingCard(channel: Channel?, title: String, modifier: Modifier = Modifier) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (channel != null) {
+                ChannelLogo(channel = channel, sizeDp = 120)
+            }
+            Text(
+                text = channel?.displayName ?: title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Text(
+                text = stringResource(R.string.playback_audio_only),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+        }
     }
 }
 

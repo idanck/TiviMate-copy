@@ -8,15 +8,18 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +53,7 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.TwoLine
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import kotlinx.coroutines.delay
@@ -112,6 +116,12 @@ fun ChannelListScreen(
      * compact layout, which has no now/next pane to say it instead.
      */
     showNowLine: Boolean = compact,
+    /**
+     * Radio only (ADR-015): the "Categories" section becomes National/Regional/genre buckets,
+     * classified client-side from the station data by [com.tivicopy.player.data.radio.
+     * RadioCategoryClassifier], instead of the playlist's raw provider groups.
+     */
+    isRadio: Boolean = false,
 ) {
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
@@ -153,6 +163,7 @@ fun ChannelListScreen(
                 destinations = destinations,
                 onNewGroup = { creatingGroup = true },
                 onGroupOptions = { groupMenuFor = it },
+                isRadio = isRadio,
                 modifier = Modifier.width(LocalTvMetrics.current.groupColumnWidth).fillMaxHeight(),
             )
             VerticalDivider()
@@ -164,7 +175,7 @@ fun ChannelListScreen(
             } else {
                 FilterBanner(query = state.list.search, onClear = { vm.setSearch("") })
             }
-            if (compact) GroupChips(vm, onManageGroups = { managingGroups = true })
+            if (compact) GroupChips(vm, isRadio = isRadio, onManageGroups = { managingGroups = true })
             if (state.list.selectedGroupId == VirtualGroup.HIDDEN && state.list.channels.isNotEmpty()) {
                 androidx.compose.material3.TextButton(
                     onClick = { vm.showAllHidden() },
@@ -472,9 +483,15 @@ private fun GroupColumn(
     destinations: List<NavDestination>,
     onNewGroup: () -> Unit,
     onGroupOptions: (ChannelGroup) -> Unit,
+    isRadio: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
+    // Computed here, in the composable body, and only referenced (not called) inside the
+    // LazyColumn content block below: that block's own type is plain `LazyListScope.() -> Unit`,
+    // not `@Composable`, so a @Composable function (this one calls stringResource) can only be
+    // invoked from it indirectly, via a value already computed outside.
+    val radioCategories = if (isRadio) radioCategoryBuckets(state) else emptyList()
     LazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
@@ -491,45 +508,99 @@ private fun GroupColumn(
         items(destinations, key = { it.label }) { destination ->
             GroupRow(destination.label, selected = false, onClick = destination.onSelect)
         }
-        if (destinations.isNotEmpty()) {
-            item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
-        }
+        // Split so "which of my four smart views" and "which of the provider's own categories"
+        // read as two different questions, not one long undifferentiated list (FR-UI-08).
         item {
-            GroupRow(stringResource(R.string.all_channels), state.list.selectedGroupId == VirtualGroup.ALL) {
-                vm.selectGroup(VirtualGroup.ALL)
-            }
-        }
-        item {
-            GroupRow(stringResource(R.string.favourites), state.list.selectedGroupId == VirtualGroup.FAVOURITES) {
-                vm.selectGroup(VirtualGroup.FAVOURITES)
-            }
-        }
-        item {
-            GroupRow(stringResource(R.string.recently_watched), state.list.selectedGroupId == VirtualGroup.RECENT) {
-                vm.selectGroup(VirtualGroup.RECENT)
-            }
-        }
-        item {
-            GroupRow(stringResource(R.string.hidden_channels), state.list.selectedGroupId == VirtualGroup.HIDDEN) {
-                vm.selectGroup(VirtualGroup.HIDDEN)
-            }
-        }
-        item { HorizontalDivider(modifier = Modifier.padding(vertical = 6.dp)) }
-        item {
-            GroupRow(stringResource(R.string.group_new), selected = false, onClick = onNewGroup)
-        }
-        items(state.list.groups, key = { it.id }) { group ->
-            GroupRow(
-                name = group.name,
-                selected = state.list.selectedGroupId == group.id,
-                // A hidden group stays listed, drawn dimmed, because otherwise nothing on screen
-                // could ever show it again.
-                dimmed = group.hidden,
-                onClick = { vm.selectGroup(group.id) },
-                onLongClick = { onGroupOptions(group) },
+            SectionHeader(
+                text = stringResource(R.string.filter_quick),
+                topDivider = onSearch != null || destinations.isNotEmpty(),
             )
         }
+        item {
+            GroupRow(
+                stringResource(R.string.all_channels),
+                state.list.selectedGroupId == VirtualGroup.ALL,
+                icon = Icons.Filled.SelectAll,
+            ) { vm.selectGroup(VirtualGroup.ALL) }
+        }
+        item {
+            GroupRow(
+                stringResource(R.string.favourites),
+                state.list.selectedGroupId == VirtualGroup.FAVOURITES,
+                icon = Icons.Filled.Star,
+            ) { vm.selectGroup(VirtualGroup.FAVOURITES) }
+        }
+        item {
+            GroupRow(
+                stringResource(R.string.recently_watched),
+                state.list.selectedGroupId == VirtualGroup.RECENT,
+                icon = Icons.Filled.History,
+            ) { vm.selectGroup(VirtualGroup.RECENT) }
+        }
+        item {
+            GroupRow(
+                stringResource(R.string.hidden_channels),
+                state.list.selectedGroupId == VirtualGroup.HIDDEN,
+                icon = Icons.Filled.VisibilityOff,
+            ) { vm.selectGroup(VirtualGroup.HIDDEN) }
+        }
+        item { SectionHeader(text = stringResource(R.string.filter_categories)) }
+        if (isRadio) {
+            items(radioCategories, key = { it.second }) { (category, label) ->
+                GroupRow(
+                    name = label,
+                    selected = state.list.selectedRadioCategory == category,
+                    onClick = { vm.selectRadioCategory(category) },
+                )
+            }
+        } else {
+            item {
+                GroupRow(stringResource(R.string.group_new), selected = false, onClick = onNewGroup)
+            }
+            items(state.list.groups, key = { it.id }) { group ->
+                GroupRow(
+                    name = group.name,
+                    selected = state.list.selectedGroupId == group.id,
+                    // A hidden group stays listed, drawn dimmed, because otherwise nothing on screen
+                    // could ever show it again.
+                    dimmed = group.hidden,
+                    onClick = { vm.selectGroup(group.id) },
+                    onLongClick = { onGroupOptions(group) },
+                )
+            }
+        }
     }
+}
+
+/**
+ * The radio category menu (National/Regional/genre buckets/Other), built from every non-Russian
+ * radio station regardless of the current selection — see [AppUiState.radioAllChannels] — ordered
+ * National, Regional, genres alphabetically, Other last, and skipping any bucket with nothing in it.
+ */
+@Composable
+private fun radioCategoryBuckets(
+    state: com.tivicopy.player.ui.AppUiState,
+): List<Pair<com.tivicopy.player.data.radio.RadioCategory, String>> {
+    val classifier = com.tivicopy.player.data.radio.RadioCategoryClassifier
+    val present = state.radioAllChannels.map { channel ->
+        val groupName = state.list.groups.firstOrNull { it.id == channel.groupId }?.name
+        classifier.classify(groupName, channel.displayName)
+    }.toSet()
+    val ordered = mutableListOf<Pair<com.tivicopy.player.data.radio.RadioCategory, String>>()
+    if (com.tivicopy.player.data.radio.RadioCategory.NATIONAL in present) {
+        ordered += com.tivicopy.player.data.radio.RadioCategory.NATIONAL to stringResource(R.string.radio_category_national)
+    }
+    if (com.tivicopy.player.data.radio.RadioCategory.REGIONAL in present) {
+        ordered += com.tivicopy.player.data.radio.RadioCategory.REGIONAL to stringResource(R.string.radio_category_regional)
+    }
+    present.filterIsInstance<com.tivicopy.player.data.radio.RadioCategory.GENRE>()
+        .map { it.label }
+        .sorted()
+        .forEach { label -> ordered += com.tivicopy.player.data.radio.RadioCategory.GENRE(label) to label }
+    if (com.tivicopy.player.data.radio.RadioCategory.OTHER in present) {
+        ordered += com.tivicopy.player.data.radio.RadioCategory.OTHER to stringResource(R.string.radio_category_other)
+    }
+    return ordered
 }
 
 @Composable
@@ -537,6 +608,8 @@ private fun GroupRow(
     name: String,
     selected: Boolean,
     dimmed: Boolean = false,
+    /** A leading icon for the smart-filter rows (star, history, …); provider categories have none. */
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
@@ -546,70 +619,102 @@ private fun GroupRow(
         contentDescription = name,
         onLongClick = onLongClick,
     ) {
+        val tint = if (dimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+        if (icon != null) {
+            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        }
         Text(
             text = name,
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            color = if (dimmed) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
+            color = tint,
         )
     }
 }
 
-/** Narrow-screen replacement for the group column. */
+/**
+ * Narrow-screen replacement for the group column: the same "which smart view" vs "which of my
+ * own categories" split as [GroupColumn], as two labeled chip rows instead of one long one.
+ */
 @Composable
-private fun GroupChips(vm: AppViewModel, onManageGroups: () -> Unit) {
+private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroups: () -> Unit) {
     val state by vm.state.collectAsState()
-    androidx.compose.foundation.lazy.LazyRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item {
-            androidx.compose.material3.FilterChip(
-                selected = state.list.selectedGroupId == VirtualGroup.ALL,
-                onClick = { vm.selectGroup(VirtualGroup.ALL) },
-                label = { Text(stringResource(R.string.all_channels)) },
-            )
+    // See the matching comment in GroupColumn: computed here, in the composable body, not inside
+    // the plain (non-@Composable) LazyRow content block below.
+    val radioCategories = if (isRadio) radioCategoryBuckets(state) else emptyList()
+    fun icon(vector: androidx.compose.ui.graphics.vector.ImageVector): @Composable () -> Unit = {
+        Icon(imageVector = vector, contentDescription = null, modifier = Modifier.size(18.dp))
+    }
+    Column {
+        SectionHeader(text = stringResource(R.string.filter_quick), topDivider = false)
+        androidx.compose.foundation.lazy.LazyRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                androidx.compose.material3.FilterChip(
+                    selected = state.list.selectedGroupId == VirtualGroup.ALL,
+                    onClick = { vm.selectGroup(VirtualGroup.ALL) },
+                    leadingIcon = icon(Icons.Filled.SelectAll),
+                    label = { Text(stringResource(R.string.all_channels)) },
+                )
+            }
+            item {
+                androidx.compose.material3.FilterChip(
+                    selected = state.list.selectedGroupId == VirtualGroup.FAVOURITES,
+                    onClick = { vm.selectGroup(VirtualGroup.FAVOURITES) },
+                    leadingIcon = icon(Icons.Filled.Star),
+                    label = { Text(stringResource(R.string.favourites)) },
+                )
+            }
+            item {
+                androidx.compose.material3.FilterChip(
+                    selected = state.list.selectedGroupId == VirtualGroup.RECENT,
+                    onClick = { vm.selectGroup(VirtualGroup.RECENT) },
+                    leadingIcon = icon(Icons.Filled.History),
+                    label = { Text(stringResource(R.string.recently_watched)) },
+                )
+            }
+            item {
+                androidx.compose.material3.FilterChip(
+                    selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
+                    onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
+                    leadingIcon = icon(Icons.Filled.VisibilityOff),
+                    label = { Text(stringResource(R.string.hidden_channels)) },
+                )
+            }
         }
-        item {
-            androidx.compose.material3.FilterChip(
-                selected = state.list.selectedGroupId == VirtualGroup.FAVOURITES,
-                onClick = { vm.selectGroup(VirtualGroup.FAVOURITES) },
-                label = { Text(stringResource(R.string.favourites)) },
-            )
-        }
-        item {
-            androidx.compose.material3.FilterChip(
-                selected = state.list.selectedGroupId == VirtualGroup.RECENT,
-                onClick = { vm.selectGroup(VirtualGroup.RECENT) },
-                label = { Text(stringResource(R.string.recently_watched)) },
-            )
-        }
-        item {
-            androidx.compose.material3.FilterChip(
-                selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
-                onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
-                label = { Text(stringResource(R.string.hidden_channels)) },
-            )
-        }
-        items(state.list.groups, key = { it.id }) { group ->
-            androidx.compose.material3.FilterChip(
-                selected = state.list.selectedGroupId == group.id,
-                onClick = { vm.selectGroup(group.id) },
-                label = { Text(group.name, maxLines = 1) },
-            )
-        }
-        item {
-            // A chip has no long press to hang a context menu on, so the phone reaches the group
-            // actions through a manager instead of not at all.
-            androidx.compose.material3.AssistChip(
-                onClick = onManageGroups,
-                label = { Text(stringResource(R.string.group_manage)) },
-            )
+        SectionHeader(text = stringResource(R.string.filter_categories))
+        androidx.compose.foundation.lazy.LazyRow(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (isRadio) {
+                items(radioCategories, key = { it.second }) { (category, label) ->
+                    androidx.compose.material3.FilterChip(
+                        selected = state.list.selectedRadioCategory == category,
+                        onClick = { vm.selectRadioCategory(category) },
+                        label = { Text(label, maxLines = 1) },
+                    )
+                }
+            } else {
+                items(state.list.groups, key = { it.id }) { group ->
+                    androidx.compose.material3.FilterChip(
+                        selected = state.list.selectedGroupId == group.id,
+                        onClick = { vm.selectGroup(group.id) },
+                        label = { Text(group.name, maxLines = 1) },
+                    )
+                }
+                item {
+                    // A chip has no long press to hang a context menu on, so the phone reaches the
+                    // group actions through a manager instead of not at all.
+                    androidx.compose.material3.AssistChip(
+                        onClick = onManageGroups,
+                        label = { Text(stringResource(R.string.group_manage)) },
+                    )
+                }
+            }
         }
     }
 }
