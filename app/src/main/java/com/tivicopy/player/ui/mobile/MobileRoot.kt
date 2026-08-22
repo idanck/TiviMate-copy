@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Pause
@@ -72,7 +71,6 @@ import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.common.UpdatePrompt
-import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
 import com.tivicopy.player.ui.screens.VodScreen
 import com.tivicopy.player.ui.screens.VodScreenState
@@ -145,6 +143,9 @@ fun MobileRoot(
     // across recreation, or a language change would re-force the guide tab.
     var startTabApplied by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
+        // Recordings no longer has a tab button (fix: hidden on phone), but a value saved by an
+        // earlier build's `rememberSaveable` can still restore here across an update.
+        if (tab == MobileTab.RECORDINGS) tab = MobileTab.LIVE
         if (!startTabApplied) {
             startTabApplied = true
             if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
@@ -190,14 +191,18 @@ fun MobileRoot(
     // playlist yet there is nothing behind it to go back to.
     val showAddSource = addingSource || (state.playlists.isEmpty() && !state.loading)
     val inSettingsSubSection = tab == MobileTab.SETTINGS && settingsSection != SettingsSection.ROOT
+    // Live is the phone's home tab, the same way the channel list is TV's — Back from any other
+    // tab returns to it first, rather than falling straight through to the activity's exit
+    // confirmation the moment there is nothing else on this composable's own stack to unwind.
     val canGoBack = (addingSource && state.playlists.isNotEmpty()) ||
-        (!showAddSource && (searching || inSettingsSubSection))
+        (!showAddSource && (searching || inSettingsSubSection || tab != MobileTab.LIVE))
 
     val goBack: () -> Unit = {
         when {
             addingSource -> addingSource = false
             searching -> searching = false
-            else -> onSettingsSection(SettingsSection.ROOT)
+            inSettingsSubSection -> onSettingsSection(SettingsSection.ROOT)
+            tab != MobileTab.LIVE -> tab = MobileTab.LIVE
         }
     }
 
@@ -315,12 +320,6 @@ fun MobileRoot(
                             label = { Text(stringResource(R.string.nav_vod), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
-                            selected = tab == MobileTab.RECORDINGS,
-                            onClick = { selectTab(MobileTab.RECORDINGS) },
-                            icon = { Icon(Icons.Filled.List, contentDescription = null) },
-                            label = { Text(stringResource(R.string.nav_recordings), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                        )
-                        NavigationBarItem(
                             selected = tab == MobileTab.SETTINGS,
                             onClick = { selectTab(MobileTab.SETTINGS) },
                             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
@@ -377,6 +376,7 @@ fun MobileRoot(
                             showFilter = true,
                             onSearch = { searching = true },
                             scrollToCurrent = true,
+                            isRadio = true,
                             modifier = Modifier.fillMaxSize(),
                         )
                         MobileTab.GUIDE -> GuideScreen(
@@ -393,10 +393,10 @@ fun MobileRoot(
                             onSeriesRequestConsumed = { pendingSeries = null },
                             state = vodState,
                         )
-                        MobileTab.RECORDINGS -> RecordingsScreen(
-                            onPlayRecording = { recording -> if (vm.playRecording(recording)) openPlayer() },
-                            modifier = Modifier.fillMaxSize(),
-                        )
+                        // No tab button opens this any more (fix: Recordings hidden on phone),
+                        // but the enum value stays so a tab persisted from before this change
+                        // deserialises instead of crashing; the guard below redirects it to Live.
+                        MobileTab.RECORDINGS -> Unit
                         MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
                             SettingsScreen(
                                 vm = vm,

@@ -22,6 +22,8 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RefreshReport
 import com.tivicopy.player.data.model.VodItem
+import com.tivicopy.player.data.radio.RadioCategory
+import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.data.xtream.isEpisode
 import com.tivicopy.player.data.xtream.isSeriesContainer
@@ -80,6 +82,12 @@ data class ChannelListState(
     val channels: List<Channel> = emptyList(),
     /** The channel-list filter box. Scoped to the selected group, and always visible when set. */
     val search: String = "",
+    /**
+     * Radio only: narrows to one [RadioCategory] bucket, alongside [selectedGroupId] which stays
+     * at [VirtualGroup.ALL] while this is set — see [AppViewModel.selectRadioCategory]. Null shows
+     * every (non-Russian) station.
+     */
+    val selectedRadioCategory: RadioCategory? = null,
 )
 
 /**
@@ -127,6 +135,13 @@ data class AppUiState(
     val guideStats: EpgMatchStats = EpgMatchStats(),
     val lastRefresh: RefreshReport? = null,
     val message: UiMessage? = null,
+    /**
+     * Every station in the radio playlist, Russian-language ones already excluded
+     * ([RadioCategoryClassifier.isRussian]), independent of [ChannelListState.selectedGroupId] or
+     * [ChannelListState.selectedRadioCategory] — this is what the radio category menu itself is
+     * built from, not the currently filtered [ChannelListState.channels]. Empty outside Radio.
+     */
+    val radioAllChannels: List<Channel> = emptyList(),
 )
 
 /**
@@ -244,6 +259,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             } ?: return@launch
             val groups = withContext(Dispatchers.IO) { dao.groups(playlist.id, includeHidden = true) }
             val stats = withContext(Dispatchers.IO) { epg.stats(playlist.id) }
+            // Built once here, not derived from `list.channels` on every recomposition: the
+            // category menu needs every (non-Russian) station regardless of which one is
+            // currently selected, and re-classifying on every filter change would be wasted work.
+            val allChannels = withContext(Dispatchers.IO) { dao.channels(playlist.id) }
+                .filterNot { RadioCategoryClassifier.isRussian(it.displayName, groups.firstOrNull { g -> g.id == it.groupId }?.name) }
             _state.value = _state.value.copy(
                 playlists = if (_state.value.playlists.any { it.id == playlist.id }) {
                     _state.value.playlists
@@ -253,6 +273,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 activePlaylist = playlist,
                 guideStats = stats,
                 list = ChannelListState(groups = groups),
+                radioAllChannels = allChannels,
             )
             loadChannels()
         }
@@ -265,7 +286,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun selectGroup(groupId: Long) {
-        _state.value = _state.value.copy(list = _state.value.list.copy(selectedGroupId = groupId))
+        _state.value = _state.value.copy(
+            list = _state.value.list.copy(selectedGroupId = groupId, selectedRadioCategory = null),
+        )
+        loadChannels()
+    }
+
+    /** Radio only: narrow the list to one [RadioCategory] bucket, or null for every station. */
+    fun selectRadioCategory(category: RadioCategory?) {
+        _state.value = _state.value.copy(
+            list = _state.value.list.copy(selectedGroupId = VirtualGroup.ALL, selectedRadioCategory = category),
+        )
         loadChannels()
     }
 
@@ -365,7 +396,24 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         sort = sort,
                     )
                 }
-                if (hideLocked) raw.filter { !it.locked } else raw
+                // Radio: drop Russian-language stations everywhere (not just a specific category —
+                // see RadioCategoryClassifier), then narrow further to the selected category, if any.
+                val radioFiltered = if (active.url == IsraelRadioStations.M3U_URL) {
+                    fun groupNameOf(channel: Channel) = listState.groups.firstOrNull { it.id == channel.groupId }?.name
+                    raw
+                        .filterNot { RadioCategoryClassifier.isRussian(it.displayName, groupNameOf(it)) }
+                        .let { stations ->
+                            val category = listState.selectedRadioCategory
+                            if (category == null) {
+                                stations
+                            } else {
+                                stations.filter { RadioCategoryClassifier.classify(groupNameOf(it), it.displayName) == category }
+                            }
+                        }
+                } else {
+                    raw
+                }
+                if (hideLocked) radioFiltered.filter { !it.locked } else radioFiltered
             }
             _state.value = _state.value.copy(list = _state.value.list.copy(channels = channels))
         }

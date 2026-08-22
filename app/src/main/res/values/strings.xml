@@ -79,6 +79,11 @@
     <string name="interval_weekly">Weekly</string>
 
     <!-- Channels / guide -->
+    <string name="filter_quick">Quick filters</string>
+    <string name="filter_categories">Categories</string>
+    <string name="radio_category_national">National</string>
+    <string name="radio_category_regional">Regional</string>
+    <string name="radio_category_other">Other</string>
     <string name="all_channels">All channels</string>
     <string name="favourites">Favourites</string>
     <string name="recently_watched">Recently watched</string>
@@ -105,6 +110,7 @@
     <string name="playback_menu">Playback</string>
     <string name="playback_connecting">Connecting…</string>
     <string name="playback_reconnecting">Reconnecting — attempt %1$d…</string>
+    <string name="playback_audio_only">Playing — audio only, no picture</string>
     <string name="decoder_video">Video decoder</string>
     <string name="decoder_audio">Audio decoder</string>
     <string name="decoder_auto">Auto</string>

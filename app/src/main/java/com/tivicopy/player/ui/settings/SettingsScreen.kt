@@ -60,7 +60,7 @@ fun SettingsScreen(
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
         when (section) {
             SettingsSection.ROOT -> {
-                SettingsSectionTitle(stringResource(R.string.settings_title))
+                SettingsSectionTitle(stringResource(R.string.settings_title), topDivider = false)
                 SettingsRow(stringResource(R.string.settings_sources)) { onNavigate(SettingsSection.SOURCES) }
                 SettingsRow(stringResource(R.string.settings_playback)) { onNavigate(SettingsSection.PLAYBACK) }
                 SettingsRow(stringResource(R.string.settings_appearance)) { onNavigate(SettingsSection.APPEARANCE) }
@@ -78,7 +78,7 @@ fun SettingsScreen(
             SettingsSection.SOURCES -> SourcesSection(vm, onAddSource)
 
             SettingsSection.PLAYBACK -> {
-                SettingsSectionTitle(stringResource(R.string.settings_playback))
+                SettingsSectionTitle(stringResource(R.string.settings_playback), topDivider = false)
                 SettingsChoice(
                     title = stringResource(R.string.decoder_video),
                     options = decoderOptions(),
@@ -188,7 +188,7 @@ fun SettingsScreen(
             }
 
             SettingsSection.APPEARANCE -> {
-                SettingsSectionTitle(stringResource(R.string.settings_appearance))
+                SettingsSectionTitle(stringResource(R.string.settings_appearance), topDivider = false)
                 // FR-UI-23. Unlike every other setting here, this one cannot be applied to the
                 // running composition: resources are resolved from the activity's base context,
                 // which is only attached once. Recreating the activity re-runs
@@ -279,7 +279,7 @@ fun SettingsScreen(
             }
 
             SettingsSection.NETWORK -> {
-                SettingsSectionTitle(stringResource(R.string.settings_network))
+                SettingsSectionTitle(stringResource(R.string.settings_network), topDivider = false)
                 Text(
                     text = stringResource(R.string.settings_user_agent_hint),
                     style = MaterialTheme.typography.bodySmall,
@@ -324,7 +324,7 @@ fun SettingsScreen(
             SettingsSection.DIAGNOSTICS -> DiagnosticsSection(vm)
 
             SettingsSection.ABOUT -> {
-                SettingsSectionTitle(stringResource(R.string.settings_about))
+                SettingsSectionTitle(stringResource(R.string.settings_about), topDivider = false)
                 Text(
                     text = stringResource(R.string.about_blurb),
                     style = MaterialTheme.typography.bodyMedium,

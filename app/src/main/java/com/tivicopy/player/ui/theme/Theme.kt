@@ -16,9 +16,14 @@ import androidx.compose.ui.unit.sp
 import com.tivicopy.player.data.prefs.ThemeMode
 
 /**
- * Colours are chosen for a 10-foot display first: a very dark surface so a bright picture is
- * never framed by grey, and an accent with enough luminance contrast to satisfy the 3:1 focus
+ * Colours are chosen for a 10-foot display first: a dark surface so a bright picture is not
+ * framed by grey, and an accent with enough luminance contrast to satisfy the 3:1 focus
  * requirement (NFR-UX-02) against every surface tone here.
+ *
+ * The ramp sits a step lighter than a near-black baseline (0xFF0E1116) — dark enough to still
+ * frame a bright picture, light enough that the app's own chrome (menus, settings) doesn't read
+ * as pure black by default. [AmoledScheme] below is the explicit pure-black opt-in for anyone who
+ * wants that instead.
  */
 private val Accent = Color(0xFF4C8DFF)
 private val AccentDark = Color(0xFF1F5FD0)
@@ -29,22 +34,22 @@ private val DarkScheme = darkColorScheme(
     primaryContainer = AccentDark,
     onPrimaryContainer = Color(0xFFE7F0FF),
     secondary = Color(0xFF9CC2FF),
-    background = Color(0xFF0E1116),
+    background = Color(0xFF1B212B),
     onBackground = Color(0xFFE9EDF3),
-    surface = Color(0xFF161A21),
+    surface = Color(0xFF232A35),
     onSurface = Color(0xFFE9EDF3),
-    surfaceVariant = Color(0xFF262C36),
+    surfaceVariant = Color(0xFF323A47),
     onSurfaceVariant = Color(0xFFBEC7D4),
-    outline = Color(0xFF5B6472),
+    outline = Color(0xFF6B7482),
     error = Color(0xFFFF6B6B),
     onError = Color(0xFF2B0000),
     // The container ramp the raised surfaces sit on (the mini player, cards). Material's
     // defaults for these are derived from a different base tone and land visibly warmer than
     // this palette, so they are pinned to the same blue-grey family as the surfaces above.
-    surfaceDim = Color(0xFF0B0E12),
-    surfaceContainer = Color(0xFF1A1F27),
-    surfaceContainerHigh = Color(0xFF1F252E),
-    surfaceContainerHighest = Color(0xFF242B35),
+    surfaceDim = Color(0xFF171C24),
+    surfaceContainer = Color(0xFF272F3B),
+    surfaceContainerHigh = Color(0xFF2D3542),
+    surfaceContainerHighest = Color(0xFF333C4A),
 )
 
 private val AmoledScheme = DarkScheme.copy(

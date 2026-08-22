@@ -17,11 +17,16 @@ import java.util.concurrent.Executor
 /**
  * Browse tree + queue resolution for the radio [MediaLibrarySession] (ADR-015).
  *
+ * The tree is two levels: [RadioBrowseTree.ROOT_ID] holds one browsable folder per category
+ * (National/Regional/genre/Other), and each category folder holds its own stations. [onGetChildren]
+ * tells the two apart with [RadioBrowseTree.isCategoryId].
+ *
  * [onSetMediaItems] is where a single tapped station becomes a full queue: the car passes just
  * the one selected [MediaItem] (carrying only the `mediaId` set in [RadioBrowseTree]), and this
- * resolves it against the whole ordered station list so the underlying player gets every station
- * as its playlist, positioned at the one the user picked — which is what makes the car's native
- * skip-next/previous controls walk the other stations for free, with no custom session commands.
+ * resolves it against that station's own category ([RadioBrowseTree.categoryQueue]) so the
+ * underlying player gets that category as its playlist, positioned at the one the user picked —
+ * which is what makes the car's native skip-next/previous controls walk the other stations in the
+ * same category for free, with no custom session commands.
  */
 class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibrarySession.Callback {
 
@@ -44,10 +49,13 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
         pageSize: Int,
         params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-        if (parentId != RadioBrowseTree.ROOT_ID) {
-            return Futures.immediateFuture(LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE))
+        return when {
+            parentId == RadioBrowseTree.ROOT_ID ->
+                future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.categories()), params) }
+            RadioBrowseTree.isCategoryId(parentId) ->
+                future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.stationsIn(parentId)), params) }
+            else -> Futures.immediateFuture(LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE))
         }
-        return future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.stations()), params) }
     }
 
     override fun onGetItem(
@@ -55,9 +63,12 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
         browser: MediaSession.ControllerInfo,
         mediaId: String,
     ): ListenableFuture<LibraryResult<MediaItem>> = future {
-        browseTree.stations().firstOrNull { it.mediaId == mediaId }
-            ?.let { LibraryResult.ofItem(it, null) }
-            ?: LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE)
+        val item = if (RadioBrowseTree.isCategoryId(mediaId)) {
+            browseTree.categories().firstOrNull { it.mediaId == mediaId }
+        } else {
+            browseTree.stations().firstOrNull { it.mediaId == mediaId }
+        }
+        item?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE)
     }
 
     override fun onSetMediaItems(
@@ -69,10 +80,10 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
         val requestedId = mediaItems.firstOrNull()?.mediaId
         return future {
-            val stations = browseTree.stations()
-            val resolvedIndex = stations.indexOfFirst { it.mediaId == requestedId }
+            val queue = requestedId?.let { browseTree.categoryQueue(it) } ?: browseTree.stations()
+            val resolvedIndex = queue.indexOfFirst { it.mediaId == requestedId }
             val index = if (resolvedIndex >= 0) resolvedIndex else 0
-            MediaSession.MediaItemsWithStartPosition(stations, index, /* startPositionMs = */ 0L)
+            MediaSession.MediaItemsWithStartPosition(queue, index, /* startPositionMs = */ 0L)
         }
     }
 }
