@@ -43,6 +43,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
+import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.mobile.MobileRoot
 import com.tivicopy.player.ui.mobile.PlayerScreen
@@ -594,6 +595,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        // Whatever [onStop] handed off to while backgrounded is no longer needed: the UI is
+        // back and drives the player directly again.
+        RadioBackgroundService.stop(this)
         // Undo what [onStop] did for the background: the shells' own effects only re-run when
         // their keys change, and coming back from the launcher changes none of them.
         ServiceLocator.player.setVideoOutputWanted(isTelevision || playerOpen || inPip)
@@ -612,22 +616,30 @@ class MainActivity : ComponentActivity() {
         // Playback is released only when the activity really goes away; a recording keeps
         // running in its own foreground service either way.
         if (isFinishing) {
+            RadioBackgroundService.stop(this)
             ServiceLocator.player.release()
             return
         }
         // Stopped with no picture-in-picture window (the switch is off, the device has no
         // PiP, or a launcher stopped the task instead of finishing it): nothing anywhere is
-        // showing this stream. Left alone it kept downloading and decoding video for no
-        // surface, and playing sound from a backgrounded app with no notification and no way
-        // to stop it. Pause, drop the video track, and let [onStart] undo both.
+        // showing this stream.
         val pipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
-        if (!pipNow) {
-            if (vm.playbackStatus.value.playWhenReady) {
-                pausedInBackground = true
-                ServiceLocator.player.setPlayWhenReady(false)
-            }
-            ServiceLocator.player.setVideoOutputWanted(false)
+        if (pipNow) return
+        if (vm.isRadioPlaying) {
+            // A radio station has no picture to lose — locking or turning off the screen is not
+            // a reason to stop it. RadioBackgroundService keeps the same stream running (see its
+            // own doc comment) instead of the pause below.
+            RadioBackgroundService.start(this)
+            return
         }
+        // A live TV channel kept downloading and decoding video for no surface, and playing
+        // sound from a backgrounded app with no notification and no way to stop it. Pause, drop
+        // the video track, and let [onStart] undo both.
+        if (vm.playbackStatus.value.playWhenReady) {
+            pausedInBackground = true
+            ServiceLocator.player.setPlayWhenReady(false)
+        }
+        ServiceLocator.player.setVideoOutputWanted(false)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

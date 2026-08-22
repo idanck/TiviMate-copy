@@ -155,6 +155,7 @@ class App : Application(), ImageLoaderFactory {
     companion object {
         const val CHANNEL_RECORDING = "recording"
         const val CHANNEL_ALERTS = "alerts"
+        const val CHANNEL_RADIO = "radio_playback"
 
         /**
          * The platform stores a channel's name at creation and never re-reads it, so changing the
@@ -178,6 +179,15 @@ class App : Application(), ImageLoaderFactory {
                     strings.getString(R.string.channel_alerts),
                     NotificationManager.IMPORTANCE_DEFAULT,
                 ).apply { description = strings.getString(R.string.channel_alerts_desc) },
+            )
+            // LOW, not DEFAULT: this is an ongoing "still playing" indicator, not something
+            // worth a sound or a heads-up every time a station changes.
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_RADIO,
+                    strings.getString(R.string.channel_radio),
+                    NotificationManager.IMPORTANCE_LOW,
+                ).apply { description = strings.getString(R.string.channel_radio_desc) },
             )
         }
     }

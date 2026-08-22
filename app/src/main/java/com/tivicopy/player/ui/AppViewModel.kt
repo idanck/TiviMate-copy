@@ -421,6 +421,27 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // --------------------------------------------------------------- playback
 
+    /**
+     * Whether what's actually audible right now is a bundled radio station (ADR-015), rather
+     * than a live TV channel, catch-up, on-demand title or a recording played back. Read from
+     * [AppUiState.nowPlaying] rather than [AppUiState.currentChannel] — the latter deliberately
+     * survives an on-demand session, so it can still name a radio station while a film is what's
+     * actually playing.
+     *
+     * [MainActivity][com.tivicopy.player.ui.MainActivity] uses this to decide whether a locked or
+     * turned-off screen should pause playback (a picture has nothing to show anyway) or keep a
+     * radio station going in the background: there is no picture to lose, so nothing is gained by
+     * stopping it.
+     */
+    val isRadioPlaying: Boolean
+        get() {
+            val live = (_state.value.nowPlaying as? NowPlayingInfo.Live)?.channel ?: return false
+            val radioPlaylistId = _state.value.playlists
+                .firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+                ?.id
+            return radioPlaylistId != null && live.playlistId == radioPlaylistId
+        }
+
     fun play(channel: Channel) {
         leaveVod()
         val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }

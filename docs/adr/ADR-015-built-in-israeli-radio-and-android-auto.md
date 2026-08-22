@@ -134,3 +134,13 @@ other stations for free — no custom session commands.
   active one at all. No schema change and no second copy of the channel-list screen: Radio reuses
   `ChannelListScreen` end to end, so its `group-title` groups, favourites, hidden list and
   per-channel menu are the same feature working against a different playlist, not a rebuild.
+- In-app radio playback used to be paused the moment `MainActivity` left the foreground —
+  `onStop` treats a locked or turned-off screen the same as leaving the app entirely, which is
+  correct for a live TV channel (nothing is showing its picture any more) but silenced a radio
+  station for no reason, since there was never a picture to lose. `AppViewModel.isRadioPlaying`
+  (a `Playlist.url` match against `IsraelRadioStations.M3U_URL`, identifying radio the same way
+  everything else here does) now tells `onStop` to start `player/RadioBackgroundService.kt`
+  instead of pausing. Unlike Android Auto's player above, this service is **not** a second
+  isolated player — it plays through the very same `ServiceLocator.player` the UI already had
+  running, and exists only to hold foreground-service priority and an ongoing notification while
+  the activity is not visible; `onStart` stops it the moment the UI is back.

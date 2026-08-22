@@ -70,6 +70,13 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Keeps a radio station playing behind a locked screen (see RadioBackgroundService);
+             started/stopped by MainActivity, never bound to from outside the app. -->
+        <service
+            android:name=".player.RadioBackgroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- ADR-015: browsable/playable from Android Auto's media template. Exported because the
              car host process binds to it from outside this app. -->
         <service
