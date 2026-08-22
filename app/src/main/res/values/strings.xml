@@ -7,6 +7,9 @@
     <string name="channel_recording_desc">Shown while a recording is in progress.</string>
     <string name="channel_alerts">Alerts</string>
     <string name="channel_alerts_desc">Reminders, recording results and subscription warnings.</string>
+    <string name="channel_radio">Radio playback</string>
+    <string name="channel_radio_desc">Shown while a radio station keeps playing behind a locked screen.</string>
+    <string name="radio_notif_playing">Playing in the background</string>
 
     <!-- Generic actions -->
     <string name="action_ok">OK</string>

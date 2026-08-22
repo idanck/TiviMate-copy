@@ -5,6 +5,9 @@
     <string name="channel_recording_desc">מוצג בזמן שהקלטה מתבצעת.</string>
     <string name="channel_alerts">התראות</string>
     <string name="channel_alerts_desc">תזכורות, תוצאות הקלטה ואזהרות על תוקף המנוי.</string>
+    <string name="channel_radio">השמעת רדיו</string>
+    <string name="channel_radio_desc">מוצג כאשר תחנת רדיו ממשיכה להתנגן מאחורי מסך נעול.</string>
+    <string name="radio_notif_playing">מתנגן ברקע</string>
     <string name="action_ok">אישור</string>
     <string name="action_cancel">ביטול</string>
     <string name="action_save">שמירה</string>
