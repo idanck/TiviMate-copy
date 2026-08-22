@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
@@ -79,7 +80,7 @@ import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import kotlinx.coroutines.delay
 
-enum class MobileTab { LIVE, GUIDE, VOD, RECORDINGS, SETTINGS }
+enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS }
 
 /**
  * The touch shell.
@@ -211,6 +212,22 @@ fun MobileRoot(
         tab = it
     }
 
+    // Radio borrows the same channel-list machinery as Live, pointed at the bundled radio
+    // playlist instead of the active one (see AppViewModel.openRadio). Watching `tab` itself,
+    // rather than hooking this into selectTab, catches every way it can change — including the
+    // search screen jumping straight to the VOD tab on an opened series — so Live can never be
+    // left showing radio stations.
+    var wasRadio by remember { mutableStateOf(false) }
+    LaunchedEffect(tab) {
+        if (tab == MobileTab.RADIO) {
+            vm.openRadio()
+            wasRadio = true
+        } else if (wasRadio) {
+            vm.closeRadio()
+            wasRadio = false
+        }
+    }
+
     // Every play path is "play and show it": starting something opens the player screen, so a
     // chosen channel is never left audible behind a full-screen list (ADR-011).
     val openPlayer: () -> Unit = { onPlayerOpenChange(true) }
@@ -228,7 +245,7 @@ fun MobileRoot(
                 // out of a sub-screen is on the screen itself. The bar also carries search, which
                 // otherwise has no entry point at all on the phone.
                 val searchable = !showAddSource && !searching &&
-                    tab in setOf(MobileTab.LIVE, MobileTab.GUIDE, MobileTab.VOD)
+                    tab in setOf(MobileTab.LIVE, MobileTab.RADIO, MobileTab.GUIDE, MobileTab.VOD)
                 if (canGoBack || searchable) {
                     TopAppBar(
                         // Every destination behind this bar draws its own heading — the add screen
@@ -278,6 +295,12 @@ fun MobileRoot(
                             onClick = { selectTab(MobileTab.LIVE) },
                             icon = { Icon(Icons.Filled.LiveTv, contentDescription = null) },
                             label = { Text(stringResource(R.string.nav_live), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        )
+                        NavigationBarItem(
+                            selected = tab == MobileTab.RADIO,
+                            onClick = { selectTab(MobileTab.RADIO) },
+                            icon = { Icon(Icons.Filled.Radio, contentDescription = null) },
+                            label = { Text(stringResource(R.string.nav_radio), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                         )
                         NavigationBarItem(
                             selected = tab == MobileTab.GUIDE,
@@ -341,6 +364,16 @@ fun MobileRoot(
                             showNowNext = twoPane,
                             // A tablet is still touch, so it gets the filter box even though
                             // it is wide enough to drop the compact layout.
+                            showFilter = true,
+                            onSearch = { searching = true },
+                            scrollToCurrent = true,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        MobileTab.RADIO -> ChannelListScreen(
+                            vm = vm,
+                            onPlay = { channel -> vm.play(channel); openPlayer() },
+                            compact = !twoPane,
+                            showNowNext = twoPane,
                             showFilter = true,
                             onSearch = { searching = true },
                             scrollToCurrent = true,

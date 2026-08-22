@@ -30,6 +30,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.ui.AppViewModel
@@ -68,6 +69,10 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
 
     SettingsSectionTitle(stringResource(R.string.playlists_title))
     state.playlists.forEach { playlist ->
+        // The radio playlist has its own destination (the Radio tab) and can never become the
+        // Channels tab's active playlist (AppViewModel.selectPlaylist), so tapping this row
+        // refreshes it in place instead of silently doing nothing.
+        val isRadio = playlist.url == IsraelRadioStations.M3U_URL
         SettingsRow(
             title = playlist.name,
             subtitle = if (playlist.lastRefreshUtc == 0L) {
@@ -78,7 +83,11 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
                     TimeModel.formatDayTime(playlist.lastRefreshUtc),
                 ) + (playlist.lastRefreshMessage?.let { " · $it" } ?: "")
             },
-            onClick = { vm.selectPlaylist(playlist.id) },
+            onClick = if (isRadio) {
+                { vm.refreshPlaylist(playlist.id) }
+            } else {
+                { vm.selectPlaylist(playlist.id) }
+            },
         )
     }
     if (state.playlists.isEmpty()) {

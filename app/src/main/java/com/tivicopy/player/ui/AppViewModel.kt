@@ -10,6 +10,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
@@ -175,36 +176,92 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------------ load
 
     fun reload() {
-        viewModelScope.launch {
-            val data = withContext(Dispatchers.IO) {
-                val playlists = dao.playlists()
-                val activeId = settings.state.value.activePlaylistId
-                val active = playlists.firstOrNull { it.id == activeId } ?: playlists.firstOrNull()
-                // Hidden groups are listed too, drawn dimmed, so that hiding one is not a one-way
-                // door — there would otherwise be nothing left on screen to show it again.
-                val groups = active?.let { dao.groups(it.id, includeHidden = true) }.orEmpty()
-                val stats = active?.let { epg.stats(it.id) } ?: EpgMatchStats()
-                Triple(playlists, active, groups) to stats
-            }
-            val (triple, stats) = data
-            val (playlists, active, groups) = triple
+        viewModelScope.launch { reloadInternal() }
+    }
+
+    private suspend fun reloadInternal() {
+        val data = withContext(Dispatchers.IO) {
+            val playlists = dao.playlists()
+            val activeId = settings.state.value.activePlaylistId
+            // Radio is its own destination (see openRadio/closeRadio), never a candidate for
+            // the Channels tab's default playlist — otherwise a stored activePlaylistId left
+            // pointing at it (or a fresh install that happens to bootstrap it first) would put
+            // radio stations back inside Channels, exactly what the split exists to prevent.
+            val candidates = playlists.filterNot { it.url == IsraelRadioStations.M3U_URL }
+            val active = candidates.firstOrNull { it.id == activeId } ?: candidates.firstOrNull()
+            // Hidden groups are listed too, drawn dimmed, so that hiding one is not a one-way
+            // door — there would otherwise be nothing left on screen to show it again.
+            val groups = active?.let { dao.groups(it.id, includeHidden = true) }.orEmpty()
+            val stats = active?.let { epg.stats(it.id) } ?: EpgMatchStats()
+            Triple(playlists, active, groups) to stats
+        }
+        val (triple, stats) = data
+        val (playlists, active, groups) = triple
+        _state.value = _state.value.copy(
+            loading = false,
+            playlists = playlists,
+            activePlaylist = active,
+            guideStats = stats,
+            list = _state.value.list.copy(groups = groups),
+        )
+        if (active != null && settings.state.value.activePlaylistId != active.id) {
+            settings.setActivePlaylist(active.id)
+        }
+        loadChannels()
+    }
+
+    fun selectPlaylist(id: Long) {
+        // Mirrors the guard in `reload`: the radio playlist is never the Channels tab's active
+        // playlist, so persisting it here would only be silently undone on the next reload.
+        if (_state.value.playlists.firstOrNull { it.id == id }?.url == IsraelRadioStations.M3U_URL) return
+        settings.setActivePlaylist(id)
+        reload()
+    }
+
+    // Shared by openRadio/closeRadio so a fast Radio/Channels tab flip cancels whichever of the
+    // two is still in flight rather than letting it land after the one that superseded it —
+    // otherwise a stale openRadio could commit its state after a closeRadio the user meant to be
+    // the final word, leaving the Channels tab selected while the list still shows radio.
+    private var radioNavJob: Job? = null
+
+    /**
+     * Opens the Radio destination: points the shared channel list at the bundled radio playlist
+     * (ADR-015) without touching the persisted "active" playlist, so [closeRadio] can hand the
+     * list straight back to whatever Channels was showing. Reusing [ChannelListState] this way
+     * — rather than a second, parallel copy of groups/favourites/search — is what lets Radio offer
+     * the same group filters, favourites and per-channel menu as Channels for free.
+     *
+     * Ensures the playlist exists first: Android Auto's [com.tivicopy.player.auto.RadioBrowseTree]
+     * can be the first thing in the process to need it, and so can this, on a cold start that
+     * reaches here before `App.onCreate`'s fire-and-forget bootstrap coroutine lands.
+     */
+    fun openRadio() {
+        radioNavJob?.cancel()
+        radioNavJob = viewModelScope.launch {
+            val playlist = withContext(Dispatchers.IO) {
+                sources.ensureRadioPlaylist()
+                dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+            } ?: return@launch
+            val groups = withContext(Dispatchers.IO) { dao.groups(playlist.id, includeHidden = true) }
+            val stats = withContext(Dispatchers.IO) { epg.stats(playlist.id) }
             _state.value = _state.value.copy(
-                loading = false,
-                playlists = playlists,
-                activePlaylist = active,
+                playlists = if (_state.value.playlists.any { it.id == playlist.id }) {
+                    _state.value.playlists
+                } else {
+                    _state.value.playlists + playlist
+                },
+                activePlaylist = playlist,
                 guideStats = stats,
-                list = _state.value.list.copy(groups = groups),
+                list = ChannelListState(groups = groups),
             )
-            if (active != null && settings.state.value.activePlaylistId != active.id) {
-                settings.setActivePlaylist(active.id)
-            }
             loadChannels()
         }
     }
 
-    fun selectPlaylist(id: Long) {
-        settings.setActivePlaylist(id)
-        reload()
+    /** Leaves the Radio destination, handing the channel list back to the normal active playlist. */
+    fun closeRadio() {
+        radioNavJob?.cancel()
+        radioNavJob = viewModelScope.launch { reloadInternal() }
     }
 
     fun selectGroup(groupId: Long) {
