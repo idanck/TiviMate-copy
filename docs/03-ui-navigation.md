@@ -57,12 +57,17 @@ television that still overscans, content near the edge can be cropped. See `docs
 9. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
    section 3.4 and section 3.6.
 
-The group column of the channel-list overlay doubles as the television's navigation: Search, the
-guide, on demand, recordings and settings sit above the playlist's own groups. This is the
-ten-foot answer to the phone's bottom bar, and it exists because every destination was otherwise
-behind a remote key — two of them keys many remotes do not have, and on demand behind no key at
-all, reachable only by searching for a title and picking it. NFR-UX-01 asks that every screen be
-reachable with D-pad, OK and Back alone.
+The group column of the channel-list overlay doubles as the television's navigation: Search,
+radio, the guide, on demand, recordings and settings sit above the playlist's own groups. This is
+the ten-foot answer to the phone's bottom bar, and it exists because every destination was
+otherwise behind a remote key — two of them keys many remotes do not have, and on demand behind
+no key at all, reachable only by searching for a title and picking it. NFR-UX-01 asks that every
+screen be reachable with D-pad, OK and Back alone.
+
+Radio (ADR-015) is its own destination on both shells, not a group inside Channels: it opens the
+same channel-list screen pointed at the bundled radio playlist instead of the active one, so its
+own groups (e.g. "רדיו ישראלי" / "רדיו אזורי") and favourites live in the group column there,
+never mixed into the TV channel list.
 
 ## 3.3 Guide behaviour requirements
 
@@ -99,7 +104,7 @@ reachable with D-pad, OK and Back alone.
 
 This is our differentiator and must not be an afterthought.
 
-- Bottom navigation: Live / Guide / VOD / Recordings / Settings.
+- Bottom navigation: Live / Radio / Guide / VOD / Recordings / Settings.
 - Vertical channel list with sticky group headers and fast-scroll.
 - Gestures during playback: vertical swipe left = brightness, right = volume, horizontal
   swipe = seek (VOD/timeshift), double-tap sides = skip, pinch = aspect ratio.

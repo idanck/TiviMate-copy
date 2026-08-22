@@ -61,7 +61,7 @@ import com.tivicopy.player.ui.common.UpdatePrompt
 
 /** Which overlay, if any, sits on top of the video. Nothing here ever stops playback. */
 enum class TvOverlay {
-    NONE, CHANNELS, MINI_GUIDE, GUIDE, SEARCH, RECORDINGS, VOD, SETTINGS, ADD_SOURCE, INFO,
+    NONE, CHANNELS, RADIO, MINI_GUIDE, GUIDE, SEARCH, RECORDINGS, VOD, SETTINGS, ADD_SOURCE, INFO,
 
     /** The controls OK brings up over playing video. */
     TRANSPORT,
@@ -129,6 +129,20 @@ fun TvRoot(
     // The screen drops the request itself once it has taken it; this only covers the request
     // that is never taken, because on demand was left before it composed.
     LaunchedEffect(overlay) { if (overlay != TvOverlay.VOD) pendingSeries = null }
+
+    // Radio borrows the same channel-list machinery as Channels, pointed at the bundled radio
+    // playlist instead of the active one (see AppViewModel.openRadio); leaving it hands the list
+    // straight back so Channels never ends up showing radio stations.
+    var wasRadio by remember { mutableStateOf(false) }
+    LaunchedEffect(overlay) {
+        if (overlay == TvOverlay.RADIO) {
+            vm.openRadio()
+            wasRadio = true
+        } else if (wasRadio) {
+            vm.closeRadio()
+            wasRadio = false
+        }
+    }
 
     LaunchedEffect(details?.first?.id) {
         val channel = details?.first
@@ -266,6 +280,9 @@ fun TvRoot(
                         // entry point at all before this — it could only be opened by searching
                         // for a series and picking it (NFR-UX-01).
                         destinations = listOf(
+                            NavDestination(stringResource(R.string.nav_radio)) {
+                                onOverlayChange(TvOverlay.RADIO)
+                            },
                             NavDestination(stringResource(R.string.nav_guide)) {
                                 onOverlayChange(TvOverlay.GUIDE)
                             },
@@ -286,6 +303,36 @@ fun TvRoot(
                         // As on the phone: each row says what that channel is showing now. The
                         // query behind it was always windowed and debounced; the ten-foot shell
                         // was simply the one caller that never asked for it.
+                        showNowLine = true,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    // Same screen as CHANNELS above, browsing the bundled radio playlist instead
+                    // of the active one (FR: radio is its own destination, not a group inside
+                    // Channels) — see the openRadio/closeRadio effect above.
+                    TvOverlay.RADIO -> ChannelListScreen(
+                        vm = vm,
+                        onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
+                        onSearch = { onOverlayChange(TvOverlay.SEARCH) },
+                        destinations = listOf(
+                            NavDestination(stringResource(R.string.nav_live)) {
+                                onOverlayChange(TvOverlay.CHANNELS)
+                            },
+                            NavDestination(stringResource(R.string.nav_guide)) {
+                                onOverlayChange(TvOverlay.GUIDE)
+                            },
+                            NavDestination(stringResource(R.string.nav_vod)) {
+                                onOverlayChange(TvOverlay.VOD)
+                            },
+                            NavDestination(stringResource(R.string.nav_recordings)) {
+                                onOverlayChange(TvOverlay.RECORDINGS)
+                            },
+                            NavDestination(stringResource(R.string.nav_settings)) {
+                                onOverlayChange(TvOverlay.SETTINGS)
+                            },
+                        ),
+                        scrollToCurrent = true,
+                        focusCurrent = true,
                         showNowLine = true,
                         modifier = Modifier.fillMaxSize(),
                     )

@@ -27,6 +27,7 @@
     <string name="action_copy">העתק</string>
     <string name="action_done">סיום</string>
     <string name="nav_live">ערוצים</string>
+    <string name="nav_radio">רדיו</string>
     <string name="nav_guide">מדריך</string>
     <string name="nav_vod">VOD</string>
     <string name="nav_recordings">הקלטות</string>

@@ -123,3 +123,14 @@ other stations for free — no custom session commands.
 - If the radio host URL ever moves, `IsraelRadioStations.LEGACY_M3U_URLS` records the superseded
   address the same way `IsraelPublicChannels.LEGACY_M3U_URLS` already does, so bootstrap
   corrects an existing row in place instead of stranding it beside a new one.
+- Radio started out surfaced only as a `group-title` inside the Channels list (the entry above),
+  reachable in practice only by making the radio playlist the active one — which then replaced
+  the TV channels in Channels entirely, since the app has one active playlist at a time. Feedback
+  was that this reads as "radio is inside Channels", not as its own thing, so it moved to a
+  destination of its own on both shells (`docs/03-ui-navigation.md` §3.2/§3.5) —
+  `AppViewModel.openRadio`/`closeRadio` point the same shared channel-list state at the radio
+  playlist for as long as that tab/overlay is open, without touching the persisted active
+  playlist, and `reload`/`selectPlaylist` now refuse to let the radio playlist become Channels'
+  active one at all. No schema change and no second copy of the channel-list screen: Radio reuses
+  `ChannelListScreen` end to end, so its `group-title` groups, favourites, hidden list and
+  per-channel menu are the same feature working against a different playlist, not a rebuild.
