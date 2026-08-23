@@ -16,11 +16,15 @@ import kotlin.math.roundToInt
  * Station logos, re-rendered into a large square bitmap for the car's Now Playing screen.
  *
  * The problem this solves is not resolution but *shape and scale*. A station logo published for
- * the phone/TV list is a small image — often a wide banner with its own transparent margins —
- * and Android Auto draws whatever bitmap the session hands it centred in a square art slot
- * without enlarging it, so the logo ends up as a stamp in the middle of a mostly empty screen.
- * Painting the logo onto a [SIZE_PX]-square canvas at the largest scale that still fits makes the
- * logo itself as large as the slot allows, whatever aspect ratio it arrived in.
+ * the phone/TV list is a small image — often a wide banner with its own transparent margins — and
+ * a head unit does whatever it likes with the bitmap a session hands it: one draws it untouched
+ * in a square art slot, where a small logo reads as a stamp in the middle of an empty screen;
+ * another scales it to *cover* a wider card and crops off whatever hangs over the edges.
+ *
+ * So the logo is painted centred on a [SIZE_PX] square, scaled to fit [SAFE_AREA_FRACTION] of
+ * that square rather than all of it. The scaling makes the logo as large as a slot that shows the
+ * square whole can display it, whatever aspect ratio it arrived in; the margin the safe area
+ * leaves around it is what a slot that crops takes, instead of the logo itself.
  *
  * Only the *queue* items carry this ([RadioBrowseTree.categoryQueue]) — the browse lists keep
  * pointing at the original logo URL, which the car fetches itself at thumbnail size. That keeps
@@ -36,6 +40,19 @@ object RadioArtwork {
 
     /** Side of the square the logo is painted onto. */
     const val SIZE_PX = 512
+
+    /**
+     * The share of the square's side the logo itself may take up; the rest is transparent margin.
+     *
+     * 0.6.2 painted the logo edge to edge, on the assumption — true of some head units, not of
+     * the one this was then seen on — that the car never enlarges the artwork it is given. A car
+     * that instead scales the square to fill a wide card showed the logo blown up with its name
+     * cut off at the sides. At this fraction a square logo survives being cropped to a card as
+     * tight as 16:10 in either direction, and a wide banner — short in the cropped direction once
+     * it is letterboxed into the safe area — survives far tighter ones, while still covering most
+     * of a slot that shows the square whole.
+     */
+    const val SAFE_AREA_FRACTION = 0.62f
 
     /** A logo bigger than this is not a logo; refuse it rather than decode it. */
     private const val MAX_SOURCE_BYTES = 4L * 1024 * 1024
@@ -97,25 +114,24 @@ object RadioArtwork {
     }
 
     /**
-     * Paints [source] centred on a [SIZE_PX] square at the largest scale that fits it whole —
-     * "contain", not "cover", because a station logo is usually its name and cropping it to fill
-     * the square would cut the name in half. Transparent everywhere the logo does not reach, so
-     * the car draws its own background rather than a box in a colour that may not match.
+     * Paints [source] onto a [SIZE_PX] square, in the rectangle [logoBounds] places it in —
+     * "contain" inside the safe area, not "cover", because a station logo is usually its name and
+     * scaling it to fill the square would cut the name in half.
+     *
+     * Transparent everywhere the logo does not reach, so the car draws its own background rather
+     * than a box in a colour that may not match — and so a car that crops the square eats that
+     * transparency first.
      */
     private fun render(source: ByteArray): ByteArray? {
         val decoded = BitmapFactory.decodeByteArray(source, 0, source.size) ?: return null
         return try {
-            val scale = SIZE_PX.toFloat() / max(decoded.width, decoded.height).coerceAtLeast(1)
-            val width = (decoded.width * scale).roundToInt().coerceIn(1, SIZE_PX)
-            val height = (decoded.height * scale).roundToInt().coerceIn(1, SIZE_PX)
-            val left = (SIZE_PX - width) / 2
-            val top = (SIZE_PX - height) / 2
+            val bounds = logoBounds(decoded.width, decoded.height)
             val square = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
             try {
                 Canvas(square).drawBitmap(
                     decoded,
                     /* src = */ null,
-                    Rect(left, top, left + width, top + height),
+                    Rect(bounds.left, bounds.top, bounds.right, bounds.bottom),
                     Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG),
                 )
                 ByteArrayOutputStream().use { out ->
@@ -152,4 +168,33 @@ object RadioArtwork {
             allowInsecureTls = settings.allowInsecureTls,
         )
     }
+}
+
+/** The rectangle [logoBounds] puts a logo in, in the square canvas's own pixels. */
+internal data class LogoBounds(val left: Int, val top: Int, val width: Int, val height: Int) {
+    val right: Int get() = left + width
+    val bottom: Int get() = top + height
+}
+
+/**
+ * Where a [sourceWidth] x [sourceHeight] logo goes inside [RadioArtwork.SIZE_PX]'s square: scaled
+ * by its longer side to fit [RadioArtwork.SAFE_AREA_FRACTION] of the square whole, keeping its
+ * aspect ratio, and centred — so however the head unit then scales or crops that square, the
+ * margin around the logo is what gives way first.
+ *
+ * Top-level and `internal` rather than a private method of [RadioArtwork]: this is the one piece
+ * of the rendering that is pure arithmetic, and it is the piece worth pinning in a test without
+ * decoding a bitmap to do it.
+ */
+internal fun logoBounds(sourceWidth: Int, sourceHeight: Int): LogoBounds {
+    val safeSide = (RadioArtwork.SIZE_PX * RadioArtwork.SAFE_AREA_FRACTION).roundToInt().coerceAtLeast(1)
+    val scale = safeSide.toFloat() / max(sourceWidth, sourceHeight).coerceAtLeast(1)
+    val width = (sourceWidth * scale).roundToInt().coerceIn(1, safeSide)
+    val height = (sourceHeight * scale).roundToInt().coerceIn(1, safeSide)
+    return LogoBounds(
+        left = (RadioArtwork.SIZE_PX - width) / 2,
+        top = (RadioArtwork.SIZE_PX - height) / 2,
+        width = width,
+        height = height,
+    )
 }
