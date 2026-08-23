@@ -17,6 +17,7 @@ import com.tivicopy.player.ServiceLocator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import java.util.concurrent.Callable
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executor
 
 /**
@@ -44,6 +45,12 @@ import java.util.concurrent.Executor
  * phone/TV star toggle, so marking a station favourite from the car is visible in the app and
  * vice versa. [RadioBrowseTree] never caches, so the Favourites folder picks up the change the
  * next time the car browses into it — no explicit invalidation needed.
+ *
+ * [notifyBrowseRefresh] is the one thing that does need telling: a station starting or changing
+ * makes every list showing the "now playing" marker stale, and a car that has already loaded a
+ * folder will not ask for it again on its own. Which folders those are is exactly the set
+ * [onGetChildren] has answered for, so that is what is recorded and re-notified — nothing has to
+ * enumerate the tree, and a folder the car has never opened is never notified about.
  */
 class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibrarySession.Callback {
 
@@ -109,17 +116,40 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
         return when {
             parentId == RadioBrowseTree.ROOT_ID ->
-                future { LibraryResult.ofItemList(paged(browseTree.categories(), page, pageSize), params) }
+                future { LibraryResult.ofItemList(paged(parentId, browseTree.categories(), page, pageSize), params) }
             parentId == RadioBrowseTree.FAVOURITES_ID ->
-                future { LibraryResult.ofItemList(paged(browseTree.favouriteStations(), page, pageSize), params) }
+                future {
+                    LibraryResult.ofItemList(paged(parentId, browseTree.favouriteStations(), page, pageSize), params)
+                }
             RadioBrowseTree.isCategoryId(parentId) ->
-                future { LibraryResult.ofItemList(paged(browseTree.stationsIn(parentId), page, pageSize), params) }
+                future {
+                    LibraryResult.ofItemList(paged(parentId, browseTree.stationsIn(parentId), page, pageSize), params)
+                }
             else -> Futures.immediateFuture(LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE))
         }
     }
 
-    private fun paged(items: List<MediaItem>, page: Int, pageSize: Int): ImmutableList<MediaItem> =
-        ImmutableList.copyOf(items.browsePage(page, pageSize))
+    private fun paged(parentId: String, items: List<MediaItem>, page: Int, pageSize: Int): ImmutableList<MediaItem> {
+        servedChildCounts[parentId] = items.size
+        return ImmutableList.copyOf(items.browsePage(page, pageSize))
+    }
+
+    /**
+     * How many children each folder was last served, keyed by parent media id — both the record of
+     * which folders a car is actually showing and the count
+     * [MediaLibrarySession.notifyChildrenChanged] wants. Concurrent because it is written from the
+     * IO executor a browse request is answered on and read from the player's thread.
+     */
+    private val servedChildCounts = ConcurrentHashMap<String, Int>()
+
+    /**
+     * Re-announces every folder this session has served, so the car reloads it and picks up a
+     * moved "now playing" marker. Must be called on the session's application thread — the player
+     * listener in [RadioMediaLibraryService] that calls it already runs there.
+     */
+    fun notifyBrowseRefresh(session: MediaLibrarySession) {
+        servedChildCounts.forEach { (parentId, count) -> session.notifyChildrenChanged(parentId, count, null) }
+    }
 
     override fun onGetItem(
         session: MediaLibrarySession,
