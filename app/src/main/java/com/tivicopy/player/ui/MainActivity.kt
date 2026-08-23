@@ -421,6 +421,20 @@ class MainActivity : ComponentActivity() {
 
     /** Back goes up one level; a second press within a short window exits (FR-SET-06). */
     private fun handleBack() {
+        // Every rung of the overlay ladder below reads [overlay], which only the TV shell ever
+        // sets. The phone navigates with MobileRoot's own BackHandler and reaches this callback
+        // only once it has nowhere left to go, so climbing the ladder there moved an invisible
+        // overlay and ate the press without changing anything on screen — the same defect the
+        // start-up effect above already had to be corrected for.
+        if (isTelevision && stepUpOneOverlay()) return
+        confirmOrExit()
+    }
+
+    /**
+     * One level up the TV shell's overlay ladder. Returns false once it is already standing on
+     * the top rung, which is what makes Back from there mean "leave the app".
+     */
+    private fun stepUpOneOverlay(): Boolean {
         when {
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT
@@ -432,22 +446,41 @@ class MainActivity : ComponentActivity() {
             overlay == TvOverlay.PLAYBACK_MENU -> overlay = TvOverlay.TRANSPORT
 
             // Bare fullscreen video is no longer the root: it goes back to the channel/radio list
-            // it was opened from first. Only Back from that list itself (below) reaches exit.
+            // it was opened from first. Only Back from the channel list itself reaches exit.
             overlay == TvOverlay.NONE -> overlay = lastBrowseOverlay
+
+            // Radio is opened from the channel list, so that is where Back goes — it is a
+            // destination within the shell, not a second root. Without this rung, Radio became
+            // `lastBrowseOverlay` the moment it opened and the only way out of it was to leave
+            // the app. TvRoot's own effect hands the list back to the active playlist.
+            //
+            // [lastBrowseOverlay] is moved here rather than left to the effect that normally
+            // tracks it: that effect lands a composition later, and a second Back arriving before
+            // it did would read RADIO as the browse overlay and drop to bare video instead.
+            overlay == TvOverlay.RADIO -> {
+                overlay = TvOverlay.CHANNELS
+                lastBrowseOverlay = TvOverlay.CHANNELS
+            }
 
             overlay != lastBrowseOverlay -> overlay = TvOverlay.NONE
 
-            !ServiceLocator.settings.state.value.confirmExit -> finish()
+            else -> return false
+        }
+        return true
+    }
 
-            else -> {
-                val now = System.currentTimeMillis()
-                if (now - lastBackPress < EXIT_CONFIRM_WINDOW_MS) {
-                    finish()
-                } else {
-                    lastBackPress = now
-                    vm.post(UiMessage(text = getString(R.string.exit_confirm)))
-                }
-            }
+    /** The bottom rung on both shells: confirm, then leave (FR-SET-06). */
+    private fun confirmOrExit() {
+        if (!ServiceLocator.settings.state.value.confirmExit) {
+            finish()
+            return
+        }
+        val now = System.currentTimeMillis()
+        if (now - lastBackPress < EXIT_CONFIRM_WINDOW_MS) {
+            finish()
+        } else {
+            lastBackPress = now
+            vm.post(UiMessage(text = getString(R.string.exit_confirm)))
         }
     }
 
@@ -629,8 +662,12 @@ class MainActivity : ComponentActivity() {
             // A radio station has no picture to lose — locking or turning off the screen is not
             // a reason to stop it. RadioBackgroundService keeps the same stream running (see its
             // own doc comment) instead of the pause below.
-            RadioBackgroundService.start(this)
-            return
+            //
+            // Attempted, not assumed: from Android 12 a foreground service started as the app
+            // leaves the foreground can be refused outright, and this is precisely that moment.
+            // A refusal is not worth dying on a screen lock, so a throw falls through to the
+            // pause below — which is what this app did before the service existed.
+            if (runCatching { RadioBackgroundService.start(this) }.isSuccess) return
         }
         // A live TV channel kept downloading and decoding video for no surface, and playing
         // sound from a backgrounded app with no notification and no way to stop it. Pause, drop

@@ -20,6 +20,8 @@ import com.tivicopy.player.data.xtream.XtreamAccount
 import com.tivicopy.player.data.xtream.XtreamClient
 import com.tivicopy.player.data.xtream.extension
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.File
@@ -59,6 +61,20 @@ class SourceRepository(
         return XtreamClient(playlist.url, user, pass, profileFor(playlist))
     }
 
+    /**
+     * Serialises the two bundled-playlist bootstraps below.
+     *
+     * Both are check-then-insert against a `playlists` table with no unique constraint on `url`,
+     * and both now have several callers that can run at once on [Dispatchers.IO]: `App.onCreate`
+     * fires them off, [com.tivicopy.player.ui.AppViewModel.openRadio] runs one when the user
+     * opens Radio, and [com.tivicopy.player.auto.RadioBrowseTree] runs one when a car binds the
+     * media service — which needs no launcher activity, so it can genuinely be first. Two of
+     * those interleaving would each see no row and each insert one, leaving a duplicate the
+     * "self-healing" contract could never heal. Everything runs in one process (no
+     * `android:process` in the manifest), so one lock covers every caller.
+     */
+    private val bootstrapLock = Mutex()
+
     /** Stores a playlist, encrypting its credentials before they touch the database. */
     fun savePlaylist(playlist: Playlist): Long = dao.upsertPlaylist(
         playlist.copy(
@@ -86,8 +102,14 @@ class SourceRepository(
      * out the interval before retrying the working one would strand it for another day.
      */
     suspend fun ensureBuiltInPlaylist() = withContext(Dispatchers.IO) {
+        bootstrapLock.withLock {
+            ensureBuiltInPlaylistLocked()
+        }
+    }
+
+    private fun ensureBuiltInPlaylistLocked() {
         val playlists = dao.playlists()
-        if (playlists.any { it.url == IsraelPublicChannels.M3U_URL }) return@withContext
+        if (playlists.any { it.url == IsraelPublicChannels.M3U_URL }) return
 
         val stale = playlists.firstOrNull { it.url in IsraelPublicChannels.LEGACY_M3U_URLS }
         if (stale != null) {
@@ -102,7 +124,7 @@ class SourceRepository(
                     lastRefreshMessage = null,
                 ),
             )
-            return@withContext
+            return
         }
 
         savePlaylist(
@@ -123,8 +145,14 @@ class SourceRepository(
      * explicit code over an abstraction serving exactly two call sites.
      */
     suspend fun ensureRadioPlaylist() = withContext(Dispatchers.IO) {
+        bootstrapLock.withLock {
+            ensureRadioPlaylistLocked()
+        }
+    }
+
+    private fun ensureRadioPlaylistLocked() {
         val playlists = dao.playlists()
-        if (playlists.any { it.url == IsraelRadioStations.M3U_URL }) return@withContext
+        if (playlists.any { it.url == IsraelRadioStations.M3U_URL }) return
 
         val stale = playlists.firstOrNull { it.url in IsraelRadioStations.LEGACY_M3U_URLS }
         if (stale != null) {
@@ -136,7 +164,7 @@ class SourceRepository(
                     lastRefreshMessage = null,
                 ),
             )
-            return@withContext
+            return
         }
 
         savePlaylist(

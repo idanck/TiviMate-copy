@@ -10,6 +10,9 @@ import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.repo.SourceRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -95,6 +98,42 @@ class IsraelRadioStationsBootstrapTest {
         }
 
         assertEquals(2, dao.playlists().size)
+    }
+
+    /**
+     * The bootstrap is check-then-insert against a table with no unique constraint on `url`, and
+     * it now has three callers that can genuinely race: `App.onCreate`, opening Radio in the app,
+     * and a car binding the Android Auto media service. Two of them interleaving each saw no row
+     * and each inserted one, leaving a duplicate nothing would ever heal.
+     */
+    @Test
+    fun `callers racing each other still insert exactly one radio playlist`() {
+        val sources = sources()
+        val dao = Dao(opened.first())
+
+        runBlocking {
+            List(8) { async(Dispatchers.IO) { sources.ensureRadioPlaylist() } }.awaitAll()
+        }
+
+        assertEquals(1, dao.playlists().count { it.url == IsraelRadioStations.M3U_URL })
+    }
+
+    /** The same race across both bundled playlists at once: one row each, never two of either. */
+    @Test
+    fun `both bundled bootstraps racing each other insert exactly one row each`() {
+        val sources = sources()
+        val dao = Dao(opened.first())
+
+        runBlocking {
+            List(6) { index ->
+                async(Dispatchers.IO) {
+                    if (index % 2 == 0) sources.ensureBuiltInPlaylist() else sources.ensureRadioPlaylist()
+                }
+            }.awaitAll()
+        }
+
+        assertEquals(2, dao.playlists().size)
+        assertEquals(1, dao.playlists().count { it.url == IsraelRadioStations.M3U_URL })
     }
 
     /**

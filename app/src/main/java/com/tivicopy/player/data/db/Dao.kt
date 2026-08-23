@@ -329,10 +329,28 @@ class Dao(private val helper: Database) {
      * Recently watched, newest first. Deliberately spans every playlist — the same choice
      * `continueWatching` makes for on-demand — because "what was I just watching" is not a
      * question about the playlist that happens to be selected.
+     *
+     * [onlyPlaylistId] and [excludePlaylistId] are the one exception to that. The bundled radio
+     * playlist (ADR-015) is not another TV source, and spanning into it put television channels
+     * in Radio's "recently watched" and radio stations in the channel list's. Callers pass
+     * whichever end of that they mean; both default to null, which spans everything as before.
      */
-    fun recentChannels(search: String? = null, limit: Int = 25): List<Channel> {
+    fun recentChannels(
+        search: String? = null,
+        limit: Int = 25,
+        onlyPlaylistId: Long? = null,
+        excludePlaylistId: Long? = null,
+    ): List<Channel> {
         val where = StringBuilder("last_watched_utc>0 AND hidden=0")
         val args = mutableListOf<String>()
+        if (onlyPlaylistId != null) {
+            where.append(" AND playlist_id=?")
+            args += onlyPlaylistId.toString()
+        }
+        if (excludePlaylistId != null) {
+            where.append(" AND playlist_id<>?")
+            args += excludePlaylistId.toString()
+        }
         if (!search.isNullOrBlank()) {
             // Group names count as matches here too; see `channels`. Recents span playlists, and
             // group ids are globally unique, so the subselect needs no playlist scoping.

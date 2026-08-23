@@ -55,8 +55,11 @@ class ChannelQueriesTest {
 
     private fun dao(): Dao = Dao(database())
 
-    private fun Dao.newPlaylist(name: String = "Test"): Long = upsertPlaylist(
-        Playlist(name = name, type = SourceType.M3U_URL, url = "http://example.invalid/list.m3u"),
+    private fun Dao.newPlaylist(
+        name: String = "Test",
+        url: String = "http://example.invalid/list.m3u",
+    ): Long = upsertPlaylist(
+        Playlist(name = name, type = SourceType.M3U_URL, url = url),
     )
 
     private fun Dao.newChannel(
@@ -243,6 +246,61 @@ class ChannelQueriesTest {
         dao.recordWatch(watched, whenUtc = 1_000L)
 
         assertEquals(listOf("Channel 12"), dao.recentChannels(search = "heb").map { it.name })
+    }
+
+    /**
+     * Recents deliberately span playlists — but the bundled radio playlist (ADR-015) is not
+     * another TV source. Before it was scoped, Radio's "recently watched" listed television
+     * channels and the channel list's listed radio stations, because both destinations read the
+     * one unscoped query.
+     */
+    @Test
+    fun `recents can be scoped to, or away from, one playlist`() {
+        val dao = dao()
+        val tv = dao.newPlaylist(name = "TV", url = "http://example.invalid/tv.m3u")
+        val otherTv = dao.newPlaylist(name = "More TV", url = "http://example.invalid/more-tv.m3u")
+        val radio = dao.newPlaylist(name = "Radio", url = "http://example.invalid/radio.m3u")
+
+        val channel = dao.newChannel(tv, "Channel 12", identity = "a")
+        val otherChannel = dao.newChannel(otherTv, "Channel 13", identity = "b")
+        val station = dao.newChannel(radio, "Galgalatz", identity = "c")
+
+        dao.recordWatch(channel, whenUtc = 1_000L)
+        dao.recordWatch(otherChannel, whenUtc = 2_000L)
+        dao.recordWatch(station, whenUtc = 3_000L)
+
+        // Unscoped: every playlist, newest first — the behaviour the channel list had before.
+        assertEquals(
+            listOf("Galgalatz", "Channel 13", "Channel 12"),
+            dao.recentChannels().map { it.name },
+        )
+        // What Radio asks for: its own stations only.
+        assertEquals(
+            listOf("Galgalatz"),
+            dao.recentChannels(onlyPlaylistId = radio).map { it.name },
+        )
+        // What the channel list asks for: still spanning its TV sources, minus radio.
+        assertEquals(
+            listOf("Channel 13", "Channel 12"),
+            dao.recentChannels(excludePlaylistId = radio).map { it.name },
+        )
+    }
+
+    /** The scoping composes with the filter box rather than replacing it. */
+    @Test
+    fun `a scoped recents list still honours the search filter`() {
+        val dao = dao()
+        val radio = dao.newPlaylist(name = "Radio", url = "http://example.invalid/radio.m3u")
+        val galgalatz = dao.newChannel(radio, "Galgalatz", identity = "a")
+        val kan = dao.newChannel(radio, "Kan Bet", identity = "b")
+
+        dao.recordWatch(galgalatz, whenUtc = 1_000L)
+        dao.recordWatch(kan, whenUtc = 2_000L)
+
+        assertEquals(
+            listOf("Kan Bet"),
+            dao.recentChannels(search = "kan", onlyPlaylistId = radio).map { it.name },
+        )
     }
 
     @Test

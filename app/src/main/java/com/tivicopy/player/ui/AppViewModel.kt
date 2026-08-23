@@ -379,13 +379,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val hideLocked = prefs.hideLockedChannels
                 val sort = prefs.channelSort
                 val search = listState.search.takeIf { it.isNotBlank() }
+                val radioPlaylistId = _state.value.playlists
+                    .firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+                    ?.id
+                val isRadio = active.url == IsraelRadioStations.M3U_URL
                 val raw = when (listState.selectedGroupId) {
                     VirtualGroup.ALL -> dao.channels(active.id, search = search, sort = sort)
                     VirtualGroup.FAVOURITES ->
                         dao.channels(active.id, favouritesOnly = true, search = search, sort = sort)
                     // The filter box used to do nothing at all here, because the argument was
                     // simply not passed on.
-                    VirtualGroup.RECENT -> dao.recentChannels(search = search)
+                    //
+                    // The only query here not scoped to `active`: recents deliberately span
+                    // playlists (see the DAO). Radio is the exception at both ends — its own
+                    // recents are its stations, and the channel list's are anything but them.
+                    VirtualGroup.RECENT -> dao.recentChannels(
+                        search = search,
+                        onlyPlaylistId = if (isRadio) active.id else null,
+                        excludePlaylistId = if (isRadio) null else radioPlaylistId,
+                    )
                     // Always in the playlist's own order: this is a repair screen, and the point
                     // is to find the channel you hid, not to browse.
                     VirtualGroup.HIDDEN -> dao.channels(active.id, hiddenOnly = true, search = search)
@@ -398,7 +410,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
                 // Radio: drop Russian-language stations everywhere (not just a specific category —
                 // see RadioCategoryClassifier), then narrow further to the selected category, if any.
-                val radioFiltered = if (active.url == IsraelRadioStations.M3U_URL) {
+                val radioFiltered = if (isRadio) {
                     fun groupNameOf(channel: Channel) = listState.groups.firstOrNull { it.id == channel.groupId }?.name
                     raw
                         .filterNot { RadioCategoryClassifier.isRussian(it.displayName, groupNameOf(it)) }
@@ -432,9 +444,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * turned-off screen should pause playback (a picture has nothing to show anyway) or keep a
      * radio station going in the background: there is no picture to lose, so nothing is gained by
      * stopping it.
+     *
+     * "Playing", not merely "loaded": a station the user paused and then locked the screen on has
+     * nothing to keep alive, and promoting a media-playback foreground service for silence is
+     * both a wasted service and a notification about nothing. [PlaybackStatus.playWhenReady] is
+     * the right flag rather than `playing` — a station that is rebuffering at the moment the
+     * screen locks is still a station the user is listening to.
      */
     val isRadioPlaying: Boolean
         get() {
+            if (!player.status.value.playWhenReady) return false
             val live = (_state.value.nowPlaying as? NowPlayingInfo.Live)?.channel ?: return false
             val radioPlaylistId = _state.value.playlists
                 .firstOrNull { it.url == IsraelRadioStations.M3U_URL }

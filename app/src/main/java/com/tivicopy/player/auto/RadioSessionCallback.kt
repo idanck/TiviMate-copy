@@ -109,14 +109,17 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
         return when {
             parentId == RadioBrowseTree.ROOT_ID ->
-                future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.categories()), params) }
+                future { LibraryResult.ofItemList(paged(browseTree.categories(), page, pageSize), params) }
             parentId == RadioBrowseTree.FAVOURITES_ID ->
-                future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.favouriteStations()), params) }
+                future { LibraryResult.ofItemList(paged(browseTree.favouriteStations(), page, pageSize), params) }
             RadioBrowseTree.isCategoryId(parentId) ->
-                future { LibraryResult.ofItemList(ImmutableList.copyOf(browseTree.stationsIn(parentId)), params) }
+                future { LibraryResult.ofItemList(paged(browseTree.stationsIn(parentId), page, pageSize), params) }
             else -> Futures.immediateFuture(LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE))
         }
     }
+
+    private fun paged(items: List<MediaItem>, page: Int, pageSize: Int): ImmutableList<MediaItem> =
+        ImmutableList.copyOf(items.browsePage(page, pageSize))
 
     override fun onGetItem(
         session: MediaLibrarySession,
@@ -151,4 +154,25 @@ class RadioSessionCallback(private val browseTree: RadioBrowseTree) : MediaLibra
         /** Custom [SessionCommand] action id for the Now Playing "Favourite" [CommandButton]. */
         const val TOGGLE_FAVOURITE_ACTION = "com.tivicopy.player.auto.action.TOGGLE_FAVOURITE"
     }
+}
+
+/**
+ * The window of [this] list a browsing controller actually asked for.
+ *
+ * Ignoring [MediaLibrarySession.Callback.onGetChildren]'s `page`/`pageSize` and answering every
+ * page with the whole list looks harmless while the lists are short, but a host that does page —
+ * the contract says it may — then reads the same stations back as page 1, and shows each of them
+ * twice. Media3 passes [Int.MAX_VALUE] as the size when the controller wants everything, which is
+ * also the only value for which `page * pageSize` could overflow an `Int`, so the multiplication
+ * is done in `Long` and that case answered without it.
+ *
+ * Top-level and `internal` rather than a private method: this is the one piece of the callback
+ * that is pure list arithmetic, and it is the piece worth pinning in a test without standing up a
+ * [MediaLibrarySession].
+ */
+internal fun <T> List<T>.browsePage(page: Int, pageSize: Int): List<T> {
+    if (page < 0 || pageSize <= 0 || pageSize == Int.MAX_VALUE) return this
+    val from = page.toLong() * pageSize.toLong()
+    if (from >= size) return emptyList()
+    return drop(from.toInt()).take(pageSize)
 }

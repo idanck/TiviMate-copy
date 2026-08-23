@@ -672,3 +672,87 @@ instrumentation tier, so every item here is a human check.
 | 18 | Hebrew: the three-pane guide mirrors, the filmstrip's direction mirrors, the time axis stays right-anchored |
 | 19 | Picture-in-picture still shows bare video, and returning from it restores the shell |
 | 20 | The phone shell is unregressed — the window change applies to both form factors |
+
+## The bundled radio and Android Auto work, 2026-08-23
+
+A requested review of everything merged since the television shell pass above — the bundled
+Israeli radio playlist, Radio as its own destination on both shells, the Android Auto media
+library, the background radio service, and the update signature-mismatch message (PR #18–#24).
+Read as a diff and then in context; nothing here was found by running the app, because this
+work is not reachable from a JVM test and the branch it was reviewed on cannot build Android
+(see `CLAUDE.md`).
+
+### Found and fixed
+
+- **The phone lost its first Back press again.** `handleBack` grew two rungs of the television
+  shell's overlay ladder (`overlay == NONE -> lastBrowseOverlay`, and `overlay !=
+  lastBrowseOverlay -> NONE`) with no `isTelevision` guard, and the activity's Back callback is
+  registered unconditionally. On the phone's Live tab `MobileRoot`'s own `BackHandler` is
+  disabled — there is nowhere left to go — so the press reached the ladder, moved an overlay
+  nothing draws, and changed nothing on screen. This is the same defect the start-up effect
+  above it carries a comment about, re-introduced two rungs lower. The ladder is now a separate
+  `stepUpOneOverlay()`, run only on television.
+- **Radio had no way back.** Once RADIO became `lastBrowseOverlay` — which it did the moment it
+  opened — Back from the station list fell straight to the exit confirmation, so on the
+  television the only way out of Radio was to leave the app. It is a destination opened *from*
+  the channel list, so Back now returns there, moving `lastBrowseOverlay` in the same step
+  rather than waiting a composition for the effect that usually tracks it.
+- **The bundled playlists could be seeded twice.** `ensureRadioPlaylist()` is check-then-insert
+  against a `playlists` table with no unique index on `url`, and it acquired three callers that
+  can genuinely run at once on `Dispatchers.IO`: `App.onCreate`, `AppViewModel.openRadio`, and
+  `RadioBrowseTree` — the last of which runs when a car binds the media service, with no launcher
+  activity involved, so it can be first in the process. Two interleaving would each see no row
+  and each insert one, leaving a duplicate the "self-healing" contract could never heal. Both
+  bootstraps now run under one `Mutex`; everything is in one process, so one lock covers it.
+- **Radio's "recently watched" listed television channels.** `VirtualGroup.RECENT` is served by
+  `dao.recentChannels()`, which deliberately spans playlists — right for a viewer with two TV
+  sources, wrong once Radio started borrowing the same `ChannelListState`. The radio filter
+  underneath it only drops Russian stations and narrows by category, so it never caught them.
+  The query now takes `onlyPlaylistId`/`excludePlaylistId`, and each destination asks for its
+  own end of the split.
+- **The background service could be a crash, and could be silence.** `isRadioPlaying` asked only
+  *what* was loaded, never whether it was playing, so pausing a station and locking the screen
+  promoted a `mediaPlayback` foreground service for nothing. Worse, `RadioBackgroundService.start`
+  is called from `onStop` — precisely the moment Android 12 and later may refuse a foreground
+  service start outright — with nothing catching the throw. It is now attempted, with a refusal
+  falling through to the pause this app did before the service existed.
+- **The notification's button lied during a stall.** It was drawn from `PlaybackStatus.playing`
+  rather than `playWhenReady`, so a rebuffering station showed "Play" and pressing it paused the
+  stream — the distinction the picture-in-picture controls already document. Swiping the paused
+  notification away also left the service in the foreground with nothing on screen able to stop
+  it; there is now a delete intent that ends it, and every entry into `onStartCommand` promotes
+  before acting, so an action delivered to a recreated service cannot leave the debt unpaid.
+- **Android Auto's browse ignored paging.** `onGetChildren` answered every page with the whole
+  list, so a host that pages — the contract says it may — reads the same stations back as page 1
+  and shows each twice. The windowing is now `browsePage`, pulled out as an `internal` top-level
+  function precisely so it could be pinned in a test without standing up a `MediaLibrarySession`.
+- **Two filters drew as selected at once.** `selectRadioCategory` pins `selectedGroupId` to
+  `VirtualGroup.ALL`, and both the group list and the phone's chip row render "All channels"
+  selected from exactly that — so choosing a category lit both.
+
+### Recorded, not changed
+
+- **`STATUS_FAILURE_CONFLICT` still maps to `SignatureMismatch`.** The platform status also
+  covers a conflicting provider or a duplicate package, so the "uninstall and reinstall" message
+  can be shown for a failure uninstalling will not fix — at the cost of the user's data. Left as
+  it is deliberately: this app installs over itself under one package name, where a signing-key
+  mismatch is overwhelmingly the case that actually occurs, and a vaguer message would be less
+  actionable for it than this one is wrong for the rest. The narrower alternative is to read
+  `EXTRA_STATUS_MESSAGE`, which the platform does not specify.
+
+### Manual matrix — needs a real device
+
+| # | Check |
+|---|---|
+| 1 | Phone, Live tab: one Back press raises the exit confirmation — not two |
+| 2 | Phone, any other tab: Back returns to Live, then the next press confirms exit |
+| 3 | Television: Back from the radio list lands on the channel list, and from there confirms exit |
+| 4 | Television: Back from a full-screen radio station reaches the station list, not the channel list |
+| 5 | Radio playing, screen locked or turned off: audio continues and the notification appears |
+| 6 | Radio *paused*, screen locked: no notification, no foreground service, nothing playing |
+| 7 | Pause from the notification, then swipe it away: playback and the service both end |
+| 8 | The notification's button reads Pause while a station is rebuffering, not Play |
+| 9 | Radio's "recently watched" lists only stations; the channel list's lists no stations |
+| 10 | Choosing a radio category leaves only that category selected, not "All channels" too |
+| 11 | Android Auto: every category folder lists each station once, with no repeats on scroll |
+| 12 | Android Auto: Favourites still appears and the Now Playing "Favourite" button still toggles |

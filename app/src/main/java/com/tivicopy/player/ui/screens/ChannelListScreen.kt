@@ -519,7 +519,9 @@ private fun GroupColumn(
         item {
             GroupRow(
                 stringResource(R.string.all_channels),
-                state.list.selectedGroupId == VirtualGroup.ALL,
+                // Radio keeps `selectedGroupId` on ALL while a category narrows the list, so
+                // "All" and the chosen category would both draw as selected without this.
+                state.list.selectedGroupId == VirtualGroup.ALL && state.list.selectedRadioCategory == null,
                 icon = Icons.Filled.SelectAll,
             ) { vm.selectGroup(VirtualGroup.ALL) }
         }
@@ -654,7 +656,10 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
         ) {
             item {
                 androidx.compose.material3.FilterChip(
-                    selected = state.list.selectedGroupId == VirtualGroup.ALL,
+                    // See the group list's own "All channels" row: a selected radio category
+                    // leaves the group id on ALL, and two selected chips read as a bug.
+                    selected = state.list.selectedGroupId == VirtualGroup.ALL &&
+                        state.list.selectedRadioCategory == null,
                     onClick = { vm.selectGroup(VirtualGroup.ALL) },
                     leadingIcon = icon(Icons.Filled.SelectAll),
                     label = { Text(stringResource(R.string.all_channels)) },

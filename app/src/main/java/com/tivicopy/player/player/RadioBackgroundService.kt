@@ -53,22 +53,37 @@ class RadioBackgroundService : Service() {
         super.onCreate()
         ServiceLocator.init(this)
         ServiceLocator.player.status
-            .onEach { updateNotification(it.title, it.playing) }
+            // [PlaybackStatus.playWhenReady], not `playing`: a station that is rebuffering has
+            // not been paused, and a button drawn from `playing` would offer Play mid-stall and
+            // then pause the stream when it was pressed — the same distinction the picture-in-
+            // picture controls in MainActivity are built on.
+            .onEach { updateNotification(it.title, it.playWhenReady) }
             .launchIn(scope)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_TOGGLE_PLAY_PAUSE) {
-            ServiceLocator.player.togglePlayPause()
-        } else {
-            val status = ServiceLocator.player.status.value
-            promoteToForeground(status.title, status.playing)
+        // Promoted first, whatever the action asks for. A service started with
+        // `startForegroundService` owes the platform a `startForeground` within a few seconds or
+        // the process is killed — and the notification's own buttons arrive back through here, so
+        // an action delivered to a service the system had since recreated would otherwise leave
+        // it running with that debt unpaid.
+        val status = ServiceLocator.player.status.value
+        promoteToForeground(status.title, status.playWhenReady)
+        when (intent?.action) {
+            ACTION_TOGGLE_PLAY_PAUSE -> ServiceLocator.player.togglePlayPause()
+            // Swiping a paused notification away means "done with this", not "hide it". Without
+            // somewhere for that swipe to go, the service stayed in the foreground holding the
+            // process up with nothing left on screen to stop it.
+            ACTION_STOP -> {
+                ServiceLocator.player.setPlayWhenReady(false)
+                stopSelf()
+            }
         }
         return START_NOT_STICKY
     }
 
-    private fun promoteToForeground(title: String, playing: Boolean) {
-        val notification = buildNotification(title, playing)
+    private fun promoteToForeground(title: String, wantsPlay: Boolean) {
+        val notification = buildNotification(title, wantsPlay)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(FOREGROUND_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
@@ -76,25 +91,19 @@ class RadioBackgroundService : Service() {
         }
     }
 
-    private fun updateNotification(title: String, playing: Boolean) {
+    private fun updateNotification(title: String, wantsPlay: Boolean) {
         try {
-            NotificationManagerCompat.from(this).notify(FOREGROUND_ID, buildNotification(title, playing))
+            NotificationManagerCompat.from(this).notify(FOREGROUND_ID, buildNotification(title, wantsPlay))
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS was refused; the stream keeps playing regardless.
         }
     }
 
-    private fun buildNotification(title: String, playing: Boolean): Notification {
+    private fun buildNotification(title: String, wantsPlay: Boolean): Notification {
         val openApp = PendingIntent.getActivity(
             this,
-            0,
+            REQUEST_OPEN_APP,
             Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val toggle = PendingIntent.getService(
-            this,
-            0,
-            Intent(this, RadioBackgroundService::class.java).setAction(ACTION_TOGGLE_PLAY_PAUSE),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, App.CHANNEL_RADIO)
@@ -105,15 +114,24 @@ class RadioBackgroundService : Service() {
             // Dismissible once paused, exactly like the recorder's own notification when it is
             // not actively writing (RecordingService.buildNotification) — an ongoing notification
             // for a stream that is not making sound would be a lie the user cannot swipe away.
-            .setOngoing(playing)
+            .setOngoing(wantsPlay)
             .setOnlyAlertOnce(true)
+            // ...and that swipe now ends the service rather than only hiding it.
+            .setDeleteIntent(serviceIntent(REQUEST_STOP, ACTION_STOP))
             .addAction(
-                if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                getString(if (playing) R.string.action_pause else R.string.action_play),
-                toggle,
+                if (wantsPlay) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
+                getString(if (wantsPlay) R.string.action_pause else R.string.action_play),
+                serviceIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE),
             )
             .build()
     }
+
+    private fun serviceIntent(requestCode: Int, action: String): PendingIntent = PendingIntent.getService(
+        this,
+        requestCode,
+        Intent(this, RadioBackgroundService::class.java).setAction(action),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+    )
 
     override fun onDestroy() {
         scope.cancel()
@@ -122,7 +140,11 @@ class RadioBackgroundService : Service() {
 
     companion object {
         private const val FOREGROUND_ID = 3001
+        private const val REQUEST_OPEN_APP = 0
+        private const val REQUEST_TOGGLE = 1
+        private const val REQUEST_STOP = 2
         private const val ACTION_TOGGLE_PLAY_PAUSE = "com.tivicopy.player.player.RADIO_TOGGLE_PLAY_PAUSE"
+        private const val ACTION_STOP = "com.tivicopy.player.player.RADIO_STOP"
 
         fun start(context: Context) {
             val intent = Intent(context, RadioBackgroundService::class.java)
