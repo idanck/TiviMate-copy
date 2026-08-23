@@ -57,12 +57,37 @@ so never a moment where a `MediaSession` would be pointed at a released player.
 
 ## Browse tree and queue
 
-Flat: one root node (the playlist's Hebrew name) → one child `MediaItem` per station, each
-already carrying its stream URL and metadata (title, artwork from `Channel.displayLogo`) —
-resolved once, from the DB, not lazily per station. Selecting one station in the car (
-`MediaLibrarySession.Callback.onSetMediaItems`) hands the **whole** ordered station list to the
-player, positioned at the one picked, so the car's native skip-next/previous controls walk the
-other stations for free — no custom session commands.
+Two levels. The root (the playlist's Hebrew name) holds a "Favourites" folder followed by one
+folder per `RadioCategory` bucket — the categories the car renders as its top-level tabs — and
+each folder holds its own stations as playable `MediaItem`s, already carrying stream URL and
+metadata (title, artwork from `Channel.displayLogo`), resolved from the DB on every request
+rather than cached, so a refresh or a hide/unhide needs no invalidation. Favourites is listed
+even when empty: it is a tab, and a tab that only appears once a favourite exists cannot be
+found in order to learn that favourites exist.
+
+Selecting one station (`MediaLibrarySession.Callback.onSetMediaItems`) hands the player *that
+station's own category* as its queue, positioned at the one picked, in the order the folder
+listed it — so the car's native skip-next/previous controls walk the neighbouring stations
+rather than jumping between unrelated ones.
+
+Three things are presentation rather than structure, and all three live in `RadioBrowseTree`:
+
+- **Regional stations are separated by where they broadcast.** The feed has one regional
+  `group-title`, so `RadioCategoryClassifier.region` is a second heuristic over the station
+  names inside it (`RadioRegion`: north, centre, Jerusalem, south, then unplaceable). Stations
+  are sorted into that order — north first — and each carries its region both as Android Auto's
+  `CONTENT_STYLE_GROUP_TITLE_HINT`, which draws a heading above each run, and as its own
+  subtitle, so the split survives a head unit that ignores the hint.
+- **The station that is playing says so.** Its row, and the folder holding it, carry a "now
+  playing" subtitle, so coming back to the list to change station shows what is on. The player
+  may only be read on the main thread and the tree is built off it, so the service's player
+  listener pushes the id in (`setNowPlaying`) and asks the car to reload the folders it has
+  already been served (`RadioSessionCallback.notifyBrowseRefresh`).
+- **Queue items carry a square, upscaled logo** (`RadioArtwork`). Android Auto draws the
+  artwork it is given without enlarging it, so a small or wide logo lands as a stamp in the
+  middle of the Now Playing screen; painting it onto a 512-square canvas at the largest scale
+  that fits makes it as large as the slot allows. Only queue items — browse rows keep pointing
+  at the logo URL, so a browse response never carries a bitmap per station across Binder.
 
 ## Alternatives rejected
 
@@ -116,6 +141,16 @@ other stations for free — no custom session commands.
   to `true`). Android Auto's `RadioBrowseTree` is unaffected either way: it queries every channel
   in the playlist with no `groupId` filter, so it has always shown (and continues to show) both
   groups together as one flat list, regardless of category.
+- The regional split (north/centre/Jerusalem/south) is client-side keyword matching on station
+  names, exactly like the category classification above it and with the same caveat: it is
+  presentation, not the source of truth. If the upstream `build_radio_m3u.py` ever publishes one
+  `group-title` per region, that becomes the answer and `RadioCategoryClassifier.region` should
+  give way to it rather than both being maintained.
+- Station logos are fetched and re-rendered in-process for the car (`RadioArtwork`), warmed once
+  per service start and cached in memory, with a failed logo remembered as failed so a broken URL
+  is not re-fetched on every tap. A station tapped before the warm-up reaches it is rendered
+  synchronously while its queue is built, so those fetches run on timeouts capped well below the
+  stream timeouts — artwork must never be what keeps the music waiting.
 - Testing Android Auto integration requires physical or emulated ("Desktop Head Unit") car
   hardware and a phone with "Unknown sources" enabled in Android Auto's developer settings —
   it cannot be exercised by the JVM unit test suite, only by `IsraelRadioStationsBootstrapTest`

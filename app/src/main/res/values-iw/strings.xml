@@ -75,6 +75,12 @@
     <string name="radio_category_national">ארצי</string>
     <string name="radio_category_regional">אזורי</string>
     <string name="radio_category_other">אחר</string>
+    <string name="radio_region_north">צפון</string>
+    <string name="radio_region_center">מרכז</string>
+    <string name="radio_region_jerusalem">ירושלים</string>
+    <string name="radio_region_south">דרום</string>
+    <string name="radio_region_other">אזורים נוספים</string>
+    <string name="radio_now_playing">מתנגן עכשיו</string>
     <string name="all_channels">כל הערוצים</string>
     <string name="favourites">מועדפים</string>
     <string name="recently_watched">נצפו לאחרונה</string>

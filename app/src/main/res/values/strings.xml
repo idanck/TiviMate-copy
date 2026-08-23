@@ -87,6 +87,12 @@
     <string name="radio_category_national">National</string>
     <string name="radio_category_regional">Regional</string>
     <string name="radio_category_other">Other</string>
+    <string name="radio_region_north">North</string>
+    <string name="radio_region_center">Central</string>
+    <string name="radio_region_jerusalem">Jerusalem</string>
+    <string name="radio_region_south">South</string>
+    <string name="radio_region_other">Other regions</string>
+    <string name="radio_now_playing">Now playing</string>
     <string name="all_channels">All channels</string>
     <string name="favourites">Favourites</string>
     <string name="recently_watched">Recently watched</string>

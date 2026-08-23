@@ -13,6 +13,18 @@ sealed interface RadioCategory {
 }
 
 /**
+ * Which part of the country a [RadioCategory.REGIONAL] station broadcasts to.
+ *
+ * The regional category is a single `group-title` in the feed ("רדיו אזורי" — ADR-015), so this
+ * is a second, finer heuristic over the station names inside it, used only to *present* that one
+ * category as separated, ordered shelves rather than one undifferentiated list. Declaration order
+ * is display order, north first: [NORTH], [CENTER], [JERUSALEM], [SOUTH], then [UNKNOWN] for a
+ * station whose name says nothing about where it broadcasts, which sorts last rather than being
+ * dropped.
+ */
+enum class RadioRegion { NORTH, CENTER, JERUSALEM, SOUTH, UNKNOWN }
+
+/**
  * A heuristic classifier over the bundled radio playlist's `group-title` and station names.
  *
  * This repo has no access to `build_radio_m3u.py` (the script on the Pi that actually builds
@@ -37,6 +49,33 @@ object RadioCategoryClassifier {
         "מזרחי" to listOf("מזרחי", "mizrahi"),
     )
 
+    /**
+     * Station-name markers per [RadioRegion], checked in declaration order.
+     *
+     * Deliberately keyed on whole station or place names rather than short fragments: the eight
+     * regional stations ADR-015 lists are named after where they broadcast ("רדיו חיפה",
+     * "104.5 רדיו צפון", "רדיו לב המדינה", "רדיו 90"…), so the names themselves carry the answer,
+     * while a fragment like "עמק" would put Emek Hefer (central) in the north and "90" alone would
+     * match any frequency that happens to contain it.
+     */
+    private val REGION_MARKERS: List<Pair<RadioRegion, List<String>>> = listOf(
+        RadioRegion.NORTH to listOf(
+            "צפון", "חיפה", "גליל", "כרמל", "כנרת", "טבריה", "נצרת", "עכו", "צפת", "קריות",
+            "קול רגע", "עמק יזרעאל", "104.5",
+            "north", "tzafon", "haifa", "galil", "galilee", "kinneret", "kol rega",
+        ),
+        RadioRegion.CENTER to listOf(
+            "מרכז", "תל אביב", "ת\"א", "שרון", "לב המדינה", "גוש דן", "רמת גן", "פתח תקווה",
+            "נתניה", "הרצליה", "רחובות", "מודיעין", "עמק חפר", "רדיו 90", "90fm", "90 fm",
+            "center", "central", "tel aviv", "sharon", "merkaz", "hefer",
+        ),
+        RadioRegion.JERUSALEM to listOf("ירושלים", "jerusalem", "yerushalayim"),
+        RadioRegion.SOUTH to listOf(
+            "דרום", "נגב", "באר שבע", "אילת", "אשקלון", "אשדוד", "שדרות", "ערד", "דימונה",
+            "south", "darom", "negev", "eilat", "beer sheva", "ashdod", "ashkelon",
+        ),
+    )
+
     /** Station-name (or group-title) markers for Russian-language content, excluded outright. */
     private val RUSSIAN_MARKERS = listOf("רוסי", "russian", "russkoe", "русск")
 
@@ -58,5 +97,18 @@ object RadioCategoryClassifier {
         if (REGIONAL_GROUP_MARKERS.any { group.contains(it) }) return RadioCategory.REGIONAL
         if (NATIONAL_GROUP_MARKERS.any { group.contains(it) }) return RadioCategory.NATIONAL
         return RadioCategory.OTHER
+    }
+
+    /**
+     * Which [RadioRegion] a regional station's name places it in, or [RadioRegion.UNKNOWN] when
+     * nothing in the name says. Only meaningful for a station [classify] put in
+     * [RadioCategory.REGIONAL]; callers decide that first rather than this second-guessing it.
+     */
+    fun region(stationName: String): RadioRegion {
+        val name = stationName.lowercase()
+        REGION_MARKERS.forEach { (region, markers) ->
+            if (markers.any { name.contains(it) }) return region
+        }
+        return RadioRegion.UNKNOWN
     }
 }
