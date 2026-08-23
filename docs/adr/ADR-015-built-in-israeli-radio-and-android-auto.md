@@ -83,10 +83,14 @@ Three things are presentation rather than structure, and all three live in `Radi
   may only be read on the main thread and the tree is built off it, so the service's player
   listener pushes the id in (`setNowPlaying`) and asks the car to reload the folders it has
   already been served (`RadioSessionCallback.notifyBrowseRefresh`).
-- **Queue items carry a square, upscaled logo** (`RadioArtwork`). Android Auto draws the
-  artwork it is given without enlarging it, so a small or wide logo lands as a stamp in the
-  middle of the Now Playing screen; painting it onto a 512-square canvas at the largest scale
-  that fits makes it as large as the slot allows. Only queue items — browse rows keep pointing
+- **Queue items carry a square, re-rendered logo** (`RadioArtwork`). Station logos arrive in
+  whatever size and shape their publisher used, and head units differ in what they do with the
+  bitmap a session hands them — one draws it untouched, so a small or wide logo lands as a stamp
+  in the middle of the Now Playing screen; another scales it to *cover* a wider card and crops
+  the overhang. Each logo is therefore painted centred on a 512-square canvas, scaled to fit a
+  safe area of `RadioArtwork.SAFE_AREA_FRACTION` (0.62) of that square rather than all of it: as
+  large as a slot that shows the square whole can display it, with a transparent margin that a
+  slot which crops gives up before the logo does. Only queue items — browse rows keep pointing
   at the logo URL, so a browse response never carries a bitmap per station across Binder.
 
 ## Alternatives rejected
@@ -179,3 +183,12 @@ Three things are presentation rather than structure, and all three live in `Radi
   isolated player — it plays through the very same `ServiceLocator.player` the UI already had
   running, and exists only to hold foreground-service priority and an ongoing notification while
   the activity is not visible; `onStart` stops it the moment the UI is back.
+- The car's artwork shipped in 0.6.2 painting the logo edge to edge on that square, on the
+  assumption — taken from how Android Auto is documented to draw artwork, not from a car, which
+  this environment cannot reach — that it never enlarges the bitmap it is given. The first real
+  head unit it ran on does exactly that, scaling the artwork to fill its Now Playing card: the
+  logo came back enormous with the station name cropped off at the sides. 0.6.3 keeps the logo
+  inside the safe area above instead — a size the car can shrink *or* crop into without cutting
+  the name. The pure arithmetic of it (`logoBounds`) is pinned by `LogoBoundsTest`, since the
+  rendering around it still needs a car to judge. Browse rows are untouched: they go on handing
+  over the logo URL and letting the head unit size its own thumbnail.
