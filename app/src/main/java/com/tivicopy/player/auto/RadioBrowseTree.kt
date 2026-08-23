@@ -65,15 +65,22 @@ class RadioBrowseTree {
             .map { channel -> channel to RadioCategoryClassifier.classify(groupNameOf(channel), channel.displayName) }
     }
 
-    /** One browsable folder per category with at least one station in it. */
+    /**
+     * One browsable folder per category with at least one station in it, plus a leading
+     * "Favourites" folder ([FAVOURITES_ID]) when at least one station is favourited — the same
+     * [Channel.favourite] flag the phone/TV radio screen already reads and writes (ADR-015: radio
+     * repoints `ChannelListScreen` at a different playlist rather than duplicating its favourites
+     * mechanism), so a station favourited here is favourited everywhere and vice versa.
+     */
     fun categories(): List<MediaItem> {
-        val present = categorizedChannels().map { it.second }.toSet()
+        val channels = categorizedChannels()
+        val present = channels.map { it.second }.toSet()
         val ordered = mutableListOf<RadioCategory>()
         if (RadioCategory.NATIONAL in present) ordered += RadioCategory.NATIONAL
         if (RadioCategory.REGIONAL in present) ordered += RadioCategory.REGIONAL
         present.filterIsInstance<RadioCategory.GENRE>().sortedBy { it.label }.forEach { ordered += it }
         if (RadioCategory.OTHER in present) ordered += RadioCategory.OTHER
-        return ordered.map { category ->
+        val categoryItems = ordered.map { category ->
             MediaItem.Builder()
                 .setMediaId(categoryId(category))
                 .setMediaMetadata(
@@ -86,7 +93,27 @@ class RadioBrowseTree {
                 )
                 .build()
         }
+        val hasFavourites = channels.any { (channel, _) -> channel.favourite }
+        return if (hasFavourites) listOf(favouritesFolder()) + categoryItems else categoryItems
     }
+
+    private fun favouritesFolder(): MediaItem = MediaItem.Builder()
+        .setMediaId(FAVOURITES_ID)
+        .setMediaMetadata(
+            MediaMetadata.Builder()
+                .setTitle(ServiceLocator.locale.getString(R.string.favourites))
+                .setIsBrowsable(true)
+                .setIsPlayable(false)
+                .setFolderType(MediaMetadata.FOLDER_TYPE_MIXED)
+                .build(),
+        )
+        .build()
+
+    /** The favourited stations, in provider order — the [FAVOURITES_ID] folder's children. */
+    fun favouriteStations(): List<MediaItem> =
+        categorizedChannels()
+            .filter { (channel, _) -> channel.favourite }
+            .mapNotNull { (channel, _) -> toMediaItem(channel) }
 
     /**
      * The playable stations inside one category folder, in provider order — also what a tapped
@@ -135,6 +162,9 @@ class RadioBrowseTree {
 
     companion object {
         const val ROOT_ID = "radio_root"
+
+        /** The synthetic "Favourites" folder's media id, a sibling of the category folders. */
+        const val FAVOURITES_ID = "radio_favourites"
 
         /** True for a media id [categories] itself produced, as opposed to a station's own id. */
         fun isCategoryId(mediaId: String): Boolean = mediaId.startsWith(CATEGORY_ID_PREFIX)
