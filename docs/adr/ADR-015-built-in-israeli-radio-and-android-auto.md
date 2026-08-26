@@ -192,3 +192,13 @@ Three things are presentation rather than structure, and all three live in `Radi
   the name. The pure arithmetic of it (`logoBounds`) is pinned by `LogoBoundsTest`, since the
   rendering around it still needs a car to judge. Browse rows are untouched: they go on handing
   over the logo URL and letting the head unit size its own thumbnail.
+- In-app, a station used to play against a black rectangle: an audio-only stream never produces a
+  video frame, so the player surface stays the colour it was cleared to, and 0.6.3's logo-and-name
+  card left the rest of the screen black (device report: "the radio screen is black"). 0.6.4 draws
+  a backdrop in the station's own colour instead, sampled from its logo through Coil — the same
+  logo the list it was picked from has already cached — with the clock, the date and a play/pause
+  button over it (`ui/common/StationBackdrop.kt`, shared by both shells). The colour arithmetic is
+  pure and pinned by `StationBackdropTest`; the layout still needs a screen to judge. A station
+  whose logo is black-and-white, or whose logo cannot be fetched, falls back to the hash-derived
+  hue its monogram tile already uses, so every station still gets its own colour rather than a
+  neutral grey.

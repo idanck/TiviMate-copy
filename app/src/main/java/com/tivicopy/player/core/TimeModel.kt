@@ -37,6 +37,7 @@ object TimeModel {
     private val dayMonth: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM", Locale.ROOT)
     private val fileStamp: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm", Locale.ROOT)
+    private const val FULL_DATE_PATTERN = "EEEE, d MMMM"
 
     fun formatClock(utcMillis: Long, zone: ZoneId = zone()): String =
         local(utcMillis, zone).format(hhmm)
@@ -64,6 +65,19 @@ object TimeModel {
      */
     fun formatClockRange(startUtc: Long, endUtc: Long, zone: ZoneId = zone()): String =
         ltr("${formatClock(startUtc, zone)} – ${formatClock(endUtc, zone)}")
+
+    /**
+     * `Wednesday, 26 August` in [locale] — the date line under the radio backdrop's clock.
+     *
+     * Written as a pattern rather than [java.time.format.FormatStyle.FULL], which appends a year
+     * nobody reading a clock needs, and built per call because the locale is the caller's: the
+     * in-app language setting (FR-UI-23) means the interface language is not the platform's.
+     */
+    fun formatFullDate(
+        utcMillis: Long,
+        locale: Locale = Locale.getDefault(),
+        zone: ZoneId = zone(),
+    ): String = local(utcMillis, zone).format(DateTimeFormatter.ofPattern(FULL_DATE_PATTERN, locale))
 
     /** `dd/MM HH:mm`, isolated for the same reason as [formatClockRange]. */
     fun formatDayTime(utcMillis: Long, zone: ZoneId = zone()): String =
