@@ -49,6 +49,7 @@ import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
+import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
@@ -199,16 +200,6 @@ fun TvRoot(
             modifier = pictureBounds,
         )
 
-        // Zapping on a remote gives no other feedback: without this a channel that is still
-        // tuning is a black screen, identical to one that failed. The settled-failure text is
-        // left to PlaybackErrorBanner below, which is where a 10-foot layout wants it.
-        PlaybackStateOverlay(
-            status = status,
-            showErrorText = false,
-            opacity = prefs.overlayOpacity,
-            modifier = Modifier.fillMaxSize(),
-        )
-
         // Radio (and any other audio-only stream) never produces a video frame, so the surface
         // above is a steady black rectangle with sound and nothing to look at — indistinguishable
         // from broken. Detected the same way PlaybackStatus already reports it (no video track),
@@ -216,14 +207,15 @@ fun TvRoot(
         //
         // Whether it is on screen depends on where it *was* as well as on the status, so that
         // pausing a station does not take the screen — and its own pause button — away with it;
-        // the reasoning is in `audioOnlyBackdropVisible`. Reset per channel, so tuning away from
-        // radio starts the question again rather than inheriting the last answer.
-        var wasAudioOnly by remember(state.currentChannel?.id) { mutableStateOf(false) }
+        // the reasoning is in `audioOnlyBackdropVisible`. Keyed on what is playing rather than
+        // on the channel, which deliberately outlives an on-demand session: starting a film
+        // straight after a station has to begin the question again, not inherit its answer.
+        var wasAudioOnly by remember(state.nowPlaying) { mutableStateOf(false) }
         val audioOnly = audioOnlyBackdropVisible(status, wasAudioOnly)
         SideEffect { wasAudioOnly = audioOnly }
         if (audioOnly) {
             AudioOnlyNowPlaying(
-                channel = state.currentChannel,
+                channel = state.nowPlaying.audioOnlyChannel(),
                 title = status.title,
                 playWhenReady = status.playWhenReady,
                 onTogglePlay = { ServiceLocator.player.togglePlayPause() },
@@ -233,6 +225,16 @@ fun TvRoot(
                 modifier = pictureBounds,
             )
         }
+
+        // Zapping on a remote gives no other feedback: without this a channel that is still
+        // tuning is a black screen, identical to one that failed. The settled-failure text is
+        // left to PlaybackErrorBanner below, which is where a 10-foot layout wants it.
+        PlaybackStateOverlay(
+            status = status,
+            showErrorText = false,
+            opacity = prefs.overlayOpacity,
+            modifier = Modifier.fillMaxSize(),
+        )
 
         // The info card auto-dismisses; everything else waits for Back.
         if (overlay == TvOverlay.INFO) {

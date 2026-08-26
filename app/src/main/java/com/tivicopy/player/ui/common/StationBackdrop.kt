@@ -44,6 +44,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -57,6 +61,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.player.PlaybackStatus
+import com.tivicopy.player.ui.NowPlayingInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -269,6 +274,19 @@ object StationAccentCache {
  * adds must not do. So a screen that has established itself as audio-only keeps the screen
  * through a pause or a stall, and only a picture, an error or a new stream takes it away.
  */
+/**
+ * The channel an audio-only stream belongs to, for the backdrop to name and take its colour from.
+ *
+ * Read from [NowPlayingInfo] rather than `AppUiState.currentChannel`, which deliberately survives
+ * an on-demand session: a film started straight after a radio station would otherwise be drawn as
+ * that station, logo, name and all.
+ */
+internal fun NowPlayingInfo?.audioOnlyChannel(): Channel? = when (this) {
+    is NowPlayingInfo.Live -> channel
+    is NowPlayingInfo.Catchup -> channel
+    is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile, null -> null
+}
+
 internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolean): Boolean = when {
     status.error != null -> false
     // There is a picture to look at, so there is nothing for this to replace.
@@ -507,7 +525,14 @@ private fun PlayPauseButton(
             .then(dpad)
             // Deliberately not `clickable`: that would make the node focusable on the phone too,
             // and on the television it would claim the OK key press the comment above is about.
-            .pointerInput(Unit) { detectTapGestures { toggle() } },
+            // What `clickable` also brings, and a bare tap detector does not, is the semantics a
+            // screen reader dispatches its double-tap to — so those are declared by hand. In
+            // phone landscape this is the only play/pause control on screen.
+            .pointerInput(Unit) { detectTapGestures { toggle() } }
+            .semantics(mergeDescendants = true) {
+                role = Role.Button
+                onClick { toggle(); true }
+            },
         contentAlignment = Alignment.Center,
     ) {
         Icon(

@@ -1,7 +1,10 @@
 package com.tivicopy.player.ui.common
 
 import com.tivicopy.player.core.AppError
+import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.player.PlaybackStatus
+import com.tivicopy.player.ui.NowPlayingInfo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -192,6 +195,19 @@ class StationBackdropTest {
         val failed = radio.copy(playing = false, error = AppError(AppError.Kind.Network))
 
         assertFalse(audioOnlyBackdropVisible(failed, wasVisible = true))
+    }
+
+    @Test
+    fun `a film started after a station is not drawn as that station`() {
+        // `currentChannel` deliberately outlives an on-demand session, so the backdrop asks what
+        // is *playing* instead: otherwise a film opened straight after radio came up wearing the
+        // station's logo, name and colour.
+        val station = Channel(playlistId = 1, identity = "eco99", name = "Eco 99")
+        val film = VodItem(playlistId = 1, streamId = "17", name = "Anything")
+
+        assertEquals(station, (NowPlayingInfo.Live(station) as NowPlayingInfo?).audioOnlyChannel())
+        assertNull((NowPlayingInfo.OnDemand(film) as NowPlayingInfo?).audioOnlyChannel())
+        assertNull((null as NowPlayingInfo?).audioOnlyChannel())
     }
 
     @Test

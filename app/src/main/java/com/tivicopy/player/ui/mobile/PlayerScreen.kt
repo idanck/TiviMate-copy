@@ -67,6 +67,7 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
+import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NowNextPane
@@ -182,12 +183,12 @@ fun PlayerScreen(
                     // station's own backdrop since 0.6.4; the phone gets the same one, measured
                     // down to the size of this box. Play/pause is offered here only in landscape,
                     // where the transport row below is not on screen to carry it.
-                    var wasAudioOnly by remember(state.currentChannel?.id) { mutableStateOf(false) }
+                    var wasAudioOnly by remember(state.nowPlaying) { mutableStateOf(false) }
                     val audioOnly = audioOnlyBackdropVisible(playback, wasAudioOnly)
                     SideEffect { wasAudioOnly = audioOnly }
                     if (audioOnly) {
                         AudioOnlyNowPlaying(
-                            channel = state.currentChannel,
+                            channel = state.nowPlaying.audioOnlyChannel(),
                             title = playback.title,
                             playWhenReady = playback.playWhenReady,
                             onTogglePlay = if (landscape) {
