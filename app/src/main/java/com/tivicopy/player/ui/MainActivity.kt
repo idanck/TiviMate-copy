@@ -640,6 +640,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // "Install unknown apps" is granted on a screen of the platform's own, and nothing in
+        // this process is told when it happens. Coming back is the moment to look again — which
+        // is what lets a refused update pick itself back up instead of sending the user round
+        // "check for updates" a second time (issue #29).
+        ServiceLocator.updates.refreshInstallPermission()
+    }
+
     override fun onStop() {
         super.onStop()
         // Where an on-demand title got to, written before the player can be torn down. The

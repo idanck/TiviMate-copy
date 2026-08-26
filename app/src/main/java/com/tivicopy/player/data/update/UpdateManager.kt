@@ -93,6 +93,28 @@ class UpdateManager(
     private val installing = AtomicBoolean(false)
 
     /**
+     * Whether the platform will let this app install another, as something the UI can watch.
+     *
+     * [canRequestInstalls] is a one-shot read, and the grant is made on a screen of the
+     * platform's own — so nothing inside this process changes at the moment the user gives it.
+     * The activity re-reads it on resume ([refreshInstallPermission]); this flow is what turns
+     * that read into a recomposition, and into the offer picking itself back up.
+     */
+    private val _canInstall = MutableStateFlow(canRequestInstalls())
+    val canInstall: StateFlow<Boolean> = _canInstall
+
+    /**
+     * Re-reads the per-app install permission, after the user has been somewhere it could change.
+     *
+     * Cheap enough to call on every resume: a package-manager query, no I/O.
+     */
+    fun refreshInstallPermission(): Boolean {
+        val granted = canRequestInstalls()
+        _canInstall.value = granted
+        return granted
+    }
+
+    /**
      * Looks for a newer build.
      *
      * [force] distinguishes the user pressing "check now" from the background sweep: the sweep
@@ -245,7 +267,9 @@ class UpdateManager(
         // Replacing the package kills the process, and with it the recorder's foreground
         // service: a scheduled recording would end up truncated with nothing to say why.
         dao.activeRecordings().isNotEmpty() -> UpdateBlocker.RECORDING_IN_PROGRESS
-        !canRequestInstalls() -> UpdateBlocker.INSTALL_PERMISSION
+        // Refreshed rather than merely read: a refusal on this reason and what the screens
+        // show about the permission must be the same answer.
+        !refreshInstallPermission() -> UpdateBlocker.INSTALL_PERMISSION
         settings.state.value.updateWifiOnly && !isUnmetered() -> UpdateBlocker.METERED
         manifest.minSdk > Build.VERSION.SDK_INT -> UpdateBlocker.NEEDS_NEWER_ANDROID
         updateDir.parentFile?.let { it.usableSpace < manifest.sizeBytes * 2 } == true ->
