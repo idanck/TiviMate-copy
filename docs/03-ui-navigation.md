@@ -69,6 +69,15 @@ same channel-list screen pointed at the bundled radio playlist instead of the ac
 own groups (e.g. "רדיו ישראלי" / "רדיו אזורי") and favourites live in the group column there,
 never mixed into the TV channel list.
 
+While an audio-only stream plays, both shells replace the empty video surface with a **station
+backdrop**: a gradient in a colour sampled from that station's own logo (falling back to the
+colour its monogram tile already uses), the logo and name, the wall clock and today's date in
+white, and a play/pause button. It is keyed off "the stream carries no video track", not off a
+radio flag, so a TV channel that happens to be audio-only gets it too — and it stays on screen
+through a pause, because the button that resumes playback is on it. On the television the button
+takes D-pad focus while nothing else owns the arrows, so OK is play/pause there; a long OK still
+opens the playback menu, and the arrows still zap and open the lists.
+
 ## 3.3 Guide behaviour requirements
 
 - The guide must remain **scrollable and responsive while video keeps playing**.

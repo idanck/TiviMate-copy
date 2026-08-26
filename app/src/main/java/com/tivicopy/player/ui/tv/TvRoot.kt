@@ -16,6 +16,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,12 +41,14 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.tvMetricsFor
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
+import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
@@ -172,25 +175,28 @@ fun TvRoot(
         // re-tunes. Reparenting it — or scaling it with a graphics layer, which does not move a
         // SurfaceView's punched hole at all — would both have cost a black frame or worse.
         val dock = dockBounds.takeIf { docked }
+        // Whatever stands in for the picture goes where the picture goes — the surface itself,
+        // and the radio backdrop that replaces it when there is no picture to draw.
+        val pictureBounds = if (dock == null) {
+            Modifier.fillMaxSize()
+        } else {
+            with(LocalDensity.current) {
+                Modifier
+                    .offset {
+                        IntOffset(
+                            (dock.left - rootOrigin.x).roundToInt(),
+                            (dock.top - rootOrigin.y).roundToInt(),
+                        )
+                    }
+                    .size(dock.width.toDp(), dock.height.toDp())
+            }
+        }
         PlayerSurface(
             engine = ServiceLocator.player,
             aspectMode = prefs.aspectMode,
             subtitleScale = prefs.subtitleTextScale,
             docked = dock != null,
-            modifier = if (dock == null) {
-                Modifier.fillMaxSize()
-            } else {
-                with(LocalDensity.current) {
-                    Modifier
-                        .offset {
-                            IntOffset(
-                                (dock.left - rootOrigin.x).roundToInt(),
-                                (dock.top - rootOrigin.y).roundToInt(),
-                            )
-                        }
-                        .size(dock.width.toDp(), dock.height.toDp())
-                }
-            },
+            modifier = pictureBounds,
         )
 
         // Zapping on a remote gives no other feedback: without this a channel that is still
@@ -207,13 +213,24 @@ fun TvRoot(
         // above is a steady black rectangle with sound and nothing to look at — indistinguishable
         // from broken. Detected the same way PlaybackStatus already reports it (no video track),
         // not a new "isRadio" flag, so this also covers a TV channel that happens to be audio-only.
-        val audioOnly = status.playing && !status.buffering && status.error == null &&
-            status.width == 0 && status.height == 0
+        //
+        // Whether it is on screen depends on where it *was* as well as on the status, so that
+        // pausing a station does not take the screen — and its own pause button — away with it;
+        // the reasoning is in `audioOnlyBackdropVisible`. Reset per channel, so tuning away from
+        // radio starts the question again rather than inheriting the last answer.
+        var wasAudioOnly by remember(state.currentChannel?.id) { mutableStateOf(false) }
+        val audioOnly = audioOnlyBackdropVisible(status, wasAudioOnly)
+        SideEffect { wasAudioOnly = audioOnly }
         if (audioOnly) {
-            AudioOnlyNowPlayingCard(
+            AudioOnlyNowPlaying(
                 channel = state.currentChannel,
                 title = status.title,
-                modifier = Modifier.fillMaxSize(),
+                playWhenReady = status.playWhenReady,
+                onTogglePlay = { ServiceLocator.player.togglePlayPause() },
+                // Only while nothing else owns the arrows: an overlay draws its own focusable
+                // controls over this one, and two claims on the D-pad is one too many.
+                takeDpadFocus = overlay.leavesDpadToShell,
+                modifier = pictureBounds,
             )
         }
 
@@ -428,37 +445,6 @@ fun TvRoot(
         // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
         // is absent in picture-in-picture, which returns above this point.
         UpdatePrompt()
-    }
-}
-
-/**
- * What replaces the bare black surface while an audio-only stream (radio, or any channel with no
- * video track) plays steadily: the station's logo and name, so "playing with nothing to look at"
- * reads as radio rather than as a stuck or failed screen.
- */
-@Composable
-private fun AudioOnlyNowPlayingCard(channel: Channel?, title: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (channel != null) {
-                ChannelLogo(channel = channel, sizeDp = 120)
-            }
-            Text(
-                text = channel?.displayName ?: title,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.playback_audio_only),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-        }
     }
 }
 

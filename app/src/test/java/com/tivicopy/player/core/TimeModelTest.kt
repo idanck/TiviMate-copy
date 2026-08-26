@@ -15,6 +15,30 @@ class TimeModelTest {
     private val london: ZoneId = ZoneId.of("Europe/London")
     private val jerusalem: ZoneId = ZoneId.of("Asia/Jerusalem")
 
+    /**
+     * The radio backdrop's date line. Pinned in the device zone the app is written for and in a
+     * fixed locale, so this says what it means rather than what the runner's defaults happen to be.
+     */
+    @Test
+    fun `formats a full date in the caller's locale`() {
+        val noon = java.time.OffsetDateTime.parse("2026-08-26T09:00:00Z").toInstant().toEpochMilli()
+
+        assertEquals(
+            "Wednesday, 26 August",
+            TimeModel.formatFullDate(noon, java.util.Locale.ENGLISH, jerusalem),
+        )
+    }
+
+    /** The day name has to follow the interface language, not the platform's (FR-UI-23). */
+    @Test
+    fun `a Hebrew locale gets a Hebrew day name`() {
+        val noon = java.time.OffsetDateTime.parse("2026-08-26T09:00:00Z").toInstant().toEpochMilli()
+
+        val hebrew = TimeModel.formatFullDate(noon, java.util.Locale.forLanguageTag("he"), jerusalem)
+
+        assertTrue(hebrew, hebrew.any { it in '\u0590'..'\u05FF' })
+    }
+
     @Test
     fun `parses an XMLTV timestamp with an explicit offset`() {
         // 2026-08-19 14:30:00 +0300 is 11:30:00 UTC.
