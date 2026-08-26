@@ -192,7 +192,7 @@ is claimed here is that the code exists and its logic is covered; see `docs/11`.
 |---|---|---|
 | FR-UPD-01 | Done | CI publishes `latest.json` beside the APK on every push to `main`, and refuses to publish a version code that does not advance. `UpdateManifest` parses it strictly. |
 | FR-UPD-02 | Done | On launch and from `RefreshWorker`, rate-limited to once a day; "check now" in Settings → About is always immediate. |
-| FR-UPD-03 | Done | `UpdatePrompt`, shown by both shells and by neither in picture-in-picture. Postpone lasts for the launch, skip until a newer build. |
+| FR-UPD-03 | Done | `UpdatePrompt`, shown by both shells and by neither in picture-in-picture. Postpone lasts for the launch, skip until a newer build. A refusal on "allow installs from this app" opens that screen from the dialog itself and keeps the offer standing; `MainActivity.onResume` re-reads the permission, and the install resumes on the way back. |
 | FR-UPD-04 | Done | `UpdateManager.downloadAndInstall` streams to the cache and commits a `PackageInstaller` session; progress in the dialog and in Settings. |
 | FR-UPD-05 | Done | HTTPS-only manifest, SHA-256 computed over the download itself, signing certificate compared with the running app's before the session opens. |
 | FR-UPD-06 | Done | Both switches in Settings → About, on by default. The skip is stored as a floor, so a newer build clears it. |

@@ -1,6 +1,5 @@
 package com.tivicopy.player.ui.settings
 
-import android.content.ActivityNotFoundException
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +23,7 @@ import com.tivicopy.player.data.update.UpdateBlocker
 import com.tivicopy.player.data.update.UpdateManifest
 import com.tivicopy.player.data.update.UpdateState
 import com.tivicopy.player.ui.common.describe
+import com.tivicopy.player.ui.common.openUnknownSources
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -40,6 +40,7 @@ fun UpdateSettingsBlock() {
     val s by settings.state.collectAsState()
     val state by updates.state.collectAsState()
     val context = LocalContext.current
+    val canInstall by updates.canInstall.collectAsState()
 
     SettingsSectionTitle(stringResource(R.string.update_title))
 
@@ -84,8 +85,10 @@ fun UpdateSettingsBlock() {
         }
     }
 
-    // Android will not let one app install another until the user says so once, per app.
-    if (!updates.canRequestInstalls()) {
+    // Android will not let one app install another until the user says so once, per app. Watched
+    // rather than read once: the grant happens on a screen of the platform's, and the row has to
+    // go away when the user comes back with it.
+    if (!canInstall) {
         val intent = updates.unknownSourcesIntent()
         SettingsRow(
             title = stringResource(R.string.update_unknown_sources),
@@ -93,16 +96,7 @@ fun UpdateSettingsBlock() {
                 if (intent == null) R.string.update_unknown_sources_manual
                 else R.string.update_unknown_sources_sub,
             ),
-            onClick = {
-                intent?.let {
-                    try {
-                        context.startActivity(it)
-                    } catch (_: ActivityNotFoundException) {
-                        // Some TV builds advertise the activity and then refuse it; the
-                        // subtitle above already says what to do by hand.
-                    }
-                }
-            },
+            onClick = { intent?.let { openUnknownSources(context, it) } },
         )
     }
 
