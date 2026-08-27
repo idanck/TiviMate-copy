@@ -1,5 +1,11 @@
 package com.tivicopy.player.ui.tv
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -69,6 +75,9 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.Motion
+import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.monogram
@@ -297,32 +306,70 @@ private fun HomeNavRail(
 ) {
     val metrics = LocalTvMetrics.current
     var expanded by remember { mutableStateOf(false) }
+    // The rail slides open rather than snapping. It is drawn over the list, so this width is the
+    // one animation in the shell that does re-measure per frame — seven rows of it, and only
+    // while focus is crossing in or out.
+    val railWidth by animateDpAsState(
+        targetValue = if (expanded) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
+        animationSpec = tween(Motion.STANDARD),
+        label = "railWidth",
+    )
     Column(
         modifier = modifier
             // Before `focusGroup`, so it observes the group's own focus state: `hasFocus` is true
             // while any item inside is focused, which is exactly when the labels are wanted.
             .onFocusChanged { expanded = it.hasFocus }
             .focusGroup()
-            .width(if (expanded) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = if (expanded) 0.96f else 0.55f))
+            .width(railWidth)
+            .background(
+                animatedColour(
+                    MaterialTheme.colorScheme.surface.copy(alpha = if (expanded) 0.96f else 0.55f),
+                    Motion.STANDARD,
+                ),
+            )
             .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        if (expanded) {
+        RailHeader(expanded = expanded)
+        destinations.forEach { destination ->
+            NavRailItem(
+                destination = destination,
+                expanded = expanded,
+                onClick = { destination.overlay?.let(onOpen) },
+            )
+        }
+    }
+}
+
+/**
+ * The app's name at the top of the rail, drawn only once the rail is open.
+ *
+ * Its own composable, and not just a `Box` inside the rail's `Column`, for a reason the compiler
+ * insists on: inside that `Box` the enclosing `ColumnScope` is still an implicit receiver, so
+ * `AnimatedVisibility` resolves to `ColumnScope.AnimatedVisibility` — an extension whose receiver
+ * is no longer the innermost one, which does not compile. Here the only scope in sight is the
+ * `Box`'s, and the plain overload is what gets called.
+ *
+ * The height is reserved whether or not the name is drawn. Without that, every destination below
+ * would jump down the screen the moment focus entered the rail.
+ */
+@Composable
+private fun RailHeader(expanded: Boolean) {
+    Box(
+        modifier = Modifier.height(RAIL_HEADER_HEIGHT).padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(tween(Motion.FAST)),
+            exit = fadeOut(tween(Motion.FAST)),
+        ) {
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 12.dp),
-            )
-        }
-        destinations.forEach { destination ->
-            NavRailItem(
-                destination = destination,
-                expanded = expanded,
-                onClick = { destination.overlay?.let(onOpen) },
             )
         }
     }
@@ -344,15 +391,23 @@ private fun NavRailItem(
             .fillMaxWidth()
             .clip(shape)
             .background(
-                when {
-                    focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                    selected -> MaterialTheme.colorScheme.surfaceVariant
-                    else -> Color.Transparent
-                },
+                animatedColour(
+                    when {
+                        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                        selected -> MaterialTheme.colorScheme.surfaceVariant
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
+                    },
+                ),
             )
             .border(
-                width = if (focused) 2.dp else 0.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = 2.dp,
+                color = animatedColour(
+                    if (focused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                    },
+                ),
                 shape = shape,
             )
             .onFocusChanged { focused = it.isFocused }
@@ -376,7 +431,11 @@ private fun NavRailItem(
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
-        if (expanded) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(tween(Motion.FAST)),
+            exit = fadeOut(tween(Motion.FAST)),
+        ) {
             Text(
                 text = destination.label,
                 style = MaterialTheme.typography.titleSmall,
@@ -459,13 +518,23 @@ private fun HomeBanner(
                 .padding(horizontal = TV_CONTENT_INSET, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = now?.title ?: channel?.displayName ?: stringResource(R.string.no_guide_data),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // Crossed, not cut: the banner's title changes on its own when a programme ends or
+            // the viewer zaps, and a caption that swaps instantly under a picture that dissolved
+            // reads as two different screens. Only the title — the button below keeps focus, and
+            // animating a focused control out from under the remote is how focus gets lost.
+            Crossfade(
+                targetState = now?.title ?: channel?.displayName ?: stringResource(R.string.no_guide_data),
+                animationSpec = tween(Motion.STANDARD),
+                label = "bannerTitle",
+            ) { title ->
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -510,21 +579,26 @@ private fun WatchFullscreenButton(focusRequester: FocusRequester?, onClick: () -
     val label = stringResource(R.string.home_watch_fullscreen)
     Row(
         modifier = Modifier
+            .focusLift(focused, BUTTON_FOCUS_SCALE)
             .clip(shape)
             .background(
-                if (focused) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-                },
+                animatedColour(
+                    if (focused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                    },
+                ),
             )
             .border(
                 width = if (focused) 3.dp else 1.dp,
-                color = if (focused) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.outline
-                },
+                color = animatedColour(
+                    if (focused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.outline
+                    },
+                ),
                 shape = shape,
             )
             .onFocusChanged { focused = it.isFocused }
@@ -612,24 +686,32 @@ private fun HomeTile(
     val shape = RoundedCornerShape(12.dp)
     Column(
         modifier = modifier
+            // Grows on focus and is drawn over its neighbours while it does. Through a
+            // `graphicsLayer`, so the row it sits in does not re-measure and the cards either
+            // side of it do not move (`ui/common/Motion.kt`).
+            .focusLift(focused)
             .width(width)
             .clip(shape)
             .background(
-                when {
-                    focused -> MaterialTheme.colorScheme.surfaceVariant
-                    playing -> MaterialTheme.colorScheme.surface
-                    else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                },
+                animatedColour(
+                    when {
+                        focused -> MaterialTheme.colorScheme.surfaceVariant
+                        playing -> MaterialTheme.colorScheme.surface
+                        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+                    },
+                ),
             )
             .border(
                 // Thicker than the app's usual ring, as on the filmstrip: this one is read
                 // across a room, against moving video rather than a settled surface (NFR-UX-02).
                 width = if (focused) 3.dp else 1.dp,
-                color = when {
-                    focused -> MaterialTheme.colorScheme.primary
-                    playing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                    else -> Color.Transparent
-                },
+                color = animatedColour(
+                    when {
+                        focused -> MaterialTheme.colorScheme.primary
+                        playing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                    },
+                ),
                 shape = shape,
             )
             .onFocusChanged { focused = it.isFocused }
@@ -726,6 +808,12 @@ private fun HomeTileArt(card: HomeCard, modifier: Modifier = Modifier) {
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000
+
+/** Room kept at the top of the navigation rail for the app's name, drawn only when it is open. */
+private val RAIL_HEADER_HEIGHT = 44.dp
+
+/** The banner's button lifts less than a card does; it is already the largest control on screen. */
+private const val BUTTON_FOCUS_SCALE = 1.04f
 
 /** How much of the banner's width the progress bar takes. Long enough to read, short of a rule. */
 private const val BANNER_PROGRESS_FRACTION = 0.45f

@@ -51,6 +51,7 @@ import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.screenEntrance
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NavDestination
@@ -269,7 +270,12 @@ fun TvRoot(
                 channel = state.currentChannel,
                 now = state.now,
                 next = state.next,
-                modifier = Modifier.align(Alignment.BottomStart).padding(TV_CONTENT_INSET),
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(TV_CONTENT_INSET)
+                    // Everything that arrives over playing video fades and rises into place
+                    // rather than appearing between two frames (`ui/common/Motion.kt`).
+                    .screenEntrance(Unit),
             )
         }
 
@@ -300,7 +306,10 @@ fun TvRoot(
                 vm = vm,
                 onPlay = { channel -> vm.play(channel) },
                 opacity = prefs.overlayOpacity,
-                modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .screenEntrance(Unit),
             )
         }
 
@@ -309,7 +318,7 @@ fun TvRoot(
                 vm = vm,
                 onOpenGuide = { onOverlayChange(TvOverlay.GUIDE) },
                 onOpenMenu = { onOverlayChange(TvOverlay.PLAYBACK_MENU) },
-                modifier = Modifier.align(Alignment.BottomCenter),
+                modifier = Modifier.align(Alignment.BottomCenter).screenEntrance(Unit),
             )
         }
 
@@ -319,7 +328,8 @@ fun TvRoot(
                 onDismiss = { onOverlayChange(TvOverlay.NONE) },
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(TV_CONTENT_INSET),
+                    .padding(TV_CONTENT_INSET)
+                    .screenEntrance(Unit),
             )
         }
 
@@ -331,6 +341,11 @@ fun TvRoot(
                 // be drawn straight over the live picture the whole layout exists to keep visible.
                 scrim = !overlay.paintsOwnBackdrop,
                 inset = !overlay.fullBleed,
+                // Replayed whenever the overlay changes, which is what makes one browse surface
+                // replacing another read as a transition. Deliberately not a cross-fade: that
+                // would keep both screens composed, and two channel lists querying, two guides
+                // fetching and two screens asking for focus is a worse bargain than a fade-in.
+                entranceKey = overlay,
             ) {
                 when (overlay) {
                     // The television's root surface (ADR-016). Added here in the same edit as the
@@ -525,11 +540,16 @@ private fun OverlayScaffold(
      * is full-bleed, and it applies the same inset to its own text instead (ADR-020).
      */
     inset: Boolean = true,
+    /** What the arrival animation is keyed on; see [com.tivicopy.player.ui.common.screenEntrance]. */
+    entranceKey: Any? = Unit,
     content: @Composable () -> Unit,
 ) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
+            // Outermost, so the scrim and the surface fade in together rather than the scrim
+            // snapping on under a fading screen.
+            .screenEntrance(entranceKey)
             .then(
                 if (scrim) {
                     Modifier.background(MaterialTheme.colorScheme.background.copy(alpha = opacity))

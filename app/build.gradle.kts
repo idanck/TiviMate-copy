@@ -178,6 +178,13 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.coil.compose)
 
+    // Installs `assets/dexopt/baseline.prof` — which now includes this app's own UI, see
+    // `src/main/baseline-prof.txt` — into ART's profile on the first launch after each update,
+    // so the next background dexopt compiles the screens ahead of time instead of leaving them
+    // to the JIT. It arrives transitively with Compose; named here so the profile does not
+    // silently stop being installed if that ever changes (ADR-021).
+    implementation(libs.androidx.profileinstaller)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

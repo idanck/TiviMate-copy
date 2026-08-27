@@ -14,6 +14,7 @@ device set (see `docs/09` verification backlog), not aspirations.
 | NFR-PERF-05 | A full XMLTV parse of a 200 MB uncompressed guide completes without exceeding 200 MB of app heap and reports progress throughout. |
 | NFR-PERF-06 | Steady-state memory during single-stream playback ≤ 350 MB on TV devices. |
 | NFR-PERF-07 | Total on-disk cache (EPG + images) is capped at a configurable budget (default 500 MB) and evicted LRU; it never grows unbounded. |
+| NFR-PERF-08 | Interface animation holds the frame budget on the reference television: under 5% janky frames and a 95th-percentile frame under 25 ms while moving focus, measured with `dumpsys gfxinfo`. The app ships a baseline profile covering its own code so ahead-of-time compilation can reach it (ADR-021). |
 
 ## REL — Reliability
 

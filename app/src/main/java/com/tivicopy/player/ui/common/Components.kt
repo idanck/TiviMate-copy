@@ -133,16 +133,24 @@ fun FocusableRow(
 ) {
     var focused by remember { mutableStateOf(false) }
     val interaction = remember { MutableInteractionSource() }
-    val border = when {
-        focused -> MaterialTheme.colorScheme.primary
-        selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-        else -> Color.Transparent
-    }
-    val background = when {
-        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-        selected -> MaterialTheme.colorScheme.surfaceVariant
-        else -> Color.Transparent
-    }
+    // Crossed rather than cut (`ui/common/Motion.kt`). Every list in the app is built from this
+    // row, so this one call is most of what the interface's focus feels like. The resting values
+    // are the same colours at zero alpha, never `Color.Transparent`: transparent is transparent
+    // *black*, and a ring interpolating towards it darkens on its way out.
+    val border = animatedColour(
+        when {
+            focused -> MaterialTheme.colorScheme.primary
+            selected -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+        },
+    )
+    val background = animatedColour(
+        when {
+            focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+            selected -> MaterialTheme.colorScheme.surfaceVariant
+            else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
+        },
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

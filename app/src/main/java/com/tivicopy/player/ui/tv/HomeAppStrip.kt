@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.monogram
 import com.tivicopy.player.ui.common.monogramColour
 import com.tivicopy.player.ui.home.HomeApps
@@ -150,6 +152,8 @@ private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
     val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = Modifier
+            // The same lift every other card in the shell uses (`ui/common/Motion.kt`).
+            .focusLift(focused)
             .width(APP_TILE_WIDTH.dp)
             .clip(shape)
             .onFocusChanged { focused = it.isFocused }
@@ -169,8 +173,14 @@ private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
                     if (tile.icon == null) monogramColour(tile.app.label) else Color.Transparent,
                 )
                 .border(
-                    width = if (focused) 3.dp else 0.dp,
-                    color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    width = 3.dp,
+                    color = animatedColour(
+                        if (focused) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                        },
+                    ),
                     shape = shape,
                 ),
             contentAlignment = Alignment.Center,
