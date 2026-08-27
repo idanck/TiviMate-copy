@@ -21,11 +21,18 @@ television that still overscans, content near the edge can be cropped. See `docs
 
 ## 3.2 Core TV screens
 
-1. **Home (root)** — a navigation rail down one side, the live picture as a hero with its
-   now/next text beside it, and horizontal rails of cards below: continue watching, the
-   channels, radio, favourites, what is starting soon, and an optional featured row. Video
-   plays in the hero throughout — the same docking mechanism the guide uses, so opening Home
-   never interrupts a stream.
+1. **Home (root)** — the live picture as a full-bleed banner with a gradient rising from the
+   bottom, the playing channel's identity in the leading corner and a clock in the trailing one,
+   a collapsed icon rail down the inner edge, a strip of installed streaming apps, and
+   horizontal rails of cards: continue watching, the channels, radio, favourites, what is
+   starting soon, and an optional featured row. Video plays behind all of it throughout, so
+   opening Home never interrupts a stream.
+
+   The banner is the first item of the same scroller the rails are in, and its one control — a
+   *watch fullscreen* button — is where the remote lands. Pressing Down scrolls the banner away
+   and gives the rails the whole panel. This replaces the boxed hero ADR-016 built, which sat
+   beside its caption and left the rails a third of the screen; the shape here is the one the
+   Cellcom TV teardown found (`docs/adr/ADR-020`).
 
    This reverses what this section used to say: *"fullscreen video is the home screen, not a
    menu. The app should boot into video, not into a dashboard."* That held while the app was a
@@ -57,9 +64,12 @@ television that still overscans, content near the edge can be cropped. See `docs
    This replaces the single-channel timeline the mini guide used to draw: on a remote that was a
    picture of a schedule, with nothing in it that could be selected.
 5. **Full guide** — the classic grid: channels down, time across, current-time marker,
-   horizontal scroll by hours/days, jump-to-now, jump-to-date. On the television it is laid out
-   *around* the picture rather than over it — a persistent channel rail on one side, a docked
-   live preview that keeps playing, and the grid below (`docs/adr/ADR-013`).
+   horizontal scroll by hours, a strip of days above it, a clock in the toolbar, and a focused
+   cell that lifts slightly out of the grid so it can be found from across the room. Jump-to-date
+   is that strip — yesterday, today, tomorrow and then weekdays with their dates — rather than
+   the dialog it used to open (ADR-020). On the television it is laid out *around* the picture
+   rather than over it — a persistent channel rail on one side, a docked live preview that keeps
+   playing, and the grid below (`docs/adr/ADR-013`).
 6. **Programme details** — title, times, description, category, series/episode, poster,
    plus actions: watch, record, schedule series, catch-up, remind, add to favourites.
 7. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
@@ -72,9 +82,19 @@ television that still overscans, content near the edge can be cropped. See `docs
    section 3.4 and section 3.6.
 
 The home screen's navigation rail is the television's primary navigation: Home, Search, Channels,
-Radio, Guide, Recordings and Settings, as icons with labels. It is the ten-foot answer to the
-phone's bottom bar, and it is visible without opening anything first — which the group column it
-replaces was not.
+Radio, Guide, Recordings and Settings. It is the ten-foot answer to the phone's bottom bar, and it
+is visible without opening anything first — which the group column it replaces was not.
+
+It shows icons only until focus enters it, and then expands *over* the screen — never beside it,
+so no card ever moves because focus crossed into the rail. Every destination carries its label as
+a content description whether or not the label is drawn, which is what keeps the collapsed state
+navigable by TalkBack and by anything else reading the tree (NFR-UX-05, ADR-020).
+
+Under the banner sits a strip of shortcuts to the streaming apps installed on the box — Netflix,
+YouTube, Prime Video and the rest of a fixed catalogue — each opening that app's own leanback
+entry point. Nothing installed means no strip at all. It is the one part of the home screen that
+is about something other than this app's own content, and it is there because the television it
+runs on is shared with those apps (`ui/home/HomeApps.kt`, ADR-020).
 
 The group column of the channel-list overlay still carries the same destinations, plus Home, above
 the playlist's own groups. Keeping both is deliberate: NFR-UX-01 asks that every screen be

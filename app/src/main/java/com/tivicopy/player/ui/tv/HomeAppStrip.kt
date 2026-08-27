@@ -1,0 +1,211 @@
+package com.tivicopy.player.ui.tv
+
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.tivicopy.player.R
+import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.monogram
+import com.tivicopy.player.ui.common.monogramColour
+import com.tivicopy.player.ui.home.HomeApps
+import com.tivicopy.player.ui.home.LaunchableApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * The row of installed streaming apps under the home banner (FR-UI-28, ADR-020).
+ *
+ * Which apps exist is `ui/home/HomeApps`, which is plain Kotlin and unit-tested; everything the
+ * platform has to answer — is it installed, what is it called, what does its icon look like, how
+ * is it started — is here, because none of it can run in this repository's JVM test tier.
+ *
+ * A device with none of the catalogue installed gets no strip at all, on the same rule an empty
+ * rail follows: a heading over nothing is worse than no heading.
+ */
+internal data class HomeAppTile(val app: LaunchableApp, val icon: Drawable?)
+
+/**
+ * Resolves the catalogue against this device, off the main thread.
+ *
+ * Fifteen `PackageManager` lookups are each a binder round trip, and the home screen is the first
+ * thing drawn on a cold start — doing them inside `remember` would put them on the frame that is
+ * already competing with the player starting up. The strip simply appears a frame or two late.
+ */
+@Composable
+internal fun rememberHomeApps(): List<HomeAppTile> {
+    val context = LocalContext.current
+    val apps = produceState(initialValue = emptyList<HomeAppTile>(), context) {
+        value = withContext(Dispatchers.IO) { loadHomeApps(context) }
+    }
+    return apps.value
+}
+
+private fun loadHomeApps(context: Context): List<HomeAppTile> {
+    val packages = context.packageManager
+    return HomeApps.resolve(
+        launchable = { name -> launchIntentFor(packages, name) != null },
+        label = { name ->
+            runCatching { packages.getApplicationInfo(name, 0).loadLabel(packages).toString() }.getOrNull()
+        },
+    ).map { app ->
+        HomeAppTile(
+            app = app,
+            icon = runCatching { packages.getApplicationIcon(app.packageName) }.getOrNull(),
+        )
+    }
+}
+
+/**
+ * The way in to another app: its leanback entry point on a television, its ordinary one anywhere
+ * else. Null means "not installed, or installed with nothing to open", and both are the same
+ * answer to this screen.
+ *
+ * Wrapped because a `PackageManager` call can throw for a package that is being upgraded
+ * underneath us, and a home screen that crashes because Netflix is updating is not acceptable.
+ */
+private fun launchIntentFor(packages: PackageManager, name: String): Intent? = runCatching {
+    packages.getLeanbackLaunchIntentForPackage(name) ?: packages.getLaunchIntentForPackage(name)
+}.getOrNull()
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun HomeAppStrip(
+    apps: List<HomeAppTile>,
+    background: Color,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    Column(modifier = modifier.fillMaxWidth().background(background)) {
+        SectionHeader(
+            text = stringResource(R.string.home_apps),
+            topDivider = false,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        LazyRow(
+            modifier = Modifier.fillMaxWidth().focusGroup(),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(apps, key = { it.app.id }) { tile ->
+                AppTile(
+                    tile = tile,
+                    onClick = {
+                        val intent = launchIntentFor(context.packageManager, tile.app.packageName)
+                        if (intent != null) {
+                            // The launcher's own flag set: this app stays where it is, and the
+                            // other one comes back to whatever it was showing.
+                            runCatching {
+                                context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+    Column(
+        modifier = Modifier
+            .width(APP_TILE_WIDTH.dp)
+            .clip(shape)
+            .onFocusChanged { focused = it.isFocused }
+            // As everywhere else in this shell: `clickable` is the focus target on its own, and
+            // adding `focusable()` beside it costs the remote a second press to leave the tile.
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = tile.app.label }
+            .padding(6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(APP_ICON_SIZE.dp)
+                .clip(shape)
+                .background(
+                    if (tile.icon == null) monogramColour(tile.app.label) else Color.Transparent,
+                )
+                .border(
+                    width = if (focused) 3.dp else 0.dp,
+                    color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    shape = shape,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (tile.icon == null) {
+                Text(
+                    text = monogram(tile.app.label),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                )
+            } else {
+                // Coil takes a `Drawable` as its model directly, which is what keeps the platform's
+                // own adaptive icon — mask, background layer and all — instead of a flattened bitmap.
+                AsyncImage(
+                    model = tile.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(APP_ICON_SIZE.dp).padding(4.dp),
+                )
+            }
+        }
+        Text(
+            text = tile.app.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (focused) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+private const val APP_TILE_WIDTH = 92
+private const val APP_ICON_SIZE = 72

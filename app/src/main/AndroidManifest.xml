@@ -27,6 +27,30 @@
          tv/WatchNextSync.kt fail and are swallowed, which costs a launcher row and nothing else. -->
     <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
 
+    <!-- The home screen's app shortcuts (FR-UI-28, ADR-020). Android 11 hides other packages
+         from us unless they are declared here, so this list mirrors `ui/home/HomeApps.CATALOGUE`
+         exactly: a package missing from it is invisible even when it is installed, and the
+         shortcut silently never appears. Declared one by one rather than as a LEANBACK_LAUNCHER
+         intent filter, which would ask the platform for every launchable app on the box to read
+         a list of nine. -->
+    <queries>
+        <package android:name="com.netflix.ninja" />
+        <package android:name="com.netflix.mediaclient" />
+        <package android:name="com.google.android.youtube.tv" />
+        <package android:name="com.google.android.youtube" />
+        <package android:name="com.amazon.amazonvideo.livingroom" />
+        <package android:name="com.amazon.avod.thirdpartyclient" />
+        <package android:name="com.disney.disneyplus" />
+        <package android:name="com.apple.atve.androidtv.appletv" />
+        <package android:name="com.apple.atve.android.appletv" />
+        <package android:name="com.wbd.stream" />
+        <package android:name="com.hbo.hbonow" />
+        <package android:name="com.spotify.tv.android" />
+        <package android:name="com.spotify.music" />
+        <package android:name="com.plexapp.android" />
+        <package android:name="com.cellcom.cellcom_tv" />
+    </queries>
+
     <!-- One binary for both form factors: neither leanback nor a touchscreen is required. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />

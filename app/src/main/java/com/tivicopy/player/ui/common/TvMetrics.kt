@@ -33,8 +33,18 @@ data class TvMetrics(
     val rowLogoSize: Int,
     /** Width of the home screen's navigation rail while it is showing labels. */
     val homeNavRailWidth: Dp,
-    /** Width of the home screen's hero slot. Its height is this in 16:9 — never scaled apart. */
-    val homeHeroWidth: Dp,
+    /**
+     * Width of the same rail collapsed to icons, which is what it shows until focus enters it
+     * (ADR-020). The content column is padded by this much and never by the expanded width: the
+     * rail expands *over* the screen rather than pushing it, so nothing reflows as focus crosses.
+     */
+    val homeNavRailCollapsedWidth: Dp,
+    /**
+     * How much of the panel the home screen's hero banner claims before the first rail of cards.
+     * From the height, not the width: the banner is full-bleed, and what matters is that a slice
+     * of the rail below it is still visible so the screen reads as scrollable.
+     */
+    val homeHeroHeight: Dp,
     /** Width of one card on a home-screen rail. */
     val homeCardWidth: Dp,
 ) {
@@ -51,7 +61,8 @@ data class TvMetrics(
             nowNextPaneWidth = 280.dp,
             rowLogoSize = 36,
             homeNavRailWidth = 168.dp,
-            homeHeroWidth = 400.dp,
+            homeNavRailCollapsedWidth = 64.dp,
+            homeHeroHeight = 320.dp,
             homeCardWidth = 180.dp,
         )
     }
@@ -98,10 +109,34 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         nowNextPaneWidth = base.nowNextPaneWidth * scale,
         rowLogoSize = (base.rowLogoSize * scale).toInt(),
         homeNavRailWidth = base.homeNavRailWidth * scale,
-        homeHeroWidth = base.homeHeroWidth * scale,
+        homeNavRailCollapsedWidth = base.homeNavRailCollapsedWidth * scale,
+        homeHeroHeight = heroHeightFor(heightDp).dp,
         homeCardWidth = base.homeCardWidth * scale,
     )
 }
+
+/**
+ * How tall the home banner is on a given panel.
+ *
+ * A fraction of the height, then bounded twice: never so short that the banner stops being the
+ * screen, never so tall that the first rail of cards is entirely below the fold — a home screen
+ * whose rails are invisible until you press Down is one nobody scrolls. The second bound is
+ * applied with `coerceAtMost` against a floor rather than a single `coerceIn`, because on an
+ * absurd viewport (the tests pass 1dp) the two limits cross and `coerceIn` throws.
+ */
+private fun heroHeightFor(heightDp: Float): Float {
+    val wanted = (heightDp * HERO_HEIGHT_FRACTION).coerceIn(MIN_HERO_HEIGHT, MAX_HERO_HEIGHT)
+    val roomForATeaser = (heightDp - RAIL_TEASER_HEIGHT).coerceAtLeast(MIN_HERO_HEIGHT)
+    return wanted.coerceAtMost(roomForATeaser)
+}
+
+/** The banner's share of the panel, before the bounds below are applied. */
+private const val HERO_HEIGHT_FRACTION = 0.58f
+private const val MIN_HERO_HEIGHT = 160f
+private const val MAX_HERO_HEIGHT = 560f
+
+/** How much of the first rail has to stay on screen under the banner. */
+private const val RAIL_TEASER_HEIGHT = 150f
 
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.6f

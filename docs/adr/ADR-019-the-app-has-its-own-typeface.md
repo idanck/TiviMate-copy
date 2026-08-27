@@ -6,12 +6,12 @@
 
 A teardown of **Cellcom TV 112.0.16** on a Google TV Streamer — screenshots of every reachable
 screen plus `apktool` over the APK — was done to see what a shipping Israeli television app does
-that this one does not. Most of what it found this app already had in some form: a full-screen
-hero with a bottom gradient, a collapsed icon rail down the inner edge, an EPG grid with a day
-picker and an enlarged focused cell, 2:3 poster cards, a bright focus ring with no fixed accent
-colour.
+that this one does not. It found a full-screen hero banner with a bottom gradient, a collapsed
+icon rail down the inner edge, an EPG grid with a day picker and an enlarged focused cell, a strip
+of streaming-app shortcuts, 2:3 poster cards and a bright focus ring with no fixed accent colour.
+Those are layout, and ADR-020 carries them.
 
-One finding was not a variation on something already here. Cellcom TV does not use the system
+One finding was not layout at all, and is this record. Cellcom TV does not use the system
 font. Its APK carries six weights of a brand family, `rag_sans_cellcomtv_2022_*.ttf` — ExtraLight
 through Black — and every screen is set in it.
 
@@ -66,9 +66,10 @@ was not a reason to adopt its palette.
 - **Heebo or Assistant instead of Rubik.** Both are free and both are good; Heebo is a Hebrew
   companion to Roboto (i.e. more of what the app already had), and Assistant is humanist rather
   than geometric. Rubik is the closest free thing to what the benchmark actually uses.
-- **Restyling the screens to match Cellcom TV more closely** (its exact hero proportions, its
-  icon-only rail). Not now: the layout findings largely describe what ADR-016 already built, and
-  the rail keeps its visible labels on purpose — that record explains why.
+- ~~**Restyling the screens to match Cellcom TV more closely**~~ — struck. This record originally
+  deferred the report's layout findings; the owner asked for all of them, and ADR-020 carries
+  them: the full-bleed banner, the collapsing rail, the guide's day strip and the app shortcuts.
+  What is still deliberately *not* copied is listed there.
 
 ## Consequences
 

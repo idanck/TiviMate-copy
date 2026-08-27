@@ -38,6 +38,7 @@ object TimeModel {
     private val fileStamp: DateTimeFormatter =
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm", Locale.ROOT)
     private const val FULL_DATE_PATTERN = "EEEE, d MMMM"
+    private const val WEEKDAY_PATTERN = "EEEE"
 
     fun formatClock(utcMillis: Long, zone: ZoneId = zone()): String =
         local(utcMillis, zone).format(hhmm)
@@ -78,6 +79,19 @@ object TimeModel {
         locale: Locale = Locale.getDefault(),
         zone: ZoneId = zone(),
     ): String = local(utcMillis, zone).format(DateTimeFormatter.ofPattern(FULL_DATE_PATTERN, locale))
+
+    /**
+     * `Wednesday` in [locale] — the day strip above the guide grid (ADR-020).
+     *
+     * Built per call for the same reason [formatFullDate] is: the in-app language setting means
+     * the interface language is not necessarily the platform's, so the locale belongs to the
+     * caller rather than to a formatter cached here.
+     */
+    fun formatWeekday(
+        utcMillis: Long,
+        locale: Locale = Locale.getDefault(),
+        zone: ZoneId = zone(),
+    ): String = local(utcMillis, zone).format(DateTimeFormatter.ofPattern(WEEKDAY_PATTERN, locale))
 
     /** `dd/MM HH:mm`, isolated for the same reason as [formatClockRange]. */
     fun formatDayTime(utcMillis: Long, zone: ZoneId = zone()): String =

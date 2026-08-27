@@ -87,7 +87,9 @@
     <string name="no_guide_data">אין נתוני לוח שידורים</string>
     <string name="now_next">עכשיו / הבא</string>
     <string name="guide_jump_now">עכשיו</string>
-    <string name="guide_jump_date">תאריך</string>
+    <string name="guide_day_yesterday">אתמול</string>
+    <string name="guide_day_today">היום</string>
+    <string name="guide_day_tomorrow">מחר</string>
     <string name="guide_updating">מעדכן לוח שידורים… %1$d ערוצים, %2$d תוכניות</string>
     <string name="guide_update_now">עדכן לוח שידורים עכשיו</string>
     <string name="guide_match_title">התאמת לוח שידורים</string>
@@ -208,10 +210,8 @@
     <string name="theme_light">בהיר</string>
     <string name="theme_dark">כהה</string>
     <string name="theme_amoled">שחור AMOLED</string>
-    <string name="guide_shift_back_day">⁦-1י⁩</string>
     <string name="guide_shift_back_hours">⁦-2ש⁩</string>
     <string name="guide_shift_forward_hours">⁦+2ש⁩</string>
-    <string name="guide_shift_forward_day">⁦+1י⁩</string>
     <string name="settings_show_new_groups">הצג קבוצות שהספק יוסיף בהמשך</string>
     <string name="settings_channel_sort">סדר הערוצים</string>
     <string name="sort_provider">כפי שרשימת ההשמעה שולחת</string>
@@ -378,7 +378,8 @@
     <string name="home_rail_featured">מומלצים</string>
     <string name="home_rail_continue">המשך צפייה</string>
     <string name="home_rail_starting_soon">מתחיל בקרוב</string>
-    <string name="home_fullscreen_hint">אישור על הערוץ שמתנגן למעלה יפתח אותו במסך מלא</string>
+    <string name="home_watch_fullscreen">מסך מלא</string>
+    <string name="home_apps">אפליקציות</string>
     <string name="start_home">פתיחת מסך הבית</string>
     <string name="settings_featured_url">כתובת פיד המומלצים</string>
     <string name="settings_featured_url_sub">פיד JSON לשורת המומלצים במסך הבית. ריק פירושו שאין שורה.</string>

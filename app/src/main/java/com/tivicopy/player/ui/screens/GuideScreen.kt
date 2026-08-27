@@ -18,11 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -40,13 +40,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
@@ -55,8 +59,8 @@ import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
+import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.EmptyState
-import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import kotlinx.coroutines.delay
 
@@ -132,22 +136,28 @@ fun GuideScreen(
     LaunchedEffect(windowStart) { recordings = vm.recordingsIn(windowStart, windowEnd) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        var pickingDate by remember { mutableStateOf(false) }
-
         GuideToolbar(
             windowStart = windowStart,
             onJumpNow = { windowStart = snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L) },
             onShift = { hours -> windowStart += hours * 60 * 60_000L },
-            onJumpDate = { pickingDate = true },
         )
 
-        if (pickingDate) {
-            GuideDatePicker(
-                windowStart = windowStart,
-                onPick = { windowStart = it; pickingDate = false },
-                onDismiss = { pickingDate = false },
-            )
-        }
+        // FR-UI-05's jump-to-date, as the strip of days the benchmark puts above its grid rather
+        // than the dialog this used to open (ADR-020): reaching next Tuesday is now one press
+        // sideways and one press of OK, from a row that also says what today is.
+        GuideDayStrip(
+            windowStart = windowStart,
+            onPick = { day ->
+                val now = System.currentTimeMillis()
+                // Picking today means "now", not 00:00 — nobody opens the guide to read what was
+                // on at midnight.
+                windowStart = if (day == TimeModel.startOfLocalDay(now)) {
+                    snapToHalfHour(now - 30 * 60_000L)
+                } else {
+                    day
+                }
+            },
+        )
         HorizontalDivider()
 
         if (channels.isEmpty()) {
@@ -240,7 +250,6 @@ private fun GuideToolbar(
     windowStart: Long,
     onJumpNow: () -> Unit,
     onShift: (Int) -> Unit,
-    onJumpDate: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
@@ -253,58 +262,107 @@ private fun GuideToolbar(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Box(modifier = Modifier.weight(1f))
-        TextButton(onClick = { onShift(-24) }) { Text(stringResource(R.string.guide_shift_back_day)) }
         TextButton(onClick = { onShift(-2) }) { Text(stringResource(R.string.guide_shift_back_hours)) }
         Button(onClick = onJumpNow) { Text(stringResource(R.string.guide_jump_now)) }
         TextButton(onClick = { onShift(2) }) { Text(stringResource(R.string.guide_shift_forward_hours)) }
-        TextButton(onClick = { onShift(24) }) { Text(stringResource(R.string.guide_shift_forward_day)) }
-        // FR-UI-05 names jump-to-date beside jump-to-now. The string has existed since the first
-        // guide; the control never did, so reaching next Tuesday meant pressing +1 day seven
-        // times.
-        TextButton(onClick = onJumpDate) { Text(stringResource(R.string.guide_jump_date)) }
+        // The day buttons that used to sit here are the strip below; what is left is the pair
+        // that moves inside a day. The clock is here because a full-screen overlay takes the
+        // device's own away with it, and a guide is read against the current time.
+        ClockText(
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 /**
- * Jump the window to the start of a chosen day.
+ * The days the guide can jump to, as a row of chips (FR-UI-05).
  *
- * A list of days rather than a calendar widget: the guide only ever holds the days the EPG
- * supplies — a fortnight at the outside — and a month grid on a remote is a lot of D-pad presses
- * to reach a date that may carry no data at all.
+ * Days are named rather than dated where a name exists — yesterday, today, tomorrow — and by
+ * weekday plus date beyond that, which is how anyone actually asks for a day. The whole strip is
+ * a `LazyRow` starting one chip before today, so today is on screen without being flush against
+ * the edge, and the days behind it are one press away for catch-up (FR-CU-02).
  */
 @Composable
-private fun GuideDatePicker(
-    windowStart: Long,
-    onPick: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val today = snapToDay(System.currentTimeMillis())
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.guide_jump_date)) },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-        text = {
-            LazyColumn {
-                items(DATE_PICKER_DAYS.toList()) { offset ->
-                    val day = today + offset * DAY_MILLIS
-                    FocusableRow(
-                        onClick = { onPick(day) },
-                        selected = snapToDay(windowStart) == day,
-                        contentDescription = TimeModel.formatDay(day),
-                    ) {
-                        Text(
-                            text = TimeModel.formatDay(day),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                    }
-                }
-            }
-        },
+private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit) {
+    // One reading of the clock for the whole strip: taken again per chip, a day boundary crossed
+    // mid-composition would put two different "today"s on the same row.
+    val reference = remember { System.currentTimeMillis() }
+    val selectedDay = TimeModel.startOfLocalDay(windowStart)
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = (GUIDE_DAYS.indexOf(0) - 1).coerceAtLeast(0),
     )
+    LazyRow(
+        state = listState,
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(GUIDE_DAYS.toList(), key = { it }) { offset ->
+            // Normalised through `startOfLocalDay` rather than by adding whole days to a
+            // midnight: the hour the clocks change would otherwise leave one chip pointing at
+            // 23:00 the day before.
+            val day = TimeModel.startOfLocalDay(reference + offset * DAY_MILLIS)
+            val label = when (offset) {
+                -1 -> stringResource(R.string.guide_day_yesterday)
+                0 -> stringResource(R.string.guide_day_today)
+                1 -> stringResource(R.string.guide_day_tomorrow)
+                else -> TimeModel.formatWeekday(day)
+            }
+            DayChip(
+                label = label,
+                date = TimeModel.formatDay(day),
+                selected = day == selectedDay,
+                onClick = { onPick(day) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DayChip(label: String, date: String, selected: Boolean, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(20.dp)
+    // One line, not two. This strip sits between the guide's preview and its grid on a
+    // television, where every dp it takes is taken from the rows — and a row is what anyone
+    // opened the guide to read.
+    Row(
+        modifier = Modifier
+            .clip(shape)
+            .background(
+                when {
+                    focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                    selected -> MaterialTheme.colorScheme.primaryContainer
+                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                },
+            )
+            .border(
+                width = if (focused) 2.dp else 0.dp,
+                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = shape,
+            )
+            .onFocusChanged { focused = it.isFocused }
+            // As everywhere else in this grid: `clickable` is the focus target on its own.
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = "$label $date" }
+            .padding(horizontal = 14.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+        )
+        Text(
+            // `dd/MM` beside Hebrew reorders unless it is isolated (FR-UI-21).
+            text = TimeModel.ltr(date),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
 }
 
 /**
@@ -473,6 +531,12 @@ private fun ProgrammeCell(
     val metrics = LocalTvMetrics.current
     Column(
         modifier = Modifier
+            // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
+            // alone is hard to find on a wall of cells from across a room. `scale` draws bigger
+            // without measuring bigger, so no neighbour moves; `zIndex` puts the enlarged cell
+            // over the ones it now overlaps instead of under them.
+            .zIndex(if (focused) 1f else 0f)
+            .scale(if (focused) FOCUSED_CELL_SCALE else 1f)
             .width(millisToDp(widthMillis, metrics.guideHourWidth))
             .height(metrics.guideRowHeight)
             .padding(2.dp)
@@ -527,28 +591,29 @@ private fun ProgrammeCell(
     }
 }
 
+/** How far a focused cell lifts. Enough to read as raised, short of covering its neighbours. */
+private const val FOCUSED_CELL_SCALE = 1.05f
+
 private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
 
 private fun snapToHalfHour(utcMillis: Long): Long = (utcMillis / 1_800_000L) * 1_800_000L
 
 /**
- * The start of the day a moment falls in.
- *
- * Snapped in UTC, matching the rest of the time model (`docs/adr/ADR-008`): the guide's window
- * arithmetic is all epoch-millis, and mixing a zone-aware day boundary into it is how the
- * benchmark's DST bugs happen.
+ * A day, for the strip's arithmetic. The strip normalises every result through
+ * `TimeModel.startOfLocalDay`, so this is a step size rather than a day boundary — which is the
+ * distinction the guide's old UTC-snapped `snapToDay` blurred, and why picking a day used to land
+ * the window on 02:00 or 03:00 local rather than on midnight.
  */
-private fun snapToDay(utcMillis: Long): Long = (utcMillis / DAY_MILLIS) * DAY_MILLIS
-
 private const val DAY_MILLIS = 24 * 60 * 60_000L
 
 /**
- * Which days the picker offers, relative to today.
+ * Which days the strip offers, relative to today.
  *
- * Backwards for catch-up, forwards for the guide's own horizon. Two weeks either way covers
- * every EPG this app has seen without turning the list into a scroll.
+ * Backwards for catch-up, forwards for the guide's own horizon. A fortnight either way covers
+ * every EPG this app has seen; the row scrolls, so the range costs nothing but the chips a
+ * viewer can actually reach.
  */
-private val DATE_PICKER_DAYS = -14..14
+private val GUIDE_DAYS = -14..14
 
 /** Hours rendered at once; anything wider is reached by scrolling the window, not the layout. */
 private const val WINDOW_HOURS = 6

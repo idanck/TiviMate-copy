@@ -100,12 +100,31 @@ enum class TvOverlay {
     /**
      * Whether the live picture shrinks into a preview slot rather than filling the screen.
      *
-     * Two surfaces now do this: the guide docks it beside the grid, and the home screen makes it
-     * the hero. Both then paint their own panes around a picture that never stops playing, which
-     * is also why [OverlayScaffold] draws no scrim for either.
+     * Only the guide, which docks it beside the grid. The home screen used to as well — ADR-016
+     * gave it a boxed hero — and ADR-020 took that back: its banner is the picture at full size
+     * with the screen's furniture drawn over it, so there is nothing to shrink into.
      */
     val docksPlayer: Boolean
+        get() = this == GUIDE
+
+    /**
+     * Whether this overlay draws its own backdrop over the live picture, and so wants no scrim
+     * from [OverlayScaffold].
+     *
+     * The guide paints panes around a preview it is deliberately keeping watchable; the home
+     * screen paints a gradient and a set of opaque rails over a picture that fills the panel.
+     * A scrim under either would tint the one thing the layout exists to keep visible.
+     */
+    val paintsOwnBackdrop: Boolean
         get() = this == GUIDE || this == HOME
+
+    /**
+     * Whether this overlay reaches the edges of the panel itself, rather than sitting inside
+     * [TV_CONTENT_INSET]. A full-bleed banner cannot start 24dp from the edge, so the home screen
+     * takes the inset over as its own content padding (ADR-020).
+     */
+    val fullBleed: Boolean
+        get() = this == HOME
 }
 
 /**
@@ -307,10 +326,11 @@ fun TvRoot(
         if (!overlay.isPassthrough) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
-                // The guide paints its own panes and leaves the preview slot bare. A scrim here
-                // would be drawn straight over the live picture the whole layout exists to keep
-                // visible.
-                scrim = !overlay.docksPlayer,
+                // The guide paints its own panes and leaves the preview slot bare; the home
+                // screen paints a gradient over a full-screen picture. A scrim under either would
+                // be drawn straight over the live picture the whole layout exists to keep visible.
+                scrim = !overlay.paintsOwnBackdrop,
+                inset = !overlay.fullBleed,
             ) {
                 when (overlay) {
                     // The television's root surface (ADR-016). Added here in the same edit as the
@@ -318,7 +338,11 @@ fun TvRoot(
                     // a forgotten branch compiles and renders an empty scaffold over the video.
                     TvOverlay.HOME -> TvHomeScreen(
                         vm = vm,
-                        onDockBounds = { dockBounds = it },
+                        // The radio backdrop fills the panel behind the home screen exactly as
+                        // video does, and it draws its own clock and station identity in the
+                        // same corners the banner would. The banner drops its own rather than
+                        // printing a second clock a centimetre from the first.
+                        audioOnlyBackdrop = audioOnly,
                         onOpen = onOverlayChange,
                         onFullscreen = { onOverlayChange(TvOverlay.NONE) },
                         modifier = Modifier.fillMaxSize(),
@@ -496,6 +520,11 @@ private fun OverlayScaffold(
      * preview, and a scrim here would tint the one thing it is trying to keep watchable.
      */
     scrim: Boolean = true,
+    /**
+     * Whether to hold the content inside [TV_CONTENT_INSET]. The home screen says no: its banner
+     * is full-bleed, and it applies the same inset to its own text instead (ADR-020).
+     */
+    inset: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     BoxWithConstraints(
@@ -508,7 +537,7 @@ private fun OverlayScaffold(
                     Modifier
                 },
             )
-            .padding(TV_CONTENT_INSET),
+            .then(if (inset) Modifier.padding(TV_CONTENT_INSET) else Modifier),
     ) {
         // Measured here rather than read from the Configuration: this box is what the screens
         // actually get, insets and all, and it is the only honest input to how wide an hour of
