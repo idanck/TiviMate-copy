@@ -330,32 +330,46 @@ private fun HomeNavRail(
             .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        // The app's name only fits once the rail is open, but the space it takes is reserved
-        // whether or not it is drawn: without the box, every destination below would jump down
-        // the screen the moment focus entered the rail.
-        Box(
-            modifier = Modifier.height(RAIL_HEADER_HEIGHT).padding(horizontal = 10.dp),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            AnimatedVisibility(
-                visible = expanded,
-                enter = fadeIn(tween(Motion.FAST)),
-                exit = fadeOut(tween(Motion.FAST)),
-            ) {
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
+        RailHeader(expanded = expanded)
         destinations.forEach { destination ->
             NavRailItem(
                 destination = destination,
                 expanded = expanded,
                 onClick = { destination.overlay?.let(onOpen) },
+            )
+        }
+    }
+}
+
+/**
+ * The app's name at the top of the rail, drawn only once the rail is open.
+ *
+ * Its own composable, and not just a `Box` inside the rail's `Column`, for a reason the compiler
+ * insists on: inside that `Box` the enclosing `ColumnScope` is still an implicit receiver, so
+ * `AnimatedVisibility` resolves to `ColumnScope.AnimatedVisibility` — an extension whose receiver
+ * is no longer the innermost one, which does not compile. Here the only scope in sight is the
+ * `Box`'s, and the plain overload is what gets called.
+ *
+ * The height is reserved whether or not the name is drawn. Without that, every destination below
+ * would jump down the screen the moment focus entered the rail.
+ */
+@Composable
+private fun RailHeader(expanded: Boolean) {
+    Box(
+        modifier = Modifier.height(RAIL_HEADER_HEIGHT).padding(horizontal = 10.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn(tween(Motion.FAST)),
+            exit = fadeOut(tween(Motion.FAST)),
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
