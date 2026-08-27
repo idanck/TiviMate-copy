@@ -2,7 +2,9 @@ package com.tivicopy.player.ui.tv
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,7 +45,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusGroup
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
@@ -93,6 +94,10 @@ import kotlinx.coroutines.delay
  * - **No text field.** On a D-pad surface a text field takes the first focus and pops the
  *   on-screen keyboard over the content. Search is a rail destination, not a box.
  */
+// `Modifier.focusGroup` is `@ExperimentalFoundationApi` at this Compose version, as
+// `combinedClickable` is in `ui/common/Components.kt`. It keeps a D-pad step between rails
+// landing at the start of the next one rather than at whichever card happens to be nearest.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvHomeScreen(
     vm: AppViewModel,
@@ -227,6 +232,7 @@ private data class HomeDestination(
  * nothing else (ADR-013, ADR-015), and a destination that opens an empty catalogue is worse
  * than no destination.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeNavRail(
     destinations: List<HomeDestination>,
@@ -329,6 +335,7 @@ private fun HomeHero(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeCardRail(
     title: String,

@@ -32,7 +32,9 @@ class FeaturedFeedTest {
 
     private fun parse(raw: String) = FeaturedFeed.parse(raw)
 
-    private fun items(raw: String) = (parse(raw) as Outcome.Ok).value.items
+    // `getOrNull` rather than a cast: it is a real method on Outcome, so there is no unchecked
+    // cast and no type argument to get wrong.
+    private fun items(raw: String) = requireNotNull(parse(raw).getOrNull()).items
 
     @Test
     fun `a well-formed feed parses`() {
