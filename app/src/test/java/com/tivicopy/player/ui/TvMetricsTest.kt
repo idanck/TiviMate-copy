@@ -34,26 +34,23 @@ class TvMetricsTest {
     }
 
     /**
-     * The home screen's two arithmetic invariants (ADR-016).
+     * The home screen's arithmetic invariants (ADR-016, rewritten for ADR-020).
      *
-     * Its layout is a navigation rail beside a column holding the hero and, under it, the rails
-     * of cards — so the hero row must fit the rail, the picture *and* its now/next caption, and
-     * what is left beside the navigation rail must hold more than one card. Neither failure
-     * shows up as an error: a constant chosen a little too generously simply produces a cramped
-     * caption or a row with one card in it, on a television nobody here can look at.
+     * The layout they describe changed with the banner: the picture is no longer a boxed hero
+     * beside its caption, so "rail + hero + caption fits across the panel" stopped meaning
+     * anything. What replaces it is what the banner layout can actually get wrong — a banner so
+     * tall the first rail is entirely below the fold, and a content column so narrow beside the
+     * collapsed rail that a row holds one card. Neither shows up as an error: both simply produce
+     * a home screen nobody here can look at.
      */
     @Test
-    fun `the hero row fits beside the navigation rail at every size`() {
+    fun `the banner always leaves a slice of the first rail on screen`() {
         panels.forEach { (w, h) ->
             val metrics = tvMetricsFor(w, h)
-            val used = metrics.homeNavRailWidth.value +
-                metrics.homeHeroWidth.value +
-                // The caption beside the picture is the same furniture as the channel list's
-                // now/next pane, and scales with it.
-                metrics.nowNextPaneWidth.value
+            val left = h - metrics.homeHeroHeight.value
             assertTrue(
-                "rail + hero + caption ($used) does not fit ${w}dp less the content inset",
-                used <= w - CONTENT_INSET,
+                "a ${metrics.homeHeroHeight.value}dp banner leaves only ${left}dp of ${h}dp",
+                left >= 120f,
             )
         }
     }
@@ -62,10 +59,32 @@ class TvMetricsTest {
     fun `a rail always has room for more than one card`() {
         panels.forEach { (w, h) ->
             val metrics = tvMetricsFor(w, h)
-            val forCards = w - CONTENT_INSET - metrics.homeNavRailWidth.value
+            // What the rails actually get: the panel, less the collapsed navigation rail the
+            // content column is padded by, less the inset the rails apply themselves.
+            val forCards = w - CONTENT_INSET - metrics.homeNavRailCollapsedWidth.value
             assertTrue(
                 "only ${forCards}dp of ${w}dp left for cards of ${metrics.homeCardWidth.value}dp",
                 forCards >= metrics.homeCardWidth.value * 2,
+            )
+        }
+    }
+
+    /**
+     * The rail expands over the screen rather than beside it, so the only thing the two widths
+     * have to agree on is which is which — but a collapsed rail narrower than a focus ring around
+     * an icon is a rail whose focus state is cropped.
+     */
+    @Test
+    fun `the collapsed rail is narrower than the expanded one and still fits an icon`() {
+        panels.forEach { (w, h) ->
+            val metrics = tvMetricsFor(w, h)
+            assertTrue(
+                "collapsed ${metrics.homeNavRailCollapsedWidth.value} vs expanded ${metrics.homeNavRailWidth.value}",
+                metrics.homeNavRailCollapsedWidth.value < metrics.homeNavRailWidth.value,
+            )
+            assertTrue(
+                "a collapsed rail of ${metrics.homeNavRailCollapsedWidth.value}dp cannot hold an icon and its ring",
+                metrics.homeNavRailCollapsedWidth.value >= 48f,
             )
         }
     }
@@ -75,16 +94,34 @@ class TvMetricsTest {
         val small = tvMetricsFor(hd.first, hd.second)
         val large = tvMetricsFor(1440f, 810f)
         assertTrue(large.homeNavRailWidth.value > small.homeNavRailWidth.value)
-        assertTrue(large.homeHeroWidth.value > small.homeHeroWidth.value)
+        assertTrue(large.homeNavRailCollapsedWidth.value > small.homeNavRailCollapsedWidth.value)
         assertTrue(large.homeCardWidth.value > small.homeCardWidth.value)
+        // The banner is the one home dimension taken from the height rather than the width scale,
+        // because what it has to leave room for is the rail under it.
+        assertTrue(large.homeHeroHeight.value > small.homeHeroHeight.value)
         // The same ceiling every other dimension obeys: a 4K panel reporting a huge width must
         // not simply double the furniture.
         val huge = tvMetricsFor(4000f, 2000f)
         assertEquals(
-            (TvMetrics.Phone.homeHeroWidth.value * 1.6f),
-            huge.homeHeroWidth.value,
+            (TvMetrics.Phone.homeNavRailWidth.value * 1.6f),
+            huge.homeNavRailWidth.value,
             0.5f,
         )
+        assertEquals("the banner is bounded too", 560f, huge.homeHeroHeight.value, 0.5f)
+    }
+
+    /**
+     * `tvMetricsFor` is called with whatever a viewport reports, and the banner's height is bounded
+     * from both ends — a floor for legibility and a ceiling so the rails survive. On a viewport
+     * small enough for those two bounds to cross, the arithmetic must still produce a number
+     * rather than throwing, which is exactly what a naive `coerceIn` would do.
+     */
+    @Test
+    fun `the banner height survives an absurd viewport`() {
+        for (height in listOf(1f, 120f, 200f, 540f, 4000f)) {
+            val hero = tvMetricsFor(960f, height).homeHeroHeight.value
+            assertTrue("banner height $hero for a ${height}dp panel", hero in 160f..560f)
+        }
     }
 
     @Test

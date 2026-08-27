@@ -131,6 +131,9 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UI-24 | The television opens on a home screen: a navigation rail, the live picture as a hero with its now/next guide text, and horizontal rails of cards. Video keeps playing throughout. | SHOULD | Free | TV |
 | FR-UI-25 | The home screen's rails are built from what the device already has — recently watched, the channel list, radio, favourites, and programmes starting soon — and a rail with nothing in it is not drawn. | SHOULD | Free | TV |
 | FR-UI-26 | A featured rail can be pointed at a JSON feed of promoted items. No feed is bundled; with none configured the rail does not exist. | COULD | Free | TV |
+| FR-UI-27 | The app draws its interface in a typeface it ships itself, covering Hebrew and Latin in one family, rather than the device's default fonts. | SHOULD | Free | Both |
+| FR-UI-28 | The television home screen leads with the live picture as a full-bleed banner, a navigation rail that shows icons until focus enters it, and a strip of shortcuts to the streaming apps installed on the device. | SHOULD | Free | TV |
+| FR-UI-29 | The guide offers its days as a strip above the grid, shows the current time, and lifts the focused cell out of the grid. | SHOULD | Free | Both |
 
 ## PRF — Profiles and Parental Controls
 

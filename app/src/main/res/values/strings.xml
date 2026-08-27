@@ -99,7 +99,9 @@
     <string name="no_guide_data">No guide data</string>
     <string name="now_next">Now / Next</string>
     <string name="guide_jump_now">Now</string>
-    <string name="guide_jump_date">Date</string>
+    <string name="guide_day_yesterday">Yesterday</string>
+    <string name="guide_day_today">Today</string>
+    <string name="guide_day_tomorrow">Tomorrow</string>
     <string name="guide_updating">Updating guide… %1$d channels, %2$d programmes</string>
     <string name="guide_update_now">Update guide now</string>
     <string name="guide_match_title">Guide matching</string>
@@ -233,10 +235,8 @@
       bidirectionally neutral, so in a Hebrew layout it migrates to the far side and "-1d" is
       drawn as "1d-". U+2066/U+2069 keep each one whole (NFR-UX-08).
     -->
-    <string name="guide_shift_back_day">⁦-1d⁩</string>
     <string name="guide_shift_back_hours">⁦-2h⁩</string>
     <string name="guide_shift_forward_hours">⁦+2h⁩</string>
-    <string name="guide_shift_forward_day">⁦+1d⁩</string>
     <string name="settings_show_new_groups">Show groups your provider adds later</string>
     <string name="settings_channel_sort">Channel order</string>
     <string name="sort_provider">As your playlist sends them</string>
@@ -357,6 +357,7 @@
     <string name="about_secure_store">Credential encryption: %1$s</string>
     <string name="about_secure_yes">Android Keystore</string>
     <string name="about_secure_no">unavailable on this device</string>
+    <string name="about_typeface">Typeface: Rubik, by the Rubik Project Authors — SIL Open Font License 1.1</string>
 
     <string name="exit_confirm">Press Back again to exit.</string>
     <string name="loading">Loading…</string>
@@ -409,7 +410,8 @@
     <string name="home_rail_featured">Featured</string>
     <string name="home_rail_continue">Continue watching</string>
     <string name="home_rail_starting_soon">Starting soon</string>
-    <string name="home_fullscreen_hint">OK on the channel playing above fills the screen</string>
+    <string name="home_watch_fullscreen">Watch fullscreen</string>
+    <string name="home_apps">Apps</string>
     <string name="start_home">Open the home screen</string>
     <string name="settings_featured_url">Featured feed address</string>
     <string name="settings_featured_url_sub">A JSON feed for the home screen’s Featured row. Empty means no row.</string>

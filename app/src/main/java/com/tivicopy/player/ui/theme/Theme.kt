@@ -4,15 +4,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.tivicopy.player.data.prefs.ThemeMode
 
 /**
@@ -24,6 +20,11 @@ import com.tivicopy.player.data.prefs.ThemeMode
  * frame a bright picture, light enough that the app's own chrome (menus, settings) doesn't read
  * as pure black by default. [AmoledScheme] below is the explicit pure-black opt-in for anyone who
  * wants that instead.
+ *
+ * The Cellcom TV teardown (ADR-019) measured that app's base surface at roughly `#0A0A0D` — a
+ * neutral near-black. The typography from that report was adopted; this ramp was not. The
+ * blue-grey family below is a deliberate difference from the benchmark and stays: it is what the
+ * owner prefers to look at, and anyone who wants the benchmark's black already has AMOLED mode.
  */
 private val Accent = Color(0xFF4C8DFF)
 private val AccentDark = Color(0xFF1F5FD0)
@@ -95,32 +96,6 @@ private val AppShapes = Shapes(
     large = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(28.dp),
 )
-
-/**
- * A single type ramp scaled by the user's font-scale setting (FR-UI-19). Nothing lands below
- * 12sp at the smallest scale, which is the floor the 10-foot guidance in `docs/03` sets.
- */
-private fun typographyFor(scale: Float): Typography {
-    fun style(size: Float, weight: FontWeight, lineHeight: Float) = TextStyle(
-        fontSize = (size * scale).sp,
-        fontWeight = weight,
-        lineHeight = (lineHeight * scale).sp,
-    )
-    return Typography(
-        displaySmall = style(34f, FontWeight.SemiBold, 42f),
-        headlineMedium = style(26f, FontWeight.SemiBold, 34f),
-        headlineSmall = style(22f, FontWeight.SemiBold, 30f),
-        titleLarge = style(20f, FontWeight.SemiBold, 27f),
-        titleMedium = style(17f, FontWeight.Medium, 24f),
-        titleSmall = style(15f, FontWeight.Medium, 21f),
-        bodyLarge = style(16f, FontWeight.Normal, 23f),
-        bodyMedium = style(14f, FontWeight.Normal, 20f),
-        bodySmall = style(13f, FontWeight.Normal, 18f),
-        labelLarge = style(15f, FontWeight.Medium, 20f),
-        labelMedium = style(13f, FontWeight.Medium, 17f),
-        labelSmall = style(12f, FontWeight.Medium, 16f),
-    )
-}
 
 @Composable
 fun TiviCopyTheme(

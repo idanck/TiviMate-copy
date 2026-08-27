@@ -263,6 +263,47 @@ fun TwoLine(
     }
 }
 
+/**
+ * The wall clock the ten-foot surfaces carry in a corner (ADR-020).
+ *
+ * Both the home banner and the guide show one, which is what the benchmark does and what a
+ * television is half expected to do: the panel is often the only clock in the room, and an
+ * overlay that covers the whole screen takes the device's own clock away with it.
+ *
+ * It ticks on its own rather than on whatever recomposes the screen around it. A clock that
+ * updates only when the guide scrolls is a clock that is wrong every time anyone looks at it.
+ * Isolated with [com.tivicopy.player.core.TimeModel.ltr] because `21:40` inside a Hebrew layout
+ * reorders otherwise (FR-UI-21).
+ */
+@Composable
+fun ClockText(
+    modifier: Modifier = Modifier,
+    style: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.titleMedium,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(CLOCK_TICK_MS)
+            now = System.currentTimeMillis()
+        }
+    }
+    Text(
+        text = com.tivicopy.player.core.TimeModel.ltr(
+            com.tivicopy.player.core.TimeModel.formatClock(now),
+        ),
+        style = style,
+        color = color,
+        modifier = modifier,
+    )
+}
+
+/**
+ * How often the clock catches up. Well under a minute, so the displayed minute is never more
+ * than a moment stale, and far too rare to cost anything.
+ */
+private const val CLOCK_TICK_MS = 20_000L
+
 @Composable
 fun Badge(text: String, modifier: Modifier = Modifier, colour: Color = MaterialTheme.colorScheme.primary) {
     Text(
