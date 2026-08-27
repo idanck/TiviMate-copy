@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TiviCopy</string>
+    <string name="app_name">Shidur</string>
 
     <!-- Notification channels -->
     <string name="channel_recording">Recording</string>
@@ -394,8 +394,8 @@
     <string name="update_now">Update now</string>
     <string name="update_hide">Hide</string>
     <string name="update_unknown_sources">Allow installs from this app</string>
-    <string name="update_unknown_sources_sub">Android asks once, so TiviCopy can install its own updates</string>
-    <string name="update_unknown_sources_manual">Settings → Security → Install unknown apps → allow TiviCopy</string>
+    <string name="update_unknown_sources_sub">Android asks once, so Shidur can install its own updates</string>
+    <string name="update_unknown_sources_manual">Settings → Security → Install unknown apps → allow Shidur</string>
     <string name="update_last_check">Last checked: %1$s</string>
     <string name="update_never_checked">Not checked yet</string>
     <string name="update_dialog_title">Update available</string>
@@ -405,4 +405,15 @@
     <string name="update_blocked_metered">Waiting for Wi-Fi, or turn off Wi-Fi-only downloads</string>
     <string name="update_blocked_android">This update needs a newer version of Android</string>
     <string name="update_blocked_space">Not enough free space for the download</string>
+    <string name="nav_home">Home</string>
+    <string name="home_rail_featured">Featured</string>
+    <string name="home_rail_continue">Continue watching</string>
+    <string name="home_rail_starting_soon">Starting soon</string>
+    <string name="home_fullscreen_hint">OK on the channel playing above fills the screen</string>
+    <string name="start_home">Open the home screen</string>
+    <string name="settings_featured_url">Featured feed address</string>
+    <string name="settings_featured_url_sub">A JSON feed for the home screen’s Featured row. Empty means no row.</string>
+    <string name="settings_featured_refresh">Refresh the featured feed now</string>
+    <string name="settings_watch_next">Publish to Continue watching</string>
+    <string name="settings_watch_next_sub">Offers recently watched channels on the Google TV home screen</string>
 </resources>

@@ -128,6 +128,9 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UI-21 | The interface fully supports RTL languages including Hebrew, with a correctly mirrored guide and right-anchored time axis. | SHOULD | Free | Both |
 | FR-UI-22 | The app can cast the current stream to a Chromecast device from the mobile app. | COULD | Paid | Mobile |
 | FR-UI-23 | The interface language can be chosen in the app — follow the device, English or Hebrew — independently of the device locale, and choosing a right-to-left language mirrors the layout. | SHOULD | Free | Both |
+| FR-UI-24 | The television opens on a home screen: a navigation rail, the live picture as a hero with its now/next guide text, and horizontal rails of cards. Video keeps playing throughout. | SHOULD | Free | TV |
+| FR-UI-25 | The home screen's rails are built from what the device already has — recently watched, the channel list, radio, favourites, and programmes starting soon — and a rail with nothing in it is not drawn. | SHOULD | Free | TV |
+| FR-UI-26 | A featured rail can be pointed at a JSON feed of promoted items. No feed is bundled; with none configured the rail does not exist. | COULD | Free | TV |
 
 ## PRF — Profiles and Parental Controls
 

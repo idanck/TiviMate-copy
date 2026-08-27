@@ -31,6 +31,12 @@ data class TvMetrics(
     val nowNextPaneWidth: Dp,
     /** Edge length of a channel logo in a list row. */
     val rowLogoSize: Int,
+    /** Width of the home screen's navigation rail while it is showing labels. */
+    val homeNavRailWidth: Dp,
+    /** Width of the home screen's hero slot. Its height is this in 16:9 — never scaled apart. */
+    val homeHeroWidth: Dp,
+    /** Width of one card on a home-screen rail. */
+    val homeCardWidth: Dp,
 ) {
     companion object {
         /**
@@ -44,6 +50,9 @@ data class TvMetrics(
             groupColumnWidth = 220.dp,
             nowNextPaneWidth = 280.dp,
             rowLogoSize = 36,
+            homeNavRailWidth = 168.dp,
+            homeHeroWidth = 400.dp,
+            homeCardWidth = 180.dp,
         )
     }
 }
@@ -88,6 +97,9 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         groupColumnWidth = base.groupColumnWidth * scale,
         nowNextPaneWidth = base.nowNextPaneWidth * scale,
         rowLogoSize = (base.rowLogoSize * scale).toInt(),
+        homeNavRailWidth = base.homeNavRailWidth * scale,
+        homeHeroWidth = base.homeHeroWidth * scale,
+        homeCardWidth = base.homeCardWidth * scale,
     )
 }
 
