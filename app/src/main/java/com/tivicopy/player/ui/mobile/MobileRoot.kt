@@ -148,6 +148,10 @@ fun MobileRoot(
         if (tab == MobileTab.RECORDINGS) tab = MobileTab.LIVE
         if (!startTabApplied) {
             startTabApplied = true
+            // Only the guide is a tab here. HOME (the television's new root, ADR-016) and the
+            // channel list both mean "start where you browse", which on the phone is Live —
+            // the tab this already is. The bottom bar is at Material's five-item limit, so a
+            // sixth Home destination would have to displace one of the five that earn it.
             if (prefs.startBehaviour == StartBehaviour.GUIDE) tab = MobileTab.GUIDE
         }
     }

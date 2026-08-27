@@ -106,7 +106,7 @@ android {
         buildConfigField("String", "BUILD_FLAVOUR", "\"${variant.buildType.name}\"")
         outputs.all {
             val out = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            out.outputFileName = "tivicopy-${appVersionName}-${variant.buildType.name}-${gitSha}.apk"
+            out.outputFileName = "shidur-${appVersionName}-${variant.buildType.name}-${gitSha}.apk"
         }
     }
 
@@ -155,6 +155,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.tvprovider)
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(platform(libs.androidx.compose.bom))

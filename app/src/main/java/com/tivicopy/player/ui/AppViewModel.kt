@@ -11,6 +11,9 @@ import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelRadioStations
+import com.tivicopy.player.tv.WatchNext
+import com.tivicopy.player.ui.home.HomeData
+import com.tivicopy.player.ui.home.HomeRails
 import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
@@ -37,6 +40,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Below this, resuming would rewind to somewhere the viewer had barely arrived. */
+/**
+ * How many recently watched channels the home screen reads.
+ *
+ * Wider than the rail shows, because the pure builder screens them against what is actually
+ * visible and a short read would leave the rail shorter than it needs to be.
+ */
+private const val RECENT_LIMIT = 30
+
 private const val MIN_RESUME_MS = 60_000L
 
 /** The last twentieth of a title counts as watched. */
@@ -474,8 +485,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         )
         viewModelScope.launch(Dispatchers.IO) {
             dao.recordWatch(channel.id, System.currentTimeMillis())
+            // The launcher's "Continue watching" row is that write with artwork on it, so it is
+            // rebuilt straight after — but handed to the application scope, for the same reason
+            // `saveVodProgress` uses it: zapping and then leaving the app cancels
+            // `viewModelScope`, and the last channel watched is exactly the one the row most
+            // needs. Started from inside this block so it can never read the database before
+            // the write above lands. Throttled and best-effort inside.
+            ServiceLocator.appScope.launch { WatchNext.sync(ServiceLocator.appContext) }
         }
         refreshNowNext(channel)
+    }
+
+    /**
+     * Plays whatever channel [channelId] names, from outside the browsing state (FR-TVI-04).
+     *
+     * The entry point for a launcher deep link, so it reads the channel from the database rather
+     * than from the list on screen — on a cold start there is no list yet. Marking the start
+     * behaviour consumed is what stops [resumeStartChannel] racing this and winning: both call
+     * [play], and the one the viewer actually asked for has to be the one that survives.
+     */
+    fun playChannelId(channelId: Long) {
+        startBehaviourConsumed = true
+        viewModelScope.launch {
+            val channel = withContext(Dispatchers.IO) { dao.channel(channelId) }
+            if (channel == null) {
+                post(UiMessage(error = AppError(AppError.Kind.NotFound)))
+                return@launch
+            }
+            // The owning playlist may not be in state yet on a cold start, and `play` resolves
+            // the request profile from it. Reloading here is cheaper than getting a radio
+            // station's headers wrong.
+            if (_state.value.playlists.none { it.id == channel.playlistId }) {
+                val playlists = withContext(Dispatchers.IO) { dao.playlists() }
+                _state.value = _state.value.copy(playlists = playlists)
+            }
+            play(channel)
+        }
     }
 
     /** FR-PLB-18/19: relative zapping within whatever list is on screen. */
@@ -1015,6 +1060,74 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             _state.value = _state.value.copy(guideProgress = null)
             refreshNowNext()
         }
+    }
+
+    // ---------------------------------------------------------------- home screen
+
+    /**
+     * Everything the home screen draws, read in one pass off the main thread (FR-UI-24).
+     *
+     * Assembling the rails from this is [com.tivicopy.player.ui.home.HomeRails.build], which is
+     * pure and unit-tested; this half is only the queries. Splitting them that way is what makes
+     * the screen's rules checkable in an environment that cannot build the app.
+     *
+     * The radio playlist is read directly rather than through [openRadio], which would repoint
+     * the whole browsing state at it — the home screen wants a rail of stations, not to *be* the
+     * radio screen. It does borrow one thing from `openRadio`: merging the playlist row into
+     * state if it is missing, because a cold start can bootstrap radio after the first
+     * `reload()`, and `isRadioPlaying` answers by playlist id.
+     */
+    suspend fun loadHomeData(): HomeData {
+        val activeId = _state.value.activePlaylist?.id
+        val sort = settings.state.value.channelSort
+
+        val radioPlaylist = withContext(Dispatchers.IO) {
+            sources.ensureRadioPlaylist()
+            dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+        }
+        if (radioPlaylist != null && _state.value.playlists.none { it.id == radioPlaylist.id }) {
+            _state.value = _state.value.copy(playlists = _state.value.playlists + radioPlaylist)
+        }
+
+        val hideLocked = settings.state.value.hideLockedChannels
+        fun visible(channels: List<Channel>) = if (hideLocked) channels.filter { !it.locked } else channels
+
+        val channels = withContext(Dispatchers.IO) {
+            activeId?.let { visible(dao.channels(it, sort = sort)) }.orEmpty()
+        }
+        val radio = withContext(Dispatchers.IO) {
+            radioPlaylist?.let { playlist ->
+                val groups = dao.groups(playlist.id, includeHidden = true)
+                // The same stations the Radio screen shows, filtered the same way: a rail that
+                // offered what that screen deliberately hides would be a second, contradictory
+                // answer to the same question.
+                visible(dao.channels(playlist.id)).filterNot {
+                    RadioCategoryClassifier.isRussian(
+                        it.displayName,
+                        groups.firstOrNull { group -> group.id == it.groupId }?.name,
+                    )
+                }
+            }.orEmpty()
+        }
+        val recent = withContext(Dispatchers.IO) { visible(dao.recentChannels(limit = RECENT_LIMIT)) }
+        val favourites = withContext(Dispatchers.IO) { visible(dao.favouriteChannels()) }
+
+        // One batched query for every rail's captions and for "starting soon" — one statement
+        // per distinct EPG offset, not one per channel.
+        val now = System.currentTimeMillis()
+        val forGuide = (channels + radio + recent + favourites).distinctBy { it.id }
+        val programmes = withContext(Dispatchers.IO) {
+            epg.guideWindow(forGuide, now, now + HomeRails.STARTING_SOON_WINDOW_MS)
+        }
+
+        return HomeData(
+            recent = recent,
+            channels = channels,
+            radio = radio,
+            favourites = favourites,
+            programmes = programmes,
+            featured = ServiceLocator.featured.state.value,
+        )
     }
 
     // ---------------------------------------------------------------- guide

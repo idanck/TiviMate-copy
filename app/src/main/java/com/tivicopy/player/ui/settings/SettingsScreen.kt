@@ -35,6 +35,8 @@ import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.findActivity
+import com.tivicopy.player.tv.WatchNext
+import kotlinx.coroutines.launch
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
@@ -148,6 +150,7 @@ fun SettingsScreen(
                 SettingsChoice(
                     title = stringResource(R.string.settings_start_behaviour),
                     options = listOf(
+                        StartBehaviour.HOME to stringResource(R.string.start_home),
                         StartBehaviour.LAST_CHANNEL to stringResource(R.string.start_last_channel),
                         StartBehaviour.SPECIFIC_CHANNEL to stringResource(R.string.start_specific_channel),
                         StartBehaviour.CHANNEL_LIST to stringResource(R.string.start_channel_list),
@@ -160,6 +163,41 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_pip),
                     checked = s.pipEnabled,
                     onChange = settings::setPipEnabled,
+                )
+                // FR-TVI-02. On by default — that is the feature — but it publishes viewing
+                // history to a surface outside the app, so turning it off has to actually take
+                // the rows away rather than just stop adding to them.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_watch_next),
+                    subtitle = stringResource(R.string.settings_watch_next_sub),
+                    checked = s.watchNextEnabled,
+                    onChange = { enabled ->
+                        settings.setWatchNextEnabled(enabled)
+                        ServiceLocator.appScope.launch {
+                            if (enabled) {
+                                WatchNext.sync(context, force = true)
+                            } else {
+                                WatchNext.clear(context)
+                            }
+                        }
+                    },
+                )
+                // FR-UI-26. The home screen's Featured row reads whatever this address serves;
+                // empty — the default — means there is no row at all.
+                TextSetting(
+                    title = stringResource(R.string.settings_featured_url),
+                    value = s.featuredFeedUrl,
+                    placeholder = "https://…/featured.json",
+                    onChange = settings::setFeaturedFeedUrl,
+                )
+                SettingsRow(
+                    title = stringResource(R.string.settings_featured_refresh),
+                    subtitle = stringResource(R.string.settings_featured_url_sub),
+                    onClick = {
+                        ServiceLocator.appScope.launch {
+                            ServiceLocator.featured.refresh(force = true)
+                        }
+                    },
                 )
                 SettingsSwitch(
                     title = stringResource(R.string.settings_pip_home),

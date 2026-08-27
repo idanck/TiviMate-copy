@@ -22,6 +22,11 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
+    <!-- Google TV "Continue watching" (FR-TVI-02). Declared because the platform documents it
+         for apps writing Watch Next rows; on a device where it is not granted, the writes in
+         tv/WatchNextSync.kt fail and are swallowed, which costs a launcher row and nothing else. -->
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
+
     <!-- One binary for both form factors: neither leanback nor a touchscreen is required. -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
@@ -62,6 +67,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
                 <!-- The TV launcher only shows activities carrying this category. -->
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+
+            <!-- Launcher deep links (FR-TVI-04): a card in Google TV's "Continue watching" row
+                 carries shidur://channel/<id> and lands here.
+
+                 A separate filter, deliberately: an intent matches only when *every* category
+                 in the filter matches, so folding VIEW/BROWSABLE into the launcher filter above
+                 would stop the app appearing on the home screen at all.
+
+                 A custom scheme rather than an https App Link because this app owns no web
+                 domain whose links it should be intercepting. The reachable surface is one
+                 action — play a channel already in this device's own database. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="shidur" android:host="channel" />
             </intent-filter>
         </activity>
 

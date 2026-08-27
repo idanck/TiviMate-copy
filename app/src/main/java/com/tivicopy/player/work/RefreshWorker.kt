@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import java.util.concurrent.TimeUnit
@@ -66,6 +67,16 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         // download — deciding to install is the user's. Its outcome does not affect this run:
         // an unreachable update host says nothing about the playlists that just refreshed.
         ServiceLocator.updates.check(force = false)
+
+        // The home screen's featured rail (FR-UI-26), on the same terms: rate-limited inside the
+        // repository, a no-op when no feed address is configured, and its outcome is nobody
+        // else's business here — a promotional rail cannot fail a playlist refresh.
+        ServiceLocator.featured.refresh(force = false)
+
+        // FR-TVI-02: the hourly sweep is what catches the cases a channel change cannot — a
+        // channel a playlist refresh deleted, or one that has simply gone stale — so this one
+        // is forced past the throttle that exists for zapping.
+        WatchNext.sync(applicationContext, force = true)
 
         // A failed refresh is retried by WorkManager with its own backoff; the previous
         // snapshot is still intact either way (FR-SRC-12).

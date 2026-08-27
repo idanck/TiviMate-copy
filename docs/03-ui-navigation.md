@@ -21,9 +21,23 @@ television that still overscans, content near the edge can be cropped. See `docs
 
 ## 3.2 Core TV screens
 
-1. **Playback (root)** — fullscreen video is the home screen, not a menu. The app should
-   boot into video, not into a dashboard.
-2. **Channel list overlay** — groups on the left, channels in the middle, now/next on the
+1. **Home (root)** — a navigation rail down one side, the live picture as a hero with its
+   now/next text beside it, and horizontal rails of cards below: continue watching, the
+   channels, radio, favourites, what is starting soon, and an optional featured row. Video
+   plays in the hero throughout — the same docking mechanism the guide uses, so opening Home
+   never interrupts a stream.
+
+   This reverses what this section used to say: *"fullscreen video is the home screen, not a
+   menu. The app should boot into video, not into a dashboard."* That held while the app was a
+   player someone had already chosen a channel in. It holds less well for a two-playlist
+   appliance whose whole content set is a few dozen Israeli channels and a radio list, where the
+   first question is "what is on" and video-first answers it only for the channel that happened
+   to be last. `StartBehaviour` still offers *last channel* to anyone who preferred the old
+   behaviour. See `docs/adr/ADR-016`.
+
+2. **Playback (fullscreen)** — the picture with nothing over it. Reached by pressing OK on the
+   channel already playing in the hero, or by Back from any surface that was opened over it.
+3. **Channel list overlay** — groups on the left, channels in the middle, now/next on the
    right, video still playing behind. Opened with OK or Right.
    - The group column carries Search, All channels, Favourites, Recently watched, Hidden
      channels and New group above the playlist's own groups. Hidden groups stay listed, drawn
@@ -38,31 +52,36 @@ television that still overscans, content near the edge can be cropped. See `docs
    - Moving a channel is offered only where the list is in the playlist's own order. In
      Favourites the row above is not the row above in the full list, and in Recently watched the
      order comes from watch times.
-3. **Channel filmstrip** — a horizontal reel of neighbouring channels over playing video, each
+4. **Channel filmstrip** — a horizontal reel of neighbouring channels over playing video, each
    captioned with what is on it now. Left and Right walk it, OK tunes, playback never stops.
    This replaces the single-channel timeline the mini guide used to draw: on a remote that was a
    picture of a schedule, with nothing in it that could be selected.
-4. **Full guide** — the classic grid: channels down, time across, current-time marker,
+5. **Full guide** — the classic grid: channels down, time across, current-time marker,
    horizontal scroll by hours/days, jump-to-now, jump-to-date. On the television it is laid out
    *around* the picture rather than over it — a persistent channel rail on one side, a docked
    live preview that keeps playing, and the grid below (`docs/adr/ADR-013`).
-5. **Programme details** — title, times, description, category, series/episode, poster,
+6. **Programme details** — title, times, description, category, series/episode, poster,
    plus actions: watch, record, schedule series, catch-up, remind, add to favourites.
-6. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
+7. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
    owns its own query, spans the whole playlist rather than the selected group, and is debounced.
    The channel list's filter box is a different thing: it narrows what is on screen, stays
    visible while it is set, and is scoped to the group you are in.
-7. **Recordings** — completed and scheduled.
-8. **Settings**.
-9. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
+8. **Recordings** — completed and scheduled.
+9. **Settings**.
+10. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
    section 3.4 and section 3.6.
 
-The group column of the channel-list overlay doubles as the television's navigation: Search,
-radio, the guide, on demand, recordings and settings sit above the playlist's own groups. This is
-the ten-foot answer to the phone's bottom bar, and it exists because every destination was
-otherwise behind a remote key — two of them keys many remotes do not have, and on demand behind
-no key at all, reachable only by searching for a title and picking it. NFR-UX-01 asks that every
-screen be reachable with D-pad, OK and Back alone.
+The home screen's navigation rail is the television's primary navigation: Home, Search, Channels,
+Radio, Guide, Recordings and Settings, as icons with labels. It is the ten-foot answer to the
+phone's bottom bar, and it is visible without opening anything first — which the group column it
+replaces was not.
+
+The group column of the channel-list overlay still carries the same destinations, plus Home, above
+the playlist's own groups. Keeping both is deliberate: NFR-UX-01 asks that every screen be
+reachable with D-pad, OK and Back alone, and a viewer who is already inside the channel list should
+not have to go back out to reach the guide. On demand is absent from the rail — the Xtream client
+exists in the code but is unused in this build (ADR-013, ADR-015), and a destination that opens an
+empty catalogue is worse than no destination.
 
 Radio (ADR-015) is its own destination on both shells, not a group inside Channels: it opens the
 same channel-list screen pointed at the bundled radio playlist instead of the active one, so its

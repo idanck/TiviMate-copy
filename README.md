@@ -1,4 +1,4 @@
-# TiviCopy — IPTV Player for Android & Google TV
+# Shidur (שידור) — IPTV Player for Android & Google TV
 
 An **independent IPTV player application** for Android phones/tablets and Android TV /
 Google TV, together with the requirements it was built from.
@@ -95,7 +95,7 @@ versionCode=1
 Bump `versionCode` on every build that leaves the machine. The version name, version code,
 build type, git SHA and build timestamp are shown in **Settings → About** and in
 **Settings → Diagnostics**, and are embedded in the APK filename
-(`tivicopy-<version>-<buildType>-<sha>.apk`), so two installs can always be told apart.
+(`shidur-<version>-<buildType>-<sha>.apk`), so two installs can always be told apart.
 
 ## Architecture
 

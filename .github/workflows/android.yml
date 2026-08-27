@@ -44,13 +44,13 @@ jobs:
             echo "::warning::No release keystore configured — this build falls back to a per-run"
             echo "::warning::debug key, so it cannot update an existing install and is not published."
             echo "SIGNED=false" >> "$GITHUB_ENV"
-            echo "INSTALL_NOTE=This build carries a throwaway debug key. Android refuses to replace an install whose signature differs, so it CANNOT update an existing TiviCopy - uninstall first, which erases its local data." >> "$GITHUB_ENV"
+            echo "INSTALL_NOTE=This build carries a throwaway debug key. Android refuses to replace an install whose signature differs, so it CANNOT update an existing Shidur install - uninstall first, which erases its local data." >> "$GITHUB_ENV"
             exit 0
           fi
           printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
           echo "SIGNED=true" >> "$GITHUB_ENV"
-          echo "INSTALL_NOTE=Signed with the release key, so it installs straight over an existing TiviCopy as an ordinary update." >> "$GITHUB_ENV"
+          echo "INSTALL_NOTE=Signed with the release key, so it installs straight over an existing Shidur install as an ordinary update." >> "$GITHUB_ENV"
 
       - name: Unit tests
         run: ./gradlew --no-daemon testReleaseUnitTest
@@ -94,7 +94,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: tivicopy-apk
+          name: shidur-apk
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 30
@@ -193,7 +193,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: TiviCopy build ${{ github.run_number }}
+          name: Shidur build ${{ github.run_number }}
           body: |
             Automated build of `${{ github.sha }}`.
 

@@ -69,7 +69,13 @@ enum class AppLanguage(val tag: String?) {
     }
 }
 
-enum class StartBehaviour { LAST_CHANNEL, SPECIFIC_CHANNEL, CHANNEL_LIST, GUIDE }
+/**
+ * What the app puts on screen when it opens (FR-SET-04).
+ *
+ * [HOME] is appended rather than inserted, and the enum is stored by name, so the position here
+ * is cosmetic — but appending is the habit that keeps it that way.
+ */
+enum class StartBehaviour { LAST_CHANNEL, SPECIFIC_CHANNEL, CHANNEL_LIST, GUIDE, HOME }
 
 enum class ExternalPlayerScope { NEVER, VOD_ONLY, ALWAYS }
 
@@ -144,6 +150,20 @@ class Settings(context: Context) {
         val updateLastCheckUtc: Long,
         /** The manifest the last successful check read, verbatim; null when it found none. */
         val updateLastManifest: String?,
+        /**
+         * Where the home screen's featured rail reads from (FR-UI-26). Empty by default, and
+         * empty means there is no rail at all — the app ships the mechanism, not a feed.
+         */
+        val featuredFeedUrl: String,
+        val featuredLastCheckUtc: Long,
+        /** The feed the last successful fetch read, verbatim; null when there is none. */
+        val featuredLastFeed: String?,
+        /**
+         * Whether recently watched channels are published to the system launcher's
+         * "Continue watching" row (FR-TVI-02). On by default, because that is the feature —
+         * but it publishes viewing history outside the app, so it has a way off.
+         */
+        val watchNextEnabled: Boolean,
     )
 
     private fun read() = Snapshot(
@@ -171,7 +191,7 @@ class Settings(context: Context) {
         allowInsecureTls = prefs.getBoolean(K_INSECURE_TLS, false),
         // Defaults to the channel list rather than resuming playback, so opening the app never
         // starts a stream on its own — the user lands on the channel picker and chooses one.
-        startBehaviour = prefs.enum(K_START_BEHAVIOUR, StartBehaviour.CHANNEL_LIST),
+        startBehaviour = prefs.enum(K_START_BEHAVIOUR, StartBehaviour.HOME),
         resumeLastChannel = prefs.getBoolean(K_RESUME_LAST, true),
         lastChannelId = prefs.getLong(K_LAST_CHANNEL, 0),
         previousChannelId = prefs.getLong(K_PREV_CHANNEL, 0),
@@ -206,6 +226,10 @@ class Settings(context: Context) {
         updateSkippedVersionCode = prefs.getInt(K_UPDATE_SKIPPED, 0),
         updateLastCheckUtc = prefs.getLong(K_UPDATE_LAST_CHECK, 0),
         updateLastManifest = prefs.getString(K_UPDATE_MANIFEST, null),
+        featuredFeedUrl = prefs.getString(K_FEATURED_URL, "") ?: "",
+        featuredLastCheckUtc = prefs.getLong(K_FEATURED_LAST_CHECK, 0),
+        featuredLastFeed = prefs.getString(K_FEATURED_FEED, null),
+        watchNextEnabled = prefs.getBoolean(K_WATCH_NEXT, true),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -299,6 +323,29 @@ class Settings(context: Context) {
         putLong(K_UPDATE_LAST_CHECK, atUtc)
         if (manifestJson == null) remove(K_UPDATE_MANIFEST) else putString(K_UPDATE_MANIFEST, manifestJson)
         if (seenVersionCode <= com.tivicopy.player.BuildInfo.versionCode) remove(K_UPDATE_SKIPPED)
+    }
+
+    /**
+     * Points the featured rail somewhere, or nowhere.
+     *
+     * Clearing the address also clears the cached document: leaving the last feed behind would
+     * have the rail keep promoting whatever it said long after the owner switched it off.
+     */
+    fun setFeaturedFeedUrl(url: String) = commit {
+        val trimmed = url.trim()
+        putString(K_FEATURED_URL, trimmed)
+        if (trimmed.isEmpty()) {
+            remove(K_FEATURED_FEED)
+            remove(K_FEATURED_LAST_CHECK)
+        }
+    }
+
+    fun setWatchNextEnabled(v: Boolean) = commit { putBoolean(K_WATCH_NEXT, v) }
+
+    /** The featured-rail twin of [rememberUpdateCheck], and cached for the same reason. */
+    fun rememberFeatured(atUtc: Long, feedJson: String?) = commit {
+        putLong(K_FEATURED_LAST_CHECK, atUtc)
+        if (feedJson == null) remove(K_FEATURED_FEED) else putString(K_FEATURED_FEED, feedJson)
     }
 
     /** Remembers the current and previous channel so a single key can toggle (FR-PLB-20). */
@@ -400,5 +447,9 @@ class Settings(context: Context) {
         const val K_UPDATE_SKIPPED = "update_skipped_code"
         const val K_UPDATE_LAST_CHECK = "update_last_check"
         const val K_UPDATE_MANIFEST = "update_last_manifest"
+        const val K_FEATURED_URL = "featured_feed_url"
+        const val K_FEATURED_LAST_CHECK = "featured_last_check"
+        const val K_FEATURED_FEED = "featured_last_feed"
+        const val K_WATCH_NEXT = "watch_next_enabled"
     }
 }

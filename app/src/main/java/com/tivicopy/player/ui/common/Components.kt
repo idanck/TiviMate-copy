@@ -91,7 +91,8 @@ fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, sizeDp: Int = 4
     }
 }
 
-private fun monogram(name: String): String {
+/** Shared with the home screen's tiles, which draw art for things that are not channels. */
+internal fun monogram(name: String): String {
     val words = name.trim().split(' ').filter { it.isNotBlank() }
     return when {
         words.isEmpty() -> "?"
@@ -100,7 +101,7 @@ private fun monogram(name: String): String {
     }
 }
 
-private fun monogramColour(name: String): Color {
+internal fun monogramColour(name: String): Color {
     val hue = ((name.hashCode() and 0x7FFFFFFF) % 360).toFloat()
     return Color.hsl(hue, 0.42f, 0.32f)
 }

@@ -12,6 +12,7 @@ import com.tivicopy.player.data.backup.BackupManager
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.db.Database
+import com.tivicopy.player.data.featured.FeaturedRepository
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.repo.EpgRepository
@@ -19,6 +20,7 @@ import com.tivicopy.player.data.repo.SourceRepository
 import com.tivicopy.player.data.update.UpdateManager
 import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.record.RecordingScheduler
+import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.work.RefreshScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,6 +48,7 @@ object ServiceLocator {
     lateinit var backup: BackupManager private set
     lateinit var recordings: RecordingScheduler private set
     lateinit var updates: UpdateManager private set
+    lateinit var featured: FeaturedRepository private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -93,6 +96,7 @@ object ServiceLocator {
         backup = BackupManager(dao, settings)
         recordings = RecordingScheduler(appContext, dao, settings)
         updates = UpdateManager(appContext, settings, dao)
+        featured = FeaturedRepository(settings)
         initialised = true
     }
 }
@@ -150,6 +154,12 @@ class App : Application(), ImageLoaderFactory {
         ServiceLocator.recordings.rearmAll()
         // Keep the on-disk cache inside its budget on every cold start (FR-SET-15).
         ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+        // The home screen's featured rail (FR-UI-26) and the launcher's continue-watching row
+        // (FR-TVI-02). Both are rate-limited internally, both are no-ops when unconfigured or
+        // off a television, and neither is allowed to matter: a promotional rail and a shelf
+        // outside the app are not reasons to slow down a cold start or to fail one.
+        ServiceLocator.appScope.launch { ServiceLocator.featured.refresh(force = false) }
+        ServiceLocator.appScope.launch { WatchNext.sync(this@App) }
     }
 
     companion object {

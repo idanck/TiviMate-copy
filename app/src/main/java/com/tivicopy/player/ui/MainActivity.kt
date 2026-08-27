@@ -43,6 +43,7 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
+import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.mobile.MobileRoot
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
      * only a further Back from here reaches the exit confirmation. Kept as whichever of
      * [TvOverlay.CHANNELS]/[TvOverlay.RADIO] was opened last, updated alongside `overlay` below.
      */
-    private var lastBrowseOverlay by mutableStateOf(TvOverlay.CHANNELS)
+    private var lastBrowseOverlay by mutableStateOf(TvOverlay.HOME)
     private var settingsSection by mutableStateOf(SettingsSection.ROOT)
     private var numericEntry by mutableStateOf("")
     private var lastBackPress = 0L
@@ -161,6 +162,45 @@ class MainActivity : ComponentActivity() {
             ?.let { runCatching { applyOverrideConfiguration(it) } }
     }
 
+    /**
+     * A launcher card followed while the app is already running (FR-TVI-04).
+     *
+     * `setIntent` is load-bearing: this activity is `singleTask`, so without it `getIntent()`
+     * keeps answering with the intent that first started the process, and a second card would
+     * replay the first one's channel.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    /**
+     * Plays whatever channel a `shidur://channel/<id>` link names.
+     *
+     * Anything else — a launch from the icon, a share, a malformed link — leaves this a no-op,
+     * so the start behaviour below decides what is on screen as usual.
+     */
+    private fun handleDeepLink(intent: Intent?) {
+        val channelId = WatchNextPlan.channelIdFromDeepLink(intent?.dataString) ?: return
+        vm.playChannelId(channelId)
+        // Arriving from the launcher means asking for the channel, not for a menu over it.
+        deepLinkConsumed = true
+        overlay = TvOverlay.NONE
+        lastBrowseOverlay = TvOverlay.HOME
+        if (!isTelevision) playerOpen = true
+    }
+
+    /**
+     * Whether a launcher card decided what is on screen.
+     *
+     * `AppViewModel.playChannelId` already stops [AppViewModel.resumeStartChannel] tuning a
+     * different channel over the top, but the start behaviour also opens a *surface* — and a
+     * home screen drawn over the channel the viewer just picked from the launcher is the same
+     * bug wearing a different hat.
+     */
+    private var deepLinkConsumed = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         goEdgeToEdge()
@@ -182,6 +222,13 @@ class MainActivity : ComponentActivity() {
         playerOpen = savedInstanceState?.getBoolean(KEY_PLAYER_OPEN) ?: false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) inPip = isInPictureInPictureMode
         if (inPip) playerOpen = true
+
+        // A launcher card can be what started the process, so the launch intent gets the same
+        // handling a warm one gets in [onNewIntent] — after the state restored above, which it
+        // is entitled to override, and only on a real launch. A recreation (a language change)
+        // runs onCreate again holding the same intent, and replaying it there would re-tune the
+        // channel out from under whatever the viewer had moved on to.
+        if (savedInstanceState == null) handleDeepLink(intent)
 
         setContent {
             val prefs by vm.settingsState.collectAsState()
@@ -222,8 +269,9 @@ class MainActivity : ComponentActivity() {
                 // Overlays belong to the TV shell; the phone has its own navigation. Setting
                 // one here anyway left an invisible overlay open on the phone, which then ate
                 // the first Back press without changing anything on screen.
-                if (isTelevision) {
+                if (isTelevision && !deepLinkConsumed) {
                     when (prefs.startBehaviour) {
+                        StartBehaviour.HOME -> overlay = TvOverlay.HOME
                         StartBehaviour.CHANNEL_LIST -> overlay = TvOverlay.CHANNELS
                         StartBehaviour.GUIDE -> overlay = TvOverlay.GUIDE
                         else -> Unit
@@ -266,7 +314,10 @@ class MainActivity : ComponentActivity() {
                                 )
                             } else {
                                 LaunchedEffect(overlay) {
-                                    if (overlay == TvOverlay.CHANNELS || overlay == TvOverlay.RADIO) {
+                                    if (overlay == TvOverlay.HOME ||
+                                        overlay == TvOverlay.CHANNELS ||
+                                        overlay == TvOverlay.RADIO
+                                    ) {
                                         lastBrowseOverlay = overlay
                                     }
                                 }
@@ -445,24 +496,22 @@ class MainActivity : ComponentActivity() {
             // user was working in and made Back feel like a cancel.
             overlay == TvOverlay.PLAYBACK_MENU -> overlay = TvOverlay.TRANSPORT
 
-            // Bare fullscreen video is no longer the root: it goes back to the channel/radio list
-            // it was opened from first. Only Back from the channel list itself reaches exit.
+            // Bare fullscreen video is not the root: it goes back to the surface it was opened
+            // from — the home screen, or whichever list the viewer was in.
             overlay == TvOverlay.NONE -> overlay = lastBrowseOverlay
 
-            // Radio is opened from the channel list, so that is where Back goes — it is a
-            // destination within the shell, not a second root. Without this rung, Radio became
-            // `lastBrowseOverlay` the moment it opened and the only way out of it was to leave
-            // the app. TvRoot's own effect hands the list back to the active playlist.
+            // Every other browse surface steps up to the home screen, which is now the root
+            // (ADR-016). This replaced a rung that compared against [lastBrowseOverlay] and,
+            // with Home as its default, would have dropped the channel list to bare video
+            // rather than raising it.
             //
             // [lastBrowseOverlay] is moved here rather than left to the effect that normally
-            // tracks it: that effect lands a composition later, and a second Back arriving before
-            // it did would read RADIO as the browse overlay and drop to bare video instead.
-            overlay == TvOverlay.RADIO -> {
-                overlay = TvOverlay.CHANNELS
-                lastBrowseOverlay = TvOverlay.CHANNELS
+            // tracks it: that effect lands a composition later, and a second Back arriving
+            // before it did would read the old value.
+            overlay != TvOverlay.HOME -> {
+                overlay = TvOverlay.HOME
+                lastBrowseOverlay = TvOverlay.HOME
             }
-
-            overlay != lastBrowseOverlay -> overlay = TvOverlay.NONE
 
             else -> return false
         }

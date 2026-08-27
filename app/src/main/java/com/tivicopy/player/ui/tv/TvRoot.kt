@@ -65,7 +65,7 @@ import com.tivicopy.player.ui.common.UpdatePrompt
 
 /** Which overlay, if any, sits on top of the video. Nothing here ever stops playback. */
 enum class TvOverlay {
-    NONE, CHANNELS, RADIO, MINI_GUIDE, GUIDE, SEARCH, RECORDINGS, VOD, SETTINGS, ADD_SOURCE, INFO,
+    NONE, HOME, CHANNELS, RADIO, MINI_GUIDE, GUIDE, SEARCH, RECORDINGS, VOD, SETTINGS, ADD_SOURCE, INFO,
 
     /** The controls OK brings up over playing video. */
     TRANSPORT,
@@ -97,9 +97,15 @@ enum class TvOverlay {
     val leavesDpadToShell: Boolean
         get() = this == NONE || this == INFO
 
-    /** Whether the live picture shrinks into a preview slot rather than filling the screen. */
+    /**
+     * Whether the live picture shrinks into a preview slot rather than filling the screen.
+     *
+     * Two surfaces now do this: the guide docks it beside the grid, and the home screen makes it
+     * the hero. Both then paint their own panes around a picture that never stops playing, which
+     * is also why [OverlayScaffold] draws no scrim for either.
+     */
     val docksPlayer: Boolean
-        get() = this == GUIDE
+        get() = this == GUIDE || this == HOME
 }
 
 /**
@@ -161,9 +167,11 @@ fun TvRoot(
     var dockBounds by remember { mutableStateOf<Rect?>(null) }
     var rootOrigin by remember { mutableStateOf(Offset.Zero) }
     val docked = overlay.docksPlayer
-    // Forget the slot as soon as the guide closes, so a stale rectangle cannot hold the picture
-    // in a corner of a screen that no longer has a guide on it.
-    LaunchedEffect(docked) { if (!docked) dockBounds = null }
+    // Forget the slot whenever the overlay changes, not merely when docking stops. Keyed on
+    // `docked` alone, a move between the two docking surfaces — home to guide — kept the old
+    // rectangle, and the picture sat in the home screen's hero position until the guide got
+    // round to reporting its own.
+    LaunchedEffect(overlay) { dockBounds = null }
 
     Box(
         modifier = modifier
@@ -305,6 +313,17 @@ fun TvRoot(
                 scrim = !overlay.docksPlayer,
             ) {
                 when (overlay) {
+                    // The television's root surface (ADR-016). Added here in the same edit as the
+                    // enum value on purpose: the `else -> Unit` at the bottom of this `when` means
+                    // a forgotten branch compiles and renders an empty scaffold over the video.
+                    TvOverlay.HOME -> TvHomeScreen(
+                        vm = vm,
+                        onDockBounds = { dockBounds = it },
+                        onOpen = onOverlayChange,
+                        onFullscreen = { onOverlayChange(TvOverlay.NONE) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
                     TvOverlay.CHANNELS -> ChannelListScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
@@ -313,6 +332,9 @@ fun TvRoot(
                         // entry point at all before this — it could only be opened by searching
                         // for a series and picking it (NFR-UX-01).
                         destinations = listOf(
+                            NavDestination(stringResource(R.string.nav_home)) {
+                                onOverlayChange(TvOverlay.HOME)
+                            },
                             NavDestination(stringResource(R.string.nav_radio)) {
                                 onOverlayChange(TvOverlay.RADIO)
                             },
@@ -348,6 +370,9 @@ fun TvRoot(
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onSearch = { onOverlayChange(TvOverlay.SEARCH) },
                         destinations = listOf(
+                            NavDestination(stringResource(R.string.nav_home)) {
+                                onOverlayChange(TvOverlay.HOME)
+                            },
                             NavDestination(stringResource(R.string.nav_live)) {
                                 onOverlayChange(TvOverlay.CHANNELS)
                             },
