@@ -82,19 +82,66 @@ Whole packages rather than a generated method list: generating one properly need
 run against a real device, and CI has no device attached (`CLAUDE.md`). Over-compiling costs a
 larger `.odex` and a slower dexopt pass, and under-compiles nothing.
 
-## What this does not fix, and the option left open
+## What this does not fix
 
 The profile is installed on first launch and compiled at ART's *next background dexopt pass* —
 typically overnight. The window right after a self-update, which is exactly when the owner looks
 at a new build, is still interpreted. Nothing in the app can force compilation; `cmd package
 compile` is a shell command.
 
-The real fix for that window is to hand the platform a **dex metadata (`.dm`) file** alongside the
-APK when the app installs its own update, so install-time dexopt is profile-guided the way a Play
-install is. It means CI packaging the profile as a `.dm`, the update manifest carrying it, and
-`UpdateManager` writing it into the `PackageInstaller` session. That is a change to the one
-mechanism that keeps this app updatable at all, so it is recorded here as the next step rather
-than bundled into a change about animation.
+## The dex-metadata (`.dm`) route was tried, on the real hardware, and does not work
+
+This record first proposed handing the platform a **dex metadata (`.dm`) file** alongside the
+APK during a self-update, so install-time dexopt would be profile-guided the way a Play install
+is. That was built as far as a manual `PackageInstaller` session against the Google TV Streamer
+and stopped there, because the platform itself refuses the one artifact this repository can
+actually produce.
+
+**What was tried.** `assets/dexopt/baseline.prof` — the profile already embedded in the APK for
+`profileinstaller` (this ADR's own fix, above) — was extracted, renamed to `primary.prof` and
+`primary.profm`, zipped into a `.dm`, and staged in a real `PackageInstaller` session alongside
+`base.apk` (`pm install-create` / `install-write base.apk` / `install-write base.dm` /
+`install-commit`; a session entry must literally end in `.apk`/`.dm` for the platform to pair
+them — `tivicopy-update`, the name `UpdateManager` uses today, would not pair with anything,
+though it still installs fine as the sole entry in a single-APK session). The commit succeeded and
+`dumpsys package dexopt` reported `reason=install-dm` — the platform saw the file. But the
+compiled result stayed `status=verify`, and `logcat` explains why:
+
+```
+profman : Error when reading profile: Profile version mismatch.
+artd    : Merge skipped because there are no existing profiles
+ArtService: … actualCompilerFilter=verify … extendedStatusFlags=[EXTENDED_BAD_EXTERNAL_PROFILE]
+```
+
+**Why.** `baseline.prof`'s header is `pro\0010\0` — a real, versioned ART profile format, just not
+the version this device's `profman` (Android 14, API 34) reads. `profileinstaller` gets away with
+the same bytes because it is a Kotlin re-implementation that decodes several known profile-format
+versions itself and re-encodes whatever the running device wants before writing to
+`/data/misc/profiles/cur/…` — a conversion step that happens **in the app's own process, at
+launch**, which is exactly why the earlier measurement in this record already shows the good
+numbers: that 6.8%-janky, 21–27 ms result was taken *after* the app had been opened once, letting
+`profileinstaller` do that conversion, and *then* forcing a `speed-profile` compile. The
+platform's native `install-dm` path has no equivalent conversion — `profman` expects one exact
+on-disk version and rejects anything else outright, which is a difference between "the profile
+went in through the app's own code" and "the profile went in through the installer," not a
+difference in the compile itself.
+
+That version is tied to the ART Mainline module, which updates independently of the Android OS
+version on modern devices — there is no `minSdk`-shaped choice that is safe across this app's
+fleet, only a value that happens to match whichever ART build a given device is running today.
+Getting it wrong is not dangerous — the attempt above shows the platform just falls back to
+`verify` and moves on, which is the status quo — but it is not a reliable win either, and there is
+no way for `UpdateManager` to know in advance which version a given device wants or to verify
+after the fact that the `.dm` did anything.
+
+**Decision: not pursued.** The remaining gap — the day between a self-update and the OS's own
+background dexopt pass — is a real, disclosed limitation, but closing it this way means adding
+real code to the single most safety-critical path in the app (the self-updater) for a benefit
+that, on the one real device this could be checked against, did not happen. The lower-risk
+version of "close the gap" is a launch-time nudge: `profileinstaller` already runs on the first
+launch after every update, so the actual remaining window is "one launch, plus however long the
+OS's own idle-and-charging maintenance window takes to notice" — the same window every
+sideloaded Android app lives with, not one this app introduced.
 
 ## Alternatives rejected
 
