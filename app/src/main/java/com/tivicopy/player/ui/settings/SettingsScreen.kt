@@ -388,6 +388,15 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
+                // The bundled typeface is under the SIL OFL (ADR-019), which asks for the
+                // copyright notice to travel with the font. The licence itself ships beside it
+                // at `assets/licenses/rubik-ofl.txt`; this is the credit a reader can see.
+                Text(
+                    text = stringResource(R.string.about_typeface),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
                 UpdateSettingsBlock()
                 CacheRows()
             }

@@ -154,6 +154,10 @@ This is our differentiator and must not be an afterthought.
 - Themes: system / light / dark / AMOLED black, plus an accent colour.
 - Adjustable overlay opacity and auto-hide timeout.
 - Font scale (small → extra large) that actually reflows the guide.
+- The interface is set in a typeface the app ships itself — Rubik, covering Hebrew and Latin in
+  one family — rather than the device default, which pairs Roboto with whatever Hebrew fallback
+  the box happens to carry. Four weights, no lighter than Regular. The dark theme keeps its
+  blue-grey background rather than the near-black the benchmark uses. See `docs/adr/ADR-019`.
 - Configurable bottom playback menu: which actions appear and in what order.
 - Optional channel-logo-only vs logo+name list modes.
 - Interface language: follow the device, English or Hebrew, chosen in the app rather than by

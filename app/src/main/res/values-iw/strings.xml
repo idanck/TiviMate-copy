@@ -326,6 +326,7 @@
     <string name="about_secure_store">הצפנת פרטי התחברות: %1$s</string>
     <string name="about_secure_yes">Android Keystore</string>
     <string name="about_secure_no">אינה זמינה במכשיר הזה</string>
+    <string name="about_typeface">גופן: Rubik, מאת יוצרי פרויקט Rubik — רישיון SIL Open Font License 1.1</string>
     <string name="exit_confirm">לחץ שוב על חזרה כדי לצאת.</string>
     <string name="loading">טוען…</string>
 
