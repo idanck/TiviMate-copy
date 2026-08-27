@@ -40,9 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -50,7 +48,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
@@ -62,6 +59,8 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.focusLift
 import kotlinx.coroutines.delay
 
 // The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
@@ -328,17 +327,26 @@ private fun DayChip(label: String, date: String, selected: Boolean, onClick: () 
     // opened the guide to read.
     Row(
         modifier = Modifier
+            .focusLift(focused, DAY_CHIP_FOCUS_SCALE)
             .clip(shape)
             .background(
-                when {
-                    focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
-                    selected -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                },
+                animatedColour(
+                    when {
+                        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                        selected -> MaterialTheme.colorScheme.primaryContainer
+                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    },
+                ),
             )
             .border(
-                width = if (focused) 2.dp else 0.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                width = 2.dp,
+                color = animatedColour(
+                    if (focused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                    },
+                ),
                 shape = shape,
             )
             .onFocusChanged { focused = it.isFocused }
@@ -523,20 +531,21 @@ private fun ProgrammeCell(
     var focused by remember { mutableStateOf(false) }
     val now = System.currentTimeMillis()
     val live = now in programme.startUtc until programme.endUtc
-    val background = when {
-        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
-        live -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.surfaceVariant
-    }
+    val background = animatedColour(
+        when {
+            focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+            live -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        },
+    )
     val metrics = LocalTvMetrics.current
     Column(
         modifier = Modifier
             // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
-            // alone is hard to find on a wall of cells from across a room. `scale` draws bigger
-            // without measuring bigger, so no neighbour moves; `zIndex` puts the enlarged cell
-            // over the ones it now overlaps instead of under them.
-            .zIndex(if (focused) 1f else 0f)
-            .scale(if (focused) FOCUSED_CELL_SCALE else 1f)
+            // alone is hard to find on a wall of cells from across a room. It grew instantly
+            // until `focusLift` existed, which on a grid this dense read as the cells flickering
+            // rather than as one of them rising (`ui/common/Motion.kt`).
+            .focusLift(focused, FOCUSED_CELL_SCALE)
             .width(millisToDp(widthMillis, metrics.guideHourWidth))
             .height(metrics.guideRowHeight)
             .padding(2.dp)
@@ -544,7 +553,13 @@ private fun ProgrammeCell(
             .background(background)
             .border(
                 2.dp,
-                if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
+                animatedColour(
+                    if (focused) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
+                    },
+                ),
                 RoundedCornerShape(6.dp),
             )
             .onFocusChanged { focused = it.isFocused }
@@ -593,6 +608,9 @@ private fun ProgrammeCell(
 
 /** How far a focused cell lifts. Enough to read as raised, short of covering its neighbours. */
 private const val FOCUSED_CELL_SCALE = 1.05f
+
+/** A day chip is small; it lifts less, or it reads as jumping. */
+private const val DAY_CHIP_FOCUS_SCALE = 1.04f
 
 private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
 

@@ -174,6 +174,12 @@ This is our differentiator and must not be an afterthought.
 - Themes: system / light / dark / AMOLED black, plus an accent colour.
 - Adjustable overlay opacity and auto-hide timeout.
 - Font scale (small → extra large) that actually reflows the guide.
+- Motion: a focused item lifts and its colours cross rather than snapping, the navigation rail
+  slides open, and a surface arriving over the video fades in with a short rise. Nothing animates
+  while the screen is idle — with nothing happening the app renders no frames at all. See
+  `docs/adr/ADR-021`, which also records why the interface was not smooth before it: none of this
+  app's own code was in the baseline profile, so on a freshly updated install every screen ran
+  interpreted.
 - The interface is set in a typeface the app ships itself — Rubik, covering Hebrew and Latin in
   one family — rather than the device default, which pairs Roboto with whatever Hebrew fallback
   the box happens to carry. Four weights, no lighter than Regular. The dark theme keeps its

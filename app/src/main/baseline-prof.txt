@@ -1,0 +1,43 @@
+# Baseline profile — which of this app's own methods ART should compile ahead of time.
+#
+# Why this file exists, measured on the Google TV Streamer this app is developed against:
+# minutes after a self-update the installed package sits at `status=verify` (nothing compiled,
+# everything interpreted until the JIT warms up), and in that state a pass over the home screen
+# with the D-pad produced 12.8% janky frames with a 95th-percentile frame of 150ms. Forcing
+# `cmd package compile -m speed` on the same build, same screen, same key sequence: 3.9% janky,
+# 95th percentile 21ms. Frame times of 150ms are exactly what "not smooth" looks like.
+#
+# The APK already carried a baseline profile before this file — but only the one AndroidX merges
+# in from its own libraries. None of *this app's* code was in it, so the composables that draw
+# every screen were never candidates for ahead-of-time compilation, however long the box had been
+# running. These rules add them.
+#
+# Format: `HSPL<class>-><method><signature>` where H = hot, S = startup, P = post-startup, and
+# `**` matches anything. AGP compiles this file into `assets/dexopt/baseline.prof`, and
+# `androidx.profileinstaller` (a dependency of Compose, and named explicitly in build.gradle.kts
+# so it cannot quietly disappear) writes it into ART's profile on the first launch after each
+# update. ART then compiles it at its next background dexopt pass.
+#
+# Deliberately whole packages rather than a generated list of methods: a generated profile needs
+# a macrobenchmark run on a real device, and CI has no device attached (`CLAUDE.md`). Whole
+# packages over-compile a little — a larger .odex, a slower dexopt pass — and under-compile
+# nothing, which is the right trade for an app whose entire code base is smaller than the Compose
+# runtime it draws with.
+
+# The two Compose shells and everything they draw: this is the frame-rate-critical half.
+HSPLcom/tivicopy/player/ui/**->**(**)**
+
+# The models and formatters the shells call while composing — time formatting in particular runs
+# per programme cell, and there are a few hundred of those in one guide screen.
+HSPLcom/tivicopy/player/core/**->**(**)**
+
+# Playlists, the guide, preferences and the database: everything a screen waits on.
+HSPLcom/tivicopy/player/data/**->**(**)**
+
+# The player engine and its listeners, which run on the frames a channel change costs.
+HSPLcom/tivicopy/player/player/**->**(**)**
+
+# Application startup itself, the service locator, and the build stamp read by Settings.
+HSPLcom/tivicopy/player/App;->**(**)**
+HSPLcom/tivicopy/player/ServiceLocator;->**(**)**
+HSPLcom/tivicopy/player/BuildInfo;->**(**)**
