@@ -315,11 +315,16 @@ private fun HomeHero(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             NowNextPane(channel = channel, now = now, next = next, modifier = Modifier.fillMaxWidth())
-            Text(
-                text = stringResource(R.string.home_fullscreen_hint),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            // Only once there is something up there. The hint names "the channel playing above",
+            // and printing that under an empty slot — which is what a start behaviour that tunes
+            // nothing leaves — describes a box that is not there.
+            if (channel != null) {
+                Text(
+                    text = stringResource(R.string.home_fullscreen_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

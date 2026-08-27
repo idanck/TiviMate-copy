@@ -27,10 +27,8 @@ data class HomeCard(
     val imageUrl: String? = null,
     /** Drawn as the corner badge, as on the reference design. Absent when the source has none. */
     val number: Int? = null,
-    /** What OK tunes. Null on a card that only leads outwards. */
+    /** What OK tunes. Every card drawn today has one; see `FeaturedItem.channelRef`. */
     val channelId: Long? = null,
-    /** Where OK leads when there is no channel. Handed to the platform, never played in-app. */
-    val externalUrl: String? = null,
     val startUtc: Long = 0,
     val endUtc: Long = 0,
     /**
@@ -100,7 +98,12 @@ object HomeRails {
          * SQL, where changing it would also change the existing Recently-watched view.
          */
         val visible = (data.channels + data.radio).associateBy { it.id }
-        fun onlyVisible(channels: List<Channel>) = channels.filter { it.id in visible }
+        // Only playlists that were actually loaded can be screened. `recent` spans every
+        // playlist on the device, so judging a channel from one that was not read here would
+        // silently empty the rail rather than filter it.
+        val screened = visible.values.mapTo(HashSet()) { it.playlistId }
+        fun onlyVisible(channels: List<Channel>) =
+            channels.filter { it.id in visible || it.playlistId !in screened }
 
         return listOf(
             HomeRail(HomeRailId.FEATURED, featuredCards(data.featured, visible.values.toList(), cap)),
@@ -121,9 +124,8 @@ object HomeRails {
      *
      * Resolution happens here rather than when OK is pressed so that a card which leads nowhere
      * is never drawn: on a remote, a tile that swallows OK is indistinguishable from a frozen
-     * screen. An item naming a channel this device does not have, and offering no link either,
-     * is therefore dropped — which is also what makes the same feed safe to serve to installs
-     * with different playlists.
+     * screen. An item naming a channel this device does not have is therefore dropped — which
+     * is also what makes one feed safe to serve to installs with different playlists.
      */
     private fun featuredCards(
         items: List<FeaturedItem>,
@@ -134,14 +136,14 @@ object HomeRails {
             .distinctBy { it.id }
             .mapNotNull { item ->
                 val channel = item.channelRef?.let { resolveChannel(it, channels) }
-                if (channel == null && item.url.isNullOrBlank()) return@mapNotNull null
+                    ?: return@mapNotNull null
                 HomeCard(
                     key = "featured:${item.id}",
                     title = item.title,
-                    subtitle = item.subtitle ?: channel?.displayName,
-                    imageUrl = item.imageUrl ?: channel?.displayLogo,
-                    channelId = channel?.id,
-                    externalUrl = item.url.takeIf { channel == null },
+                    subtitle = item.subtitle ?: channel.displayName,
+                    imageUrl = item.imageUrl ?: channel.displayLogo,
+                    number = channel.number.takeIf { it > 0 },
+                    channelId = channel.id,
                 )
             }
             .take(cap)

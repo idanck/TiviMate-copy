@@ -59,6 +59,13 @@ decided what to promote there yet; what is being decided now is only that the me
 in the same shape as the update manifest it is modelled on (ADR-012): strict parse, `Outcome`,
 the raw document cached verbatim in preferences, refreshed by the existing `RefreshWorker`.
 
+A promoted item names a channel by reference — a tvg-id, a guide id, a name or a number — and an
+item that does not resolve to a channel this device has is dropped rather than drawn. On a remote,
+a tile that swallows OK is indistinguishable from a frozen screen, and resolving at build time
+rather than at press time is also what makes one feed safe to serve to installs whose playlists
+differ. A card that opens something other than a channel is a later addition, and would need
+somewhere to open it.
+
 One deliberate difference from that manifest: a malformed *item* is dropped and the rest of the
 feed still renders, and a feed with an empty `items` array is a valid document rather than a
 failure. The update manifest decides which binary is installed over the running app and refuses

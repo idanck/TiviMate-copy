@@ -95,11 +95,6 @@ class FeaturedFeedTest {
     }
 
     @Test
-    fun `a non-https link is dropped`() {
-        assertNull(items("""{"items": [{"title": "X", "url": "http://example.com"}]}""")[0].url)
-    }
-
-    @Test
     fun `duplicate ids collapse`() {
         val list = items("""{"items": [{"id": "same", "title": "A"}, {"id": "same", "title": "B"}]}""")
         assertEquals(listOf("A"), list.map { it.title })

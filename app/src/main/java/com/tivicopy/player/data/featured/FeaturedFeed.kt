@@ -24,11 +24,14 @@ data class FeaturedItem(
     /**
      * Which channel this card tunes, as a *reference* rather than a database id: the feed is
      * written by hand against channels whose local ids it cannot know. Resolved by
-     * [resolveChannel] against the tvg-id, the name, then the channel number.
+     * [resolveChannel] against the tvg-id, the guide id, the name, then the channel number.
+     *
+     * Required in practice: an item that does not resolve to a channel this device has is
+     * dropped when the rail is built, because a tile that swallows OK is indistinguishable from
+     * a frozen screen on a remote. A card that opens something *other* than a channel — a web
+     * address, say — is a deliberate later addition, and would need somewhere to open it.
      */
     val channelRef: String? = null,
-    /** Where the card leads when it names no channel. Opened by the platform, not played. */
-    val url: String? = null,
 )
 
 /**
@@ -101,7 +104,6 @@ data class FeaturedFeed(val items: List<FeaturedItem>) {
                 // fails this test costs a picture, not the card.
                 imageUrl = obj.optString("image").trim().takeIf { it.isHttps() },
                 channelRef = obj.optString("channel").trim().ifEmpty { null },
-                url = obj.optString("url").trim().takeIf { it.isHttps() },
             )
         }
 

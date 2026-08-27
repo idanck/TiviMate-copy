@@ -500,7 +500,13 @@ class MainActivity : ComponentActivity() {
             // from — the home screen, or whichever list the viewer was in.
             overlay == TvOverlay.NONE -> overlay = lastBrowseOverlay
 
-            // Every other browse surface steps up to the home screen, which is now the root
+            // A surface drawn *over* playing video dismisses back to the video, which is what
+            // the viewer was looking at behind it — the transport bar, the filmstrip and the
+            // zap info card all live there. Only the browse surfaces below rise to Home.
+            // (NONE is passthrough too, and is already handled by the rung above.)
+            overlay.isPassthrough -> overlay = TvOverlay.NONE
+
+            // Every browse surface steps up to the home screen, which is now the root
             // (ADR-016). This replaced a rung that compared against [lastBrowseOverlay] and,
             // with Home as its default, would have dropped the channel list to bare video
             // rather than raising it.

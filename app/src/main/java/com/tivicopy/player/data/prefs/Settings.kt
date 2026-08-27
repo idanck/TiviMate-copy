@@ -328,13 +328,16 @@ class Settings(context: Context) {
     /**
      * Points the featured rail somewhere, or nowhere.
      *
-     * Clearing the address also clears the cached document: leaving the last feed behind would
-     * have the rail keep promoting whatever it said long after the owner switched it off.
+     * Any *change* of address drops the cached document and the check timestamp with it, not
+     * only clearing it. The cache is keyed by nothing but this preference, so leaving it behind
+     * would have a newly pointed rail keep promoting the previous feed's items until the six-hour
+     * TTL expired — across cold starts, since the document is kept in preferences.
      */
-    fun setFeaturedFeedUrl(url: String) = commit {
+    fun setFeaturedFeedUrl(url: String) {
         val trimmed = url.trim()
-        putString(K_FEATURED_URL, trimmed)
-        if (trimmed.isEmpty()) {
+        if (trimmed == prefs.getString(K_FEATURED_URL, "").orEmpty()) return
+        commit {
+            putString(K_FEATURED_URL, trimmed)
             remove(K_FEATURED_FEED)
             remove(K_FEATURED_LAST_CHECK)
         }

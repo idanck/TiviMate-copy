@@ -166,6 +166,23 @@ class HomeRailsTest {
         assertNull(rail(rails, HomeRailId.FAVOURITES))
     }
 
+    /**
+     * The other half of that screen, and the one that is easy to get wrong in the opposite
+     * direction: `Dao.recentChannels` spans every playlist on the device, so a channel belonging
+     * to a playlist this load did not read cannot be judged — dropping it would empty the rail
+     * rather than filter it.
+     */
+    @Test
+    fun `a recent channel from a playlist that was not loaded survives`() {
+        val loaded = channel(1, playlistId = 1)
+        val elsewhere = channel(5, playlistId = 7)
+        val data = HomeData(recent = listOf(elsewhere, loaded), channels = listOf(loaded))
+        assertEquals(
+            listOf(5L, 1L),
+            rail(HomeRails.build(data, now), HomeRailId.CONTINUE)!!.cards.map { it.channelId },
+        )
+    }
+
     @Test
     fun `a radio station counts as visible`() {
         val station = channel(9, playlistId = 2)
@@ -234,7 +251,6 @@ class HomeRailsTest {
         val card = rail(HomeRails.build(data, now), HomeRailId.FEATURED)!!.cards.single()
         assertEquals("Promo", card.title)
         assertEquals(1L, card.channelId)
-        assertNull(card.externalUrl)
     }
 
     /** A tile that swallows OK is indistinguishable from a frozen screen on a remote. */
@@ -248,14 +264,12 @@ class HomeRailsTest {
     }
 
     @Test
-    fun `a featured item with only a link is kept`() {
+    fun `a featured item naming no channel at all is dropped`() {
         val data = HomeData(
             channels = listOf(channel(1)),
-            featured = listOf(FeaturedItem(id = "f", title = "Promo", url = "https://example.com")),
+            featured = listOf(FeaturedItem(id = "f", title = "Promo")),
         )
-        val card = rail(HomeRails.build(data, now), HomeRailId.FEATURED)!!.cards.single()
-        assertNull(card.channelId)
-        assertEquals("https://example.com", card.externalUrl)
+        assertNull(rail(HomeRails.build(data, now), HomeRailId.FEATURED))
     }
 
     @Test

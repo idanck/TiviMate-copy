@@ -7,8 +7,9 @@ import androidx.annotation.RequiresApi
 import androidx.tvprovider.media.tv.TvContractCompat
 import androidx.tvprovider.media.tv.WatchNextProgram
 import com.tivicopy.player.ServiceLocator
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -37,7 +38,13 @@ object WatchNext {
      */
     private const val MIN_INTERVAL_MS = 30_000L
 
-    private val inFlight = AtomicBoolean(false)
+    /**
+     * One writer at a time, and — the part that matters — [clear] waits for a [sync] rather than
+     * racing it. Turning the setting off while a sync was mid-flight would otherwise delete the
+     * rows and have the sync put them straight back, leaving a shelf the opt-out can no longer
+     * reach because the setting it checks is now off.
+     */
+    private val gate = Mutex()
 
     @Volatile private var lastSyncUtc = 0L
 
@@ -71,12 +78,18 @@ object WatchNext {
 
         val now = System.currentTimeMillis()
         if (!force && now - lastSyncUtc in 0 until MIN_INTERVAL_MS) return
-        if (!inFlight.compareAndSet(false, true)) return
+        // Skipped rather than queued when something else holds the gate: the row this would have
+        // written is the row that writer is already writing.
+        if (!gate.tryLock()) return
         try {
+            // Re-read inside the gate. The check above can be passed and then overtaken: the
+            // viewer turns the opt-out off, [clear] waits here for the gate, and without this a
+            // sync that was already past the first check would put every row straight back.
+            if (!ServiceLocator.settings.state.value.watchNextEnabled) return
             withContext(Dispatchers.IO) { runCatching { syncBlocking(context) } }
             lastSyncUtc = System.currentTimeMillis()
         } finally {
-            inFlight.set(false)
+            gate.unlock()
         }
     }
 
@@ -84,8 +97,11 @@ object WatchNext {
     suspend fun clear(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (!isSupported(context)) return
-        withContext(Dispatchers.IO) {
-            runCatching { existingRows(context).values.forEach { deleteRow(context, it) } }
+        // Waits, unlike [sync]: this one must be the last write, or the opt-out does not hold.
+        gate.withLock {
+            withContext(Dispatchers.IO) {
+                runCatching { existingRows(context).values.forEach { deleteRow(context, it) } }
+            }
         }
     }
 

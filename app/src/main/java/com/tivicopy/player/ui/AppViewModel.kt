@@ -588,6 +588,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             com.tivicopy.player.data.prefs.StartBehaviour.SPECIFIC_CHANNEL -> s.startChannelId
             com.tivicopy.player.data.prefs.StartBehaviour.LAST_CHANNEL ->
                 if (s.resumeLastChannel) s.lastChannelId else 0L
+            // The home screen is the one browse surface that *wants* a stream underneath it:
+            // its hero is the live picture, and opening on a black rectangle captioned "OK on
+            // the channel playing above fills the screen" would be a lie about an empty box.
+            com.tivicopy.player.data.prefs.StartBehaviour.HOME ->
+                if (s.resumeLastChannel) s.lastChannelId else 0L
             // The list and guide behaviours open an overlay instead; the shell handles that,
             // and starting a stream underneath it would waste a provider connection.
             else -> 0L
