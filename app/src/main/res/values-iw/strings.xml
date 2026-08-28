@@ -108,6 +108,7 @@
     <string name="playback_connecting">מתחבר…</string>
     <string name="playback_reconnecting">מתחבר מחדש — ניסיון %1$d…</string>
     <string name="playback_audio_only">מתנגן — שידור שמע בלבד, אין תמונה</string>
+    <string name="playback_live_badge">שידור חי</string>
     <string name="decoder_video">מפענח וידאו</string>
     <string name="decoder_audio">מפענח אודיו</string>
     <string name="decoder_auto">אוטומטי</string>

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -61,10 +62,20 @@ tailrec fun android.content.Context.findActivity(): android.app.Activity? = when
  * channel always gets the same tile.
  */
 @Composable
-fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, sizeDp: Int = 44) {
+fun ChannelLogo(
+    channel: Channel,
+    modifier: Modifier = Modifier,
+    sizeDp: Int = 44,
+    /**
+     * Whether the plate is a disc rather than a rounded square. Radio takes it: a station is a
+     * mark you recognise, not a picture you look at, and the round plate is what tells a viewer
+     * scrolling one list from the other which one they are in without reading a word.
+     */
+    circular: Boolean = false,
+) {
     val url = channel.displayLogo
     var failed by remember(url) { mutableStateOf(false) }
-    val shape = RoundedCornerShape(6.dp)
+    val shape = if (circular) CircleShape else RoundedCornerShape(6.dp)
 
     Box(
         modifier = modifier
@@ -84,12 +95,28 @@ fun ChannelLogo(channel: Channel, modifier: Modifier = Modifier, sizeDp: Int = 4
             AsyncImage(
                 model = url,
                 contentDescription = channel.displayName,
-                modifier = Modifier.size(sizeDp.dp),
+                // Held inside the disc rather than filling its bounding square. A logo fitted to
+                // the square runs to both of its vertical edges, which on a round plate is
+                // exactly where there is no plate left — station wordmarks lost their first and
+                // last letters to the clip. The inset is what an inscribed square costs.
+                modifier = Modifier
+                    .size(sizeDp.dp)
+                    .then(if (circular) Modifier.padding(sizeDp.dp * CIRCULAR_LOGO_INSET) else Modifier),
                 onError = { failed = true },
             )
         }
     }
 }
+
+/**
+ * How far a logo is held back from the edge of a round plate, as a fraction of its width.
+ *
+ * The largest square that fits inside a circle is `1/√2` of its diameter, so clearing the clip
+ * outright would cost about 15% a side. This is a little under that: a wordmark fitted to the
+ * remaining width is centred, so its extremes sit where the disc is still widest, and giving back
+ * the last couple of percent buys visibly larger artwork on a 36dp list row.
+ */
+private const val CIRCULAR_LOGO_INSET = 0.12f
 
 /** Shared with the home screen's tiles, which draw art for things that are not channels. */
 internal fun monogram(name: String): String {

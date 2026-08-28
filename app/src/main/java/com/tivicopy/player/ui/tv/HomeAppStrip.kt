@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
@@ -112,6 +113,12 @@ private fun launchIntentFor(packages: PackageManager, name: String): Intent? = r
 internal fun HomeAppStrip(
     apps: List<HomeAppTile>,
     background: Color,
+    /**
+     * Room kept clear at the leading edge for the home screen's navigation capsule, which is
+     * drawn over this row rather than beside it. The row itself stays full-bleed so its backdrop
+     * reaches the panel edge and the capsule has something to float on.
+     */
+    startInset: Dp,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -121,10 +128,12 @@ internal fun HomeAppStrip(
             topDivider = false,
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
+            // Less what the header pads its own label by, so it lines up with the tiles below.
+            modifier = Modifier.padding(start = startInset - SECTION_HEADER_OWN_INSET),
         )
         LazyRow(
             modifier = Modifier.fillMaxWidth().focusGroup(),
-            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(start = startInset, end = 4.dp, top = 4.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(apps, key = { it.app.id }) { tile ->

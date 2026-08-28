@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
@@ -212,13 +213,20 @@ fun TvHomeScreen(
     val backdrop = MaterialTheme.colorScheme.background
     val scrim = backdrop.copy(alpha = prefs.overlayOpacity)
 
+    // Room the capsule needs at the leading edge, kept by every row's *content* rather than by
+    // padding the list. Padding the list is what the rail used to rely on, and it stopped working
+    // the moment the rail stopped being full height: a scrim that halts 64dp short of the panel
+    // leaves a column of bare video running down the side of every rail, above and below the
+    // capsule. Full-bleed rows with inset content give the capsule something to float on.
+    //
+    // The collapsed width, and never the expanded one: the rail grows *over* the list, so nothing
+    // reflows as focus crosses into it.
+    val railGutter = metrics.homeNavRailCollapsedWidth + NAV_RAIL_MARGIN * 2
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                // The collapsed rail's width, and never the expanded one: the rail grows over
-                // this list rather than pushing it.
-                .padding(start = metrics.homeNavRailCollapsedWidth)
                 .focusGroup(),
         ) {
             item(key = "hero") {
@@ -230,6 +238,7 @@ fun TvHomeScreen(
                     showIdentity = !audioOnlyBackdrop,
                     backdrop = backdrop,
                     scrim = scrim,
+                    startInset = railGutter,
                     watchFocus = heroFocus.takeIf { heroIsFocusable },
                     onFullscreen = onFullscreen,
                 )
@@ -237,7 +246,12 @@ fun TvHomeScreen(
 
             if (apps.isNotEmpty()) {
                 item(key = "apps") {
-                    HomeAppStrip(apps = apps, background = scrim, modifier = Modifier.fillMaxWidth())
+                    HomeAppStrip(
+                        apps = apps,
+                        background = scrim,
+                        startInset = railGutter,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -249,6 +263,10 @@ fun TvHomeScreen(
                     cardWidth = metrics.homeCardWidth,
                     background = scrim,
                     firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
+                    // A radio station has a round mark, not a 16:9 still — the one rail whose
+                    // cards are about a *sound* rather than a picture.
+                    circularArt = rail.id == HomeRailId.RADIO,
+                    startInset = railGutter,
                     onOpen = open,
                 )
             }
@@ -263,7 +281,7 @@ fun TvHomeScreen(
         HomeNavRail(
             destinations = destinations,
             onOpen = onOpen,
-            modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight(),
+            modifier = Modifier.align(Alignment.CenterStart).padding(NAV_RAIL_MARGIN),
         )
     }
 }
@@ -293,6 +311,12 @@ private data class HomeDestination(
  * screen each time focus crosses into it — and drawing it in a `Box` above the list, with the
  * list padded only for its collapsed width, keeps that property while letting it grow.
  *
+ * It is a floating capsule rather than a full-height column: wrapped to its own content, centred
+ * vertically, rounded and inset from the edge, so the rails and the banner read as one surface
+ * with the rail resting on top of them rather than as a screen split into two panes. That is the
+ * one piece both explored directions agreed on, and it is why the background here is drawn on a
+ * clipped, rounded node instead of a bare rectangle.
+ *
  * On-demand is deliberately absent. This build carries the two bundled Israeli playlists and
  * nothing else (ADR-013, ADR-015), and a destination that opens an empty catalogue is worse
  * than no destination.
@@ -314,6 +338,7 @@ private fun HomeNavRail(
         animationSpec = tween(Motion.STANDARD),
         label = "railWidth",
     )
+    val shape = RoundedCornerShape(NAV_RAIL_CORNER)
     Column(
         modifier = modifier
             // Before `focusGroup`, so it observes the group's own focus state: `hasFocus` is true
@@ -321,13 +346,22 @@ private fun HomeNavRail(
             .onFocusChanged { expanded = it.hasFocus }
             .focusGroup()
             .width(railWidth)
+            .clip(shape)
             .background(
                 animatedColour(
-                    MaterialTheme.colorScheme.surface.copy(alpha = if (expanded) 0.96f else 0.55f),
+                    MaterialTheme.colorScheme.surface.copy(alpha = if (expanded) 0.96f else 0.62f),
                     Motion.STANDARD,
                 ),
             )
-            .padding(vertical = 16.dp, horizontal = 8.dp),
+            .border(
+                width = 1.dp,
+                color = animatedColour(
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = if (expanded) 0.16f else 0.10f),
+                    Motion.STANDARD,
+                ),
+                shape = shape,
+            )
+            .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         RailHeader(expanded = expanded)
@@ -469,6 +503,8 @@ private fun HomeBanner(
     showIdentity: Boolean,
     backdrop: Color,
     scrim: Color,
+    /** Room kept clear at the leading edge for the navigation capsule drawn over this. */
+    startInset: Dp,
     /** Null when nothing is playing: there is no button to focus, so nothing asks for it. */
     watchFocus: FocusRequester?,
     onFullscreen: () -> Unit,
@@ -491,7 +527,7 @@ private fun HomeBanner(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
-                    .padding(horizontal = TV_CONTENT_INSET, vertical = 16.dp),
+                    .padding(start = startInset, end = TV_CONTENT_INSET, top = 16.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -515,7 +551,7 @@ private fun HomeBanner(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(horizontal = TV_CONTENT_INSET, vertical = 12.dp),
+                .padding(start = startInset, end = TV_CONTENT_INSET, top = 12.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Crossed, not cut: the banner's title changes on its own when a programme ends or
@@ -635,6 +671,8 @@ private fun HomeCardRail(
     cardWidth: Dp,
     background: Color,
     firstCardFocus: FocusRequester?,
+    circularArt: Boolean,
+    startInset: Dp,
     onOpen: (HomeCard) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth().background(background)) {
@@ -645,7 +683,9 @@ private fun HomeCardRail(
             // read from across the room, not scanned down a settings list.
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(start = 12.dp),
+            // Less the inset the header pads its own label by, so the heading starts on the same
+            // line as the cards under it rather than 12dp past them.
+            modifier = Modifier.padding(start = startInset - SECTION_HEADER_OWN_INSET),
         )
         LazyRow(
             modifier = Modifier
@@ -653,8 +693,13 @@ private fun HomeCardRail(
                 .focusGroup(),
             // The home screen is drawn without `OverlayScaffold`'s content inset — a full-bleed
             // banner cannot start 24dp from the edge — so the rails apply it themselves, plus
-            // room for a focused card's ring.
-            contentPadding = PaddingValues(horizontal = TV_CONTENT_INSET, vertical = 8.dp),
+            // room for the navigation capsule at the leading edge and a focused card's ring.
+            contentPadding = PaddingValues(
+                start = startInset,
+                end = TV_CONTENT_INSET,
+                top = 8.dp,
+                bottom = 8.dp,
+            ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(cards, key = { it.key }) { card ->
@@ -662,6 +707,7 @@ private fun HomeCardRail(
                     card = card,
                     playing = card.channelId != null && card.channelId == playingChannelId,
                     width = cardWidth,
+                    circularArt = circularArt,
                     onClick = { onOpen(card) },
                     modifier = if (firstCardFocus != null && card.key == cards.firstOrNull()?.key) {
                         Modifier.focusRequester(firstCardFocus)
@@ -679,6 +725,7 @@ private fun HomeTile(
     card: HomeCard,
     playing: Boolean,
     width: Dp,
+    circularArt: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -721,7 +768,7 @@ private fun HomeTile(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        HomeTileArt(card = card, modifier = Modifier.fillMaxWidth())
+        HomeTileArt(card = card, circular = circularArt, modifier = Modifier.fillMaxWidth())
         Text(
             text = card.title,
             style = MaterialTheme.typography.titleSmall,
@@ -730,14 +777,32 @@ private fun HomeTile(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.fillMaxWidth(),
         )
-        Text(
-            text = card.subtitle ?: stringResource(R.string.no_guide_data),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        Row(
             modifier = Modifier.fillMaxWidth(),
-        )
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            // The card for the channel that is actually playing says so, rather than leaving the
+            // ring around it to carry that alone: on a rail scrolled past the focused card there
+            // is no ring in view, and "which of these am I listening to" is the question a radio
+            // rail gets asked most.
+            if (playing) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                )
+            }
+            Text(
+                text = card.subtitle ?: stringResource(R.string.no_guide_data),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
         when {
             card.hasProgress -> ProgrammeProgress(startUtc = card.startUtc, endUtc = card.endUtc)
             card.endUtc > card.startUtc -> Text(
@@ -764,30 +829,42 @@ private fun HomeTile(
  * series, does use 2:3 (`ui/screens/VodScreen.kt`).
  */
 @Composable
-private fun HomeTileArt(card: HomeCard, modifier: Modifier = Modifier) {
+private fun HomeTileArt(card: HomeCard, circular: Boolean, modifier: Modifier = Modifier) {
     var failed by remember(card.imageUrl) { mutableStateOf(false) }
-    val shape = RoundedCornerShape(8.dp)
+    // The *outer* box keeps 16:9 whichever shape the mark inside it takes, so a rail of round
+    // station marks is exactly as tall as a rail of channel stills and the two sit in one column
+    // of rails without the row heights stepping.
+    val artShape = if (circular) CircleShape else RoundedCornerShape(8.dp)
+    val artSize = if (circular) {
+        Modifier.fillMaxHeight().aspectRatio(1f)
+    } else {
+        Modifier.fillMaxSize()
+    }
     Box(
-        modifier = modifier
-            .aspectRatio(16f / 9f)
-            .clip(shape)
-            .background(monogramColour(card.title)),
+        modifier = modifier.aspectRatio(16f / 9f),
         contentAlignment = Alignment.Center,
     ) {
-        if (card.imageUrl.isNullOrBlank() || failed) {
-            Text(
-                text = monogram(card.title),
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White,
-                textAlign = TextAlign.Center,
-            )
-        } else {
-            AsyncImage(
-                model = card.imageUrl,
-                contentDescription = card.title,
-                modifier = Modifier.fillMaxSize().padding(10.dp),
-                onError = { failed = true },
-            )
+        Box(
+            modifier = artSize
+                .clip(artShape)
+                .background(monogramColour(card.title)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (card.imageUrl.isNullOrBlank() || failed) {
+                Text(
+                    text = monogram(card.title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+            } else {
+                AsyncImage(
+                    model = card.imageUrl,
+                    contentDescription = card.title,
+                    modifier = Modifier.fillMaxSize().padding(10.dp),
+                    onError = { failed = true },
+                )
+            }
         }
         card.number?.let { number ->
             Text(
@@ -811,6 +888,22 @@ private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000
 
 /** Room kept at the top of the navigation rail for the app's name, drawn only when it is open. */
 private val RAIL_HEADER_HEIGHT = 44.dp
+
+/** How far the floating navigation capsule sits from the edge of the panel. */
+private val NAV_RAIL_MARGIN = 12.dp
+
+/** The capsule's corner: large enough that the collapsed, icon-wide rail reads as a pill. */
+private val NAV_RAIL_CORNER = 28.dp
+
+/**
+ * How much [com.tivicopy.player.ui.common.SectionHeader] insets its own label.
+ *
+ * A rail heading and the cards under it are given their leading inset by two different mechanisms
+ * — a modifier on the header, content padding on the row — and only one of them is the whole
+ * distance. Subtracting this is what keeps the two on one line; before the rails were made
+ * full-bleed the same alignment came out of a bare `12.dp` that quietly encoded it.
+ */
+internal val SECTION_HEADER_OWN_INSET = 12.dp
 
 /** The banner's button lifts less than a card does; it is already the largest control on screen. */
 private const val BUTTON_FOCUS_SCALE = 1.04f

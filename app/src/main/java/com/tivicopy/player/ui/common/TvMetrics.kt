@@ -35,8 +35,11 @@ data class TvMetrics(
     val homeNavRailWidth: Dp,
     /**
      * Width of the same rail collapsed to icons, which is what it shows until focus enters it
-     * (ADR-020). The content column is padded by this much and never by the expanded width: the
-     * rail expands *over* the screen rather than pushing it, so nothing reflows as focus crosses.
+     * (ADR-020). Every row on the home screen keeps this much clear at its leading edge, and
+     * never the expanded width: the rail expands *over* the screen rather than pushing it, so
+     * nothing reflows as focus crosses into it. The room is kept by each row's own content
+     * padding rather than by insetting the list, so the rails stay full-bleed and the rail — now
+     * a capsule wrapped to its own height — has an unbroken backdrop to float on.
      */
     val homeNavRailCollapsedWidth: Dp,
     /**

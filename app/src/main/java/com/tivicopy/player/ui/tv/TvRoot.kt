@@ -50,6 +50,7 @@ import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.audioOnlyChannel
+import com.tivicopy.player.ui.common.isLiveStream
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.screenEntrance
 import com.tivicopy.player.ui.screens.AddSourceScreen
@@ -250,6 +251,8 @@ fun TvRoot(
                 // Only while nothing else owns the arrows: an overlay draws its own focusable
                 // controls over this one, and two claims on the D-pad is one too many.
                 takeDpadFocus = overlay.leavesDpadToShell,
+                // Catch-up off a radio station reaches this screen too, and is not live.
+                live = state.nowPlaying.isLiveStream(),
                 modifier = pictureBounds,
             )
         }
