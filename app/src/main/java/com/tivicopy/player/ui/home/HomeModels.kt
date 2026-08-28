@@ -38,6 +38,15 @@ data class HomeCard(
      * would sit at zero and read as a bug. Only a card that is currently on air gets one.
      */
     val live: Boolean = false,
+    /**
+     * Whether this card's art is a round station mark rather than a 16:9 still (ADR-022).
+     *
+     * A property of the *card*, not of the rail it lands on. Deciding it per rail was wrong in a
+     * way only a real playlist shows: Continue and Favourites are built across every playlist on
+     * the device, so a radio station that had been played or starred appeared round on the radio
+     * rail and square on that one, on the same screen at the same time.
+     */
+    val circular: Boolean = false,
 ) {
     /** Whether there is a real, currently-running window behind this card to draw a bar from. */
     val hasProgress: Boolean get() = live && endUtc > startUtc
@@ -105,13 +114,18 @@ object HomeRails {
         fun onlyVisible(channels: List<Channel>) =
             channels.filter { it.id in visible || it.playlistId !in screened }
 
+        // Which channels are stations, so a card can carry its own shape wherever it lands.
+        // Recent and Favourites span every playlist on the device, so this is the only way a
+        // station stays round once it has been played or starred.
+        val stations = data.radio.mapTo(HashSet()) { it.id }
+
         return listOf(
-            HomeRail(HomeRailId.FEATURED, featuredCards(data.featured, visible.values.toList(), cap)),
-            HomeRail(HomeRailId.CONTINUE, channelCards(onlyVisible(data.recent), "recent", data, nowUtc, cap)),
-            HomeRail(HomeRailId.CHANNELS, channelCards(data.channels, "live", data, nowUtc, cap)),
-            HomeRail(HomeRailId.RADIO, channelCards(data.radio, "radio", data, nowUtc, cap)),
-            HomeRail(HomeRailId.FAVOURITES, channelCards(onlyVisible(data.favourites), "fav", data, nowUtc, cap)),
-            HomeRail(HomeRailId.STARTING_SOON, startingSoonCards(data, nowUtc, cap)),
+            HomeRail(HomeRailId.FEATURED, featuredCards(data.featured, visible.values.toList(), cap, stations)),
+            HomeRail(HomeRailId.CONTINUE, channelCards(onlyVisible(data.recent), "recent", data, nowUtc, cap, stations)),
+            HomeRail(HomeRailId.CHANNELS, channelCards(data.channels, "live", data, nowUtc, cap, stations)),
+            HomeRail(HomeRailId.RADIO, channelCards(data.radio, "radio", data, nowUtc, cap, stations)),
+            HomeRail(HomeRailId.FAVOURITES, channelCards(onlyVisible(data.favourites), "fav", data, nowUtc, cap, stations)),
+            HomeRail(HomeRailId.STARTING_SOON, startingSoonCards(data, nowUtc, cap, stations)),
         ).filter { it.cards.isNotEmpty() }
     }
 
@@ -131,6 +145,7 @@ object HomeRails {
         items: List<FeaturedItem>,
         channels: List<Channel>,
         cap: Int,
+        stations: Set<Long>,
     ): List<HomeCard> =
         items.asSequence()
             .distinctBy { it.id }
@@ -144,6 +159,10 @@ object HomeRails {
                     imageUrl = item.imageUrl ?: channel.displayLogo,
                     number = channel.number.takeIf { it > 0 },
                     channelId = channel.id,
+                    // A station stays round when it is promoted — but only while the art is its
+                    // own mark. A feed that supplies artwork is supplying a picture, and a
+                    // picture in a disc is a picture with its ends cut off.
+                    circular = channel.id in stations && item.imageUrl.isNullOrBlank(),
                 )
             }
             .take(cap)
@@ -155,6 +174,7 @@ object HomeRails {
         data: HomeData,
         nowUtc: Long,
         cap: Int,
+        stations: Set<Long>,
     ): List<HomeCard> =
         channels.asSequence()
             .distinctBy { it.id }
@@ -171,6 +191,7 @@ object HomeRails {
                     startUtc = now?.startUtc ?: 0,
                     endUtc = now?.endUtc ?: 0,
                     live = now != null,
+                    circular = channel.id in stations,
                 )
             }
             .toList()
@@ -182,7 +203,12 @@ object HomeRails {
      * at most once — the row answers "what is coming up", and three consecutive programmes on
      * one channel would crowd out five other channels' worth of it.
      */
-    private fun startingSoonCards(data: HomeData, nowUtc: Long, cap: Int): List<HomeCard> {
+    private fun startingSoonCards(
+        data: HomeData,
+        nowUtc: Long,
+        cap: Int,
+        stations: Set<Long>,
+    ): List<HomeCard> {
         val byId = (data.channels + data.radio).associateBy { it.id }
         val until = nowUtc + STARTING_SOON_WINDOW_MS
         return data.programmes.entries.asSequence()
@@ -206,6 +232,9 @@ object HomeRails {
                     channelId = channel.id,
                     startUtc = programme.startUtc,
                     endUtc = programme.endUtc,
+                    // As on the featured rail: round is for a station's own mark, and this card
+                    // falls back to a programme's icon when the guide has one.
+                    circular = channel.id in stations && programme.iconUrl.isNullOrBlank(),
                 )
             }
             .toList()

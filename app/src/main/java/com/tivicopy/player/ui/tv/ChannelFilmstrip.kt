@@ -1,7 +1,5 @@
 package com.tivicopy.player.ui.tv
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,11 +22,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,6 +35,7 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.focusLift
 
 /**
  * A reel of neighbouring channels along the bottom of playing video (FR-UI-04).
@@ -103,10 +99,16 @@ fun ChannelFilmstrip(
 
     LazyRow(
         state = listState,
+        // A floating plate rather than an edge-to-edge band, so the reel belongs to the same
+        // family as the navigation capsule and the transport bar (`TvSurfaces.kt`) instead of
+        // reading as a black bar the picture stops at.
         modifier = modifier
-            .background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
-            .padding(vertical = 12.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = TV_CONTENT_INSET),
+            .padding(horizontal = TV_CONTENT_INSET, vertical = 12.dp)
+            .tvGlassPanel(opacity),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = 16.dp,
+            vertical = 14.dp,
+        ),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(channels, key = { it.id }) { channel ->
@@ -136,28 +138,16 @@ private fun FilmstripTile(
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(10.dp)
-    val background = when {
-        focused -> MaterialTheme.colorScheme.surfaceVariant
-        playing -> MaterialTheme.colorScheme.surface
-        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-    }
     Column(
         modifier = modifier
+            // Grows on focus and is drawn over its neighbours while it does, as the home rails
+            // do — through a `graphicsLayer`, so the reel does not re-measure and the tiles
+            // either side of it stay where they are.
+            .focusLift(focused)
             .width(TILE_WIDTH)
-            .clip(shape)
-            .background(background)
-            .border(
-                // Thicker than the app's usual ring: this one is read across a room, against
-                // moving video rather than a settled surface (NFR-UX-02).
-                width = if (focused) 3.dp else 1.dp,
-                color = when {
-                    focused -> MaterialTheme.colorScheme.primary
-                    playing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                    else -> Color.Transparent
-                },
-                shape = shape,
-            )
+            // The same three states, the same ring, the same corner as a home tile: one card
+            // look for the whole shell (`TvSurfaces.kt`), rather than this file's own copy of it.
+            .tvCard(focused = focused, playing = playing)
             .onFocusChanged { focused = it.isFocused }
             // `clickable` carries the focus target on its own; pairing it with `focusable()`
             // would cost the remote a second press to leave every tile.

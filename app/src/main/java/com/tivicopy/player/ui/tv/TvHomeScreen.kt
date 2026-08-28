@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.tv
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -263,9 +264,6 @@ fun TvHomeScreen(
                     cardWidth = metrics.homeCardWidth,
                     background = scrim,
                     firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
-                    // A radio station has a round mark, not a 16:9 still — the one rail whose
-                    // cards are about a *sound* rather than a picture.
-                    circularArt = rail.id == HomeRailId.RADIO,
                     startInset = railGutter,
                     onOpen = open,
                 )
@@ -281,6 +279,7 @@ fun TvHomeScreen(
         HomeNavRail(
             destinations = destinations,
             onOpen = onOpen,
+            opacity = prefs.overlayOpacity,
             modifier = Modifier.align(Alignment.CenterStart).padding(NAV_RAIL_MARGIN),
         )
     }
@@ -326,6 +325,8 @@ private data class HomeDestination(
 private fun HomeNavRail(
     destinations: List<HomeDestination>,
     onOpen: (TvOverlay) -> Unit,
+    /** The viewer's overlay-opacity setting (FR-UI-18), which this obeys like every other panel. */
+    opacity: Float,
     modifier: Modifier = Modifier,
 ) {
     val metrics = LocalTvMetrics.current
@@ -338,7 +339,6 @@ private fun HomeNavRail(
         animationSpec = tween(Motion.STANDARD),
         label = "railWidth",
     )
-    val shape = RoundedCornerShape(NAV_RAIL_CORNER)
     Column(
         modifier = modifier
             // Before `focusGroup`, so it observes the group's own focus state: `hasFocus` is true
@@ -346,20 +346,23 @@ private fun HomeNavRail(
             .onFocusChanged { expanded = it.hasFocus }
             .focusGroup()
             .width(railWidth)
-            .clip(shape)
-            .background(
-                animatedColour(
-                    MaterialTheme.colorScheme.surface.copy(alpha = if (expanded) 0.96f else 0.62f),
-                    Motion.STANDARD,
-                ),
-            )
-            .border(
-                width = 1.dp,
-                color = animatedColour(
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = if (expanded) 0.16f else 0.10f),
-                    Motion.STANDARD,
-                ),
-                shape = shape,
+            // The shell's floating-panel look (`TvSurfaces.kt`), reaching for opacity as focus
+            // arrives: a rail whose labels are open is being read, and is worth more than the
+            // frame of video behind it; a rail merely being passed is not.
+            //
+            // Both ends are the viewer's own setting rather than constants — this capsule obeys
+            // FR-UI-18 like every other panel — with a floor under the focused end alone, which
+            // is the only moment there are words on it to read.
+            .tvGlassPanel(
+                animateFloatAsState(
+                    targetValue = if (expanded) {
+                        opacity.coerceAtLeast(RAIL_FOCUSED_MIN_OPACITY)
+                    } else {
+                        opacity
+                    },
+                    animationSpec = tween(Motion.STANDARD),
+                    label = "railOpacity",
+                ).value,
             )
             .padding(vertical = 12.dp, horizontal = 8.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -671,7 +674,6 @@ private fun HomeCardRail(
     cardWidth: Dp,
     background: Color,
     firstCardFocus: FocusRequester?,
-    circularArt: Boolean,
     startInset: Dp,
     onOpen: (HomeCard) -> Unit,
 ) {
@@ -707,7 +709,6 @@ private fun HomeCardRail(
                     card = card,
                     playing = card.channelId != null && card.channelId == playingChannelId,
                     width = cardWidth,
-                    circularArt = circularArt,
                     onClick = { onOpen(card) },
                     modifier = if (firstCardFocus != null && card.key == cards.firstOrNull()?.key) {
                         Modifier.focusRequester(firstCardFocus)
@@ -725,12 +726,10 @@ private fun HomeTile(
     card: HomeCard,
     playing: Boolean,
     width: Dp,
-    circularArt: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(12.dp)
     Column(
         modifier = modifier
             // Grows on focus and is drawn over its neighbours while it does. Through a
@@ -738,29 +737,8 @@ private fun HomeTile(
             // side of it do not move (`ui/common/Motion.kt`).
             .focusLift(focused)
             .width(width)
-            .clip(shape)
-            .background(
-                animatedColour(
-                    when {
-                        focused -> MaterialTheme.colorScheme.surfaceVariant
-                        playing -> MaterialTheme.colorScheme.surface
-                        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
-                    },
-                ),
-            )
-            .border(
-                // Thicker than the app's usual ring, as on the filmstrip: this one is read
-                // across a room, against moving video rather than a settled surface (NFR-UX-02).
-                width = if (focused) 3.dp else 1.dp,
-                color = animatedColour(
-                    when {
-                        focused -> MaterialTheme.colorScheme.primary
-                        playing -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
-                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                    },
-                ),
-                shape = shape,
-            )
+            // The shell's one card look, shared with the filmstrip (`TvSurfaces.kt`).
+            .tvCard(focused = focused, playing = playing)
             .onFocusChanged { focused = it.isFocused }
             // `clickable` carries the focus target on its own; adding `focusable()` here would
             // cost the remote a second press to leave every tile.
@@ -768,7 +746,9 @@ private fun HomeTile(
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        HomeTileArt(card = card, circular = circularArt, modifier = Modifier.fillMaxWidth())
+        // The card knows its own shape: a station is round wherever it lands, including on the
+        // Continue and Favourites rails, which are built across every playlist (`HomeModels.kt`).
+        HomeTileArt(card = card, circular = card.circular, modifier = Modifier.fillMaxWidth())
         Text(
             text = card.title,
             style = MaterialTheme.typography.titleSmall,
@@ -892,8 +872,14 @@ private val RAIL_HEADER_HEIGHT = 44.dp
 /** How far the floating navigation capsule sits from the edge of the panel. */
 private val NAV_RAIL_MARGIN = 12.dp
 
-/** The capsule's corner: large enough that the collapsed, icon-wide rail reads as a pill. */
-private val NAV_RAIL_CORNER = 28.dp
+/**
+ * The least opaque the capsule is drawn while its labels are open.
+ *
+ * Only the focused end has a floor. Collapsed, the rail is a strip of icons glanced past and the
+ * viewer's setting is the whole answer; open, it carries seven words that have to be read off
+ * moving video.
+ */
+private const val RAIL_FOCUSED_MIN_OPACITY = 0.9f
 
 /**
  * How much [com.tivicopy.player.ui.common.SectionHeader] insets its own label.

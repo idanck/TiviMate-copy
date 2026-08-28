@@ -289,6 +289,7 @@ fun ChannelListScreen(
                     .width(LocalTvMetrics.current.nowNextPaneWidth)
                     .fillMaxHeight()
                     .padding(12.dp),
+                circularLogo = isRadio,
             )
         }
     }
@@ -736,11 +737,17 @@ fun NowNextPane(
     now: Programme?,
     next: Programme?,
     modifier: Modifier = Modifier,
+    /**
+     * Whether the channel's mark is a station's disc (ADR-022). Defaulted off, so the phone's
+     * player screen is unchanged; the radio list passes it, because this pane sits in the column
+     * beside rows that are already drawing the same station round.
+     */
+    circularLogo: Boolean = false,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (channel == null) return@Column
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            ChannelLogo(channel = channel, sizeDp = 48)
+            ChannelLogo(channel = channel, sizeDp = 48, circular = circularLogo)
             Text(
                 text = channel.displayName,
                 style = MaterialTheme.typography.titleMedium,

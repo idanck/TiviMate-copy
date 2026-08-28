@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -44,6 +45,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
@@ -52,6 +54,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.player.TrackOption
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.labelRes
@@ -103,12 +106,33 @@ fun TransportBar(
     val labels = nowPlayingLabels(state.nowPlaying, state.now?.title) ?: return
 
     Column(
+        // A floating plate, inset from the edges, rather than a band the picture stops at —
+        // the same surface the filmstrip and the navigation capsule are drawn from
+        // (`TvSurfaces.kt`).
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background.copy(alpha = prefs.overlayOpacity))
-            .padding(horizontal = TV_CONTENT_INSET, vertical = 16.dp),
+            .padding(TV_CONTENT_INSET)
+            .tvGlassPanel(prefs.overlayOpacity)
+            .padding(horizontal = 28.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        // Live *and* not paused, the same rule the station backdrop applies to the same badge:
+        // this bar is the one place a viewer can stop a live stream, so it is the last place that
+        // should go on calling it live afterwards.
+        //
+        // Hidden rather than removed, because this bar is anchored to the foot of the screen and
+        // grows upwards: dropping a line would slide the focused play/pause button down at the
+        // exact moment it is being pressed, and back up on the next press. `alpha` keeps the row
+        // measured at any font scale; the semantics go with the pixels, so a screen reader is not
+        // told about a badge nobody can see.
+        if (live != null) {
+            val onAir = playback.playWhenReady
+            LiveBadge(
+                modifier = Modifier
+                    .alpha(if (onAir) 1f else 0f)
+                    .then(if (onAir) Modifier else Modifier.clearAndSetSemantics {}),
+            )
+        }
         Text(
             text = labels.first,
             style = MaterialTheme.typography.headlineSmall,
@@ -283,9 +307,14 @@ fun PlaybackMenu(
     val labels = nowPlayingLabels(state.nowPlaying, state.now?.title)
 
     Column(
+        // Rounded and hairlined like every other floating surface in this shell — but with a
+        // floor under the viewer's opacity setting rather than obeying it outright. This menu is
+        // a list of track names and settings being *read*, several lines of small text at once,
+        // and the setting goes down to 0.3: at that value every other surface is a caption
+        // glanced at over video, and this one would be unreadable.
         modifier = modifier
             .fillMaxWidth(0.5f)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.97f))
+            .tvGlassPanel(prefs.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY))
             .padding(TV_CONTENT_INSET),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -433,3 +462,13 @@ private fun MenuEntry(
         }
     }
 }
+
+/**
+ * The least opaque the playback menu is ever drawn, whatever the overlay-opacity setting says.
+ *
+ * Every other surface in this shell obeys that setting outright (FR-UI-18), because every other
+ * surface is glanced at. This one is a list of track names read line by line, and below about
+ * this it stops being legible over moving video — which is not a preference anyone is expressing
+ * when they turn overlays down.
+ */
+private const val MENU_MIN_OPACITY = 0.92f
