@@ -36,12 +36,14 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.tivicopy.player.R
 import com.tivicopy.player.data.model.Channel
 
 /**
@@ -109,6 +111,54 @@ fun ChannelLogo(
 }
 
 /**
+ * "Live", with a dot, on a plate dark enough to hold it over anything.
+ *
+ * Shared rather than owned by one screen: the station backdrop, the zapping info card and the
+ * transport bar all have to say the same word about the same stream, and three of them drawn
+ * three ways is how a shell stops looking like one app.
+ *
+ * Dark plate, white text, in fixed colours rather than scheme ones. It has to read on three
+ * different things — live video, a backdrop built from a station's own hue, and a themed panel —
+ * and a plate taken from the scheme would fight the first two while a light one would lose to
+ * bright video. The alpha is what makes it work on the third: at the 45% it started at, over a
+ * light theme's own `surface`, the plate composites to a mid grey and white text on it falls
+ * under 3:1. Dark enough to stay a dark plate over white is the whole requirement.
+ *
+ * The dot is the scheme's error red, the one colour in the ramp that already means "on air".
+ */
+@Composable
+fun LiveBadge(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(LIVE_BADGE_CORNER))
+            .background(Color.Black.copy(alpha = LIVE_BADGE_PLATE_ALPHA))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.error),
+        )
+        Text(
+            text = stringResource(R.string.playback_live_badge),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+        )
+    }
+}
+
+/**
+ * Dark enough to hold white text over anything, including a light theme's own surface, and short
+ * of the solid black box that would read as a hole punched in the picture.
+ */
+private const val LIVE_BADGE_PLATE_ALPHA = 0.72f
+
+private val LIVE_BADGE_CORNER = 16.dp
+
+/**
  * How far a logo is held back from the edge of a round plate, as a fraction of its width.
  *
  * The largest square that fits inside a circle is `1/√2` of its diameter, so clearing the clip
@@ -160,6 +210,13 @@ fun FocusableRow(
 ) {
     var focused by remember { mutableStateOf(false) }
     val interaction = remember { MutableInteractionSource() }
+    // Every list in the app is built from this row, and the two form factors want different
+    // numbers out of it: a phone row is read at arm's length and a television row from across a
+    // room, where an 8dp corner and a 2dp ring are a rectangle with a faint outline. The metrics
+    // carry the answer, so the channel list, the radio list and the guide all pick up the ten-foot
+    // card language on a television and change not at all on a phone (`ui/common/TvMetrics.kt`).
+    val rowMetrics = LocalTvMetrics.current
+    val rowShape = RoundedCornerShape(rowMetrics.rowCorner)
     // Crossed rather than cut (`ui/common/Motion.kt`). Every list in the app is built from this
     // row, so this one call is most of what the interface's focus feels like. The resting values
     // are the same colours at zero alpha, never `Color.Transparent`: transparent is transparent
@@ -183,9 +240,9 @@ fun FocusableRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(rowShape)
             .background(background)
-            .border(2.dp, border, RoundedCornerShape(8.dp))
+            .border(rowMetrics.focusRingWidth, border, rowShape)
             .onFocusChanged {
                 // `hasFocus`, not `isFocused`: rows now carry their own controls — the favourite
                 // toggle — and a D-pad step onto one of those must not look like leaving the row.

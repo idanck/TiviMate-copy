@@ -23,6 +23,9 @@ class TvMetricsTest {
     /** `TV_CONTENT_INSET` applied on both sides by the shell's overlay scaffold. */
     private val CONTENT_INSET = 48f
 
+    /** `NAV_RAIL_MARGIN`: how far the home screen's navigation capsule floats from the edge. */
+    private val NAV_RAIL_MARGIN = 12f
+
     @Test
     fun `a 1080p panel keeps the widths the layout was written for`() {
         val metrics = tvMetricsFor(hd.first, hd.second)
@@ -59,11 +62,12 @@ class TvMetricsTest {
     fun `a rail always has room for more than one card`() {
         panels.forEach { (w, h) ->
             val metrics = tvMetricsFor(w, h)
-            // What the rails actually get: the panel, less the room every row keeps clear at its
-            // leading edge for the collapsed navigation rail, less the inset the rails apply
-            // themselves. The two are one number now — the rows keep both in their own content
-            // padding rather than the list being inset by the first — but it adds up the same.
-            val forCards = w - CONTENT_INSET - metrics.homeNavRailCollapsedWidth.value
+            // What the rails actually get: the panel, less the gutter every row keeps clear at
+            // its leading edge for the floating navigation capsule — the collapsed rail plus the
+            // margin it floats on, on both sides of it — less the inset the rails apply at the
+            // trailing edge. See `railGutter` in `ui/tv/TvHomeScreen.kt`.
+            val gutter = metrics.homeNavRailCollapsedWidth.value + NAV_RAIL_MARGIN * 2
+            val forCards = w - CONTENT_INSET - gutter
             assertTrue(
                 "only ${forCards}dp of ${w}dp left for cards of ${metrics.homeCardWidth.value}dp",
                 forCards >= metrics.homeCardWidth.value * 2,

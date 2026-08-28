@@ -50,6 +50,20 @@ data class TvMetrics(
     val homeHeroHeight: Dp,
     /** Width of one card on a home-screen rail. */
     val homeCardWidth: Dp,
+    /**
+     * The corner every focusable list row is cut to.
+     *
+     * A phone row is read at arm's length and a television row from three metres, where the
+     * original 8dp read as a plain rectangle. Giving the ten-foot shell a card corner is what
+     * makes the channel list, the radio list and the guide belong to the same family as the home
+     * rails and the filmstrip instead of looking like a settings screen behind them.
+     */
+    val rowCorner: Dp,
+    /**
+     * How thick a focused row's ring is. Thicker on a television for the same reason every other
+     * ring in that shell is (NFR-UX-02): it is read at distance, and often against moving video.
+     */
+    val focusRingWidth: Dp,
 ) {
     companion object {
         /**
@@ -67,6 +81,8 @@ data class TvMetrics(
             homeNavRailCollapsedWidth = 64.dp,
             homeHeroHeight = 320.dp,
             homeCardWidth = 180.dp,
+            rowCorner = 8.dp,
+            focusRingWidth = 2.dp,
         )
     }
 }
@@ -115,6 +131,11 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         homeNavRailCollapsedWidth = base.homeNavRailCollapsedWidth * scale,
         homeHeroHeight = heroHeightFor(heightDp).dp,
         homeCardWidth = base.homeCardWidth * scale,
+        // Flat, not scaled. These two are about how a shape reads at a viewing distance, and a
+        // bigger panel does not move the sofa: a 4K television wants the same corner and the same
+        // ring as a 1080p one, which is exactly what scaling them would take away.
+        rowCorner = TV_ROW_CORNER,
+        focusRingWidth = TV_FOCUS_RING_WIDTH,
     )
 }
 
@@ -143,6 +164,15 @@ private const val RAIL_TEASER_HEIGHT = 150f
 
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.6f
+
+/**
+ * The ten-foot row shape, matching `ui/tv/TvSurfaces.kt`'s card corner so a channel row and a
+ * home tile are cut the same way.
+ */
+private val TV_ROW_CORNER = 14.dp
+
+/** The ten-foot focus ring, matching every other ring the television shell draws. */
+private val TV_FOCUS_RING_WIDTH = 3.dp
 
 /** Floors and ceilings for the derived row height, so an odd viewport cannot produce a silly one. */
 private const val MIN_ROW_HEIGHT = 56f

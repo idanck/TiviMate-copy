@@ -26,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
@@ -50,7 +53,8 @@ import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.audioOnlyChannel
-import com.tivicopy.player.ui.common.isLiveStream
+import com.tivicopy.player.ui.common.isLive
+import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.screenEntrance
 import com.tivicopy.player.ui.screens.AddSourceScreen
@@ -252,7 +256,7 @@ fun TvRoot(
                 // controls over this one, and two claims on the D-pad is one too many.
                 takeDpadFocus = overlay.leavesDpadToShell,
                 // Catch-up off a radio station reaches this screen too, and is not live.
-                live = state.nowPlaying.isLiveStream(),
+                live = state.nowPlaying.isLive(),
                 modifier = pictureBounds,
             )
         }
@@ -273,9 +277,23 @@ fun TvRoot(
                 channel = state.currentChannel,
                 now = state.now,
                 next = state.next,
+                // Live *and* running: pausing does not stop this card being on screen, and a
+                // paused stream is exactly what the badge must not go on calling live.
+                live = state.nowPlaying.isLive() && status.playWhenReady,
+                // An audio-only stream is a station, and a station's mark is round wherever it
+                // is drawn (ADR-022) — including here, over its own backdrop.
+                circularLogo = audioOnly,
+                // …but that backdrop is *already* drawing the station's mark, its name and a
+                // badge of its own, so the card drops all three rather than printing a second
+                // set of them a few centimetres below. The same rule the home banner follows.
+                showIdentity = !audioOnly,
+                opacity = prefs.overlayOpacity,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(TV_CONTENT_INSET)
+                    // Full width and flush to the foot of the screen: the card is a lower third
+                    // now, and its own gradient is what holds the text, so an inset around it
+                    // would put a band of untouched video under the words.
+                    .fillMaxWidth()
                     // Everything that arrives over playing video fades and rises into place
                     // rather than appearing between two frames (`ui/common/Motion.kt`).
                     .screenEntrance(Unit),
@@ -579,53 +597,150 @@ private fun OverlayScaffold(
  */
 internal val TV_CONTENT_INSET = 24.dp
 
-/** The zapping info card (FR-PLB-18). */
+/**
+ * The zapping info card (FR-PLB-18) — the whole of what the shell says while you are simply
+ * watching.
+ *
+ * It used to be a small opaque box in the corner: a plate of `surface` at 0.9, a logo, a name and
+ * three lines of grey text, laid out as a list rather than as something read from a sofa. That is
+ * the surface a viewer sees more than any other in this app, and it was the one surface the
+ * redesign had not touched — so it looked like a different app to the home screen it was one
+ * button away from.
+ *
+ * This is the lower third the design calls for instead. Full width, no box: a gradient that
+ * fades the picture into legibility from about half way down, the way the home banner already
+ * does, so nothing is hidden that does not have to be. Above the fold of text sits the channel's
+ * identity and, when the stream is live, the shared [LiveBadge] — the same badge the station
+ * backdrop draws, because they are answering the same question about the same stream.
+ *
+ * The programme title carries the weight here rather than the channel name. Zapping asks "what is
+ * on this one", and the answer was previously set two steps down the type ramp from the channel's
+ * own name.
+ */
 @Composable
 fun ChannelInfoCard(
     channel: Channel?,
     now: Programme?,
     next: Programme?,
+    /** Whether the stream is arriving live *and* running; catch-up and a pause are neither. */
+    live: Boolean,
+    /** Whether the channel's mark is a station's disc rather than a channel's plate. */
+    circularLogo: Boolean,
+    /**
+     * Whether to draw the channel's own mark, name and live badge.
+     *
+     * False while the audio-only backdrop is behind this card: it draws all three already, and
+     * two of everything a few centimetres apart is worse than one.
+     */
+    showIdentity: Boolean,
+    /** The viewer's overlay-opacity setting: how far the gradient darkens the picture. */
+    opacity: Float,
     modifier: Modifier = Modifier,
 ) {
     if (channel == null) return
+    val backdrop = MaterialTheme.colorScheme.background
+    // The setting, with a floor under it. This card is the most-seen surface in the app — it is
+    // what every channel change puts on screen — and it is four lines of small text, two of them
+    // in the variant tone. At the setting's own minimum of 0.3 the gradient under them is barely
+    // there, and "turn overlays down" is not a request to make the zapping readout unreadable.
+    val floor = opacity.coerceAtLeast(INFO_MIN_OPACITY)
     Column(
         modifier = modifier
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .fillMaxWidth()
+            // The transparent lead-in is short and the ramp is steep. A long, gentle fade looks
+            // better on a still and fails on a real one: the top line of a lower third sits where
+            // a lazy gradient is still nearly clear, and grey text over a bright frame is not
+            // text. Everything from the identity row down is inside the dense part of the ramp.
+            .background(
+                Brush.verticalGradient(
+                    0f to Color.Transparent,
+                    INFO_GRADIENT_KNEE to backdrop.copy(alpha = floor * INFO_GRADIENT_KNEE_ALPHA),
+                    1f to backdrop.copy(alpha = floor),
+                ),
+            )
+            .padding(
+                start = TV_CONTENT_INSET,
+                end = TV_CONTENT_INSET,
+                top = 72.dp,
+                bottom = TV_CONTENT_INSET,
+            ),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            ChannelLogo(channel = channel, sizeDp = 56)
-            Column {
+        if (showIdentity) Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ChannelLogo(channel = channel, sizeDp = 48, circular = circularLogo)
+            Text(
+                // The number is isolated: a bare Latin numeral beside a Hebrew name reorders
+                // otherwise (FR-UI-22).
+                text = channel.number.takeIf { it > 0 }
+                    ?.let { "${TimeModel.ltr(it.toString())} · ${channel.displayName}" }
+                    ?: channel.displayName,
+                style = MaterialTheme.typography.titleMedium,
+                // Full-strength, not the variant tone the rest of this card's secondary lines
+                // use: this is the highest line on the card and so the one with the least scrim
+                // under it.
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            if (live) LiveBadge()
+        }
+
+        Text(
+            text = now?.title ?: stringResource(R.string.no_guide_data),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        now?.let {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
                 Text(
-                    text = "${channel.number.takeIf { it > 0 } ?: ""} ${channel.displayName}".trim(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = now?.title ?: stringResource(R.string.no_guide_data),
-                    style = MaterialTheme.typography.titleSmall,
+                    text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                ProgrammeProgress(
+                    it.startUtc,
+                    it.endUtc,
+                    modifier = Modifier.fillMaxWidth(INFO_PROGRESS_FRACTION),
+                )
             }
-        }
-        now?.let {
-            Text(
-                text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            ProgrammeProgress(it.startUtc, it.endUtc, modifier = Modifier.fillMaxWidth(0.5f))
         }
         next?.let {
             Text(
                 text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
+
+/**
+ * Where the info card's gradient stops fading and starts holding, and how dark it already is
+ * there relative to its foot.
+ *
+ * The card's top padding puts the first line of text below this knee, which is the whole point:
+ * above it the picture is barely touched, below it there is enough scrim to read grey text on.
+ */
+private const val INFO_GRADIENT_KNEE = 0.28f
+private const val INFO_GRADIENT_KNEE_ALPHA = 0.82f
+
+/** The least dense the info card's gradient is drawn, whatever the opacity setting says. */
+private const val INFO_MIN_OPACITY = 0.8f
+
+/** How much of the width the progress bar takes. Long enough to read, short of a rule. */
+private const val INFO_PROGRESS_FRACTION = 0.35f
 
 @Composable
 private fun PlaybackErrorBanner(error: com.tivicopy.player.core.AppError, modifier: Modifier = Modifier) {
