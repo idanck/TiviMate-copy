@@ -59,8 +59,10 @@ class TvMetricsTest {
     fun `a rail always has room for more than one card`() {
         panels.forEach { (w, h) ->
             val metrics = tvMetricsFor(w, h)
-            // What the rails actually get: the panel, less the collapsed navigation rail the
-            // content column is padded by, less the inset the rails apply themselves.
+            // What the rails actually get: the panel, less the room every row keeps clear at its
+            // leading edge for the collapsed navigation rail, less the inset the rails apply
+            // themselves. The two are one number now — the rows keep both in their own content
+            // padding rather than the list being inset by the first — but it adds up the same.
             val forCards = w - CONTENT_INSET - metrics.homeNavRailCollapsedWidth.value
             assertTrue(
                 "only ${forCards}dp of ${w}dp left for cards of ${metrics.homeCardWidth.value}dp",

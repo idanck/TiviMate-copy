@@ -68,6 +68,7 @@ import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.audioOnlyChannel
+import com.tivicopy.player.ui.common.isLiveStream
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.screens.ChannelListScreen
 import com.tivicopy.player.ui.screens.NowNextPane
@@ -196,6 +197,7 @@ fun PlayerScreen(
                             } else {
                                 null
                             },
+                            live = state.nowPlaying.isLiveStream(),
                             modifier = Modifier.fillMaxSize(),
                         )
                     }

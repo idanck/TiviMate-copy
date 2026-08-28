@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -287,6 +289,17 @@ internal fun NowPlayingInfo?.audioOnlyChannel(): Channel? = when (this) {
     is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile, null -> null
 }
 
+/**
+ * Whether what is playing is arriving live, as opposed to a catch-up programme, a film or a
+ * recorded file.
+ *
+ * Only the live case may be labelled as such on the backdrop. [audioOnlyChannel] deliberately
+ * answers for catch-up too — a catch-up programme belongs to a channel and should be named after
+ * it — so the two questions cannot share one answer: a station's stream and yesterday's
+ * programme off the same station look identical to everything else on that screen.
+ */
+internal fun NowPlayingInfo?.isLiveStream(): Boolean = this is NowPlayingInfo.Live
+
 internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolean): Boolean = when {
     status.error != null -> false
     // There is a picture to look at, so there is nothing for this to replace.
@@ -317,6 +330,11 @@ fun AudioOnlyNowPlaying(
     modifier: Modifier = Modifier,
     onTogglePlay: (() -> Unit)? = null,
     takeDpadFocus: Boolean = false,
+    /**
+     * Whether this stream is arriving live — see [isLiveStream]. Off by default, so a caller that
+     * has not thought about it gets no claim rather than a wrong one.
+     */
+    live: Boolean = false,
 ) {
     val accent = rememberStationAccent(channel)
     val top = remember(accent) { Color(accentShade(accent, BACKDROP_TOP_LIGHTNESS)) }
@@ -328,6 +346,11 @@ fun AudioOnlyNowPlaying(
         // the same composable is measured rather than duplicated: same content, smaller.
         val compact = maxHeight < COMPACT_HEIGHT
         val inset = if (compact) 12.dp else 32.dp
+        // What this screen is *of*: the station when there is one, and otherwise whatever the
+        // stream calls itself. Resolved once, because the second line below has to know what the
+        // first one already said — printing the same string twice is what "no channel" used to
+        // produce, and it also cost the "audio only" line that would have been drawn instead.
+        val headline = channel?.displayName ?: title
 
         // A pool of light behind the station, so the backdrop reads as lit from the middle rather
         // than as a flat rectangle of colour. Faded to the same colour at zero alpha, never to
@@ -344,6 +367,18 @@ fun AudioOnlyNowPlaying(
             modifier = Modifier.align(Alignment.TopEnd).padding(inset),
         )
 
+        // Opposite the clock, and only where there is room for it: the one thing this screen
+        // could not say before is that the silence-shaped rectangle is a *live* stream rather
+        // than a stalled one.
+        //
+        // Both conditions are load-bearing. This screen deliberately survives a pause — that is
+        // what keeps the pause button reachable (`audioOnlyBackdropVisible`) — so a badge tied to
+        // nothing but the backdrop would go on claiming "live" over a stopped stream; and it is
+        // drawn for catch-up as well as live, where the claim is simply false.
+        if (!compact && live && playWhenReady) {
+            LiveBadge(modifier = Modifier.align(Alignment.TopStart).padding(inset))
+        }
+
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
@@ -355,10 +390,35 @@ fun AudioOnlyNowPlaying(
                 .padding(horizontal = inset),
         ) {
             if (channel != null) {
-                ChannelLogo(channel = channel, sizeDp = if (compact) 64 else 144)
+                // Round, and ringed with a halo of the backdrop's own light. A station is a mark
+                // rather than a still, and the square plate this used to draw read as a cropped
+                // thumbnail floating on a colour it had nothing to do with.
+                //
+                // The mark is inset by the ring's width rather than filling the box: a border is
+                // stroked inwards from the edge it is given, so a logo the same size as its ring
+                // gets the halo painted across its own outer band instead of around it.
+                val ringWidth = if (compact) 2.dp else 6.dp
+                val artSize = if (compact) 64.dp else 148.dp
+                Box(
+                    modifier = Modifier
+                        .size(artSize)
+                        .clip(CircleShape)
+                        .border(
+                            width = ringWidth,
+                            color = Color.White.copy(alpha = ART_RING_ALPHA),
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ChannelLogo(
+                        channel = channel,
+                        sizeDp = (artSize - ringWidth * 2).value.roundToInt(),
+                        circular = true,
+                    )
+                }
             }
             Text(
-                text = channel?.displayName ?: title,
+                text = headline,
                 style = if (compact) {
                     MaterialTheme.typography.titleMedium
                 } else {
@@ -370,11 +430,23 @@ fun AudioOnlyNowPlaying(
                 overflow = TextOverflow.Ellipsis,
             )
             if (!compact) {
+                // What is playing, when that is something other than the station itself.
+                //
+                // `PlaybackStatus.title` is set once per source by the player, so on a live
+                // station it is the channel's own name — filtered out here, and this line falls
+                // back to the audio-only explanation exactly as it always did. The case it does
+                // fire in is catch-up off a radio station, where the title is the programme's:
+                // that screen used to name the station twice and say nothing about what was on
+                // it. This is deliberately not a now-playing track readout; nothing in the app
+                // subscribes to stream metadata, and claiming otherwise here would be fiction.
+                val programme = title.takeIf { it.isNotBlank() && it != headline }
                 Text(
-                    text = stringResource(R.string.playback_audio_only),
+                    text = programme ?: stringResource(R.string.playback_audio_only),
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White.copy(alpha = SECONDARY_TEXT_ALPHA),
                     textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (onTogglePlay != null) {
@@ -407,6 +479,36 @@ private fun rememberStationAccent(channel: Channel?): Int {
         logoAccent = url?.let { StationAccentCache.accentFor(context, it) }
     }
     return remember(logoAccent, name) { stationAccentColour(logoAccent, name) }
+}
+
+/**
+ * "Live", with a dot, on a plate dark enough to hold it over any station's colour.
+ *
+ * White at a fixed alpha rather than a theme colour: everything on this screen is drawn over a
+ * backdrop built from the station's own hue, and a surface colour from the scheme would fight it.
+ */
+@Composable
+private fun LiveBadge(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(BADGE_CORNER))
+            .background(Color.Black.copy(alpha = BADGE_PLATE_ALPHA))
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.error),
+        )
+        Text(
+            text = stringResource(R.string.playback_live_badge),
+            style = MaterialTheme.typography.labelMedium,
+            color = Color.White,
+        )
+    }
 }
 
 /** The wall clock and today's date, in white, over the station's backdrop. */
@@ -558,6 +660,14 @@ private const val MINUTE_MILLIS = 60_000L
 
 /** How the secondary white lines are held back from the primary ones. */
 private const val SECONDARY_TEXT_ALPHA = 0.75f
+
+/** The halo around the station's mark: light enough to read as lit, short of a second border. */
+private const val ART_RING_ALPHA = 0.16f
+
+/** Dark enough to hold white text over any station's backdrop, short of a black box. */
+private const val BADGE_PLATE_ALPHA = 0.45f
+
+private val BADGE_CORNER = 16.dp
 
 private const val BACKDROP_TOP_LIGHTNESS = 0.34f
 private const val BACKDROP_BOTTOM_LIGHTNESS = 0.06f

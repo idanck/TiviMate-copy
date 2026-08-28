@@ -122,6 +122,7 @@
     <string name="playback_connecting">Connecting…</string>
     <string name="playback_reconnecting">Reconnecting — attempt %1$d…</string>
     <string name="playback_audio_only">Playing — audio only, no picture</string>
+    <string name="playback_live_badge">Live</string>
     <string name="decoder_video">Video decoder</string>
     <string name="decoder_audio">Audio decoder</string>
     <string name="decoder_auto">Auto</string>

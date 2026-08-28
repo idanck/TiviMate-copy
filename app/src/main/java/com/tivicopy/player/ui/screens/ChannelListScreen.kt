@@ -258,6 +258,7 @@ fun ChannelListScreen(
                             selected = isCurrent,
                             nowProgramme = nowByChannel[channel.id],
                             focusRequester = currentFocus.takeIf { focusCurrent && isCurrent },
+                            circularLogo = isRadio,
                             onClick = { onPlay(channel) },
                             onFocused = { previewChannel = channel },
                             onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
@@ -389,6 +390,7 @@ private fun ChannelRow(
     selected: Boolean,
     nowProgramme: Programme?,
     focusRequester: FocusRequester?,
+    circularLogo: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
     onToggleFavourite: () -> Unit,
@@ -413,7 +415,11 @@ private fun ChannelRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.width(48.dp),
         )
-        ChannelLogo(channel = channel, sizeDp = LocalTvMetrics.current.rowLogoSize)
+        ChannelLogo(
+            channel = channel,
+            sizeDp = LocalTvMetrics.current.rowLogoSize,
+            circular = circularLogo,
+        )
         TwoLine(
             primary = channel.displayName,
             secondary = nowProgramme?.title,
