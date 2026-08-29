@@ -164,6 +164,24 @@ class Settings(context: Context) {
          * but it publishes viewing history outside the app, so it has a way off.
          */
         val watchNextEnabled: Boolean,
+        /**
+         * Whether a still screen turns into a screensaver after [screensaverIdleMinutes]
+         * (FR-UI-31). On by default: this is a burn-in guard, and a guard nobody switched on
+         * protects nobody.
+         */
+        val screensaverEnabled: Boolean,
+        /** How long a still screen with nobody pressing anything is left alone. */
+        val screensaverIdleMinutes: Int,
+        /** Whether the radio screensaver also prints the open tasks (FR-UI-32). */
+        val screensaverTasks: Boolean,
+        /**
+         * Where those tasks are read from. Empty by default, and empty means there are none —
+         * the app ships the connection, not a list. See [com.tivicopy.player.data.tasks.TaskFeed].
+         */
+        val taskFeedUrl: String,
+        val taskLastCheckUtc: Long,
+        /** The document the last successful fetch read, verbatim; null when there is none. */
+        val taskLastFeed: String?,
     )
 
     private fun read() = Snapshot(
@@ -230,6 +248,12 @@ class Settings(context: Context) {
         featuredLastCheckUtc = prefs.getLong(K_FEATURED_LAST_CHECK, 0),
         featuredLastFeed = prefs.getString(K_FEATURED_FEED, null),
         watchNextEnabled = prefs.getBoolean(K_WATCH_NEXT, true),
+        screensaverEnabled = prefs.getBoolean(K_SCREENSAVER, true),
+        screensaverIdleMinutes = prefs.getInt(K_SCREENSAVER_IDLE, 10),
+        screensaverTasks = prefs.getBoolean(K_SCREENSAVER_TASKS, false),
+        taskFeedUrl = prefs.getString(K_TASK_URL, "") ?: "",
+        taskLastCheckUtc = prefs.getLong(K_TASK_LAST_CHECK, 0),
+        taskLastFeed = prefs.getString(K_TASK_FEED, null),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -345,6 +369,38 @@ class Settings(context: Context) {
 
     fun setWatchNextEnabled(v: Boolean) = commit { putBoolean(K_WATCH_NEXT, v) }
 
+    /** FR-UI-31. */
+    fun setScreensaverEnabled(v: Boolean) = commit { putBoolean(K_SCREENSAVER, v) }
+
+    /**
+     * The floor is one minute rather than zero: a screensaver that arms instantly would take the
+     * screen away while somebody is reading the guide, and "off" is the switch above, not a
+     * timeout of nothing.
+     */
+    fun setScreensaverIdleMinutes(v: Int) = commit { putInt(K_SCREENSAVER_IDLE, v.coerceIn(1, 120)) }
+
+    fun setScreensaverTasks(v: Boolean) = commit { putBoolean(K_SCREENSAVER_TASKS, v) }
+
+    /**
+     * Points the task list somewhere, or nowhere. Drops the cached document on any *change* of
+     * address, for the reason spelled out in [setFeaturedFeedUrl].
+     */
+    fun setTaskFeedUrl(url: String) {
+        val trimmed = url.trim()
+        if (trimmed == prefs.getString(K_TASK_URL, "").orEmpty()) return
+        commit {
+            putString(K_TASK_URL, trimmed)
+            remove(K_TASK_FEED)
+            remove(K_TASK_LAST_CHECK)
+        }
+    }
+
+    /** The task list's twin of [rememberFeatured], and cached for the same reason. */
+    fun rememberTasks(atUtc: Long, document: String?) = commit {
+        putLong(K_TASK_LAST_CHECK, atUtc)
+        if (document == null) remove(K_TASK_FEED) else putString(K_TASK_FEED, document)
+    }
+
     /** The featured-rail twin of [rememberUpdateCheck], and cached for the same reason. */
     fun rememberFeatured(atUtc: Long, feedJson: String?) = commit {
         putLong(K_FEATURED_LAST_CHECK, atUtc)
@@ -454,5 +510,11 @@ class Settings(context: Context) {
         const val K_FEATURED_LAST_CHECK = "featured_last_check"
         const val K_FEATURED_FEED = "featured_last_feed"
         const val K_WATCH_NEXT = "watch_next_enabled"
+        const val K_SCREENSAVER = "screensaver_enabled"
+        const val K_SCREENSAVER_IDLE = "screensaver_idle_minutes"
+        const val K_SCREENSAVER_TASKS = "screensaver_tasks"
+        const val K_TASK_URL = "task_feed_url"
+        const val K_TASK_LAST_CHECK = "task_last_check"
+        const val K_TASK_FEED = "task_last_feed"
     }
 }

@@ -17,6 +17,7 @@ import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.repo.EpgRepository
 import com.tivicopy.player.data.repo.SourceRepository
+import com.tivicopy.player.data.tasks.TaskRepository
 import com.tivicopy.player.data.update.UpdateManager
 import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.record.RecordingScheduler
@@ -49,6 +50,7 @@ object ServiceLocator {
     lateinit var recordings: RecordingScheduler private set
     lateinit var updates: UpdateManager private set
     lateinit var featured: FeaturedRepository private set
+    lateinit var tasks: TaskRepository private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -97,6 +99,7 @@ object ServiceLocator {
         recordings = RecordingScheduler(appContext, dao, settings)
         updates = UpdateManager(appContext, settings, dao)
         featured = FeaturedRepository(settings)
+        tasks = TaskRepository(settings)
         initialised = true
     }
 }
@@ -160,6 +163,10 @@ class App : Application(), ImageLoaderFactory {
         // outside the app are not reasons to slow down a cold start or to fail one.
         ServiceLocator.appScope.launch { ServiceLocator.featured.refresh(force = false) }
         ServiceLocator.appScope.launch { WatchNext.sync(this@App) }
+        // The screensaver's task list (FR-UI-32), on the same terms as the two above: rate
+        // limited inside the repository, a no-op while no address is configured, and never a
+        // reason to slow a cold start down or to fail one.
+        ServiceLocator.appScope.launch { ServiceLocator.tasks.refresh(force = false) }
     }
 
     companion object {

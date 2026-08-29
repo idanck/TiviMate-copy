@@ -314,6 +314,51 @@ fun SettingsScreen(
                     range = 0.3f..1f,
                     onChange = settings::setOverlayOpacity,
                 )
+                // FR-UI-31 / ADR-024. On by default: it is a burn-in guard, and a guard nobody
+                // switched on protects nobody. It never touches moving video.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_screensaver),
+                    subtitle = stringResource(R.string.settings_screensaver_sub),
+                    checked = s.screensaverEnabled,
+                    onChange = settings::setScreensaverEnabled,
+                )
+                SettingsSlider(
+                    title = stringResource(R.string.settings_screensaver_idle),
+                    valueLabel = stringResource(R.string.settings_minutes, s.screensaverIdleMinutes),
+                    value = s.screensaverIdleMinutes.toFloat(),
+                    range = 1f..60f,
+                ) { settings.setScreensaverIdleMinutes(it.toInt()) }
+                // FR-UI-32. Off by default, and pointless until the address below is set: this
+                // app is installed on other people's televisions, and a to-do list is the last
+                // thing that should appear on one uninvited.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_screensaver_tasks),
+                    subtitle = stringResource(R.string.settings_screensaver_tasks_sub),
+                    checked = s.screensaverTasks,
+                    onChange = { enabled ->
+                        settings.setScreensaverTasks(enabled)
+                        if (enabled) {
+                            ServiceLocator.appScope.launch {
+                                ServiceLocator.tasks.refresh(force = true)
+                            }
+                        }
+                    },
+                )
+                TextSetting(
+                    title = stringResource(R.string.settings_task_url),
+                    value = s.taskFeedUrl,
+                    placeholder = "https://…/tasks.md",
+                    onChange = settings::setTaskFeedUrl,
+                )
+                SettingsRow(
+                    title = stringResource(R.string.settings_task_refresh),
+                    subtitle = stringResource(R.string.settings_task_url_sub),
+                    onClick = {
+                        ServiceLocator.appScope.launch {
+                            ServiceLocator.tasks.refresh(force = true)
+                        }
+                    },
+                )
             }
 
             SettingsSection.NETWORK -> {

@@ -463,7 +463,7 @@ fun AudioOnlyNowPlaying(
  * station's colour and at worst settles onto a better one.
  */
 @Composable
-private fun rememberStationAccent(channel: Channel?): Int {
+internal fun rememberStationAccent(channel: Channel?): Int {
     val context = LocalContext.current
     val name = channel?.displayName.orEmpty()
     val url = channel?.displayLogo?.takeIf { it.isNotBlank() }
