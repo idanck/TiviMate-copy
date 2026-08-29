@@ -387,4 +387,14 @@
     <string name="settings_featured_refresh">רענן את פיד המומלצים עכשיו</string>
     <string name="settings_watch_next">פרסום ב־המשך צפייה</string>
     <string name="settings_watch_next_sub">מציע ערוצים שנצפו לאחרונה במסך הבית של Google TV</string>
+    <string name="settings_screensaver">שומר מסך</string>
+    <string name="settings_screensaver_sub">מחליף תמונה סטטית בשעון נודד, כדי ששום דבר לא ייצרב במסך</string>
+    <string name="settings_screensaver_idle">הפעלת שומר המסך אחרי</string>
+    <string name="settings_minutes">%1$d דק׳</string>
+    <string name="settings_screensaver_tasks">הצגת המשימות שלי בשומר המסך של הרדיו</string>
+    <string name="settings_screensaver_tasks_sub">משימה פתוחה אחת בכל פעם, על צבעי התחנה</string>
+    <string name="settings_task_url">כתובת רשימת המשימות</string>
+    <string name="settings_task_url_sub">רשימת משימות ב־Markdown ‏(- [ ] …) או ב־JSON. ריק פירושו שאין משימות.</string>
+    <string name="settings_task_refresh">רענון רשימת המשימות עכשיו</string>
+    <string name="screensaver_task_due">עד %1$s</string>
 </resources>

@@ -39,8 +39,12 @@ import androidx.compose.ui.zIndex
  *   a surface arriving fades and rises in [Motion.ENTRANCE]. A screen that invents its own
  *   timing reads as a different app.
  * - **Nothing loops.** No idle animation anywhere: with nothing happening the app renders zero
- *   frames, and that stays true. A ten-foot interface that quietly redraws forever costs battery
- *   on the remote's box and frames on everything else.
+ *   frames. A ten-foot interface that quietly redraws forever costs battery on the remote's box
+ *   and frames on everything else. The single exception is [Screensaver], which exists precisely
+ *   so that an *unattended* screen does not hold still (FR-UI-31, ADR-024) — and it honours the
+ *   spirit of this rule anyway: it steps twelve times a second rather than sixty, and it reads
+ *   every animated value inside a `graphicsLayer` or `drawBehind` lambda, so a step redraws two
+ *   nodes and recomposes nothing.
  */
 object Motion {
 
