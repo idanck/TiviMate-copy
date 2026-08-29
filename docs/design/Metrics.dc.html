@@ -31,10 +31,10 @@
 <div style="display: flex; flex-direction: column; gap: 10px;">
   <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/common/TvMetrics.kt</div>
   <div style="font-size: 34px; line-height: 42px; font-weight: 700;">מידות עשר הרגליים</div>
-  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">כל אחת מהמידות האלה הייתה קבוע קומפילציה משותף לשני מכשירי הקצה, וזו הסיבה שקליפת עשר הרגליים נראתה אותו דבר על מסך 24 אינץ' ועל פאנל 65 אינץ'. הן נגזרות מהחלון עכשיו, ולכן המדריך מקבל שעות רחבות יותר ושורות גבוהות יותר על מסך גדול — במקום עוד מאותן קטנות. <span class="mono">LocalTvMetrics</span> מוגדר כברירת מחדל ל&#8209;<span class="mono">TvMetrics.Phone</span>, ולכן קליפת המגע לא משתנה מעצם הבנייה.</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">כל אחת מהמידות האלה הייתה קבועה בזמן קומפילציה, משותפת לשני מכשירי הקצה, וזו הסיבה שקליפת עשר הרגליים נראתה אותו דבר על מסך 24 אינץ' ועל פאנל 65 אינץ'. עכשיו הן נגזרות מהחלון, ולכן המדריך מקבל שעות רחבות יותר ושורות גבוהות יותר על מסך גדול — במקום עוד שורות באותו גודל. הטלפון לא נגע בזה: <span class="mono">LocalTvMetrics</span> מוגדר כברירת מחדל ל&#8209;<span class="mono">TvMetrics.Phone</span>, שהוא בדיוק הקבועים הישנים.</div>
 </div>
 <div style="display: flex; align-items: center; gap: 14px;">
-  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">הטבלה &middot; טלפון קבוע, טלוויזיה בטווח החסימה</div>
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">הטבלה &middot; טלפון קבוע, טלוויזיה בטווח החסום</div>
   <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
 </div>
 <div style="display: flex; flex-direction: column;">
@@ -59,7 +59,7 @@
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
     <div class="mono" style="width: 262px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">guideChannelColumnWidth</div>
     <div class="mono" style="width: 84px; flex: none; font-size: 12px; color: #9CC2FF;">190dp</div>
-    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">162&ndash;304dp</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">161.5&ndash;304dp</div>
     <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עמודת הערוצים שמימין לרשת</div>
   </div>
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
@@ -83,13 +83,13 @@
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
     <div class="mono" style="width: 262px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">homeNavRailWidth</div>
     <div class="mono" style="width: 84px; flex: none; font-size: 12px; color: #9CC2FF;">168dp</div>
-    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">142&ndash;268dp</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">142.8&ndash;268.8dp</div>
     <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">רוחב פס הניווט כשהוא מציג תוויות</div>
   </div>
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
     <div class="mono" style="width: 262px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">homeNavRailCollapsedWidth</div>
     <div class="mono" style="width: 84px; flex: none; font-size: 12px; color: #9CC2FF;">64dp</div>
-    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">54&ndash;102dp</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">54.4&ndash;102.4dp</div>
     <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">אותו פס מכווץ לאייקונים</div>
   </div>
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
@@ -108,13 +108,13 @@
     <div class="mono" style="width: 262px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">rowCorner</div>
     <div class="mono" style="width: 84px; flex: none; font-size: 12px; color: #9CC2FF;">8dp</div>
     <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">14dp</div>
-    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">פינת שורה ממוקדת — <strong>שטוח, לא מתקנה</strong></div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">פינת שורה ממוקדת — <strong>קבוע, לא נגזר מהסקאלה</strong></div>
   </div>
   <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
     <div class="mono" style="width: 262px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">focusRingWidth</div>
     <div class="mono" style="width: 84px; flex: none; font-size: 12px; color: #9CC2FF;">2dp</div>
     <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">3dp</div>
-    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עובי טבעת הפוקוס — <strong>שטוח, לא מתקנה</strong></div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עובי טבעת הפוקוס — <strong>קבוע, לא נגזר מהסקאלה</strong></div>
   </div>
 </div>
 <div style="display: flex; align-items: center; gap: 14px;">
@@ -134,14 +134,14 @@
   <div style="font-size: 16px; line-height: 22px; font-weight: 500;">שורות המדריך</div>
   <div class="mono" style="font-size: 15px; font-weight: 600; color: #4C8DFF;">7</div>
 </div>
-<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">גובה השורה נגזר מהגובה הזמין חלקי שבע, ולא מהסקאלה. טלוויזיה שמכניסה שתים&#8209;עשרה שורות של 64dp מציגה טקסט שאיש בחדר לא קורא. זה גם מה שהופך את חלון השאילתה של המדריך לכן — הוא מבקש את השורות שבאמת על המסך.</div>
+<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">גובה השורה נגזר מהגובה הזמין חלקי שבע, ולא מהסקאלה. טלוויזיה שמכניסה שתים&#8209;עשרה שורות של 64dp מציגה טקסט שאיש בחדר לא קורא. זה גם מה שגורם לחלון השאילתה של המדריך לבקש בדיוק את השורות שנמצאות על המסך, ולא יותר.</div>
 </div>
 <div style="background: #2D3542; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 12px;">
 <div style="display: flex; align-items: baseline; gap: 10px;">
   <div style="font-size: 16px; line-height: 22px; font-weight: 500;">גובה הבאנר</div>
   <div class="mono" style="font-size: 15px; font-weight: 600; color: #4C8DFF;">58%</div>
 </div>
-<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">חלק מהגובה, ואז חסום פעמיים: לעולם לא כל כך נמוך שהבאנר מפסיק להיות המסך, ולעולם לא כל כך גבוה ששורת הקלפים הראשונה יורדת כולה מתחת לקו — מסך בית ששורותיו בלתי נראות עד שלוחצים למטה הוא מסך שאיש לא גולל. הרצפה השנייה היא 150dp של הצצה לשורה.</div>
+<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">חלק מהגובה, ואז חסום פעמיים: לעולם לא כל כך נמוך שהבאנר מפסיק להיות המסך, ולעולם לא כל כך גבוה ששורת הקלפים הראשונה יורדת כולה מתחת לקו — מסך בית ששורותיו בלתי נראות עד שלוחצים למטה הוא מסך שאיש לא גולל. התקרה השנייה היא בדיוק זה: הגובה פחות 150dp, שהם ההצצה לשורה הראשונה שחייבת להישאר על המסך.</div>
 </div>
 </div>
 </div>

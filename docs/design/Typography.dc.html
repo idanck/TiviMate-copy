@@ -151,22 +151,22 @@
 </div>
 <div style="display: flex; gap: 20px;">
   <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
-    <div class="mono" style="font-size: 11px; color: #6B7482;">&times;0.8 &middot; מינימום</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;0.8</span> &middot; מינימום</div>
     <div style="font-size: 16.0px; line-height: 21.6px; font-weight: 600;">חדשות הערב</div>
     <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 9.6sp</div>
   </div>
   <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
-    <div class="mono" style="font-size: 11px; color: #6B7482;">&times;1.0 &middot; ברירת מחדל</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;1.0</span> &middot; ברירת מחדל</div>
     <div style="font-size: 20.0px; line-height: 27.0px; font-weight: 600;">חדשות הערב</div>
     <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 12.0sp</div>
   </div>
   <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
-    <div class="mono" style="font-size: 11px; color: #6B7482;">&times;1.6 &middot; מקסימום</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;1.6</span> &middot; מקסימום</div>
     <div style="font-size: 32.0px; line-height: 43.2px; font-weight: 600;">חדשות הערב</div>
     <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 19.2sp</div>
   </div>
 </div>
-<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הרמפה עצמה נעצרת ב&#8209;12sp, שהיא הרצפה שמנחה עשר הרגליים ב&#8209;<span class="mono">docs/03</span> קובעת. שום סגנון לא דק מ&#8209;Regular: טקסט קטן באפליקציה יושב מעל וידאו חי, וקווים דקים מפסידים ל&#8209;NFR&#8209;UX&#8209;03.</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הרמפה עצמה נעצרת ב&#8209;12sp — הרצפה שההנחיה לעשר רגליים ב&#8209;<span class="mono">docs/03</span> קובעת. שום סגנון לא דק מ&#8209;Regular: טקסט קטן באפליקציה יושב מעל וידאו חי, וקווים דקים מפסידים ל&#8209;NFR&#8209;UX&#8209;03.</div>
 <div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><strong style="color: #FF6B6B;">להכרעה:</strong> ההערה ב&#8209;<span class="mono">Type.kt</span> אומרת ששום דבר לא נופל מתחת ל&#8209;12sp בקנה המידה הקטן ביותר. זה נכון לרמפה כפי שהוכרזה, אבל לא לערך המחושב: <span class="mono">(size * scale).sp</span> אינו חסום מלמטה, ולכן ב&#8209;&times;0.8 <span class="mono">labelSmall</span> יוצא 9.6sp ו&#8209;<span class="mono">bodySmall</span> 10.4sp. או שחוסמים רצפה, או שמתקנים את ההערה.</div>
 </div>
 </x-dc>

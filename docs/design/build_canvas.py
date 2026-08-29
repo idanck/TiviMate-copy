@@ -168,7 +168,7 @@ def swatch_row(role, hex_value, overridden):
     )
 
 
-def scheme_column(name, subtitle, index, mark_overrides):
+def scheme_column(name, code, subtitle, index, mark_overrides):
     rows = []
     for role, dark, amoled, light in ROLES:
         value = (dark, amoled, light)[index]
@@ -179,7 +179,9 @@ def scheme_column(name, subtitle, index, mark_overrides):
         '  <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; '
         'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
         '    <div style="font-size: 17px; line-height: 24px; font-weight: 500;">' + name + '</div>\n'
-        '    <div class="mono" style="font-size: 11px; color: ' + INK_FAINT + ';">' + subtitle + '</div>\n'
+        '    <div style="font-size: 11px; color: ' + INK_FAINT + ';">'
+        '<span class="mono">' + code + '</span>'
+        + (' &middot; ' + subtitle if subtitle else '') + '</div>\n'
         '  </div>\n' + "\n".join(rows) + '\n</div>'
     )
 
@@ -187,9 +189,9 @@ def scheme_column(name, subtitle, index, mark_overrides):
 def build_colour():
     columns = (
         '<div style="display: flex; gap: 40px; align-items: flex-start;">\n'
-        + scheme_column("כהה", "DarkScheme &middot; ברירת המחדל", 0, False) + "\n"
-        + scheme_column("AMOLED", "DarkScheme.copy(...) &middot; 7 עקיפות", 1, True) + "\n"
-        + scheme_column("בהיר", "LightScheme", 2, False) + "\n"
+        + scheme_column("כהה", "DarkScheme", "ברירת המחדל", 0, False) + "\n"
+        + scheme_column("AMOLED", "DarkScheme.copy(...)", "שבע עקיפות", 1, True) + "\n"
+        + scheme_column("בהיר", "LightScheme", "", 2, False) + "\n"
         '</div>'
     )
 
@@ -201,19 +203,24 @@ def build_colour():
         '</div>'
     )
 
+    # What monogram() and monogramColour() actually return for these names: the
+    # mark is the initial of each of the first two words, so a Hebrew channel name
+    # carrying a number comes out as a letter and a digit; the hue is
+    # `(name.hashCode() and 0x7FFFFFFF) % 360`, which is not a designed sequence
+    # and is not meant to read as one.
     hues = [
-        ("כאן 11", "hsl(18, 42%, 32%)"),
-        ("רשת 13", "hsl(96, 42%, 32%)"),
-        ("קשת 12", "hsl(172, 42%, 32%)"),
-        ("גלי צהל", "hsl(248, 42%, 32%)"),
+        ("כאן 11", "כ1", 350),
+        ("רשת 13", "ר1", 41),
+        ("קשת 12", "ק1", 249),
+        ("גלי צהל", "גצ", 333),
     ]
     discs = []
-    for label, colour in hues:
+    for label, mark, hue in hues:
         discs.append(
             '  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px;">\n'
-            '    <div style="width: 46px; height: 46px; border-radius: 50%; background: ' + colour
-            + '; display: flex; align-items: center; justify-content: center; font-size: 15px; '
-            'font-weight: 500; color: #FFFFFF;">' + label[:2] + '</div>\n'
+            '    <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(' + str(hue)
+            + ', 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 15px; '
+            'font-weight: 500; color: #FFFFFF;">' + mark + '</div>\n'
             '    <div style="font-size: 11px; line-height: 14px; color: ' + INK_FAINT
             + '; text-align: center;">' + label + '</div>\n'
             '  </div>'
@@ -249,7 +256,9 @@ def build_colour():
             '<div style="font-size: 15px; line-height: 20px; font-weight: 500;">צבע מונוגרם</div>\n'
             '<div style="display: flex; gap: 8px; flex-wrap: wrap;">\n' + "\n".join(discs) + '\n</div>\n'
             + note('<span class="mono">Color.hsl(hash(name) % 360, 0.42f, 0.32f)</span> — '
-                   'רוויה ובהירות קבועות, הגוון נגזר מהשם. תחליף ללוגו שלא נטען.'))
+                   'רוויה ובהירות קבועות, הגוון נגזר מה&#8209;hashCode של השם. הסימן הוא האות '
+                   'הראשונה של כל אחת משתי המילים הראשונות, ולכן שם ערוץ עם מספר יוצא אות וספרה. '
+                   'הערכים כאן הם מה שהפונקציות מחזירות בפועל, לא מבחר.'))
         + "\n" + card(
             '<div style="font-size: 15px; line-height: 20px; font-weight: 500;">שקיפויות קבועות</div>\n'
             '<div style="display: flex; flex-direction: column; gap: 10px;">\n' + "\n".join(alpha_rows) + '\n</div>\n'
@@ -263,7 +272,7 @@ def build_colour():
                "צבע",
                "שלוש ערכות, משפחה אחת של אפור&#8209;כחלחל. הרמפה יושבת דרגה מעל שחור&#8209;כמעט "
                "(<span class=\"mono\">#0E1116</span>) — כהה מספיק כדי למסגר תמונה בהירה, בהירה מספיק "
-               "שהתפריטים לא ייקראו כשחור. AMOLED הוא הוויתור המפורש למי שרוצה שחור אמיתי."),
+               "שהתפריטים לא ייקראו כשחור. AMOLED הוא הבחירה המפורשת למי שרוצה שחור אמיתי."),
         section("תפקידי הסכימה"),
         columns,
         section("מה שלא בא מהסכימה"),
@@ -330,8 +339,8 @@ def build_typography():
         scale_stops.append(
             '  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; '
             'background: ' + PLATE_HI + '; border-radius: 10px; padding: 16px;">\n'
-            '    <div class="mono" style="font-size: 11px; color: ' + INK_FAINT + ';">&times;'
-            + str(stop) + ' &middot; ' + label + '</div>\n'
+            '    <div style="font-size: 11px; color: ' + INK_FAINT + ';">'
+            '<span class="mono">&times;' + str(stop) + '</span> &middot; ' + label + '</div>\n'
             '    <div style="font-size: ' + str(round(20 * stop, 1)) + 'px; line-height: '
             + str(round(27 * stop, 1)) + 'px; font-weight: 600;">חדשות הערב</div>\n'
             '    <div class="mono" style="font-size: 11px; color: ' + INK_DIM + ';">labelSmall &rarr; '
@@ -353,7 +362,7 @@ def build_typography():
         '<div style="display: flex; flex-direction: column;">\n' + "\n".join(rows) + '\n</div>',
         section("קנה מידה של הגופן &middot; FR-UI-19"),
         '<div style="display: flex; gap: 20px;">\n' + "\n".join(scale_stops) + '\n</div>',
-        note("הרמפה עצמה נעצרת ב&#8209;12sp, שהיא הרצפה שמנחה עשר הרגליים ב&#8209;"
+        note("הרמפה עצמה נעצרת ב&#8209;12sp — הרצפה שההנחיה לעשר רגליים ב&#8209;"
              "<span class=\"mono\">docs/03</span> קובעת. שום סגנון לא דק מ&#8209;Regular: טקסט קטן "
              "באפליקציה יושב מעל וידאו חי, וקווים דקים מפסידים ל&#8209;NFR&#8209;UX&#8209;03."),
         note("<strong style=\"color: #FF6B6B;\">להכרעה:</strong> ההערה ב&#8209;"
@@ -372,9 +381,9 @@ def build_typography():
 
 SHAPES = [
     ("extraSmall", 6,  "לוגו ערוץ בשורה"),
-    ("small",      10, "פקדים קטנים"),
+    ("small",      10, "לא בשימוש היום"),
     ("medium",     14, "קלף, שורה בטלוויזיה"),
-    ("large",      20, "דיאלוגים"),
+    ("large",      20, "שבב היום במדריך"),
     ("extraLarge", 28, "פאנל צף"),
 ]
 
@@ -385,7 +394,7 @@ RADII_IN_USE = [
     ("8dp",  "TvMetrics.Phone.rowCorner", "שורת רשימה בטלפון"),
     ("6dp",  "ChannelLogo", "לוגו ריבועי"),
     ("4dp",  "Badge", "תגית טקסט קטנה"),
-    ("50%",  "CircleShape", "מונוגרם ותחנת רדיו — רק כשהיצירה היא הסמל של התחנה עצמה"),
+    ("50%",  "CircleShape", "לוחית תחנת רדיו — רק כשהיצירה היא הסמל של התחנה עצמה — והנקודה בתג השידור החי"),
 ]
 
 # Counted over app/src/main/java/com/tivicopy/player/ui with a grep for `N.dp`.
@@ -435,8 +444,8 @@ def build_shape():
             + INK + ';">' + str(value) + 'dp</div>\n'
             '    <div style="width: ' + str(width) + 'px; height: 14px; border-radius: 7px; background: '
             + ACCENT + '; opacity: 0.85;"></div>\n'
-            '    <div class="mono" style="font-size: 11px; color: ' + INK_FAINT + ';">'
-            + str(count) + ' שימושים</div>\n'
+            '    <div style="font-size: 11px; color: ' + INK_FAINT + ';">'
+            '<span class="mono">' + str(count) + '</span> שימושים</div>\n'
             '  </div>'
         )
 
@@ -472,9 +481,13 @@ def build_shape():
                "<span class=\"mono\">N.dp</span> באתר השימוש. הספירה מראה סולם ברור בכל זאת, עם "
                "<strong>12</strong> ו&#8209;<strong>8</strong> כברירות המחדל האמיתיות, ו&#8209;6 "
                "למרווחים צמודים.")
-        + "\n" + note("שני החריגים הבולטים: <span class=\"mono\">2dp</span> הוא כמעט תמיד טבעת פוקוס "
-                      "או מרווח בתוך תגית, ו&#8209;<span class=\"mono\">32dp</span> הוא הריפוד של "
-                      "<span class=\"mono\">EmptyState</span> בלבד.")
+        + "\n" + note("<span class=\"mono\">2dp</span> נראה כמו טבעת פוקוס אבל הוא בעיקר משהו אחר: "
+                      "עשרה מתוך 23 השימושים הם <span class=\"mono\">Arrangement.spacedBy(2.dp)</span> "
+                      "בין שורות ברשימה — הרשימות, התפריטים, המדריך והחיפוש — וזה המרווח הצפוף ביותר "
+                      "שהאפליקציה משתמשת בו.")
+        + "\n" + note("הרמפה למעלה כמעט ואינה נקראת: <span class=\"mono\">MaterialTheme.shapes</span> "
+                      "מופיע פעם אחת בכל האפליקציה, וכל שאר הפינות כתובות כמספר באתר השימוש. הרמפה "
+                      "מתארת נכון את מה שמצויר — היא פשוט לא מה שמצייר אותו.")
         + '\n  </div>\n</div>',
         section("עוביי קו"),
         '<div style="display: flex; gap: 24px;">\n' + "\n".join(strokes) + '\n</div>',
@@ -618,7 +631,7 @@ def build_motion():
                "<span class=\"mono\">animate*AsState</span> באפליקציה. כל טבעת פוקוס, כל סרט שנפתח וכל "
                "שכבה שהחליפה אחרת היו חיתוך של פריים בודד. במדידה על הטלוויזיה זה צייר שלושה עד ארבעה "
                "פריימים ללחיצה על השלט, במקום חמישה&#8209;עשר עד עשרים. <em>העבירו את הסמן מעל כל אחד "
-               "כדי לראות את המשך.</em>"),
+               "כדי לראות כמה זמן זה לוקח.</em>"),
         section("משכים"),
         '<div style="display: flex; gap: 24px; align-items: stretch;">\n' + "\n".join(blocks) + '\n</div>',
         section("קפיץ"),
@@ -655,13 +668,13 @@ SURFACES_CSS = """
 """
 
 SURFACES_SCRIPT = """<script data-dc-script data-props='{
-  "opacity": {"editor": "range", "default": 0.7, "min": 0.3, "max": 1, "step": 0.05, "unit": "", "section": "Overlay"},
-  "$preview": {"width": 1280, "height": 980}
+  "opacity": {"editor": "range", "default": 0.85, "min": 0.3, "max": 1, "step": 0.05, "unit": "", "section": "Overlay"},
+  "$preview": {"width": 1280, "height": 1640}
 }'>
 class Component extends DCLogic {
   renderVals() {
     const raw = this.props.opacity;
-    const opacity = typeof raw === 'number' ? raw : 0.7;
+    const opacity = typeof raw === 'number' ? raw : 0.85;
     return {
       panelFill: 'rgba(35, 42, 53, ' + opacity + ')',
       opacityLabel: opacity.toFixed(2),
@@ -692,16 +705,15 @@ def build_surfaces():
                    '  </div>')
 
     fixed = []
-    for value in ("0.30", "0.70", "1.00"):
+    for value, label in (("0.30", "מינימום ההגדרה"), ("0.85", "ברירת המחדל"), ("1.00", "אטום")):
         fixed.append(
             '  <div style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">\n'
             + video_frame(
                 '  <div style="width: 100%; height: 100%; border-radius: 28px; background: rgba(35,42,53,'
                 + value + '); border: 1px solid rgba(233,237,243,0.12);"></div>',
                 height=132, caption="")
-            + '\n    <div class="mono" style="font-size: 12px; color: ' + INK_DIM + ';">'
-            + value + ('  &middot; מינימום ההגדרה' if value == "0.30" else
-                       ('  &middot; אטום' if value == "1.00" else '  &middot; ברירת מחדל')) + '</div>\n'
+            + '\n    <div style="font-size: 12px; color: ' + INK_DIM + ';">'
+            '<span class="mono">' + value + '</span> &middot; ' + label + '</div>\n'
             '  </div>'
         )
 
@@ -757,7 +769,7 @@ def build_surfaces():
                "משטחים",
                "שתי צורות לכל הקליפה של עשר הרגליים, ואין שלישית. <strong>פאנל</strong> — לוח צף "
                "שהממשק יושב עליו: מוסט מהקצוות, מעוגל ב&#8209;28dp, שקוף&#8209;למחצה לפי הגדרת הצופה "
-               "(FR&#8209;UI&#8209;18), ומוקף בקו שיער. <strong>קלף</strong> — דבר אחד ממוקד על פאנל: "
+               "(FR&#8209;UI&#8209;18), ומוקף בקו שיער. <strong>קלף</strong> — דבר אחד בר&#8209;מיקוד על פאנל: "
                "מעוגל ב&#8209;14dp ונושא שלושה מצבים שצריך להבחין ביניהם מעבר לחדר. שניהם "
                "<span class=\"mono\">surface</span> ולא <span class=\"mono\">background</span>: לוח שצף "
                "מעל וידאו הוא מורם."),
@@ -765,9 +777,11 @@ def build_surfaces():
         video_frame(panel_inner),
         section("שלוש נקודות בסולם ההגדרה"),
         '<div style="display: flex; gap: 20px; align-items: flex-start;">\n' + "\n".join(fixed) + '\n</div>',
-        note("שני משטחים שומרים רצפה מתחת להגדרה במקום לציית לה במלואה: תפריט הניגון, שהוא כמה שורות "
-             "של שמות רצועות שנקראות אחת&#8209;אחת, וכרטיס המידע, שהוא המשטח הנצפה ביותר באפליקציה. "
-             "במינימום של 0.3 שניהם היו בלתי קריאים מעל וידאו נע, והנמכת שכבות אינה בקשה לזה."),
+        note("שלושה משטחים שומרים רצפה מתחת להגדרה במקום לציית לה במלואה: תפריט הניגון "
+             "(<span class=\"mono\">0.92</span>), שהוא כמה שורות של שמות רצועות שנקראות אחת&#8209;אחת; "
+             "כרטיס המידע (<span class=\"mono\">0.8</span>), המשטח הנצפה ביותר באפליקציה; וקפסולת "
+             "הניווט של מסך הבית (<span class=\"mono\">0.9</span>), אבל רק בזמן שהפוקוס בתוכה. "
+             "במינימום של 0.3 כולם היו בלתי קריאים מעל וידאו נע, והנמכת שכבות אינה בקשה לזה."),
         section("קו השיער אינו קישוט"),
         hairline_demo,
         section("קלף &middot; שלושת המצבים"),
@@ -857,6 +871,18 @@ FOCUS_CSS = """
 """
 
 
+# monogram(name) / monogramColour(name), evaluated. See MONOGRAM note on the
+# colour sheet: the mark is one initial per word for the first two words, and
+# the hue is the name's hashCode modulo 360.
+MARKS = {
+    "כאן 11": ("כ1", 350),
+    "רשת 13": ("ר1", 41),
+    "קשת 12": ("ק1", 249),
+    "ספורט 5": ("ס5", 303),
+    "גלי צהל": ("גצ", 333),
+}
+
+
 def logo_box(text, size, radius, colour):
     return ('<div style="width: ' + str(size) + 'px; height: ' + str(size) + 'px; flex: none; '
             'border-radius: ' + radius + '; background: ' + colour + '; display: flex; '
@@ -882,9 +908,10 @@ def build_focus():
         items = []
         for name, sub, selected in entries:
             cls = klass + (" selected" if selected else "")
+            mark, hue = MARKS[name]
             items.append(
                 '    <button type="button" class="row ' + cls + '">\n'
-                '      ' + logo_box(name[:2], logo_size, "6px", "hsl(212, 42%, 32%)") + '\n'
+                '      ' + logo_box(mark, logo_size, "6px", "hsl(" + str(hue) + ", 42%, 32%)") + '\n'
                 '      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">\n'
                 '        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">' + name + '</span>\n'
                 '        <span style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">' + sub + '</span>\n'
@@ -920,7 +947,7 @@ def build_focus():
     )
 
     matrix = [
-        ("מנוחה", "ללא מילוי", "primary @ 0", "הצבע עצמו ב&#8209;alpha אפס"),
+        ("מנוחה", "surfaceVariant @ 0", "primary @ 0", "כל שאר השורות ברשימה"),
         ("נבחר", "surfaceVariant", "primary @ 0.45", "הערוץ שמתנגן, בלי פוקוס"),
         ("בפוקוס", "primary @ 0.22", "primary", "מה שה&#8209;D&#8209;pad עומד עליו"),
     ]
@@ -954,7 +981,7 @@ def build_focus():
         header("ui/common/Components.kt &middot; ui/common/TvMetrics.kt &middot; NFR-UX-02",
                "פוקוס",
                "כל רשימה באפליקציה בנויה מ&#8209;<span class=\"mono\">FocusableRow</span> אחד, ולכן "
-               "הקריאה הזו היא רוב מה שהפוקוס בממשק מרגיש כמוהו. שתי מערכות מספרים יוצאות ממנה: טלפון "
+               "הקריאה הזו היא רוב תחושת הפוקוס בממשק. שתי מערכות מספרים יוצאות ממנה: טלפון "
                "נקרא ממרחק זרוע, טלוויזיה משלושה מטרים — שם פינה של 8dp וטבעת של 2dp הן מלבן עם קו "
                "חיוור. <em>לחצו או השתמשו ב&#8209;Tab כדי להזיז את הפוקוס.</em>"),
         section("קלפים &middot; tvCard + focusLift"),
@@ -967,8 +994,8 @@ def build_focus():
         '<div style="display: flex; flex-direction: column;">\n' + "\n".join(matrix_rows) + '\n</div>',
         note("<span class=\"mono\">onFocusChanged</span> קורא <span class=\"mono\">hasFocus</span> ולא "
              "<span class=\"mono\">isFocused</span>: שורות נושאות פקדים משלהן — מתג המועדף — וצעד "
-             "D&#8209;pad על אחד מהם לא אמור להיראות כיציאה מהשורה. הפינה והטבעת <em>לא</em> מתקנות "
-             "לפי גודל המסך: טלוויזיית 4K רוצה את אותה פינה ואת אותה טבעת כמו 1080p, כי הספה לא זזה."),
+             "D&#8209;pad על אחד מהם לא אמור להיראות כיציאה מהשורה. הפינה והטבעת <em>לא</em> נגזרות מקנה המידה, "
+             "וטלוויזיית 4K רוצה את אותה פינה ואת אותה טבעת כמו 1080p, כי הספה לא זזה."),
     ]))
     return page("Focus — FocusableRow and tvCard states", FOCUS_CSS, body)
 
@@ -998,19 +1025,19 @@ def build_components():
             '<div style="font-size: 13px; line-height: 17px; font-weight: 500; color: #FFFFFF;">שידור חי</div>'
             '</div>')
 
-    logos = (logo_box("11", 56, "6px", "hsl(212, 42%, 32%)") + "\n"
+    logos = (logo_box("כ1", 56, "6px", "hsl(350, 42%, 32%)") + "\n"
              + '<div style="width: 56px; height: 56px; flex: none; border-radius: 50%; background: '
-               'hsl(96, 42%, 32%); display: flex; align-items: center; justify-content: center;">'
+               'hsl(333, 42%, 32%); display: flex; align-items: center; justify-content: center;">'
                '<div style="font-size: 20px; font-weight: 500; color: #FFFFFF; padding: 0 6.7px;">גצ</div></div>' + "\n"
-             + logo_box("13", 36, "6px", "hsl(18, 42%, 32%)"))
+             + logo_box("ר1", 36, "6px", "hsl(41, 42%, 32%)"))
 
     badges = ('<div style="display: flex; gap: 10px; align-items: center;">'
-              '<div style="border-radius: 4px; background: #4C8DFF; color: #00122E; font-size: 13px; '
-              'line-height: 17px; font-weight: 500; padding: 2px 6px;">HD</div>'
-              '<div style="border-radius: 4px; background: #FF6B6B; color: #2B0000; font-size: 13px; '
-              'line-height: 17px; font-weight: 500; padding: 2px 6px;">הקלטה</div>'
-              '<div style="border-radius: 4px; background: #9CC2FF; color: #00122E; font-size: 13px; '
-              'line-height: 17px; font-weight: 500; padding: 2px 6px;">4K</div>'
+              '<div style="border-radius: 4px; background: #4C8DFF; color: #00122E; font-size: 12px; '
+              'line-height: 16px; font-weight: 500; padding: 2px 6px;">HD</div>'
+              '<div style="border-radius: 4px; background: #FF6B6B; color: #00122E; font-size: 12px; '
+              'line-height: 16px; font-weight: 500; padding: 2px 6px;">הקלטה</div>'
+              '<div style="border-radius: 4px; background: #9CC2FF; color: #00122E; font-size: 12px; '
+              'line-height: 16px; font-weight: 500; padding: 2px 6px;">4K</div>'
               '</div>')
 
     header_demo = ('<div style="width: 100%; display: flex; flex-direction: column;">'
@@ -1023,21 +1050,21 @@ def build_components():
              'font-size: 16px; line-height: 23px; color: ' + INK_DIM + ';">אין ערוצים ברשימה הזו</div>')
 
     progress = ('<div style="width: 100%; display: flex; flex-direction: column; gap: 8px;">'
-                '<div style="height: 4px; border-radius: 2px; background: rgba(233,237,243,0.12); overflow: hidden;">'
+                '<div style="height: 4px; border-radius: 2px; background: #323A47; overflow: hidden;">'
                 '<div style="width: 62%; height: 100%; background: #4C8DFF;"></div></div>'
                 '<div style="display: flex; justify-content: space-between; font-size: 13px; '
                 'line-height: 18px; color: ' + INK_DIM + ';"><span>20:00</span><span>20:45</span></div>'
                 '</div>')
 
     two_line = ('<div style="width: 100%; display: flex; align-items: center; gap: 12px;">'
-                + logo_box("11", 36, "6px", "hsl(212, 42%, 32%)")
+                + logo_box("כ1", 36, "6px", "hsl(350, 42%, 32%)")
                 + '<div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">'
                   '<div style="font-size: 15px; line-height: 20px; font-weight: 500; color: ' + INK + ';">כאן 11</div>'
                   '<div style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">עכשיו: מהדורת חדשות</div>'
                   '</div></div>')
 
     clock = ('<div style="font-size: 17px; line-height: 24px; font-weight: 500; color: ' + INK
-             + '; font-variant-numeric: tabular-nums;">21:47</div>')
+             + ';">21:47</div>')
 
     cards = [
         component_card(
@@ -1048,15 +1075,17 @@ def build_components():
             "בנפרד."),
         component_card(
             "ChannelLogo", logos,
-            "square corner 6dp &middot; circle inset 12% &middot; sizes 36 / 46 / 56dp",
+            "square corner 6dp &middot; circle inset 12% &middot; default 44dp &middot; 32/36/40/44/48/56",
             "עגול רק כשהיצירה היא הסמל של התחנה עצמה — יצירה של פיד או אייקון תוכנית בתוך דיסקה היא "
             "תמונה עם הקצוות חתוכים. ההסטה של 12% קטנה בכוונה מהחיתוך המלא, שהיה עולה כ&#8209;15% מכל צד: מונוגרם ממורכז יושב שם "
             "שהדיסקה עדיין רחבה."),
         component_card(
             "Badge", badges,
-            "corner 4dp &middot; padding 6/2 &middot; labelMedium &middot; colour from caller",
-            "תגית טקסט קצרה בתוך שורה. הצבע מגיע מאתר הקריאה, כי היא מסמנת דברים שונים — איכות, מצב "
-            "הקלטה, שפה."),
+            "corner 4dp &middot; padding 6/2 &middot; labelSmall &middot; background from caller",
+            "תגית טקסט קצרה בתוך שורה. הרקע מגיע מאתר הקריאה, כי היא מסמנת דברים שונים — איכות, מצב "
+            "הקלטה, שפה. <strong style=\"color: #FF6B6B;\">להכרעה:</strong> צבע הטקסט קבוע ל&#8209;"
+            "<span class=\"mono\">onPrimary</span> ואינו נגזר מהרקע, כך שתגית על "
+            "<span class=\"mono\">error</span> מקבלת טקסט כחול&#8209;כהה. כאן מצויר מה שהקוד עושה."),
         component_card(
             "SectionHeader", header_demo,
             "divider outlineVariant &middot; padding 12/8 &middot; labelLarge &middot; onSurfaceVariant",
@@ -1064,20 +1093,27 @@ def build_components():
             "<span class=\"mono\">SettingsSectionTitle</span> הוא עטיפה דקה מעל זה ולא הגדרה שנייה."),
         component_card(
             "ProgrammeProgress", progress,
-            "height 4dp &middot; track onSurface-ish &middot; fill primary",
-            "עכשיו/הבא לכרטיס המידע ולשורות הערוצים. נגזר מזמני ההתחלה והסיום ב&#8209;UTC."),
+            "LinearProgressIndicator &middot; M3 defaults",
+            "עכשיו/הבא לכרטיס המידע ולשורות הערוצים, נגזר מזמני ההתחלה והסיום ב&#8209;UTC. הרכיב לא "
+            "בוחר גובה ולא בוחר צבעים — הוא מעביר שבר ל&#8209;<span class=\"mono\">LinearProgressIndicator</span> "
+            "ומקבל את ברירות המחדל של Material 3."),
         component_card(
             "TwoLine", two_line,
-            "gap 12dp &middot; titleSmall + bodySmall &middot; logo 36dp",
-            "הגוף של כמעט כל שורה ברשימות: לוגו, שם, ומה שמתנגן עליו עכשיו."),
+            "Column &middot; titleSmall + bodySmall",
+            "שתי השורות עצמן, ותו לא: הלוגו והמרווח של 12dp שמסביבן הם של "
+            "<span class=\"mono\">FocusableRow</span> ושל אתר הקריאה. זה הגוף של כמעט כל שורה "
+            "ברשימות — שם, ומה שמתנגן עליו עכשיו."),
         component_card(
             "ClockText", clock,
-            "titleMedium &middot; tabular numerals",
-            "שעון שמתעדכן בדקה. ספרות בעלות רוחב קבוע כדי שהוא לא ירעד."),
+            "titleMedium &middot; onSurface &middot; tick 20s",
+            "מתעורר כל עשרים שניות, הרבה מתחת לדקה שהוא מציג, כך שהדקה על המסך אף פעם לא בת יותר "
+            "מרגע — ונדיר מכדי לעלות משהו. הזמן עצמו נעטף ב&#8209;<span class=\"mono\">TimeModel.ltr</span> "
+            "כדי שהנקודתיים לא יתהפכו בתוך שורה בעברית."),
         component_card(
             "EmptyState", empty,
             "padding 32dp &middot; bodyLarge &middot; onSurfaceVariant &middot; centred",
-            "המרווח הגדול היחיד באפליקציה. מסך ריק זה מה שהוא, וריפוד קטן יותר גורם לו להיראות כתקלה."),
+            "הריפוד הגדול ביותר שמשטח באפליקציה נותן לטקסט. מסך ריק זה מה שהוא, וריפוד קטן יותר "
+            "גורם לו להיראות כתקלה."),
     ]
 
     body = root(1180, "\n".join([
@@ -1098,16 +1134,16 @@ def build_components():
 METRICS = [
     ("guideHourWidth", "240dp", "204&ndash;384dp", "רוחב שעה אחת בציר הזמן של המדריך"),
     ("guideRowHeight", "64dp", "56&ndash;112dp", "גובה שורה במדריך — נגזר מהגובה, לא מהרוחב"),
-    ("guideChannelColumnWidth", "190dp", "162&ndash;304dp", "עמודת הערוצים שמימין לרשת"),
+    ("guideChannelColumnWidth", "190dp", "161.5&ndash;304dp", "עמודת הערוצים שמימין לרשת"),
     ("groupColumnWidth", "220dp", "187&ndash;352dp", "עמודת הקבוצות ברשימת הערוצים"),
     ("nowNextPaneWidth", "280dp", "238&ndash;448dp", "חלונית עכשיו/הבא"),
     ("rowLogoSize", "36", "30&ndash;57", "צלע הלוגו בשורת רשימה"),
-    ("homeNavRailWidth", "168dp", "142&ndash;268dp", "רוחב פס הניווט כשהוא מציג תוויות"),
-    ("homeNavRailCollapsedWidth", "64dp", "54&ndash;102dp", "אותו פס מכווץ לאייקונים"),
+    ("homeNavRailWidth", "168dp", "142.8&ndash;268.8dp", "רוחב פס הניווט כשהוא מציג תוויות"),
+    ("homeNavRailCollapsedWidth", "64dp", "54.4&ndash;102.4dp", "אותו פס מכווץ לאייקונים"),
     ("homeHeroHeight", "320dp", "160&ndash;560dp", "גובה הבאנר לפני השורה הראשונה"),
     ("homeCardWidth", "180dp", "153&ndash;288dp", "רוחב קלף בשורת הבית"),
-    ("rowCorner", "8dp", "14dp", "פינת שורה ממוקדת — <strong>שטוח, לא מתקנה</strong>"),
-    ("focusRingWidth", "2dp", "3dp", "עובי טבעת הפוקוס — <strong>שטוח, לא מתקנה</strong>"),
+    ("rowCorner", "8dp", "14dp", "פינת שורה ממוקדת — <strong>קבוע, לא נגזר מהסקאלה</strong>"),
+    ("focusRingWidth", "2dp", "3dp", "עובי טבעת הפוקוס — <strong>קבוע, לא נגזר מהסקאלה</strong>"),
 ]
 
 
@@ -1136,12 +1172,13 @@ def build_metrics():
          "הנוספים צריכים לקנות יותר תוכן, לא תוכן גדול יותר."),
         ("שורות המדריך", "7",
          "גובה השורה נגזר מהגובה הזמין חלקי שבע, ולא מהסקאלה. טלוויזיה שמכניסה שתים&#8209;עשרה שורות "
-         "של 64dp מציגה טקסט שאיש בחדר לא קורא. זה גם מה שהופך את חלון השאילתה של המדריך לכן — הוא "
-         "מבקש את השורות שבאמת על המסך."),
+         "של 64dp מציגה טקסט שאיש בחדר לא קורא. זה גם מה שגורם לחלון השאילתה של המדריך לבקש בדיוק את "
+         "השורות שנמצאות על המסך, ולא יותר."),
         ("גובה הבאנר", "58%",
          "חלק מהגובה, ואז חסום פעמיים: לעולם לא כל כך נמוך שהבאנר מפסיק להיות המסך, ולעולם לא כל כך "
          "גבוה ששורת הקלפים הראשונה יורדת כולה מתחת לקו — מסך בית ששורותיו בלתי נראות עד שלוחצים "
-         "למטה הוא מסך שאיש לא גולל. הרצפה השנייה היא 150dp של הצצה לשורה."),
+         "למטה הוא מסך שאיש לא גולל. התקרה השנייה היא בדיוק זה: הגובה פחות 150dp, שהם ההצצה "
+         "לשורה הראשונה שחייבת להישאר על המסך."),
     ):
         rules.append(card(
             '<div style="display: flex; align-items: baseline; gap: 10px;">\n'
@@ -1164,12 +1201,12 @@ def build_metrics():
     body = root(1080, "\n".join([
         header("ui/common/TvMetrics.kt",
                "מידות עשר הרגליים",
-               "כל אחת מהמידות האלה הייתה קבוע קומפילציה משותף לשני מכשירי הקצה, וזו הסיבה שקליפת עשר "
-               "הרגליים נראתה אותו דבר על מסך 24 אינץ' ועל פאנל 65 אינץ'. הן נגזרות מהחלון עכשיו, ולכן "
-               "המדריך מקבל שעות רחבות יותר ושורות גבוהות יותר על מסך גדול — במקום עוד מאותן קטנות. "
+               "כל אחת מהמידות האלה הייתה קבועה בזמן קומפילציה, משותפת לשני מכשירי הקצה, וזו הסיבה שקליפת עשר "
+               "הרגליים נראתה אותו דבר על מסך 24 אינץ' ועל פאנל 65 אינץ'. עכשיו הן נגזרות מהחלון, ולכן "
+               "המדריך מקבל שעות רחבות יותר ושורות גבוהות יותר על מסך גדול — במקום עוד שורות באותו גודל. הטלפון לא נגע בזה: "
                "<span class=\"mono\">LocalTvMetrics</span> מוגדר כברירת מחדל ל&#8209;"
-               "<span class=\"mono\">TvMetrics.Phone</span>, ולכן קליפת המגע לא משתנה מעצם הבנייה."),
-        section("הטבלה &middot; טלפון קבוע, טלוויזיה בטווח החסימה"),
+               "<span class=\"mono\">TvMetrics.Phone</span>, שהוא בדיוק הקבועים הישנים."),
+        section("הטבלה &middot; טלפון קבוע, טלוויזיה בטווח החסום"),
         '<div style="display: flex; flex-direction: column;">\n' + head + "\n" + "\n".join(rows) + '\n</div>',
         section("שלוש נגזרות"),
         '<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">\n'
@@ -1197,7 +1234,7 @@ CANVAS = {
          "title": "משטחים", "page": "page-2", "is_interactive": True},
         {"file": "Focus.dc.html",       "x": 1380, "y": 0,    "w": 1180, "h": 1270,
          "title": "פוקוס", "page": "page-2", "is_interactive": True},
-        {"file": "Components.dc.html",  "x": 0,    "y": 1780, "w": 1180, "h": 1420,
+        {"file": "Components.dc.html",  "x": 0,    "y": 1780, "w": 1180, "h": 1500,
          "title": "רכיבים", "page": "page-2"},
         {"file": "Metrics.dc.html",     "x": 1280, "y": 1780, "w": 1080, "h": 1240,
          "title": "מידות", "page": "page-2"},
