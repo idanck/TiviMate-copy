@@ -13,14 +13,17 @@ import android.graphics.drawable.Icon
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Rational
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
@@ -45,13 +48,20 @@ import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.RadioBackgroundService
+import com.tivicopy.player.ui.common.IdleScene
+import com.tivicopy.player.ui.common.Screensaver
+import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.describe
+import com.tivicopy.player.ui.common.idleScene
+import com.tivicopy.player.ui.common.screensaverApplies
+import com.tivicopy.player.ui.common.screensaverDelayMillis
 import com.tivicopy.player.ui.mobile.MobileRoot
 import com.tivicopy.player.ui.mobile.PlayerScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import com.tivicopy.player.ui.theme.TiviCopyTheme
 import com.tivicopy.player.ui.tv.TvOverlay
 import com.tivicopy.player.ui.tv.TvRoot
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -288,59 +298,126 @@ class MainActivity : ComponentActivity() {
                 ServiceLocator.appScope.launch { ServiceLocator.updates.check(force = false) }
             }
 
+            // FR-UI-31, ADR-024: the burn-in guard. What is on the panel decides whether it
+            // needs protecting at all; the countdown below decides when.
+            val scene = idleScene(
+                playing = playback.playing,
+                playWhenReady = playback.playWhenReady,
+                hasPicture = playback.width > 0 || playback.height > 0,
+                failed = playback.error != null,
+                // The one question the two shells answer differently: on the television an
+                // overlay may be covering the picture or docking it into a corner, and on the
+                // phone there is no picture on screen at all unless the player screen is open.
+                videoFillsPanel = if (isTelevision) overlay.videoFillsPanel else playerOpen,
+            )
+            val applies = screensaverApplies(prefs.screensaverEnabled, scene, inPip)
+            // One timer, armed and slept through, rather than a clock ticking every second: a
+            // key press moves `lastInteractionAt`, which restarts this effect, so an idle
+            // television costs one suspended coroutine and nothing else.
+            LaunchedEffect(
+                applies,
+                lastInteractionAt,
+                prefs.screensaverIdleMinutes,
+                prefs.screensaverTasks,
+            ) {
+                if (!applies) {
+                    screensaverOn = false
+                    return@LaunchedEffect
+                }
+                val due = lastInteractionAt + screensaverDelayMillis(prefs.screensaverIdleMinutes)
+                val wait = due - SystemClock.elapsedRealtime()
+                if (wait > 0) delay(wait)
+                screensaverOn = true
+                // Fetched as the screen arms rather than on a schedule of its own: this is the
+                // only surface that reads the list, and the repository rate-limits it to one
+                // request every half hour however often the screensaver comes and goes.
+                if (prefs.screensaverTasks) ServiceLocator.tasks.refresh(force = false)
+            }
+            val taskFeed by ServiceLocator.tasks.state.collectAsState()
+            // Only the radio gets the tasks (FR-UI-32). A paused film is a screen somebody is
+            // coming back to in a minute, and not the place for somebody's to-do list.
+            val tasks = if (prefs.screensaverTasks && scene == IdleScene.AUDIO_ONLY) {
+                taskFeed.items
+            } else {
+                emptyList()
+            }
+
             TiviCopyTheme(mode = prefs.theme, fontScale = prefs.fontScale) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    Scaffold(
-                        snackbarHost = { SnackbarHost(snackbar) },
-                        // This Scaffold exists only to host the snackbar; its content padding was
-                        // already discarded below. Saying so explicitly keeps it from insetting
-                        // anything now that the window is edge to edge — each shell handles its
-                        // own insets, and MobileRoot's Scaffold is the one that must keep them.
-                        contentWindowInsets = WindowInsets(0),
-                    ) { _ ->
-                        if (isTelevision) {
-                            // Android TV boxes do PiP too, and the window must be bare video:
-                            // an open overlay squeezed into it is unreadable chrome.
-                            if (inPip) {
-                                PlayerScreen(
-                                    vm = vm,
-                                    onClose = {},
-                                    onOpenGuide = {},
-                                    onBrightness = {},
-                                    onVolume = {},
-                                    twoPane = false,
-                                    inPip = true,
-                                    modifier = Modifier.fillMaxSize(),
-                                )
-                            } else {
-                                LaunchedEffect(overlay) {
-                                    if (overlay == TvOverlay.HOME ||
-                                        overlay == TvOverlay.CHANNELS ||
-                                        overlay == TvOverlay.RADIO
-                                    ) {
-                                        lastBrowseOverlay = overlay
+                    // The screensaver is a sibling of the shell rather than something inside
+                    // it: it covers both shells, the snackbar and every overlay, and neither
+                    // shell should have to know it exists (FR-UI-31).
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Scaffold(
+                            snackbarHost = { SnackbarHost(snackbar) },
+                            // This Scaffold exists only to host the snackbar; its content padding was
+                            // already discarded below. Saying so explicitly keeps it from insetting
+                            // anything now that the window is edge to edge — each shell handles its
+                            // own insets, and MobileRoot's Scaffold is the one that must keep them.
+                            contentWindowInsets = WindowInsets(0),
+                        ) { _ ->
+                            if (isTelevision) {
+                                // Android TV boxes do PiP too, and the window must be bare video:
+                                // an open overlay squeezed into it is unreadable chrome.
+                                if (inPip) {
+                                    PlayerScreen(
+                                        vm = vm,
+                                        onClose = {},
+                                        onOpenGuide = {},
+                                        onBrightness = {},
+                                        onVolume = {},
+                                        twoPane = false,
+                                        inPip = true,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
+                                    LaunchedEffect(overlay) {
+                                        if (overlay == TvOverlay.HOME ||
+                                            overlay == TvOverlay.CHANNELS ||
+                                            overlay == TvOverlay.RADIO
+                                        ) {
+                                            lastBrowseOverlay = overlay
+                                        }
                                     }
+                                    TvRoot(
+                                        vm = vm,
+                                        overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
+                                        settingsSection = settingsSection,
+                                        onOverlayChange = { overlay = it },
+                                        onSettingsSection = { settingsSection = it },
+                                        numericEntry = numericEntry,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
                                 }
-                                TvRoot(
+                            } else {
+                                MobileRoot(
                                     vm = vm,
-                                    overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
                                     settingsSection = settingsSection,
-                                    onOverlayChange = { overlay = it },
                                     onSettingsSection = { settingsSection = it },
-                                    numericEntry = numericEntry,
+                                    playerOpen = playerOpen,
+                                    onPlayerOpenChange = { playerOpen = it },
+                                    inPip = inPip,
+                                    onBrightness = ::adjustBrightness,
+                                    onVolume = ::adjustVolume,
                                     modifier = Modifier.fillMaxSize(),
                                 )
                             }
-                        } else {
-                            MobileRoot(
-                                vm = vm,
-                                settingsSection = settingsSection,
-                                onSettingsSection = { settingsSection = it },
-                                playerOpen = playerOpen,
-                                onPlayerOpenChange = { playerOpen = it },
-                                inPip = inPip,
-                                onBrightness = ::adjustBrightness,
-                                onVolume = ::adjustVolume,
+                        }
+
+                        if (screensaverOn) {
+                            Screensaver(
+                                ambient = scene == IdleScene.AUDIO_ONLY,
+                                // Named from what is actually playing rather than from
+                                // `currentChannel`, which deliberately outlives an on-demand
+                                // session: a film paused after a radio station must not be
+                                // drawn as that station.
+                                channel = if (scene == IdleScene.AUDIO_ONLY) {
+                                    state.nowPlaying.audioOnlyChannel()
+                                } else {
+                                    state.currentChannel
+                                },
+                                headline = playback.title,
+                                tasks = tasks,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }
@@ -362,6 +439,87 @@ class MainActivity : ComponentActivity() {
             WindowInsetsControllerCompat(window, window.decorView)
                 .hide(WindowInsetsCompat.Type.systemBars())
         }
+    }
+
+    // --------------------------------------------------------- the burn-in guard
+
+    /**
+     * When the remote was last touched, on the monotonic clock (FR-UI-31, ADR-024).
+     *
+     * `elapsedRealtime` rather than wall time: the countdown must not be cancelled — or fired
+     * early — by a clock correction, which on a television box that has just reached the network
+     * is a routine event a minute or two after boot.
+     *
+     * A Compose state because the countdown is armed from the composition, which is where the
+     * player status and the settings that decide it already are.
+     */
+    private var lastInteractionAt by mutableStateOf(SystemClock.elapsedRealtime())
+
+    /** Whether the screensaver is on screen. Owned here because key dispatch has to know. */
+    private var screensaverOn by mutableStateOf(false)
+
+    /**
+     * Keys whose remaining events belong to the press that dismissed the screensaver.
+     *
+     * Swallowing the down half alone is not enough: OK is resolved on key-*up* ([onKeyUp]), so
+     * pressing OK to wake the screen would also have opened the transport bar behind it, and a
+     * press of Back would have walked up an overlay the viewer never saw. The whole gesture —
+     * repeats and the eventual up — belongs to the dismissal.
+     */
+    private val wakingKeys = mutableSetOf<Int>()
+
+    /**
+     * Restarts the idle countdown, and takes the screensaver off if it was on.
+     *
+     * The stamp is coalesced to [INTERACTION_RESOLUTION_MS], and that is not a detail: a held
+     * D-pad key repeats about thirty times a second, [lastInteractionAt] is read from the
+     * composition, and every write would therefore re-run the root composable and cancel and
+     * relaunch the countdown coroutine. A second of slack on a ten-minute timer costs nothing;
+     * thirty of those a second, while a viewer scrolls the guide, costs frames.
+     *
+     * Waking is never coalesced away, because by then the countdown has been asleep for minutes
+     * and the delta is far past the threshold — and `screensaverOn` is cleared regardless.
+     */
+    private fun noteInteraction() {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastInteractionAt >= INTERACTION_RESOLUTION_MS) lastInteractionAt = now
+        if (screensaverOn) screensaverOn = false
+    }
+
+    /**
+     * Every key the app sees, before anything else sees it.
+     *
+     * Volume and mute are deliberately *not* interaction. Turning a radio station down from the
+     * sofa is not looking at the screen, and lighting a station backdrop back up for another ten
+     * minutes is the opposite of what the person who pressed it asked for. They pass straight
+     * through, waking nothing: the screensaver is not a modal, and it must never eat the volume.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode in VOLUME_KEYS) return super.dispatchKeyEvent(event)
+
+        if (event.keyCode in wakingKeys) {
+            if (event.action == KeyEvent.ACTION_UP) wakingKeys.remove(event.keyCode)
+            return true
+        }
+        if (screensaverOn) {
+            noteInteraction()
+            if (event.action == KeyEvent.ACTION_DOWN) wakingKeys.add(event.keyCode)
+            return true
+        }
+        noteInteraction()
+        return super.dispatchKeyEvent(event)
+    }
+
+    /**
+     * The phone's half of the same clock.
+     *
+     * Only the press is counted, not the drag: a scroll is one interaction, not forty. The tap
+     * that dismisses the screensaver is swallowed by the screensaver itself, which is a full
+     * screen surface with its own tap detector — there is nothing to consume here.
+     */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) noteInteraction()
+        return super.dispatchTouchEvent(event)
     }
 
     // ------------------------------------------------------------- remote keys
@@ -697,6 +855,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Coming back to the app is an interaction, whatever key or gesture got here: the idle
+        // countdown starts again, and any wake gesture whose key-up went somewhere else — the
+        // launcher, a dialog — is forgotten rather than left swallowing that key for good.
+        wakingKeys.clear()
+        noteInteraction()
         // "Install unknown apps" is granted on a screen of the platform's own, and nothing in
         // this process is told when it happens. Coming back is the moment to look again — which
         // is what lets a refused update pick itself back up instead of sending the user round
@@ -749,6 +912,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private companion object {
+        /**
+         * Keys that work the sound rather than the interface. They are the one thing the
+         * screensaver neither wakes for nor swallows.
+         */
+        /**
+         * How finely the idle clock is kept. Coarse on purpose; see [noteInteraction].
+         */
+        const val INTERACTION_RESOLUTION_MS = 1_000L
+
+        val VOLUME_KEYS = setOf(
+            KeyEvent.KEYCODE_VOLUME_UP,
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+            KeyEvent.KEYCODE_VOLUME_MUTE,
+        )
+
         const val EXIT_CONFIRM_WINDOW_MS = 3_000L
         const val ACTION_PIP_PLAY_PAUSE = "com.tivicopy.player.PIP_PLAY_PAUSE"
         const val PIP_REQUEST_PLAY_PAUSE = 1

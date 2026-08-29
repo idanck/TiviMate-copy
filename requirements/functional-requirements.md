@@ -134,7 +134,9 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UI-27 | The app draws its interface in a typeface it ships itself, covering Hebrew and Latin in one family, rather than the device's default fonts. | SHOULD | Free | Both |
 | FR-UI-28 | The television home screen leads with the live picture as a full-bleed banner, a navigation rail that shows icons until focus enters it, and a strip of shortcuts to the streaming apps installed on the device. | SHOULD | Free | TV |
 | FR-UI-29 | The guide offers its days as a strip above the grid, shows the current time, and lifts the focused cell out of the grid. | SHOULD | Free | Both |
-| FR-UI-30 | Focus and arriving surfaces are animated rather than cut: a focused item lifts, colours cross, and an overlay fades in. Nothing animates while the screen is idle. | SHOULD | Free | Both |
+| FR-UI-30 | Focus and arriving surfaces are animated rather than cut: a focused item lifts, colours cross, and an overlay fades in. Nothing animates while the screen is idle, except the screensaver of FR-UI-31, whose whole purpose is that the idle screen does not hold still. | SHOULD | Free | Both |
+| FR-UI-31 | A still screen left untouched for a configurable period is replaced by a screensaver on which nothing holds position: black with a drifting clock for a still picture, and the station's own colours, dimmed and slowly shifting, for an audio-only stream. Moving video is never replaced, the press that dismisses it does nothing else, and volume keys neither wake it nor are eaten by it. | SHOULD | Free | Both |
+| FR-UI-32 | The radio screensaver can print the user's own open tasks, one at a time, read from a configurable HTTPS address serving a Markdown checklist or a JSON list. No address is bundled; with none configured, and with the display switched off by default, there are no tasks. | COULD | Free | Both |
 
 ## PRF — Profiles and Parental Controls
 
