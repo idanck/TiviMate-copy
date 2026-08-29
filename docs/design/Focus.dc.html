@@ -1,0 +1,229 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+    .tile {
+      appearance: none;
+      -webkit-appearance: none;
+      font: inherit;
+      color: inherit;
+      text-align: start;
+      cursor: pointer;
+      background: rgba(35,42,53,0.65);
+      border: 1px solid rgba(76,141,255,0);
+      border-radius: 14px;
+      padding: 14px;
+      width: 178px;
+      height: 108px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 4px;
+      outline: none;
+      transition: background-color 120ms cubic-bezier(0.4,0,0.2,1),
+                  border-color 120ms cubic-bezier(0.4,0,0.2,1),
+                  transform 260ms cubic-bezier(0.20,0.80,0.25,1.0);
+    }
+    .tile:hover, .tile:focus {
+      background: #323A47;
+      border: 3px solid #4C8DFF;
+      padding: 12px;
+      transform: scale(1.06);
+      z-index: 1;
+    }
+    .tile.playing {
+      background: #232A35;
+      border-color: rgba(76,141,255,0.45);
+    }
+    .row {
+      appearance: none;
+      -webkit-appearance: none;
+      font: inherit;
+      color: inherit;
+      text-align: start;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+      background: rgba(50,58,71,0);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      outline: none;
+      transition: background-color 120ms cubic-bezier(0.4,0,0.2,1),
+                  border-color 120ms cubic-bezier(0.4,0,0.2,1);
+    }
+    .row-tv {
+      border: 3px solid rgba(76,141,255,0);
+      border-radius: 14px;
+      padding: 7px 9px;
+    }
+    .row-tv:hover, .row-tv:focus {
+      background: rgba(76,141,255,0.22);
+      border-color: #4C8DFF;
+    }
+    .row-tv.selected { background: #323A47; border-color: rgba(76,141,255,0.45); }
+    .row-phone {
+      border: 2px solid rgba(76,141,255,0);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .row-phone:hover, .row-phone:focus {
+      background: rgba(76,141,255,0.22);
+      border-color: #4C8DFF;
+    }
+    .row-phone.selected { background: #323A47; border-color: rgba(76,141,255,0.45); }
+  </style>
+</helmet>
+<!-- Focus — FocusableRow and tvCard states -->
+<div style="width: 1180px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/common/Components.kt &middot; ui/common/TvMetrics.kt &middot; NFR-UX-02</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">פוקוס</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">כל רשימה באפליקציה בנויה מ&#8209;<span class="mono">FocusableRow</span> אחד, ולכן הקריאה הזו היא רוב מה שהפוקוס בממשק מרגיש כמוהו. שתי מערכות מספרים יוצאות ממנה: טלפון נקרא ממרחק זרוע, טלוויזיה משלושה מטרים — שם פינה של 8dp וטבעת של 2dp הן מלבן עם קו חיוור. <em>לחצו או השתמשו ב&#8209;Tab כדי להזיז את הפוקוס.</em></div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">קלפים &middot; tvCard + focusLift</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 28px; padding: 28px;">
+  <div style="display: flex; gap: 18px;">
+    <button type="button" class="tile">
+      <span style="font-size: 15px; line-height: 20px; font-weight: 500;">כאן 11</span>
+      <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">מהדורת חדשות</span>
+    </button>
+    <button type="button" class="tile playing">
+      <span style="font-size: 15px; line-height: 20px; font-weight: 500;">רשת 13</span>
+      <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">הזירה</span>
+    </button>
+    <button type="button" class="tile">
+      <span style="font-size: 15px; line-height: 20px; font-weight: 500;">קשת 12</span>
+      <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">ארץ נהדרת</span>
+    </button>
+    <button type="button" class="tile">
+      <span style="font-size: 15px; line-height: 20px; font-weight: 500;">ספורט 5</span>
+      <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">ליגת העל</span>
+    </button>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">שורות &middot; FocusableRow בשתי הקליפות</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 32px; align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; gap: 14px; flex-grow: 1;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 500;">טלוויזיה</div>
+      <div class="mono" style="font-size: 12px; color: #6B7482;">rowCorner 14dp &middot; ring 3dp</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 12px;">
+    <button type="button" class="row row-tv">
+      <div style="width: 46px; height: 46px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; color: #FFFFFF;">כא</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">כאן 11</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: מהדורת חדשות</span>
+      </span>
+    </button>
+    <button type="button" class="row row-tv selected">
+      <div style="width: 46px; height: 46px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; color: #FFFFFF;">רש</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">רשת 13</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: הזירה</span>
+      </span>
+    </button>
+    <button type="button" class="row row-tv">
+      <div style="width: 46px; height: 46px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; color: #FFFFFF;">קש</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">קשת 12</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: ארץ נהדרת</span>
+      </span>
+    </button>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 14px; flex-grow: 1;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div style="font-size: 17px; line-height: 24px; font-weight: 500;">טלפון</div>
+      <div class="mono" style="font-size: 12px; color: #6B7482;">rowCorner 8dp &middot; ring 2dp</div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 4px; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 12px;">
+    <button type="button" class="row row-phone">
+      <div style="width: 36px; height: 36px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #FFFFFF;">כא</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">כאן 11</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: מהדורת חדשות</span>
+      </span>
+    </button>
+    <button type="button" class="row row-phone selected">
+      <div style="width: 36px; height: 36px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #FFFFFF;">רש</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">רשת 13</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: הזירה</span>
+      </span>
+    </button>
+    <button type="button" class="row row-phone">
+      <div style="width: 36px; height: 36px; flex: none; border-radius: 6px; background: hsl(212, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #FFFFFF;">קש</div>
+      <span style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+        <span style="font-size: 15px; line-height: 20px; font-weight: 500;">קשת 12</span>
+        <span style="font-size: 13px; line-height: 18px; color: #BEC7D4;">עכשיו: ארץ נהדרת</span>
+      </span>
+    </button>
+    </div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">מטריצת המצבים של FocusableRow</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 90px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">מצב</div>
+    <div style="width: 150px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">מילוי</div>
+    <div style="width: 150px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">טבעת</div>
+    <div style="font-size: 13px; font-weight: 500; color: #BEC7D4;">מתי</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 90px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500;">מנוחה</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #9CC2FF;">ללא מילוי</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #4C8DFF;">primary @ 0</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">הצבע עצמו ב&#8209;alpha אפס</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 90px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500;">נבחר</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #9CC2FF;">surfaceVariant</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #4C8DFF;">primary @ 0.45</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">הערוץ שמתנגן, בלי פוקוס</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 90px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500;">בפוקוס</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #9CC2FF;">primary @ 0.22</div>
+    <div class="mono" style="width: 150px; flex: none; font-size: 12px; color: #4C8DFF;">primary</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">מה שה&#8209;D&#8209;pad עומד עליו</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><span class="mono">onFocusChanged</span> קורא <span class="mono">hasFocus</span> ולא <span class="mono">isFocused</span>: שורות נושאות פקדים משלהן — מתג המועדף — וצעד D&#8209;pad על אחד מהם לא אמור להיראות כיציאה מהשורה. הפינה והטבעת <em>לא</em> מתקנות לפי גודל המסך: טלוויזיית 4K רוצה את אותה פינה ואת אותה טבעת כמו 1080p, כי הספה לא זזה.</div>
+</div>
+</x-dc>
+</body>
+</html>

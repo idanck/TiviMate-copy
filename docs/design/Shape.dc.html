@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+  </style>
+</helmet>
+<!-- Shape — corners, spacing, strokes -->
+<div style="width: 1060px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/theme/Theme.kt &middot; ui/tv/TvSurfaces.kt</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">צורה, מרווח וקו</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">רמפת פינות אחת לכל האפליקציה, כדי שהמשטחים המורמים — פס הניגון, הקלפים, המיני&#8209;נגן — יהיו משפחה אחת במקום שכל אחד יבחר לעצמו רדיוס.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">רמפת הפינות &middot; Shapes</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 20px; align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; flex-grow: 1;">
+    <div style="width: 100%; height: 96px; border-radius: 6px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">extraSmall</div>
+      <div class="mono" style="font-size: 11px; color: #4C8DFF;">6dp</div>
+      <div style="font-size: 11px; line-height: 15px; color: #6B7482; text-align: center;">לוגו ערוץ בשורה</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; flex-grow: 1;">
+    <div style="width: 100%; height: 96px; border-radius: 10px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">small</div>
+      <div class="mono" style="font-size: 11px; color: #4C8DFF;">10dp</div>
+      <div style="font-size: 11px; line-height: 15px; color: #6B7482; text-align: center;">פקדים קטנים</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; flex-grow: 1;">
+    <div style="width: 100%; height: 96px; border-radius: 14px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">medium</div>
+      <div class="mono" style="font-size: 11px; color: #4C8DFF;">14dp</div>
+      <div style="font-size: 11px; line-height: 15px; color: #6B7482; text-align: center;">קלף, שורה בטלוויזיה</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; flex-grow: 1;">
+    <div style="width: 100%; height: 96px; border-radius: 20px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">large</div>
+      <div class="mono" style="font-size: 11px; color: #4C8DFF;">20dp</div>
+      <div style="font-size: 11px; line-height: 15px; color: #6B7482; text-align: center;">דיאלוגים</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; flex-grow: 1;">
+    <div style="width: 100%; height: 96px; border-radius: 28px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">extraLarge</div>
+      <div class="mono" style="font-size: 11px; color: #4C8DFF;">28dp</div>
+      <div style="font-size: 11px; line-height: 15px; color: #6B7482; text-align: center;">פאנל צף</div>
+    </div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">איפה כל רדיוס מופיע בפועל</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">28dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">TV_PANEL_CORNER</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">פס הניגון, סרט הערוצים, קפסולת הניווט, תפריט הניגון</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">16dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">LIVE_BADGE_CORNER</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">תג &quot;שידור חי&quot;</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">14dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">TV_CARD_CORNER</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">אריח בית, אריח בסרט, שורת רשימה בטלוויזיה</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">8dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">TvMetrics.Phone.rowCorner</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">שורת רשימה בטלפון</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">6dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">ChannelLogo</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">לוגו ריבועי</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">4dp</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">Badge</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">תגית טקסט קטנה</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 56px; flex: none; font-size: 13px; font-weight: 500; color: #4C8DFF;">50%</div>
+    <div class="mono" style="width: 250px; flex: none; font-size: 12px; color: #E9EDF3;">CircleShape</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">מונוגרם ותחנת רדיו — רק כשהיצירה היא הסמל של התחנה עצמה</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">סולם המרווחים &middot; כפי שהוא בשימוש היום</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 44px; align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; gap: 10px; flex: none;">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">2dp</div>
+    <div style="width: 108px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">23 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">4dp</div>
+    <div style="width: 100px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">21 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">6dp</div>
+    <div style="width: 137px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">30 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">8dp</div>
+    <div style="width: 258px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">59 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">10dp</div>
+    <div style="width: 79px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">16 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">12dp</div>
+    <div style="width: 312px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">72 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">16dp</div>
+    <div style="width: 100px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">21 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">20dp</div>
+    <div style="width: 45px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">8 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">24dp</div>
+    <div style="width: 50px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">9 שימושים</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div class="mono" style="width: 44px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">32dp</div>
+    <div style="width: 33px; height: 14px; border-radius: 7px; background: #4C8DFF; opacity: 0.85;"></div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">5 שימושים</div>
+  </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0;">
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">זה תיאור, לא הצהרה: אין בקוד קובץ טוקנים למרווחים — כל מספר הוא <span class="mono">N.dp</span> באתר השימוש. הספירה מראה סולם ברור בכל זאת, עם <strong>12</strong> ו&#8209;<strong>8</strong> כברירות המחדל האמיתיות, ו&#8209;6 למרווחים צמודים.</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">שני החריגים הבולטים: <span class="mono">2dp</span> הוא כמעט תמיד טבעת פוקוס או מרווח בתוך תגית, ו&#8209;<span class="mono">32dp</span> הוא הריפוד של <span class="mono">EmptyState</span> בלבד.</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">עוביי קו</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 24px;">
+  <div style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+    <div style="height: 72px; border-radius: 14px; background: #232A35; border: 1px solid #4C8DFF;"></div>
+    <div class="mono" style="font-size: 12px; font-weight: 500; text-align: right; color: #E9EDF3;">1dp</div>
+    <div style="font-size: 12px; line-height: 16px; color: #6B7482;">hairline של פאנל, טבעת במנוחה</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+    <div style="height: 72px; border-radius: 14px; background: #232A35; border: 2px solid #4C8DFF;"></div>
+    <div class="mono" style="font-size: 12px; font-weight: 500; text-align: right; color: #E9EDF3;">2dp</div>
+    <div style="font-size: 12px; line-height: 16px; color: #6B7482;">טבעת פוקוס בטלפון</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 10px; flex-grow: 1;">
+    <div style="height: 72px; border-radius: 14px; background: #232A35; border: 3px solid #4C8DFF;"></div>
+    <div class="mono" style="font-size: 12px; font-weight: 500; text-align: right; color: #E9EDF3;">3dp</div>
+    <div style="font-size: 12px; line-height: 16px; color: #6B7482;">טבעת פוקוס בטלוויזיה</div>
+  </div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>
