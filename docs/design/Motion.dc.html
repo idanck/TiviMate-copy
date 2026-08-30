@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+    .demo { cursor: default; }
+    .swatch-fast, .swatch-standard, .swatch-entrance {
+      background: #2D3542;
+      border: 1px solid rgba(233,237,243,0.12);
+    }
+    .swatch-fast {
+      transition: background-color 120ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                  border-color 120ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    .demo:hover .swatch-fast {
+      background: #4C8DFF;
+      border-color: #4C8DFF;
+    }
+    .swatch-standard {
+      transition: transform 200ms cubic-bezier(0.4, 0.0, 0.2, 1),
+                  background-color 200ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    .demo:hover .swatch-standard {
+      transform: translateX(-56px);
+      background: #323A47;
+    }
+    .swatch-entrance {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .demo:hover .swatch-entrance {
+      animation: dc-entrance 260ms cubic-bezier(0.4, 0.0, 0.2, 1);
+    }
+    @keyframes dc-entrance {
+      from { opacity: 0.06; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .lift {
+      transition: transform 260ms cubic-bezier(0.20, 0.80, 0.25, 1.0),
+                  border-color 120ms linear,
+                  background-color 120ms linear;
+    }
+    .demo:hover .lift {
+      transform: scale(1.06);
+      background: #323A47;
+      border-color: #4C8DFF;
+    }
+  </style>
+</helmet>
+<!-- Motion — ui/common/Motion.kt -->
+<div style="width: 1180px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/common/Motion.kt &middot; ADR-021</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">תנועה</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">עד שהקובץ הזה נוצר לא הייתה תנועה בכלל — לא קריאה אחת ל&#8209;<span class="mono">animate*AsState</span> באפליקציה. כל טבעת פוקוס, כל סרט שנפתח וכל שכבה שהחליפה אחרת היו חיתוך של פריים בודד. במדידה על הטלוויזיה זה צייר שלושה עד ארבעה פריימים ללחיצה על השלט, במקום חמישה&#8209;עשר עד עשרים. <em>העבירו את הסמן מעל כל אחד כדי לראות כמה זמן זה לוקח.</em></div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">משכים</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 24px; align-items: stretch;">
+  <div class="demo" style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div class="mono" style="font-size: 13px; font-weight: 500; color: #E9EDF3;">FAST</div>
+      <div class="mono" style="font-size: 22px; line-height: 28px; font-weight: 700; color: #4C8DFF;">120<span style="font-size: 13px; font-weight: 400;">ms</span></div>
+    </div>
+    <div style="height: 84px; display: flex; align-items: center;">
+      <div class="swatch-fast" style="width: 84px; height: 60px; border-radius: 14px;"></div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: #E9EDF3;">מעבר צבע, תווית שמופיעה</div>
+    <div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">קצר מספיק כדי להרגיש מיידי. כל טבעת פוקוס וכל מילוי במערכת חוצים בו במקום לקפוץ.</div>
+  </div>
+  <div class="demo" style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div class="mono" style="font-size: 13px; font-weight: 500; color: #E9EDF3;">STANDARD</div>
+      <div class="mono" style="font-size: 22px; line-height: 28px; font-weight: 700; color: #4C8DFF;">200<span style="font-size: 13px; font-weight: 400;">ms</span></div>
+    </div>
+    <div style="height: 84px; display: flex; align-items: center;">
+      <div class="swatch-standard" style="width: 84px; height: 60px; border-radius: 14px;"></div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: #E9EDF3;">ברירת המחדל לכל דבר עם גודל או מיקום</div>
+    <div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">קפסולת הניווט שנפתחת, סרט שמחליק, פאנל שמשנה גובה.</div>
+  </div>
+  <div class="demo" style="display: flex; flex-direction: column; gap: 16px; flex-grow: 1; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div class="mono" style="font-size: 13px; font-weight: 500; color: #E9EDF3;">ENTRANCE</div>
+      <div class="mono" style="font-size: 22px; line-height: 28px; font-weight: 700; color: #4C8DFF;">260<span style="font-size: 13px; font-weight: 400;">ms</span></div>
+    </div>
+    <div style="height: 84px; display: flex; align-items: center;">
+      <div class="swatch-entrance" style="width: 84px; height: 60px; border-radius: 14px;"></div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: #E9EDF3;">משטח שלם שמגיע מעל הווידאו</div>
+    <div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">עמעום עם עלייה של 12dp מתחתיו. מוחלף לפי מפתח, כך שמסך שמחליף מסך נקרא כמעבר ולא כחיתוך — בלי להרכיב שני מסכים בו&#8209;זמנית.</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">קפיץ</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 32px; align-items: stretch;">
+  <div class="demo" style="flex: none; width: 320px; background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px; display: flex; align-items: center; justify-content: center;">
+    <div class="lift" style="width: 208px; height: 118px; border-radius: 14px; background: #2D3542; border: 3px solid rgba(76,141,255,0); display: flex; align-items: flex-end; padding: 14px; box-sizing: border-box;">
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3;">כאן 11</div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 14px; justify-content: center; min-width: 0;">
+    <div style="font-size: 20px; line-height: 27px; font-weight: 600;">הרמת הפוקוס &middot; <span class="mono" style="font-size: 16px; color: #4C8DFF;">FOCUS_SCALE 1.06</span></div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">קפיץ ולא משך: פוקוס ב&#8209;D&#8209;pad זז בפרצים — צופה שמחזיק את המקש חוצה חמישה אריחים בחצי שנייה — וקפיץ שנקטע באמצע נושא את המהירות שלו לאריח הבא במקום להתחיל מחדש. <span class="mono">dampingRatio = 0.78</span>, <span class="mono">stiffness = MediumLow</span>, מרוסן בדיוק לפני חריגה נראית — אריח שמתנדנד נקרא כצעצוע.</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הגידול עובר ב&#8209;<span class="mono">graphicsLayer</span>, כך שהוא נקרא בשלב הציור: אין recomposition ואין מדידה מחדש, ושום דבר סביב האריח לא זז. זה מה שמאפשר לשים את ההרמה על כל אריח ב&#8209;<span class="mono">LazyRow</span>.</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">שלושת הכללים</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px;">
+<div style="background: #2D3542; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 16px; line-height: 22px; font-weight: 500;">מנפישים רק את מה שה&#8209;GPU עושה לבד</div>
+<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">גודל ושקיפות עוברים ב&#8209;<span class="mono">graphicsLayer</span>, שהלמבדה שלו נקראת בשלב הציור. שינוי ערך מצייר מחדש את הצומת ולא מרכיב אותו מחדש.</div>
+</div>
+<div style="background: #2D3542; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 16px; line-height: 22px; font-weight: 500;">אוצר מילים אחד</div>
+<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">פוקוס מתרומם בקפיץ, צבעים חוצים ב&#8209;FAST, משטח שמגיע עולה ומתעמעם ב&#8209;ENTRANCE. מסך שממציא תזמון משלו נקרא כאפליקציה אחרת.</div>
+</div>
+<div style="background: #2D3542; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 16px; line-height: 22px; font-weight: 500;">שום דבר לא לולאה</div>
+<div style="font-size: 13px; line-height: 19px; color: #BEC7D4;">כשלא קורה כלום האפליקציה מציירת אפס פריימים. ממשק עשר&#8209;רגליים שמצייר את עצמו לנצח עולה סוללה בממיר ופריימים בכל השאר. היוצא היחיד הוא שומר המסך (FR&#8209;UI&#8209;31, ADR&#8209;024), שכל קיומו הוא שמסך שאיש לא יושב מולו <em>לא</em> יעמוד במקום — והוא מכבד את הכלל בכל זאת: שנים&#8209;עשר צעדים בשנייה ולא שישים, וכל ערך מונפש נקרא בתוך <span class="mono">graphicsLayer</span> או <span class="mono">drawBehind</span>, כך שצעד מצייר מחדש שני צמתים ולא מרכיב כלום.</div>
+</div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

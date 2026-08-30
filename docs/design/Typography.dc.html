@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+  </style>
+</helmet>
+<!-- Typography — ui/theme/Type.kt -->
+<div style="width: 1060px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/theme/Type.kt &middot; ADR-019</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">טיפוגרפיה</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">האפליקציה נושאת גופן משלה. <strong>Rubik</strong> — גיאומטרי עברי&#8209;לטיני של Hubert &amp; Fischer ומאיר סדן, ברישיון SIL OFL 1.1 — נבחר כי הוא המשפחה החופשית היחידה עם טווח משקלים עובד לעברית, ולטינית ועברית מגיעות בו מאותו מעצב. ארבעה קבצים סטטיים ולא הגופן המשתנה, כי רצפת ה&#8209;API של האפליקציה היא 23 ו&#8209;<span class="mono">FontVariation</span> עובד רק מ&#8209;26.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">משקלים &middot; ארבעה קבצים, כ&#8209;93KB כל אחד</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 24px;">
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+    <div style="font-size: 30px; line-height: 38px; font-weight: 400; color: #E9EDF3;">אבגד Shidur</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">400 &middot; Regular</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+    <div style="font-size: 30px; line-height: 38px; font-weight: 500; color: #E9EDF3;">אבגד Shidur</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">500 &middot; Medium</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+    <div style="font-size: 30px; line-height: 38px; font-weight: 600; color: #E9EDF3;">אבגד Shidur</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">600 &middot; SemiBold</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+    <div style="font-size: 30px; line-height: 38px; font-weight: 700; color: #E9EDF3;">אבגד Shidur</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482;">700 &middot; Bold</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">הרמפה &middot; fontScale = 1.0</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">displaySmall</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">34/42 &middot; Bold</div>
+    </div>
+    <div style="font-size: 34px; line-height: 42px; font-weight: 700; color: #E9EDF3; min-width: 0;">מדריך השידורים</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">headlineMedium</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">26/34 &middot; Bold</div>
+    </div>
+    <div style="font-size: 26px; line-height: 34px; font-weight: 700; color: #E9EDF3; min-width: 0;">המשך לצפות</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">headlineSmall</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">22/30 &middot; SemiBold</div>
+    </div>
+    <div style="font-size: 22px; line-height: 30px; font-weight: 600; color: #E9EDF3; min-width: 0;">ערוצים מועדפים</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">titleLarge</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">20/27 &middot; SemiBold</div>
+    </div>
+    <div style="font-size: 20px; line-height: 27px; font-weight: 600; color: #E9EDF3; min-width: 0;">חדשות הערב</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">titleMedium</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">17/24 &middot; Medium</div>
+    </div>
+    <div style="font-size: 17px; line-height: 24px; font-weight: 500; color: #E9EDF3; min-width: 0;">כאן 11 &middot; תאגיד השידור</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">titleSmall</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">15/21 &middot; Medium</div>
+    </div>
+    <div style="font-size: 15px; line-height: 21px; font-weight: 500; color: #E9EDF3; min-width: 0;">עכשיו: מהדורת חדשות</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">bodyLarge</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">16/23 &middot; Regular</div>
+    </div>
+    <div style="font-size: 16px; line-height: 23px; font-weight: 400; color: #E9EDF3; min-width: 0;">המהדורה המרכזית עם דנה וייס, ישירות מהאולפן בתל אביב.</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">bodyMedium</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">14/20 &middot; Regular</div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 400; color: #E9EDF3; min-width: 0;">הקלטה תתחיל אוטומטית חמש דקות לפני תחילת התוכנית.</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">bodySmall</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">13/18 &middot; Regular</div>
+    </div>
+    <div style="font-size: 13px; line-height: 18px; font-weight: 400; color: #E9EDF3; min-width: 0;">מקור: EPG של il-epg.idanck.com, עודכן לפני 12 דקות.</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">labelLarge</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">15/20 &middot; Medium</div>
+    </div>
+    <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; min-width: 0;">שמור בהגדרות</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">labelMedium</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">13/17 &middot; Medium</div>
+    </div>
+    <div style="font-size: 13px; line-height: 17px; font-weight: 500; color: #E9EDF3; min-width: 0;">שידור חי</div>
+  </div>
+  <div style="display: flex; align-items: baseline; gap: 28px; padding: 12px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 210px; flex: none; display: flex; flex-direction: column; gap: 2px;">
+      <div class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">labelSmall</div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">12/16 &middot; Medium</div>
+    </div>
+    <div style="font-size: 12px; line-height: 16px; font-weight: 500; color: #E9EDF3; min-width: 0;">HD &middot; 1080p</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">קנה מידה של הגופן &middot; FR-UI-19</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 20px;">
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;0.8</span> &middot; מינימום</div>
+    <div style="font-size: 16.0px; line-height: 21.6px; font-weight: 600;">חדשות הערב</div>
+    <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 9.6sp</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;1.0</span> &middot; ברירת מחדל</div>
+    <div style="font-size: 20.0px; line-height: 27.0px; font-weight: 600;">חדשות הערב</div>
+    <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 12.0sp</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1; background: #2D3542; border-radius: 10px; padding: 16px;">
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">&times;1.6</span> &middot; מקסימום</div>
+    <div style="font-size: 32.0px; line-height: 43.2px; font-weight: 600;">חדשות הערב</div>
+    <div class="mono" style="font-size: 11px; color: #BEC7D4;">labelSmall &rarr; 19.2sp</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הרמפה עצמה נעצרת ב&#8209;12sp — הרצפה שההנחיה לעשר רגליים ב&#8209;<span class="mono">docs/03</span> קובעת. שום סגנון לא דק מ&#8209;Regular: טקסט קטן באפליקציה יושב מעל וידאו חי, וקווים דקים מפסידים ל&#8209;NFR&#8209;UX&#8209;03.</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><strong style="color: #FF6B6B;">להכרעה:</strong> ההערה ב&#8209;<span class="mono">Type.kt</span> אומרת ששום דבר לא נופל מתחת ל&#8209;12sp בקנה המידה הקטן ביותר. זה נכון לרמפה כפי שהוכרזה, אבל לא לערך המחושב: <span class="mono">(size * scale).sp</span> אינו חסום מלמטה, ולכן ב&#8209;&times;0.8 <span class="mono">labelSmall</span> יוצא 9.6sp ו&#8209;<span class="mono">bodySmall</span> 10.4sp. או שחוסמים רצפה, או שמתקנים את ההערה.</div>
+</div>
+</x-dc>
+</body>
+</html>

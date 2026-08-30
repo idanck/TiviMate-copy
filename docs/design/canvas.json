@@ -1,0 +1,119 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 1600,
+      "title": "צבע",
+      "page": "page-1"
+    },
+    {
+      "file": "Typography.dc.html",
+      "x": 1380,
+      "y": 0,
+      "w": 1060,
+      "h": 1750,
+      "title": "טיפוגרפיה",
+      "page": "page-1"
+    },
+    {
+      "file": "Shape.dc.html",
+      "x": 0,
+      "y": 1890,
+      "w": 1060,
+      "h": 1470,
+      "title": "צורה ומרווח",
+      "page": "page-1"
+    },
+    {
+      "file": "Motion.dc.html",
+      "x": 1160,
+      "y": 1890,
+      "w": 1180,
+      "h": 1350,
+      "title": "תנועה",
+      "page": "page-1"
+    },
+    {
+      "file": "Surfaces.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 1720,
+      "title": "משטחים",
+      "page": "page-2",
+      "is_interactive": true
+    },
+    {
+      "file": "Focus.dc.html",
+      "x": 1380,
+      "y": 0,
+      "w": 1180,
+      "h": 1810,
+      "title": "פוקוס",
+      "page": "page-2",
+      "is_interactive": true
+    },
+    {
+      "file": "Components.dc.html",
+      "x": 0,
+      "y": 1950,
+      "w": 1180,
+      "h": 1500,
+      "title": "רכיבים",
+      "page": "page-2"
+    },
+    {
+      "file": "Metrics.dc.html",
+      "x": 1280,
+      "y": 1950,
+      "w": 1080,
+      "h": 1240,
+      "title": "מידות",
+      "page": "page-2"
+    },
+    {
+      "file": "Menus.dc.html",
+      "x": 0,
+      "y": 3590,
+      "w": 1180,
+      "h": 1450,
+      "title": "תפריטים",
+      "page": "page-2"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "about",
+      "x": 0,
+      "y": -280,
+      "w": 760,
+      "page": "page-1",
+      "text": "מערכת העיצוב של Shidur.\n\nכל ערך כאן הוא מה שבקוד, לא הצעה: הצבעים מ-Theme.kt, הרמפה מ-Type.kt, שתי הצורות מ-TvSurfaces.kt, המשכים מ-Motion.kt והמידות מ-TvMetrics.kt.\n\nמקור האמת נשאר הקוד. אם משנים ערך כאן, זו הצעה עד שהיא נוחתת שם."
+    },
+    {
+      "id": "shells",
+      "x": 0,
+      "y": -280,
+      "w": 760,
+      "page": "page-2",
+      "text": "שתי קליפות, מערכת אחת.\n\nTvRoot ו-MobileRoot חולקות AppViewModel אחד ואת אותם רכיבים; מה שמפריד ביניהן הוא LocalTvMetrics, שברירת המחדל שלו היא TvMetrics.Phone.\n\nשינוי במשהו משותף צריך בדיקה מול שתיהן."
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "יסודות"
+    },
+    {
+      "id": "page-2",
+      "name": "רכיבים ומצבים"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

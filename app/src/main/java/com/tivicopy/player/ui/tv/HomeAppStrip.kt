@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.graphics.drawable.Drawable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.layout.Arrangement
@@ -43,9 +42,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.SectionHeader
-import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.monogram
 import com.tivicopy.player.ui.common.monogramColour
 import com.tivicopy.player.ui.home.HomeApps
@@ -158,7 +158,8 @@ internal fun HomeAppStrip(
 @Composable
 private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(14.dp)
+    // The card corner, from the same place the home tiles and the filmstrip take it.
+    val shape = RoundedCornerShape(TV_CARD_CORNER)
     Column(
         modifier = Modifier
             // The same lift every other card in the shell uses (`ui/common/Motion.kt`).
@@ -178,20 +179,19 @@ private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
             modifier = Modifier
                 .size(APP_ICON_SIZE.dp)
                 .clip(shape)
-                .background(
-                    if (tile.icon == null) monogramColour(tile.app.label) else Color.Transparent,
+                .then(
+                    // Only the monogram fallback paints a plate; a real launcher icon is its own
+                    // artwork and anything behind it is never seen.
+                    if (tile.icon == null) {
+                        Modifier.background(monogramColour(tile.app.label))
+                    } else {
+                        Modifier
+                    },
                 )
-                .border(
-                    width = 3.dp,
-                    color = animatedColour(
-                        if (focused) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                        },
-                    ),
-                    shape = shape,
-                ),
+                // The app's one focus treatment (`ui/common/Focus.kt`), ringing without filling:
+                // the icon is the content. The ring width now comes from the shell rather than
+                // from a literal that happened to match it.
+                .focusSurface(focused = focused, shape = shape, fill = FocusFill.NONE),
             contentAlignment = Alignment.Center,
         ) {
             if (tile.icon == null) {

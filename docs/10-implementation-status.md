@@ -243,3 +243,12 @@ neither had ever been recorded as failing:
 Several `focusable()` calls sat beside `clickable()`, which is focusable in its own right. Each
 pair was two focus targets on one element, so a remote spent an invisible extra press crossing
 every guide cell and every poster.
+
+NFR-UX-02 was met screen by screen after that, but not *coherently*: an audit for ADR-025 found
+seven different focus treatments in one app — five fills for "this is where focus is" and three
+ring widths on the same television at the same moment — with the poster tile and the transport
+buttons widening their ring from 0dp to 3dp on focus (which shifts their own contents inside the
+clip at the moment they are pressed) and resting it on `Color.Transparent` (which is transparent
+*black*, so a bright ring darkened on its way out rather than fading). Everything focusable now
+goes through one `Modifier.focusSurface`, and every menu through one `AppDialog` on the shell's
+own plate. `FocusVocabularyTest` holds the three invariants that were broken.

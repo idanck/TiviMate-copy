@@ -1,0 +1,503 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+  </style>
+</helmet>
+<!-- Colour — ui/theme/Theme.kt -->
+<div style="width: 1280px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/theme/Theme.kt</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">צבע</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">שלוש ערכות, משפחה אחת של אפור&#8209;כחלחל. הרמפה יושבת דרגה מעל שחור&#8209;כמעט (<span class="mono">#0E1116</span>) — כהה מספיק כדי למסגר תמונה בהירה, בהירה מספיק שהתפריטים לא ייקראו כשחור. AMOLED הוא הבחירה המפורשת למי שרוצה שחור אמיתי.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">תפקידי הסכימה</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 40px; align-items: flex-start;">
+<div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+  <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="font-size: 17px; line-height: 24px; font-weight: 500;">כהה</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">DarkScheme</span> &middot; ברירת המחדל</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #4C8DFF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#4C8DFF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #00122E; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#00122E</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #1F5FD0; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#1F5FD0</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E7F0FF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E7F0FF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #9CC2FF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">secondary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#9CC2FF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #1B212B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">background</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#1B212B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E9EDF3; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onBackground</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E9EDF3</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #232A35; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surface</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#232A35</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E9EDF3; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurface</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E9EDF3</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #323A47; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceVariant</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#323A47</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #BEC7D4; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurfaceVariant</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#BEC7D4</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #6B7482; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">outline</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#6B7482</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #FF6B6B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">error</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#FF6B6B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #2B0000; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onError</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#2B0000</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #171C24; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceDim</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#171C24</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #272F3B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#272F3B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #2D3542; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHigh</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#2D3542</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #333C4A; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHighest</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#333C4A</div>
+    </div>
+  </div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+  <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="font-size: 17px; line-height: 24px; font-weight: 500;">AMOLED</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">DarkScheme.copy(...)</span> &middot; שבע עקיפות</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #4C8DFF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#4C8DFF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #00122E; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#00122E</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #1F5FD0; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#1F5FD0</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E7F0FF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E7F0FF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #9CC2FF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">secondary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#9CC2FF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #000000; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">background</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#000000</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E9EDF3; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onBackground</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E9EDF3</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #000000; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surface</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#000000</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E9EDF3; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurface</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E9EDF3</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #14161A; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceVariant</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#14161A</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #BEC7D4; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurfaceVariant</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#BEC7D4</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #6B7482; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">outline</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#6B7482</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #FF6B6B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">error</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#FF6B6B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #2B0000; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onError</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#2B0000</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #000000; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceDim</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#000000</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #0A0C0F; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainer</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#0A0C0F</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #101318; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHigh</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#101318</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #161A20; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHighest</span><span class="mono" style="font-size: 10px; font-weight: 500; color: #4C8DFF; border: 1px solid #4C8DFF; border-radius: 4px; padding: 1px 5px;">override</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#161A20</div>
+    </div>
+  </div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; flex-grow: 1;">
+  <div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="font-size: 17px; line-height: 24px; font-weight: 500;">בהיר</div>
+    <div style="font-size: 11px; color: #6B7482;"><span class="mono">LightScheme</span></div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #1F5FD0; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#1F5FD0</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #FFFFFF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#FFFFFF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #D8E4FF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">primaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#D8E4FF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #001A41; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onPrimaryContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#001A41</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #3C5C8A; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">secondary</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#3C5C8A</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #F7F9FC; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">background</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#F7F9FC</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #11151B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onBackground</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#11151B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #FFFFFF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surface</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#FFFFFF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #11151B; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurface</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#11151B</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E1E6EE; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceVariant</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E1E6EE</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #43495A; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onSurfaceVariant</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#43495A</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #757C8A; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">outline</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#757C8A</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #B3261E; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">error</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#B3261E</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #FFFFFF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">onError</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#FFFFFF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E4E8EF; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceDim</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E4E8EF</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #EEF1F6; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainer</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#EEF1F6</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E8ECF2; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHigh</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E8ECF2</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 30px; height: 30px; flex: none; border-radius: 6px; background: #E1E6EE; border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 6px;"><span class="mono" style="font-size: 12px; font-weight: 500; color: #E9EDF3;">surfaceContainerHighest</span></div>
+      <div class="mono" style="font-size: 11px; color: #6B7482;">#E1E6EE</div>
+    </div>
+  </div>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">מה שלא בא מהסכימה</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px;">
+<div style="background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+<div style="font-size: 15px; line-height: 20px; font-weight: 500;">הפלטה של LiveBadge</div>
+<div style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.72); border-radius: 16px; padding: 6px 14px; align-self: flex-start;">
+  <div style="width: 8px; height: 8px; border-radius: 50%; background: #FF6B6B;"></div>
+  <div style="font-size: 13px; line-height: 17px; font-weight: 500; color: #FFFFFF;">שידור חי</div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">שחור ב&#8209;72% עם טקסט לבן, לא צבע מהסכימה: התג צריך להיקרא מעל וידאו חי, מעל רקע שנבנה מגוון התחנה, ומעל פאנל בערכת נושא בהירה. הנקודה היא <span class="mono">error</span>.</div>
+</div>
+<div style="background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+<div style="font-size: 15px; line-height: 20px; font-weight: 500;">צבע מונוגרם</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px;">
+    <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(350, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; color: #FFFFFF;">כ1</div>
+    <div style="font-size: 11px; line-height: 14px; color: #6B7482; text-align: center;">כאן 11</div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px;">
+    <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(41, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; color: #FFFFFF;">ר1</div>
+    <div style="font-size: 11px; line-height: 14px; color: #6B7482; text-align: center;">רשת 13</div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px;">
+    <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(249, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; color: #FFFFFF;">ק1</div>
+    <div style="font-size: 11px; line-height: 14px; color: #6B7482; text-align: center;">קשת 12</div>
+  </div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px;">
+    <div style="width: 46px; height: 46px; border-radius: 50%; background: hsl(333, 42%, 32%); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; color: #FFFFFF;">גצ</div>
+    <div style="font-size: 11px; line-height: 14px; color: #6B7482; text-align: center;">גלי צהל</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><span class="mono">Color.hsl(hash(name) % 360, 0.42f, 0.32f)</span> — רוויה ובהירות קבועות, הגוון נגזר מה&#8209;hashCode של השם. הסימן הוא האות הראשונה של כל אחת משתי המילים הראשונות, ולכן שם ערוץ עם מספר יוצא אות וספרה. הערכים כאן הם מה שהפונקציות מחזירות בפועל, לא מבחר.</div>
+</div>
+<div style="background: #232A35; border: 1px solid rgba(233,237,243,0.12); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+<div style="font-size: 15px; line-height: 20px; font-weight: 500;">שקיפויות קבועות</div>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 56px; height: 26px; flex: none; border-radius: 6px; background: rgba(233,237,243,0.12); border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="font-size: 13px; line-height: 18px; color: #E9EDF3;">hairline של פאנל</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482; margin-inline-start: auto;">onSurface @ 0.12</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 56px; height: 26px; flex: none; border-radius: 6px; background: rgba(35,42,53,0.65); border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="font-size: 13px; line-height: 18px; color: #E9EDF3;">קלף במנוחה</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482; margin-inline-start: auto;">surface @ 0.65</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 56px; height: 26px; flex: none; border-radius: 6px; background: rgba(76,141,255,0.45); border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="font-size: 13px; line-height: 18px; color: #E9EDF3;">טבעת של מתנגן</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482; margin-inline-start: auto;">primary @ 0.45</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 56px; height: 26px; flex: none; border-radius: 6px; background: rgba(76,141,255,0.22); border: 1px solid rgba(233,237,243,0.12);"></div>
+    <div style="font-size: 13px; line-height: 18px; color: #E9EDF3;">מילוי שורה בפוקוס</div>
+    <div class="mono" style="font-size: 11px; color: #6B7482; margin-inline-start: auto;">primary @ 0.22</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">לעולם לא <span class="mono">Color.Transparent</span> למצב מנוחה — שקוף הוא <em>שחור</em> שקוף, וטבעת בהירה שמתכנסת אליו מחשיכה בדרך החוצה.</div>
+</div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

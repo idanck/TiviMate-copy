@@ -1,7 +1,6 @@
 package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +59,7 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.focusSurface
 import kotlinx.coroutines.delay
 
 // The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
@@ -321,34 +320,19 @@ private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit) {
 @Composable
 private fun DayChip(label: String, date: String, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(20.dp)
+    // `large` from the ramp rather than a literal 20dp, which is what this always was.
+    val shape = MaterialTheme.shapes.large
     // One line, not two. This strip sits between the guide's preview and its grid on a
     // television, where every dp it takes is taken from the rows — and a row is what anyone
     // opened the guide to read.
     Row(
         modifier = Modifier
             .focusLift(focused, DAY_CHIP_FOCUS_SCALE)
-            .clip(shape)
-            .background(
-                animatedColour(
-                    when {
-                        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
-                        selected -> MaterialTheme.colorScheme.primaryContainer
-                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    },
-                ),
-            )
-            .border(
-                width = 2.dp,
-                color = animatedColour(
-                    if (focused) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                    },
-                ),
-                shape = shape,
-            )
+            // The chip's states are the app's states: the chosen day is `selected`, drawn the
+            // same way the playing channel is drawn in every list. It used to answer with a
+            // `primaryContainer` fill and a 2dp ring, which meant "this is the one" looked
+            // different here from everywhere else a viewer had just been.
+            .focusSurface(focused = focused, shape = shape, selected = selected)
             .onFocusChanged { focused = it.isFocused }
             // As everywhere else in this grid: `clickable` is the focus target on its own.
             .clickable(onClick = onClick)
@@ -444,7 +428,7 @@ private fun GuideRow(
                         .width(metrics.guideHourWidth * WINDOW_HOURS)
                         .height(metrics.guideRowHeight)
                         .padding(2.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(MaterialTheme.shapes.extraSmall)
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -531,14 +515,17 @@ private fun ProgrammeCell(
     var focused by remember { mutableStateOf(false) }
     val now = System.currentTimeMillis()
     val live = now in programme.startUtc until programme.endUtc
-    val background = animatedColour(
-        when {
-            focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
-            live -> MaterialTheme.colorScheme.primaryContainer
-            else -> MaterialTheme.colorScheme.surfaceVariant
-        },
+    // The cell's own body colour, which is about the programme rather than about focus: a block
+    // in this grid has to be visible at rest, and the one airing now is what the grid is read to
+    // find. The focus treatment layers over it (`ui/common/Focus.kt`) instead of replacing it,
+    // which is what lets a focused cell still say whether it is the live one.
+    val body = animatedColour(
+        if (live) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
     )
     val metrics = LocalTvMetrics.current
+    // The corner comes from the ramp rather than a literal: a cell is the smallest thing the app
+    // cuts a corner on, which is exactly what `extraSmall` is for.
+    val cellShape = MaterialTheme.shapes.extraSmall
     Column(
         modifier = Modifier
             // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
@@ -549,19 +536,12 @@ private fun ProgrammeCell(
             .width(millisToDp(widthMillis, metrics.guideHourWidth))
             .height(metrics.guideRowHeight)
             .padding(2.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(background)
-            .border(
-                2.dp,
-                animatedColour(
-                    if (focused) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                    },
-                ),
-                RoundedCornerShape(6.dp),
-            )
+            .clip(cellShape)
+            .background(body)
+            // The app's one focus treatment. This cell used to ring itself at a hard-coded 2dp,
+            // so on a television every row in the channel list was ringed at 3dp and every cell
+            // in the guide beside it at 2dp.
+            .focusSurface(focused = focused, shape = cellShape)
             .onFocusChanged { focused = it.isFocused }
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
             // with `focusable()` made every cell cost two D-pad presses to pass.

@@ -1,7 +1,5 @@
 package com.tivicopy.player.ui.tv
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,11 +36,9 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -54,8 +50,12 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.player.TrackOption
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LiveBadge
+import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.common.nowPlayingLabels
@@ -245,18 +245,15 @@ private fun TransportButton(
     Box(
         modifier = modifier
             .size(size)
-            .clip(CircleShape)
-            .background(
-                when {
-                    focused -> MaterialTheme.colorScheme.primary
-                    primary -> MaterialTheme.colorScheme.primaryContainer
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                },
-            )
-            .border(
-                width = if (focused) 3.dp else 0.dp,
-                color = if (focused) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+            // A button says it has focus by becoming the accent, which is what this one already
+            // did — over a ring that widened from 0dp to 3dp and rested on `Color.Transparent`,
+            // so the icon shifted inside the circle and the ring darkened on its way out. The
+            // fill was always the answer; the ring was a second one (`ui/common/Focus.kt`).
+            .focusSurface(
+                focused = focused,
                 shape = CircleShape,
+                selected = primary,
+                fill = FocusFill.FILLED,
             )
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick),
@@ -412,25 +409,17 @@ private fun MenuEntry(
     selected: Boolean = false,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(8.dp)
+    // A row on a panel is a row: same corner and same treatment as every row in every list, taken
+    // from the shell rather than written again here. This menu is the one surface ADR-023 fixed,
+    // and its own rows were still drawing an 8dp corner, a 2dp ring, and both colours cut rather
+    // than crossed — over `Color.Transparent`, which is transparent *black*.
+    val shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(
-                if (focused) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-                } else {
-                    Color.Transparent
-                },
-            )
-            .border(
-                width = 2.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = shape,
-            )
+            .focusSurface(focused = focused, shape = shape, selected = selected)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -463,12 +452,3 @@ private fun MenuEntry(
     }
 }
 
-/**
- * The least opaque the playback menu is ever drawn, whatever the overlay-opacity setting says.
- *
- * Every other surface in this shell obeys that setting outright (FR-UI-18), because every other
- * surface is glanced at. This one is a list of track names read line by line, and below about
- * this it stops being legible over moving video — which is not a preference anyone is expressing
- * when they turn overlays down.
- */
-private const val MENU_MIN_OPACITY = 0.92f

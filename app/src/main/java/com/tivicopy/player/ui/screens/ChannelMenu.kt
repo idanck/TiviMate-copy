@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -28,6 +27,7 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgChannel
+import com.tivicopy.player.ui.common.AppDialog
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.settings.OffsetRow
 import com.tivicopy.player.ui.settings.SettingsChoice
@@ -58,7 +58,7 @@ fun ChannelMenuDialog(
     onAdvanced: () -> Unit,
     onMove: (Int) -> Unit,
 ) {
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(channel.displayName, style = MaterialTheme.typography.headlineSmall) },
         text = {
@@ -121,7 +121,7 @@ fun ChannelAdvancedDialog(
 ) {
     var offset by remember(channel.id) { mutableStateOf(channel.epgOffsetMinutes) }
 
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(channel.displayName, style = MaterialTheme.typography.headlineSmall) },
         text = {
@@ -196,7 +196,7 @@ fun GuideBindingDialog(
         entries = if (query.isBlank()) emptyList() else onSearch(query)
     }
 
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -258,7 +258,7 @@ fun GroupMenuDialog(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(group.name, style = MaterialTheme.typography.headlineSmall) },
         text = {
@@ -304,7 +304,7 @@ fun GroupManagerDialog(
     onNewGroup: () -> Unit,
     onGroupOptions: (ChannelGroup) -> Unit,
 ) {
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.group_manage), style = MaterialTheme.typography.headlineSmall) },
         text = {
@@ -350,7 +350,7 @@ fun TextEntryDialog(
     onConfirm: (String) -> Unit,
 ) {
     var value by remember { mutableStateOf(initial) }
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
         text = {
@@ -403,7 +403,7 @@ fun ChannelEditDialog(
     var number by remember(channel.id) { mutableStateOf(channel.number.takeIf { it > 0 }?.toString().orEmpty()) }
     var groupId by remember(channel.id) { mutableStateOf(channel.groupId) }
 
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.channel_edit), style = MaterialTheme.typography.headlineSmall) },
         text = {

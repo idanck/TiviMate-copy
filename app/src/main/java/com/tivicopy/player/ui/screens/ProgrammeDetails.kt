@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,6 +26,7 @@ import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.record.ScheduleResult
+import com.tivicopy.player.ui.common.AppDialog
 
 /**
  * Programme details with the actions FR-UI-08 lists.
@@ -55,7 +55,7 @@ fun ProgrammeDetailsDialog(
     var favourite by remember(channel.id) { mutableStateOf(channel.favourite) }
     val archiveAvailable = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
 
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
         title = { Text(programme.title, style = MaterialTheme.typography.headlineSmall) },
         text = {
