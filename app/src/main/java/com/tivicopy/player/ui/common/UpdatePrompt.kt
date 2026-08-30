@@ -6,7 +6,6 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -77,7 +76,7 @@ fun UpdatePrompt() {
             val megabytes = manifest.sizeBytes / (1024.0 * 1024.0)
             val notes = manifest.notesFor(Locale.getDefault().toLanguageTag())
 
-            AlertDialog(
+            AppDialog(
                 onDismissRequest = { postponed = true },
                 title = { Text(stringResource(R.string.update_dialog_title)) },
                 text = {
@@ -125,7 +124,7 @@ fun UpdatePrompt() {
         is UpdateState.Downloading, is UpdateState.Verifying, is UpdateState.Installing -> {
             if (!watching) return
             val fraction = (current as? UpdateState.Downloading)?.fraction
-            AlertDialog(
+            AppDialog(
                 // Not dismissible by a tap outside: the buttons say what the options are.
                 onDismissRequest = {},
                 title = { Text(stringResource(R.string.update_dialog_title)) },
@@ -158,7 +157,7 @@ fun UpdatePrompt() {
 
         is UpdateState.Failed -> {
             if (!watching) return
-            AlertDialog(
+            AppDialog(
                 onDismissRequest = { watching = false },
                 title = { Text(stringResource(R.string.update_dialog_title)) },
                 text = { Text(current.error.describe(context)) },
@@ -188,7 +187,7 @@ fun UpdatePrompt() {
             // Null on the TV builds that ship no such activity, and below API 26 where the
             // switch is global rather than per app: there the instructions are all we have.
             val intent = if (permission) updates.unknownSourcesIntent() else null
-            AlertDialog(
+            AppDialog(
                 onDismissRequest = { watching = false },
                 title = { Text(stringResource(R.string.update_dialog_title)) },
                 text = {

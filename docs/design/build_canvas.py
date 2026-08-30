@@ -718,12 +718,12 @@ def build_surfaces():
         )
 
     states = [
-        ("מנוחה", "rgba(35,42,53,0.65)", "rgba(76,141,255,0)", 1, "1.0",
+        ("מנוחה", "rgba(35,42,53,0.65)", "rgba(76,141,255,0)", 3, "1.0",
          "<span class=\"mono\">surface @ 0.65</span> &middot; טבעת ב&#8209;alpha 0"),
-        ("מתנגן", "#232A35", "rgba(76,141,255,0.45)", 1, "1.0",
+        ("מתנגן", "#232A35", "rgba(76,141,255,0.45)", 3, "1.0",
          "<span class=\"mono\">surface</span> &middot; טבעת <span class=\"mono\">primary @ 0.45</span>"),
         ("בפוקוס", "#323A47", "#4C8DFF", 3, "1.06",
-         "<span class=\"mono\">surfaceVariant</span> &middot; טבעת 3dp מלאה &middot; הרמה 1.06"),
+         "<span class=\"mono\">surfaceVariant</span> &middot; טבעת מלאה &middot; הרמה 1.06"),
     ]
     state_cards = []
     for label, fill, ring, border, scale, spec in states:
@@ -787,7 +787,9 @@ def build_surfaces():
         section("קלף &middot; שלושת המצבים"),
         '<div style="display: flex; gap: 24px; align-items: flex-start;">\n' + "\n".join(state_cards) + '\n</div>',
         note("צבע המנוחה הוא אותו צבע ב&#8209;alpha אפס, לעולם לא <span class=\"mono\">Color.Transparent</span>. "
-             "שני הצבעים חוצים ולא נחתכים. ההרמה עצמה אינה חלק מ&#8209;<span class=\"mono\">tvCard</span> — "
+             "שני הצבעים חוצים ולא נחתכים. <strong>עובי אחד לשלושת המצבים</strong> (ADR&#8209;025): "
+             "הטבעת נהגה להתעבות בפוקוס, מה שמזיז את תוכן הקלף בתוך החיתוך ברגע הלחיצה — עכשיו רק "
+             "ה&#8209;alpha משתנה. ההרמה עצמה אינה חלק מ&#8209;<span class=\"mono\">tvCard</span>: "
              "היא <span class=\"mono\">focusLift</span>, ומוחלת לפניו כדי שהגידול יקרה מחוץ לחיתוך."),
     ]))
     return page("Surfaces — ui/tv/TvSurfaces.kt", SURFACES_CSS, body, SURFACES_SCRIPT)
@@ -805,10 +807,11 @@ FOCUS_CSS = """
       color: inherit;
       text-align: start;
       cursor: pointer;
+      box-sizing: border-box;
       background: rgba(35,42,53,0.65);
-      border: 1px solid rgba(76,141,255,0);
+      border: 3px solid rgba(76,141,255,0);
       border-radius: 14px;
-      padding: 14px;
+      padding: 12px;
       width: 178px;
       height: 108px;
       display: flex;
@@ -822,8 +825,7 @@ FOCUS_CSS = """
     }
     .tile:hover, .tile:focus {
       background: #323A47;
-      border: 3px solid #4C8DFF;
-      padding: 12px;
+      border-color: #4C8DFF;
       transform: scale(1.06);
       z-index: 1;
     }
@@ -951,6 +953,46 @@ def build_focus():
         ("נבחר", "surfaceVariant", "primary @ 0.45", "הערוץ שמתנגן, בלי פוקוס"),
         ("בפוקוס", "primary @ 0.22", "primary", "מה שה&#8209;D&#8209;pad עומד עליו"),
     ]
+
+    fills = [
+        ("TINT", "primary @ 0.22", "surfaceVariant", "שקוף",
+         "שורות, שבבים, תאי מדריך, קפסולת הניווט"),
+        ("RAISE", "surfaceVariant", "surface", "surface @ 0.65",
+         "קלפים שצפים מעל וידאו"),
+        ("NONE", "&mdash;", "&mdash;", "&mdash;",
+         "אריחים שהיצירה שלהם היא התוכן"),
+        ("FILLED", "primary", "primaryContainer", "surfaceVariant",
+         "כפתורים — והמילוי היחיד בלי טבעת"),
+    ]
+    fill_head = [("fill", 78), ("בפוקוס", 132), ("נבחר", 132), ("מנוחה", 132)]
+    fill_rows = [
+        '  <div style="display: flex; align-items: center; gap: 14px; padding-bottom: 10px; '
+        'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
+        + "".join(
+            '    <div style="width: ' + str(w) + 'px; flex: none; font-size: 13px; '
+            'font-weight: 500; color: ' + INK_DIM + ';">' + label + '</div>\n'
+            for label, w in fill_head
+        )
+        + '    <div style="font-size: 13px; font-weight: 500; color: ' + INK_DIM + ';">למי</div>\n'
+        '  </div>'
+    ]
+    for name, f_focus, f_sel, f_rest, who in fills:
+        fill_rows.append(
+            '  <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; '
+            'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
+            '    <div class="mono" style="width: 78px; flex: none; font-size: 12px; '
+            'font-weight: 500; color: ' + INK + ';">' + name + '</div>\n'
+            '    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: '
+            + ACCENT + ';">' + f_focus + '</div>\n'
+            '    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: '
+            + ACCENT_SOFT + ';">' + f_sel + '</div>\n'
+            '    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: '
+            + INK_FAINT + ';">' + f_rest + '</div>\n'
+            '    <div style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">'
+            + who + '</div>\n'
+            '  </div>'
+        )
+
     matrix_rows = [
         '  <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 10px; '
         'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
@@ -984,12 +1026,23 @@ def build_focus():
                "הקריאה הזו היא רוב תחושת הפוקוס בממשק. שתי מערכות מספרים יוצאות ממנה: טלפון "
                "נקרא ממרחק זרוע, טלוויזיה משלושה מטרים — שם פינה של 8dp וטבעת של 2dp הן מלבן עם קו "
                "חיוור. <em>לחצו או השתמשו ב&#8209;Tab כדי להזיז את הפוקוס.</em>"),
+        note("<strong style=\"color: #FF6B6B;\">ADR&#8209;025:</strong> עד שהטיפול המשותף נכתב "
+             "היו באפליקציה <strong>שבעה</strong> טיפולי פוקוס — חמישה מילויים שונים ושלושה עוביי "
+             "טבעת על אותה טלוויזיה באותו רגע. שניים מהם גם הרחיבו את הטבעת בפוקוס, מה שמזיז את "
+             "התוכן בתוך החיתוך בדיוק ברגע הלחיצה, ונחו על <span class=\"mono\">Color.Transparent</span>. "
+             "הכול עובר עכשיו דרך <span class=\"mono\">Modifier.focusSurface</span> אחד."),
         section("קלפים &middot; tvCard + focusLift"),
         '<div style="background: ' + PLATE + '; border: 1px solid ' + HAIRLINE + '; border-radius: 28px; '
         'padding: 28px;">\n  <div style="display: flex; gap: 18px;">\n' + "\n".join(tiles)
         + '\n  </div>\n</div>',
         section("שורות &middot; FocusableRow בשתי הקליפות"),
         lists,
+        section("ארבעת המילויים &middot; FocusFill"),
+        '<div style="display: flex; flex-direction: column;">\n' + "\n".join(fill_rows) + '\n</div>',
+        note("הטבעת זהה בשלושה מהם — אותו עובי מ&#8209;<span class=\"mono\">LocalTvMetrics</span>, "
+             "אותם צבעים, וחצייה במקום חיתוך — וזה מה שעושה מהם אוצר מילים אחד ולא ארבעה. "
+             "<span class=\"mono\">FILLED</span> הוא היחיד בלי טבעת: כפתור אומר שהוא בפוקוס בכך "
+             "שהוא <em>הופך</em> לצבע ההדגשה, וטבעת סביב זה היא תשובה שנייה לשאלה שכבר נענתה."),
         section("מטריצת המצבים של FocusableRow"),
         '<div style="display: flex; flex-direction: column;">\n' + "\n".join(matrix_rows) + '\n</div>',
         note("<span class=\"mono\">onFocusChanged</span> קורא <span class=\"mono\">hasFocus</span> ולא "
@@ -1216,6 +1269,152 @@ def build_metrics():
 
 
 # =============================================================================
+# Menus.dc.html — the plate every menu is drawn on
+# =============================================================================
+
+MENUS_CSS = """
+    .stage {
+      background:
+        radial-gradient(120% 90% at 20% 15%, #6E7FA8 0%, rgba(110,127,168,0) 55%),
+        radial-gradient(90% 80% at 80% 80%, #B9895A 0%, rgba(185,137,90,0) 58%),
+        linear-gradient(115deg, #2A3140 0%, #4A4038 55%, #1C222C 100%);
+    }
+"""
+
+
+def menu_rows(entries):
+    out = []
+    for label, detail, selected in entries:
+        tick = "&#10003;" if selected else "&nbsp;"
+        fill = "rgba(50,58,71,1)" if selected else "transparent"
+        ring = "rgba(76,141,255,0.45)" if selected else "rgba(76,141,255,0)"
+        out.append(
+            '    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; '
+            'background: ' + fill + '; border: 3px solid ' + ring + '; padding: 7px 9px;">\n'
+            '      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: '
+            + ACCENT + ';">' + tick + '</div>\n'
+            '      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: ' + INK
+            + '; flex-grow: 1;">' + label + '</div>\n'
+            '      <div style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">'
+            + detail + '</div>\n'
+            '    </div>'
+        )
+    return "\n".join(out)
+
+
+def dialog_plate(body, opaque):
+    """The menu plate, drawn as it is now and as Material would have drawn it."""
+    if opaque:
+        plate = ('background: #2D3542; border-radius: 28px; border: 0;')
+    else:
+        plate = ('background: rgba(35,42,53,0.92); border-radius: 28px; '
+                 'border: 1px solid ' + HAIRLINE + ';')
+    return ('  <div style="width: 340px; ' + plate + ' padding: 22px; display: flex; '
+            'flex-direction: column; gap: 14px;">\n' + body + '\n  </div>')
+
+
+def build_menus():
+    entries = [
+        ("צפה", "", False),
+        ("הוסף למועדפים", "", False),
+        ("ערוך ערוץ", "", False),
+        ("הסתר", "", False),
+    ]
+    dialog_body = (
+        '    <div style="font-size: 22px; line-height: 30px; font-weight: 600; color: ' + INK
+        + ';">כאן 11</div>\n'
+        '    <div style="display: flex; flex-direction: column; gap: 4px;">\n'
+        + menu_rows(entries) + '\n    </div>\n'
+        '    <div style="display: flex; justify-content: flex-start;">\n'
+        '      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: '
+        + ACCENT + '; padding: 8px 12px;">סגור</div>\n'
+        '    </div>'
+    )
+
+    comparison = (
+        '<div style="display: flex; gap: 28px; align-items: flex-start;">\n'
+        '  <div style="display: flex; flex-direction: column; gap: 12px;">\n'
+        '    <div class="stage" style="border-radius: 14px; padding: 26px; display: flex; '
+        'justify-content: center;">\n' + dialog_plate(dialog_body, opaque=False) + '\n    </div>\n'
+        + '    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: ' + INK
+        + ';">AppDialog — הפאנל של האפליקציה</div>\n'
+        + note("פינה 28dp מהרמפה, <span class=\"mono\">surface</span> בשקיפות של הצופה עם רצפה של "
+               "<span class=\"mono\">0.92</span>, וקו שיער. אותו לוח בדיוק שפס הניגון ותפריט הניגון "
+               "יושבים עליו.")
+        + '\n  </div>\n'
+        '  <div style="display: flex; flex-direction: column; gap: 12px;">\n'
+        '    <div class="stage" style="border-radius: 14px; padding: 26px; display: flex; '
+        'justify-content: center;">\n' + dialog_plate(dialog_body, opaque=True) + '\n    </div>\n'
+        + '    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: ' + INK_FAINT
+        + ';">AlertDialog — מה שהיה עד ADR&#8209;025</div>\n'
+        + note("<span class=\"mono\">surfaceContainerHigh</span> אטום, בלי קצה, ובלי שום קשר להגדרת "
+               "השקיפות. זו הייתה התלונה שבה ADR&#8209;023 נפתח על תפריט הניגון — והיא נשארה עומדת "
+               "בשנים&#8209;עשר המקומות שבהם הוא לא הסתכל.")
+        + '\n  </div>\n</div>'
+    )
+
+    swapped = [
+        ("ChannelMenu", "7", "תפריט הערוץ, עריכה, מתקדם, בחירת EPG, קבוצה, ניהול קבוצות, שם"),
+        ("ProgrammeDetails", "1", "פרטי תוכנית, הקלטה וצפייה בארכיון"),
+        ("UpdatePrompt", "4", "הצעת עדכון, התקדמות, שגיאה, חסם התקנה"),
+    ]
+    swap_rows = []
+    for name, count, what in swapped:
+        swap_rows.append(
+            '  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; '
+            'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
+            '    <div class="mono" style="width: 180px; flex: none; font-size: 12px; '
+            'font-weight: 500; color: ' + INK + ';">' + name + '</div>\n'
+            '    <div class="mono" style="width: 34px; flex: none; font-size: 13px; '
+            'font-weight: 600; color: ' + ACCENT + ';">' + count + '</div>\n'
+            '    <div style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">'
+            + what + '</div>\n'
+            '  </div>'
+        )
+
+    floors = [
+        ("תפריט הניגון", "0.92", "כמה שורות של שמות רצועות שנקראות אחת&#8209;אחת"),
+        ("כל תפריט אחר", "0.92", "אותה רצפה, אותו טעם — הן אותו דבר"),
+        ("כרטיס המידע", "0.80", "המשטח הנצפה ביותר באפליקציה"),
+        ("קפסולת הניווט", "0.90", "רק בזמן שהפוקוס בתוכה"),
+    ]
+    floor_rows = []
+    for what, value, why in floors:
+        floor_rows.append(
+            '  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; '
+            'border-bottom: 1px solid ' + HAIRLINE + ';">\n'
+            '    <div style="width: 160px; flex: none; font-size: 14px; line-height: 19px; '
+            'font-weight: 500; color: ' + INK + ';">' + what + '</div>\n'
+            '    <div class="mono" style="width: 54px; flex: none; font-size: 13px; color: '
+            + ACCENT + ';">' + value + '</div>\n'
+            '    <div style="font-size: 13px; line-height: 18px; color: ' + INK_DIM + ';">'
+            + why + '</div>\n'
+            '  </div>'
+        )
+
+    body = root(1180, "\n".join([
+        header("ui/common/Panel.kt &middot; ADR-025",
+               "תפריטים",
+               "שנים&#8209;עשר תפריטים באפליקציה היו <span class=\"mono\">AlertDialog</span> סטנדרטי "
+               "של Material. צופה שלוחץ לחיצה ארוכה על ערוץ וצופה שלוחץ OK על פס הניגון נמצאים "
+               "לחיצה אחת זה מזה — והם ראו שתי אפליקציות שונות. הלוח הצף עבר מ&#8209;"
+               "<span class=\"mono\">ui/tv</span> ל&#8209;<span class=\"mono\">ui/common</span>, "
+               "ששם שתי הקליפות מגיעות אליו."),
+        section("אותו תוכן, שני לוחות"),
+        comparison,
+        section("מה הוחלף"),
+        '<div style="display: flex; flex-direction: column;">\n' + "\n".join(swap_rows) + '\n</div>',
+        section("רצפות שקיפות"),
+        '<div style="display: flex; flex-direction: column;">\n' + "\n".join(floor_rows) + '\n</div>',
+        note("הרצפה של התפריטים הייתה קבוע פרטי בתוך <span class=\"mono\">PlaybackControls.kt</span>. "
+             "עכשיו היא <span class=\"mono\">MENU_MIN_OPACITY</span> אחד, ותפריט הניגון קורא אותו "
+             "מאותו מקום שכל תפריט אחר קורא."),
+    ]))
+    return page("Menus — ui/common/Panel.kt", MENUS_CSS, body)
+
+
+
+# =============================================================================
 # canvas.json and the entry point
 # =============================================================================
 
@@ -1230,14 +1429,16 @@ CANVAS = {
         {"file": "Motion.dc.html",      "x": 1160, "y": 1890, "w": 1180, "h": 1350,
          "title": "תנועה", "page": "page-1"},
 
-        {"file": "Surfaces.dc.html",    "x": 0,    "y": 0,    "w": 1280, "h": 1640,
+        {"file": "Surfaces.dc.html",    "x": 0,    "y": 0,    "w": 1280, "h": 1720,
          "title": "משטחים", "page": "page-2", "is_interactive": True},
-        {"file": "Focus.dc.html",       "x": 1380, "y": 0,    "w": 1180, "h": 1270,
+        {"file": "Focus.dc.html",       "x": 1380, "y": 0,    "w": 1180, "h": 1810,
          "title": "פוקוס", "page": "page-2", "is_interactive": True},
-        {"file": "Components.dc.html",  "x": 0,    "y": 1780, "w": 1180, "h": 1500,
+        {"file": "Components.dc.html",  "x": 0,    "y": 1950, "w": 1180, "h": 1500,
          "title": "רכיבים", "page": "page-2"},
-        {"file": "Metrics.dc.html",     "x": 1280, "y": 1780, "w": 1080, "h": 1240,
+        {"file": "Metrics.dc.html",     "x": 1280, "y": 1950, "w": 1080, "h": 1240,
          "title": "מידות", "page": "page-2"},
+        {"file": "Menus.dc.html",       "x": 0,    "y": 3590, "w": 1180, "h": 1450,
+         "title": "תפריטים", "page": "page-2"},
     ],
     "annotations": [
         {"id": "about", "x": 0, "y": -280, "w": 760, "page": "page-1",
@@ -1269,6 +1470,7 @@ def main():
     write("Focus.dc.html", build_focus())
     write("Components.dc.html", build_components())
     write("Metrics.dc.html", build_metrics())
+    write("Menus.dc.html", build_menus())
     with open("canvas.json", "w", encoding="utf-8") as handle:
         json.dump(CANVAS, handle, ensure_ascii=False, indent=2)
         handle.write("\n")

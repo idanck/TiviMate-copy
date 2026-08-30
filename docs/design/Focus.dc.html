@@ -32,10 +32,11 @@
       color: inherit;
       text-align: start;
       cursor: pointer;
+      box-sizing: border-box;
       background: rgba(35,42,53,0.65);
-      border: 1px solid rgba(76,141,255,0);
+      border: 3px solid rgba(76,141,255,0);
       border-radius: 14px;
-      padding: 14px;
+      padding: 12px;
       width: 178px;
       height: 108px;
       display: flex;
@@ -49,8 +50,7 @@
     }
     .tile:hover, .tile:focus {
       background: #323A47;
-      border: 3px solid #4C8DFF;
-      padding: 12px;
+      border-color: #4C8DFF;
       transform: scale(1.06);
       z-index: 1;
     }
@@ -104,6 +104,7 @@
   <div style="font-size: 34px; line-height: 42px; font-weight: 700;">פוקוס</div>
   <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">כל רשימה באפליקציה בנויה מ&#8209;<span class="mono">FocusableRow</span> אחד, ולכן הקריאה הזו היא רוב תחושת הפוקוס בממשק. שתי מערכות מספרים יוצאות ממנה: טלפון נקרא ממרחק זרוע, טלוויזיה משלושה מטרים — שם פינה של 8dp וטבעת של 2dp הן מלבן עם קו חיוור. <em>לחצו או השתמשו ב&#8209;Tab כדי להזיז את הפוקוס.</em></div>
 </div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><strong style="color: #FF6B6B;">ADR&#8209;025:</strong> עד שהטיפול המשותף נכתב היו באפליקציה <strong>שבעה</strong> טיפולי פוקוס — חמישה מילויים שונים ושלושה עוביי טבעת על אותה טלוויזיה באותו רגע. שניים מהם גם הרחיבו את הטבעת בפוקוס, מה שמזיז את התוכן בתוך החיתוך בדיוק ברגע הלחיצה, ונחו על <span class="mono">Color.Transparent</span>. הכול עובר עכשיו דרך <span class="mono">Modifier.focusSurface</span> אחד.</div>
 <div style="display: flex; align-items: center; gap: 14px;">
   <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">קלפים &middot; tvCard + focusLift</div>
   <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
@@ -192,6 +193,48 @@
     </div>
   </div>
 </div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">ארבעת המילויים &middot; FocusFill</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 78px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">fill</div>
+    <div style="width: 132px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">בפוקוס</div>
+    <div style="width: 132px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">נבחר</div>
+    <div style="width: 132px; flex: none; font-size: 13px; font-weight: 500; color: #BEC7D4;">מנוחה</div>
+    <div style="font-size: 13px; font-weight: 500; color: #BEC7D4;">למי</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 78px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">TINT</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">primary @ 0.22</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #9CC2FF;">surfaceVariant</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #6B7482;">שקוף</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">שורות, שבבים, תאי מדריך, קפסולת הניווט</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 78px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">RAISE</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">surfaceVariant</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #9CC2FF;">surface</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #6B7482;">surface @ 0.65</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">קלפים שצפים מעל וידאו</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 78px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">NONE</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">&mdash;</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #9CC2FF;">&mdash;</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #6B7482;">&mdash;</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">אריחים שהיצירה שלהם היא התוכן</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 78px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">FILLED</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #4C8DFF;">primary</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #9CC2FF;">primaryContainer</div>
+    <div class="mono" style="width: 132px; flex: none; font-size: 12px; color: #6B7482;">surfaceVariant</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">כפתורים — והמילוי היחיד בלי טבעת</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הטבעת זהה בשלושה מהם — אותו עובי מ&#8209;<span class="mono">LocalTvMetrics</span>, אותם צבעים, וחצייה במקום חיתוך — וזה מה שעושה מהם אוצר מילים אחד ולא ארבעה. <span class="mono">FILLED</span> הוא היחיד בלי טבעת: כפתור אומר שהוא בפוקוס בכך שהוא <em>הופך</em> לצבע ההדגשה, וטבעת סביב זה היא תשובה שנייה לשאלה שכבר נענתה.</div>
 <div style="display: flex; align-items: center; gap: 14px;">
   <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">מטריצת המצבים של FocusableRow</div>
   <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>

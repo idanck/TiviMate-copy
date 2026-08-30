@@ -41,7 +41,7 @@
       "x": 0,
       "y": 0,
       "w": 1280,
-      "h": 1640,
+      "h": 1720,
       "title": "משטחים",
       "page": "page-2",
       "is_interactive": true
@@ -51,7 +51,7 @@
       "x": 1380,
       "y": 0,
       "w": 1180,
-      "h": 1270,
+      "h": 1810,
       "title": "פוקוס",
       "page": "page-2",
       "is_interactive": true
@@ -59,7 +59,7 @@
     {
       "file": "Components.dc.html",
       "x": 0,
-      "y": 1780,
+      "y": 1950,
       "w": 1180,
       "h": 1500,
       "title": "רכיבים",
@@ -68,10 +68,19 @@
     {
       "file": "Metrics.dc.html",
       "x": 1280,
-      "y": 1780,
+      "y": 1950,
       "w": 1080,
       "h": 1240,
       "title": "מידות",
+      "page": "page-2"
+    },
+    {
+      "file": "Menus.dc.html",
+      "x": 0,
+      "y": 3590,
+      "w": 1180,
+      "h": 1450,
+      "title": "תפריטים",
       "page": "page-2"
     }
   ],

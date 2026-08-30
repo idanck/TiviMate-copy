@@ -80,6 +80,7 @@ import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
 import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.monogram
@@ -426,27 +427,10 @@ private fun NavRailItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(
-                animatedColour(
-                    when {
-                        focused -> MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-                        selected -> MaterialTheme.colorScheme.surfaceVariant
-                        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0f)
-                    },
-                ),
-            )
-            .border(
-                width = 2.dp,
-                color = animatedColour(
-                    if (focused) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0f)
-                    },
-                ),
-                shape = shape,
-            )
+            // The app's one focus treatment (`ui/common/Focus.kt`). The pill answers the same two
+            // questions every row in every list answers — is this where focus is, is this the one
+            // you are on — and used to answer them with its own tint and its own 2dp ring.
+            .focusSurface(focused = focused, shape = shape, selected = selected)
             .onFocusChanged { focused = it.isFocused }
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
             // the remote a second press to pass every destination.
@@ -629,8 +613,12 @@ private fun WatchFullscreenButton(focusRequester: FocusRequester?, onClick: () -
                     },
                 ),
             )
+            // One width, crossing colour. This is the shell's one outlined button rather than a
+            // focusable surface — it keeps an edge at rest because it sits over live video, where
+            // a plate with no edge bleeds into a bright frame — but focus is carried by the fill
+            // going solid, so the ring has no reason to widen and shift the label inside it.
             .border(
-                width = if (focused) 3.dp else 1.dp,
+                width = 1.dp,
                 color = animatedColour(
                     if (focused) {
                         MaterialTheme.colorScheme.primary

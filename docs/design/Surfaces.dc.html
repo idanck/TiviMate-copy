@@ -115,7 +115,7 @@
 <div style="display: flex; gap: 24px; align-items: flex-start;">
   <div style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
     <div style="height: 132px; display: flex; align-items: center; justify-content: center;">
-      <div style="width: 180px; height: 106px; border-radius: 14px; background: rgba(35,42,53,0.65); border: 1px solid rgba(76,141,255,0); transform: scale(1.0); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box;">
+      <div style="width: 180px; height: 106px; border-radius: 14px; background: rgba(35,42,53,0.65); border: 3px solid rgba(76,141,255,0); transform: scale(1.0); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box;">
         <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3;">רשת 13</div>
       </div>
     </div>
@@ -124,7 +124,7 @@
   </div>
   <div style="display: flex; flex-direction: column; gap: 12px; flex-grow: 1;">
     <div style="height: 132px; display: flex; align-items: center; justify-content: center;">
-      <div style="width: 180px; height: 106px; border-radius: 14px; background: #232A35; border: 1px solid rgba(76,141,255,0.45); transform: scale(1.0); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box;">
+      <div style="width: 180px; height: 106px; border-radius: 14px; background: #232A35; border: 3px solid rgba(76,141,255,0.45); transform: scale(1.0); display: flex; align-items: flex-end; padding: 12px; box-sizing: border-box;">
         <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3;">רשת 13</div>
       </div>
     </div>
@@ -138,10 +138,10 @@
       </div>
     </div>
     <div style="font-size: 15px; line-height: 20px; font-weight: 500;">בפוקוס</div>
-    <div style="font-size: 12px; line-height: 17px; color: #BEC7D4;"><span class="mono">surfaceVariant</span> &middot; טבעת 3dp מלאה &middot; הרמה 1.06</div>
+    <div style="font-size: 12px; line-height: 17px; color: #BEC7D4;"><span class="mono">surfaceVariant</span> &middot; טבעת מלאה &middot; הרמה 1.06</div>
   </div>
 </div>
-<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">צבע המנוחה הוא אותו צבע ב&#8209;alpha אפס, לעולם לא <span class="mono">Color.Transparent</span>. שני הצבעים חוצים ולא נחתכים. ההרמה עצמה אינה חלק מ&#8209;<span class="mono">tvCard</span> — היא <span class="mono">focusLift</span>, ומוחלת לפניו כדי שהגידול יקרה מחוץ לחיתוך.</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">צבע המנוחה הוא אותו צבע ב&#8209;alpha אפס, לעולם לא <span class="mono">Color.Transparent</span>. שני הצבעים חוצים ולא נחתכים. <strong>עובי אחד לשלושת המצבים</strong> (ADR&#8209;025): הטבעת נהגה להתעבות בפוקוס, מה שמזיז את תוכן הקלף בתוך החיתוך ברגע הלחיצה — עכשיו רק ה&#8209;alpha משתנה. ההרמה עצמה אינה חלק מ&#8209;<span class="mono">tvCard</span>: היא <span class="mono">focusLift</span>, ומוחלת לפניו כדי שהגידול יקרה מחוץ לחיתוך.</div>
 </div>
 </x-dc>
 <script data-dc-script data-props='{

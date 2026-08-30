@@ -2,7 +2,6 @@ package com.tivicopy.player.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,7 +46,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -60,8 +58,11 @@ import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.data.xtream.isSeriesContainer
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.EmptyState
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.focusSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -303,7 +304,7 @@ private fun SeriesEpisodes(
                 AsyncImage(
                     model = series.posterUrl,
                     contentDescription = null,
-                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(RoundedCornerShape(4.dp)),
+                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(MaterialTheme.shapes.extraSmall),
                 )
             }
             Text(
@@ -414,15 +415,18 @@ private fun VodTile(
     // scale. On a remote the catalogue was a grid of posters with an invisible cursor somewhere
     // in it, which is NFR-UX-02 ("focus is always visible on TV") failing outright.
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(8.dp)
+    // The corner every focusable thing in the surrounding shell is cut to — 8dp on a phone, the
+    // card's 14dp on a television — rather than a literal that made this the one tile in the
+    // catalogue that did not match the rows beside it.
+    val shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
     Column(
         modifier = Modifier
-            .clip(shape)
-            .border(
-                width = if (focused) 3.dp else 0.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
-                shape = shape,
-            )
+            // The app's one focus treatment, with no fill: the poster *is* the content, so
+            // painting behind it does nothing and painting over it hides what is being chosen.
+            // This tile used to ring itself from 0dp to 3dp — moving its own poster inside the
+            // clip at the moment it was pressed — and to rest on `Color.Transparent`, which is
+            // transparent *black*, so the ring darkened on its way out.
+            .focusSurface(focused = focused, shape = shape, fill = FocusFill.NONE)
             .onFocusChanged { focused = it.hasFocus }
             .then(
                 if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
@@ -436,7 +440,7 @@ private fun VodTile(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(shape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center,
         ) {

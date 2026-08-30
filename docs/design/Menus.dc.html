@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #171C24;
+      color: #E9EDF3;
+      font-family: 'Rubik', 'Segoe UI', system-ui, sans-serif;
+      direction: rtl;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #4C8DFF; text-decoration: none; }
+    a:hover { color: #9CC2FF; }
+    .mono {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      direction: ltr;
+      unicode-bidi: isolate;
+    }
+
+    .stage {
+      background:
+        radial-gradient(120% 90% at 20% 15%, #6E7FA8 0%, rgba(110,127,168,0) 55%),
+        radial-gradient(90% 80% at 80% 80%, #B9895A 0%, rgba(185,137,90,0) 58%),
+        linear-gradient(115deg, #2A3140 0%, #4A4038 55%, #1C222C 100%);
+    }
+  </style>
+</helmet>
+<!-- Menus — ui/common/Panel.kt -->
+<div style="width: 1180px; box-sizing: border-box; padding: 48px; display: flex; flex-direction: column; gap: 40px; background: #171C24;">
+<div style="display: flex; flex-direction: column; gap: 10px;">
+  <div class="mono" style="font-size: 12px; letter-spacing: 0.09em; text-align: right; text-transform: uppercase; color: #6B7482;">ui/common/Panel.kt &middot; ADR-025</div>
+  <div style="font-size: 34px; line-height: 42px; font-weight: 700;">תפריטים</div>
+  <div style="font-size: 16px; line-height: 24px; color: #BEC7D4; max-width: 74ch; text-wrap: pretty;">שנים&#8209;עשר תפריטים באפליקציה היו <span class="mono">AlertDialog</span> סטנדרטי של Material. צופה שלוחץ לחיצה ארוכה על ערוץ וצופה שלוחץ OK על פס הניגון נמצאים לחיצה אחת זה מזה — והם ראו שתי אפליקציות שונות. הלוח הצף עבר מ&#8209;<span class="mono">ui/tv</span> ל&#8209;<span class="mono">ui/common</span>, ששם שתי הקליפות מגיעות אליו.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">אותו תוכן, שני לוחות</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; gap: 28px; align-items: flex-start;">
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="stage" style="border-radius: 14px; padding: 26px; display: flex; justify-content: center;">
+  <div style="width: 340px; background: rgba(35,42,53,0.92); border-radius: 28px; border: 1px solid rgba(233,237,243,0.12); padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 22px; line-height: 30px; font-weight: 600; color: #E9EDF3;">כאן 11</div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">צפה</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">הוסף למועדפים</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">ערוך ערוץ</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">הסתר</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    </div>
+    <div style="display: flex; justify-content: flex-start;">
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #4C8DFF; padding: 8px 12px;">סגור</div>
+    </div>
+  </div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: #E9EDF3;">AppDialog — הפאנל של האפליקציה</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">פינה 28dp מהרמפה, <span class="mono">surface</span> בשקיפות של הצופה עם רצפה של <span class="mono">0.92</span>, וקו שיער. אותו לוח בדיוק שפס הניגון ותפריט הניגון יושבים עליו.</div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="stage" style="border-radius: 14px; padding: 26px; display: flex; justify-content: center;">
+  <div style="width: 340px; background: #2D3542; border-radius: 28px; border: 0; padding: 22px; display: flex; flex-direction: column; gap: 14px;">
+    <div style="font-size: 22px; line-height: 30px; font-weight: 600; color: #E9EDF3;">כאן 11</div>
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">צפה</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">הוסף למועדפים</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">ערוך ערוץ</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 12px; border-radius: 14px; background: transparent; border: 3px solid rgba(76,141,255,0); padding: 7px 9px;">
+      <div class="mono" style="width: 20px; flex: none; font-size: 15px; color: #4C8DFF;">&nbsp;</div>
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #E9EDF3; flex-grow: 1;">הסתר</div>
+      <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;"></div>
+    </div>
+    </div>
+    <div style="display: flex; justify-content: flex-start;">
+      <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #4C8DFF; padding: 8px 12px;">סגור</div>
+    </div>
+  </div>
+    </div>
+    <div style="font-size: 14px; line-height: 20px; font-weight: 500; color: #6B7482;">AlertDialog — מה שהיה עד ADR&#8209;025</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;"><span class="mono">surfaceContainerHigh</span> אטום, בלי קצה, ובלי שום קשר להגדרת השקיפות. זו הייתה התלונה שבה ADR&#8209;023 נפתח על תפריט הניגון — והיא נשארה עומדת בשנים&#8209;עשר המקומות שבהם הוא לא הסתכל.</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">מה הוחלף</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 180px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">ChannelMenu</div>
+    <div class="mono" style="width: 34px; flex: none; font-size: 13px; font-weight: 600; color: #4C8DFF;">7</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">תפריט הערוץ, עריכה, מתקדם, בחירת EPG, קבוצה, ניהול קבוצות, שם</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 180px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">ProgrammeDetails</div>
+    <div class="mono" style="width: 34px; flex: none; font-size: 13px; font-weight: 600; color: #4C8DFF;">1</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">פרטי תוכנית, הקלטה וצפייה בארכיון</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div class="mono" style="width: 180px; flex: none; font-size: 12px; font-weight: 500; color: #E9EDF3;">UpdatePrompt</div>
+    <div class="mono" style="width: 34px; flex: none; font-size: 13px; font-weight: 600; color: #4C8DFF;">4</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">הצעת עדכון, התקדמות, שגיאה, חסם התקנה</div>
+  </div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px;">
+  <div style="font-size: 15px; line-height: 20px; font-weight: 500; color: #BEC7D4; white-space: nowrap;">רצפות שקיפות</div>
+  <div style="flex-grow: 1; height: 1px; background: rgba(233,237,243,0.12);"></div>
+</div>
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 160px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500; color: #E9EDF3;">תפריט הניגון</div>
+    <div class="mono" style="width: 54px; flex: none; font-size: 13px; color: #4C8DFF;">0.92</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">כמה שורות של שמות רצועות שנקראות אחת&#8209;אחת</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 160px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500; color: #E9EDF3;">כל תפריט אחר</div>
+    <div class="mono" style="width: 54px; flex: none; font-size: 13px; color: #4C8DFF;">0.92</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">אותה רצפה, אותו טעם — הן אותו דבר</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 160px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500; color: #E9EDF3;">כרטיס המידע</div>
+    <div class="mono" style="width: 54px; flex: none; font-size: 13px; color: #4C8DFF;">0.80</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">המשטח הנצפה ביותר באפליקציה</div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid rgba(233,237,243,0.12);">
+    <div style="width: 160px; flex: none; font-size: 14px; line-height: 19px; font-weight: 500; color: #E9EDF3;">קפסולת הניווט</div>
+    <div class="mono" style="width: 54px; flex: none; font-size: 13px; color: #4C8DFF;">0.90</div>
+    <div style="font-size: 13px; line-height: 18px; color: #BEC7D4;">רק בזמן שהפוקוס בתוכה</div>
+  </div>
+</div>
+<div style="font-size: 14px; line-height: 21px; color: #BEC7D4; max-width: 82ch; text-wrap: pretty;">הרצפה של התפריטים הייתה קבוע פרטי בתוך <span class="mono">PlaybackControls.kt</span>. עכשיו היא <span class="mono">MENU_MIN_OPACITY</span> אחד, ותפריט הניגון קורא אותו מאותו מקום שכל תפריט אחר קורא.</div>
+</div>
+</x-dc>
+</body>
+</html>
