@@ -418,6 +418,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 headline = playback.title,
                                 tasks = tasks,
+                                // Only for the station skin: the dark one is for a picture.
+                                song = playback.streamTitle.takeIf { scene == IdleScene.AUDIO_ONLY },
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }

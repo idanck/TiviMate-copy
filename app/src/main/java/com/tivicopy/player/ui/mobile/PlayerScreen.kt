@@ -192,6 +192,7 @@ fun PlayerScreen(
                             channel = state.nowPlaying.audioOnlyChannel(),
                             title = playback.title,
                             playWhenReady = playback.playWhenReady,
+                            song = playback.streamTitle,
                             onTogglePlay = if (landscape) {
                                 { ServiceLocator.player.togglePlayPause() }
                             } else {

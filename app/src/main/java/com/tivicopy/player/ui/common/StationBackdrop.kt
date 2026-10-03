@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -49,6 +51,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -307,6 +310,8 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * The audio-only Now Playing screen: the station's logo and name over a backdrop in its own
  * colour, the wall clock and date, and play/pause.
  *
+ * @param song the song the station says is on ([PlaybackStatus.streamTitle]), or null when it
+ *   says nothing — most stations, and every catch-up.
  * @param playWhenReady the user's intent rather than [PlaybackStatus.playing], so the button
  *   still offers Pause while a station is rebuffering.
  * @param onTogglePlay null for a caller that offers play/pause elsewhere on the same screen —
@@ -321,6 +326,7 @@ fun AudioOnlyNowPlaying(
     title: String,
     playWhenReady: Boolean,
     modifier: Modifier = Modifier,
+    song: String? = null,
     onTogglePlay: (() -> Unit)? = null,
     takeDpadFocus: Boolean = false,
     /**
@@ -422,7 +428,11 @@ fun AudioOnlyNowPlaying(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (!compact) {
+            if (song != null) {
+                // The song, when the station announces one (`StreamTitle`) — shown on the compact
+                // layout too, since under a phone's surface it is the one thing worth the room.
+                SongLine(song = song, compact = compact)
+            } else if (!compact) {
                 // What is playing, when that is something other than the station itself.
                 //
                 // `PlaybackStatus.title` is set once per source by the player, so on a live
@@ -430,8 +440,7 @@ fun AudioOnlyNowPlaying(
                 // back to the audio-only explanation exactly as it always did. The case it does
                 // fire in is catch-up off a radio station, where the title is the programme's:
                 // that screen used to name the station twice and say nothing about what was on
-                // it. This is deliberately not a now-playing track readout; nothing in the app
-                // subscribes to stream metadata, and claiming otherwise here would be fiction.
+                // it. A station that names its song takes the branch above instead.
                 val programme = title.takeIf { it.isNotBlank() && it != headline }
                 Text(
                     text = programme ?: stringResource(R.string.playback_audio_only),
@@ -451,6 +460,42 @@ fun AudioOnlyNowPlaying(
                 )
             }
         }
+    }
+}
+
+/**
+ * The song the station says is on, behind a note so it does not read as a second station name.
+ *
+ * [TextDirection.Content]: a Hebrew song under an English interface, or the other way round, has
+ * to lay itself out by what it says rather than by the language of the menus.
+ */
+@Composable
+internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modifier, alpha: Float = 1f) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 10.dp),
+        modifier = modifier,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.MusicNote,
+            contentDescription = null,
+            tint = Color.White.copy(alpha = SECONDARY_TEXT_ALPHA * alpha),
+            modifier = Modifier.size(if (compact) 16.dp else 24.dp),
+        )
+        Text(
+            text = song,
+            style = (
+                if (compact) {
+                    MaterialTheme.typography.bodyMedium
+                } else {
+                    MaterialTheme.typography.titleLarge
+                }
+                ).copy(textDirection = TextDirection.Content),
+            color = Color.White.copy(alpha = alpha),
+            textAlign = TextAlign.Center,
+            maxLines = if (compact) 1 else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

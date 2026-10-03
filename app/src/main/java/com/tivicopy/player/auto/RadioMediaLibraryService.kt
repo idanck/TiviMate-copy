@@ -1,12 +1,15 @@
 package com.tivicopy.player.auto
 
+import android.os.Bundle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Metadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 import androidx.media3.session.MediaSession
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.net.RequestProfile
+import com.tivicopy.player.player.StreamTitle
 import kotlinx.coroutines.launch
 
 /**
@@ -27,6 +30,10 @@ import kotlinx.coroutines.launch
  * only be touched on the main thread, while [RadioBrowseTree] answers browse requests on a
  * background one. So the listener installed in [onCreate] pushes each station change *into* the
  * browse tree, and asks the car to reload the folders it has open so the marker moves with it.
+ *
+ * The same listener carries the song a station announces in its stream ([StreamTitle]) onto the
+ * car's Now Playing screen, under the station's name rather than instead of it: the queue item is
+ * replaced in place with the song added to its metadata (see [withSong]).
  */
 class RadioMediaLibraryService : MediaLibraryService() {
 
@@ -40,11 +47,38 @@ class RadioMediaLibraryService : MediaLibraryService() {
      */
     private var sessionCallback: RadioSessionCallback? = null
 
+    /** The station the browse tree was last told about, so a song change is not a station change. */
+    private var nowPlayingId: String? = null
+
     private val nowPlayingListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            // Replacing the playing item to add its song can report a transition of its own; the
+            // station has not changed, so neither has anything the browse tree says.
+            if (mediaItem?.mediaId == nowPlayingId) return
+            nowPlayingId = mediaItem?.mediaId
             browseTree.setNowPlaying(mediaItem?.mediaId)
             session?.let { sessionCallback?.notifyBrowseRefresh(it) }
+            // A station skipped back to still carries the song it was playing when it was left.
+            showSong(null)
         }
+
+        override fun onMetadata(metadata: Metadata) {
+            val raw = StreamTitle.icyTitle(metadata) ?: return
+            val station = radioPlayer?.exoPlayer?.currentMediaItem?.mediaMetadata?.title?.toString()
+            showSong(StreamTitle.clean(raw, stationName = station))
+        }
+    }
+
+    /**
+     * Puts [song] (or, for null, nothing) on the playing queue item. Same URI, so ExoPlayer updates
+     * the item without re-preparing the stream — no gap in the audio — and the session pushes the
+     * new metadata to the car.
+     */
+    private fun showSong(song: String?) {
+        val player = radioPlayer?.exoPlayer ?: return
+        val item = player.currentMediaItem ?: return
+        val updated = withSong(item, song) ?: return
+        player.replaceMediaItem(player.currentMediaItemIndex, updated)
     }
 
     override fun onCreate() {
@@ -84,6 +118,40 @@ class RadioMediaLibraryService : MediaLibraryService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
+
+    private companion object {
+        /**
+         * The subtitle the queue item had before any song was added to it, kept in the item's own
+         * extras so each song replaces the last instead of piling up after it. Its presence, even
+         * holding null, is what says "this item has been through [withSong]".
+         */
+        const val EXTRA_BASE_SUBTITLE = "com.tivicopy.player.auto.BASE_SUBTITLE"
+
+        /**
+         * [item] with [song] as its artist and in front of its own subtitle, or null when it
+         * already says exactly that. The title stays the station's name.
+         */
+        fun withSong(item: MediaItem, song: String?): MediaItem? {
+            val metadata = item.mediaMetadata
+            val extras = metadata.extras
+            if (song == null && extras?.containsKey(EXTRA_BASE_SUBTITLE) != true) return null
+            if (song != null && metadata.artist?.toString() == song) return null
+            val base = if (extras?.containsKey(EXTRA_BASE_SUBTITLE) == true) {
+                extras.getString(EXTRA_BASE_SUBTITLE)
+            } else {
+                metadata.subtitle?.toString()
+            }
+            val newExtras = Bundle(extras ?: Bundle.EMPTY).apply {
+                if (song == null) remove(EXTRA_BASE_SUBTITLE) else putString(EXTRA_BASE_SUBTITLE, base)
+            }
+            val newMetadata = metadata.buildUpon()
+                .setArtist(song)
+                .setSubtitle(listOfNotNull(song, base).joinToString(" · ").takeIf { it.isNotEmpty() })
+                .setExtras(newExtras)
+                .build()
+            return item.buildUpon().setMediaMetadata(newMetadata).build()
+        }
+    }
 
     override fun onDestroy() {
         session?.release()

@@ -57,7 +57,7 @@ class RadioBackgroundService : Service() {
             // not been paused, and a button drawn from `playing` would offer Play mid-stall and
             // then pause the stream when it was pressed — the same distinction the picture-in-
             // picture controls in MainActivity are built on.
-            .onEach { updateNotification(it.title, it.playWhenReady) }
+            .onEach { updateNotification(it.title, it.streamTitle, it.playWhenReady) }
             .launchIn(scope)
     }
 
@@ -68,7 +68,7 @@ class RadioBackgroundService : Service() {
         // an action delivered to a service the system had since recreated would otherwise leave
         // it running with that debt unpaid.
         val status = ServiceLocator.player.status.value
-        promoteToForeground(status.title, status.playWhenReady)
+        promoteToForeground(status.title, status.streamTitle, status.playWhenReady)
         when (intent?.action) {
             ACTION_TOGGLE_PLAY_PAUSE -> ServiceLocator.player.togglePlayPause()
             // Swiping a paused notification away means "done with this", not "hide it". Without
@@ -82,8 +82,8 @@ class RadioBackgroundService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun promoteToForeground(title: String, wantsPlay: Boolean) {
-        val notification = buildNotification(title, wantsPlay)
+    private fun promoteToForeground(title: String, song: String?, wantsPlay: Boolean) {
+        val notification = buildNotification(title, song, wantsPlay)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(FOREGROUND_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
@@ -91,15 +91,16 @@ class RadioBackgroundService : Service() {
         }
     }
 
-    private fun updateNotification(title: String, wantsPlay: Boolean) {
+    private fun updateNotification(title: String, song: String?, wantsPlay: Boolean) {
         try {
-            NotificationManagerCompat.from(this).notify(FOREGROUND_ID, buildNotification(title, wantsPlay))
+            NotificationManagerCompat.from(this).notify(FOREGROUND_ID, buildNotification(title, song, wantsPlay))
         } catch (_: SecurityException) {
             // POST_NOTIFICATIONS was refused; the stream keeps playing regardless.
         }
     }
 
-    private fun buildNotification(title: String, wantsPlay: Boolean): Notification {
+    /** @param song what the station says is on ([PlaybackStatus.streamTitle]), when it says. */
+    private fun buildNotification(title: String, song: String?, wantsPlay: Boolean): Notification {
         val openApp = PendingIntent.getActivity(
             this,
             REQUEST_OPEN_APP,
@@ -109,7 +110,7 @@ class RadioBackgroundService : Service() {
         return NotificationCompat.Builder(this, App.CHANNEL_RADIO)
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentTitle(title.ifBlank { getString(R.string.app_name) })
-            .setContentText(getString(R.string.radio_notif_playing))
+            .setContentText(song ?: getString(R.string.radio_notif_playing))
             .setContentIntent(openApp)
             // Dismissible once paused, exactly like the recorder's own notification when it is
             // not actively writing (RecordingService.buildNotification) — an ongoing notification
