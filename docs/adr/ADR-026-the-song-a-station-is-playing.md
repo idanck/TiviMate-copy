@@ -48,9 +48,10 @@ as an `IcyInfo` through `Player.Listener.onMetadata`. No request of our own, no 
 code, no new network dependency. `player/StreamTitle.kt` turns the raw field into something fit
 to show:
 
-- Windows-1255 read as Latin-1 is read back as Windows-1255 — only when at least half the
-  string's letters sit where Windows-1255 keeps the Hebrew alphabet and nothing is outside
-  Latin-1, so "Café del Mar" stays French;
+- Windows-1255 read as Latin-1 (or as Windows-1252) is read back as Windows-1255 — when any word
+  of two or more letters is made entirely of the characters where Windows-1255 keeps the Hebrew
+  alphabet. Decided per word, so a half-English title ("Static & Ben El - קן של אהבה") is repaired,
+  while "Café del Mar", whose accented letter sits beside plain ASCII ones, stays French;
 - placeholders ("powered by", AzuraCast, Adobe Audition), anything shorter than three
   characters, anything containing U+FFFD, and the station's own name are dropped — those
   stations show what they showed before, rather than noise.
@@ -67,8 +68,10 @@ Where it shows:
   queue item with a copy carrying the song as its artist and in front of its subtitle. The
   station's name stays the title — the song is added, not substituted. Same URI, so ExoPlayer
   updates the item in place without re-preparing: no gap in the audio. The original subtitle is
-  kept in the item's extras, so each song replaces the last; a station skipped back to is
-  cleared of the song it was playing when it was left.
+  kept in the item's extras, so each song replaces the last; the station just left is cleared of
+  its song the moment the car moves off it.
+- The song is cleared whenever nothing is playing: a new source, a channel with no URL, and a
+  stream that has failed for good.
 
 ## Rejected, for now
 

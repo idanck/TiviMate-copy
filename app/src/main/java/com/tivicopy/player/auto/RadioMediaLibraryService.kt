@@ -55,11 +55,13 @@ class RadioMediaLibraryService : MediaLibraryService() {
             // Replacing the playing item to add its song can report a transition of its own; the
             // station has not changed, so neither has anything the browse tree says.
             if (mediaItem?.mediaId == nowPlayingId) return
+            val previousId = nowPlayingId
             nowPlayingId = mediaItem?.mediaId
             browseTree.setNowPlaying(mediaItem?.mediaId)
             session?.let { sessionCallback?.notifyBrowseRefresh(it) }
-            // A station skipped back to still carries the song it was playing when it was left.
-            showSong(null)
+            // The station just left stops claiming its last song — in the car's queue view, and
+            // when it is skipped back to before it has announced the next one.
+            previousId?.let(::clearSong)
         }
 
         override fun onMetadata(metadata: Metadata) {
@@ -79,6 +81,17 @@ class RadioMediaLibraryService : MediaLibraryService() {
         val item = player.currentMediaItem ?: return
         val updated = withSong(item, song) ?: return
         player.replaceMediaItem(player.currentMediaItemIndex, updated)
+    }
+
+    /** Takes the song back off the queue item for [mediaId], wherever it now sits in the queue. */
+    private fun clearSong(mediaId: String) {
+        val player = radioPlayer?.exoPlayer ?: return
+        for (index in 0 until player.mediaItemCount) {
+            val item = player.getMediaItemAt(index)
+            if (item.mediaId != mediaId) continue
+            withSong(item, null)?.let { player.replaceMediaItem(index, it) }
+            return
+        }
     }
 
     override fun onCreate() {

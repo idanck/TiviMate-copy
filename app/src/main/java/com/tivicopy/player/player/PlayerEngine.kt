@@ -381,6 +381,7 @@ class PlayerEngine(
                 sourceIndex = 0,
                 sourceCount = currentUrls.size,
                 retriesUsed = 0,
+                streamTitle = null,
             )
             return
         }
@@ -668,7 +669,12 @@ class PlayerEngine(
 
         // DRM the device cannot satisfy is terminal; say so instead of retrying forever.
         if (mapped.kind == AppError.Kind.DrmUnsupported) {
-            _status.value = _status.value.copy(error = mapped, errorDetail = error.errorCodeName, playing = false)
+            _status.value = _status.value.copy(
+                error = mapped,
+                errorDetail = error.errorCodeName,
+                playing = false,
+                streamTitle = null,
+            )
             return
         }
 
@@ -695,6 +701,9 @@ class PlayerEngine(
             errorDetail = error.errorCodeName,
             playing = false,
             retriesUsed = retriesUsed,
+            // Nothing is playing any more, so no song is either — the notification would
+            // otherwise go on naming one over a dead stream.
+            streamTitle = null,
         )
     }
 
