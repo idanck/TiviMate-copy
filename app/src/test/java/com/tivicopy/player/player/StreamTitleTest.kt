@@ -29,6 +29,20 @@ class StreamTitleTest {
     }
 
     @Test
+    fun `hebrew beside an english artist is repaired too`() {
+        assertEquals(
+            "Static & Ben El Tavori - קן של אהבה",
+            StreamTitle.clean("Static & Ben El Tavori - ÷ï ùì àäáä"),
+        )
+    }
+
+    @Test
+    fun `windows-1255 read as windows-1252 is repaired, punctuation and all`() {
+        // 0x96 is an en dash in both code pages, so a Windows server hands it over as U+2013.
+        assertEquals("אהבה – שיר", StreamTitle.clean("àäáä \u2013 ùéø"))
+    }
+
+    @Test
     fun `latin titles with the odd accent are left alone`() {
         assertEquals("Café del Mar - Energy 52", StreamTitle.clean("Café del Mar - Energy 52"))
         val bach = "Carl Philipp Emanuel Bach - Sinfonie C-Dur"
@@ -65,9 +79,11 @@ class StreamTitleTest {
     }
 
     @Test
-    fun `icy title tells no entry apart from an empty one`() {
+    fun `icy title tells no title apart from an empty one`() {
         assertNull(StreamTitle.icyTitle(Metadata()))
-        assertEquals("", StreamTitle.icyTitle(Metadata(IcyInfo(ByteArray(0), null, null))))
+        // A block carrying only a StreamUrl says nothing about the song.
+        assertNull(StreamTitle.icyTitle(Metadata(IcyInfo(ByteArray(0), null, "http://x/art.jpg"))))
+        assertEquals("", StreamTitle.icyTitle(Metadata(IcyInfo(ByteArray(0), "", null))))
         assertEquals("A - B", StreamTitle.icyTitle(Metadata(IcyInfo(ByteArray(0), "A - B", null))))
     }
 }
