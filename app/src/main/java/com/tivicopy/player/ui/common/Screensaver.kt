@@ -177,6 +177,8 @@ private const val DRIFT_OFFSET = 0.25f
  * @param ambient whether this is the radio's lit skin rather than the dark one.
  * @param channel the station or channel on screen, for its name and (when [ambient]) its colour.
  * @param headline what to call what is playing when there is no channel to name.
+ * @param song the song the station says is on, or null. Drawn under the name, so the screen at
+ *   rest still answers "what is this song" without waking it.
  * @param tasks the open tasks to cycle through, or empty for none. Only ever non-empty for the
  *   ambient skin, and only when the owner has both configured a list and switched it on.
  */
@@ -187,6 +189,7 @@ fun Screensaver(
     headline: String,
     tasks: List<TaskItem>,
     modifier: Modifier = Modifier,
+    song: String? = null,
 ) {
     // Asked for only by the skin that uses it: resolving a station's accent downloads and
     // samples its logo the first time that station is seen, and the dark skin is black.
@@ -291,6 +294,10 @@ fun Screensaver(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+
+            if (song != null) {
+                SongLine(song = song, compact = compact, alpha = if (ambient) 0.8f else DARK_TEXT_ALPHA)
             }
 
             if (tasks.isNotEmpty()) {

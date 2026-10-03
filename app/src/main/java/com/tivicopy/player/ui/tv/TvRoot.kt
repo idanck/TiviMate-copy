@@ -263,6 +263,7 @@ fun TvRoot(
                 channel = state.nowPlaying.audioOnlyChannel(),
                 title = status.title,
                 playWhenReady = status.playWhenReady,
+                song = status.streamTitle,
                 onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                 // Only while nothing else owns the arrows: an overlay draws its own focusable
                 // controls over this one, and two claims on the D-pad is one too many.

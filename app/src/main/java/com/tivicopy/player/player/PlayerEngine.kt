@@ -3,6 +3,7 @@ package com.tivicopy.player.player
 import android.content.Context
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Metadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
@@ -53,6 +54,12 @@ data class PlaybackStatus(
     val softwareFallbackApplied: Boolean = false,
     val currentUrlRedacted: String? = null,
     val isLive: Boolean = false,
+    /**
+     * The song the stream says is playing, already cleaned ([StreamTitle]); null when the stream
+     * announces nothing, or nothing worth showing. Only Shoutcast/Icecast radio streams send one,
+     * and only some of those — see ADR-026.
+     */
+    val streamTitle: String? = null,
 )
 
 /**
@@ -412,6 +419,8 @@ class PlayerEngine(
             softwareFallbackApplied = softwareFallbackApplied,
             currentUrlRedacted = TextNormalizer.redactUrl(url),
             droppedFrames = 0,
+            // The previous source's song, or the previous station's, is not this one's.
+            streamTitle = null,
         )
     }
 
@@ -622,6 +631,14 @@ class PlayerEngine(
         }
 
         override fun onTracksChanged(tracks: Tracks) = refreshDiagnostics()
+
+        override fun onMetadata(metadata: Metadata) {
+            // A batch without an ICY entry says nothing about the song, so the last one stands.
+            val raw = StreamTitle.icyTitle(metadata) ?: return
+            _status.value = _status.value.copy(
+                streamTitle = StreamTitle.clean(raw, stationName = currentChannel?.displayName),
+            )
+        }
 
         override fun onPlayerError(error: PlaybackException) = handleError(error)
     }
