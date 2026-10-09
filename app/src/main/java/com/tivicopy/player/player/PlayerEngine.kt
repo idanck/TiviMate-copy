@@ -1,6 +1,7 @@
 package com.tivicopy.player.player
 
 import android.content.Context
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
@@ -187,6 +188,25 @@ class PlayerEngine(
     }
 
     /**
+     * Set while the player stands paused because another app took the sound for good, and only
+     * then — any other change to play/pause, by the user or by the host, clears it. That is what
+     * tells "another app took over" apart from "the user paused", which a resume must never undo.
+     */
+    private var pausedForAudioFocus = false
+
+    /**
+     * Picks playback back up after another app took the sound, and does nothing otherwise. For
+     * the host to call when this app is back in front of the viewer; see
+     * `MainActivity.resumeIfFocusTookIt` for when that is.
+     */
+    fun resumeAfterAudioFocusLoss() {
+        val exo = player ?: return
+        if (!pausedForAudioFocus) return
+        pausedForAudioFocus = false
+        exo.playWhenReady = true
+    }
+
+    /**
      * Where playback has reached, and how long the item is, or null when there is no player.
      *
      * [exoPlayer] builds one on demand, which is right for a caller about to play something and
@@ -244,6 +264,19 @@ class PlayerEngine(
             .setLoadControl(loadControl)
             .setMediaSourceFactory(
                 DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
+            )
+            // Without these the player never asked the system for audio focus, so it never
+            // heard that another app had started making sound either: a channel kept playing
+            // over the other app's audio, in the floating window or from the radio's
+            // background service, until something else stopped it. With focus handled, a
+            // notification or the voice assistant briefly lowers or pauses it and it comes back
+            // on its own; another app starting its own playback pauses it for good.
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(),
+                /* handleAudioFocus = */ true,
             )
             .build()
 
@@ -455,6 +488,8 @@ class PlayerEngine(
     }
 
     private fun releasePlayer() {
+        // Belongs to the instance going away; the next one starts out playing anyway.
+        pausedForAudioFocus = false
         player?.let {
             it.removeListener(listener)
             it.removeAnalyticsListener(analytics)
@@ -628,6 +663,8 @@ class PlayerEngine(
         }
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            pausedForAudioFocus =
+                !playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS
             _status.value = _status.value.copy(playWhenReady = playWhenReady)
         }
 
