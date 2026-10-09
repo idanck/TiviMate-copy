@@ -468,6 +468,17 @@ class PlayerEngine(
         player?.stop()
     }
 
+    /**
+     * Silences playback at once, for a host on its way out of the app. [release] would do it as
+     * well, but it holds the calling thread until the decoders are torn down — and the host calls
+     * this from `onPause`, which the next screen waits on before it can appear. Queued retries
+     * are dropped, so nothing starts the stream again before the [release] that follows.
+     */
+    fun silence() {
+        playbackGeneration++
+        player?.stop()
+    }
+
     fun release() {
         // Anything already queued belongs to a player that is about to stop existing.
         playbackGeneration++

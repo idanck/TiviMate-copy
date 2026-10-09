@@ -878,28 +878,32 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        // Leaving the app for good stops the sound here rather than in [onStop]. A finishing
+        // Leaving the app for good silences it here rather than in [onStop]. A finishing
         // activity is only stopped once the screen it hands over to reports itself idle, and a
         // television launcher busy animating its rows holds that off for up to ten seconds — the
-        // stream played on over the launcher for all of them.
-        if (isFinishing) releasePlayback()
+        // stream played on over the launcher for all of them. Only silenced, not released: the
+        // release waits for the decoders, and the launcher waits for this method. [onStop] still
+        // releases, as it always has.
+        if (isFinishing) {
+            // The position first, while the player still has it (FR-PLB-29); see [onStop].
+            vm.saveVodProgress()
+            ServiceLocator.player.silence()
+        }
     }
 
     override fun onStop() {
         super.onStop()
-        // Playback is released only when the activity really goes away; a recording keeps
-        // running in its own foreground service either way. Usually [onPause] has already done
-        // this, and it is done again regardless: an activity that was already paused when it
-        // began to finish never passes through [onPause] again, and the player surface, still
-        // composed after that release, builds an empty instance that only this one clears up.
-        if (isFinishing) {
-            releasePlayback()
-            return
-        }
         // Where an on-demand title got to, written before the player can be torn down. The
         // position has to be read here, on the thread that owns ExoPlayer, and while it still
         // has one (FR-PLB-29).
         vm.saveVodProgress()
+        // Playback is released only when the activity really goes away; a recording keeps
+        // running in its own foreground service either way.
+        if (isFinishing) {
+            RadioBackgroundService.stop(this)
+            ServiceLocator.player.release()
+            return
+        }
         // Stopped with no picture-in-picture window (the switch is off, the device has no
         // PiP, or a launcher stopped the task instead of finishing it): nothing anywhere is
         // showing this stream.
@@ -924,15 +928,6 @@ class MainActivity : ComponentActivity() {
             ServiceLocator.player.setPlayWhenReady(false)
         }
         ServiceLocator.player.setVideoOutputWanted(false)
-    }
-
-    /** Everything leaving the app for good does to playback. Safe to run more than once. */
-    private fun releasePlayback() {
-        // The on-demand position first, while there is still a player to read it from
-        // (FR-PLB-29); see [onStop].
-        vm.saveVodProgress()
-        RadioBackgroundService.stop(this)
-        ServiceLocator.player.release()
     }
 
     /**
