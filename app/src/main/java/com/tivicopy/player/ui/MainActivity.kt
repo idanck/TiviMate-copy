@@ -99,6 +99,12 @@ class MainActivity : ComponentActivity() {
     private var pausedInBackground = false
 
     /**
+     * Set on entering the floating window, cleared by [onResume]. A window that leaves and is
+     * followed by a stop rather than a resume was closed, not expanded; see [onStop].
+     */
+    private var leftForPip = false
+
+    /**
      * Read per press rather than cached: the layout direction follows the interface language, and
      * a change to that recreates the activity anyway, but the system locale can also change under
      * a running process.
@@ -232,7 +238,10 @@ class MainActivity : ComponentActivity() {
         // with the video track disabled underneath.
         playerOpen = savedInstanceState?.getBoolean(KEY_PLAYER_OPEN) ?: false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) inPip = isInPictureInPictureMode
-        if (inPip) playerOpen = true
+        if (inPip) {
+            playerOpen = true
+            leftForPip = true
+        }
 
         // A launcher card can be what started the process, so the launch intent gets the same
         // handling a warm one gets in [onNewIntent] — after the state restored above, which it
@@ -769,11 +778,23 @@ class MainActivity : ComponentActivity() {
         // The phone shell renders bare video while in the window; on the way out the player
         // screen is still open, so the user lands back where they left.
         inPip = isInPictureInPictureMode
+        if (isInPictureInPictureMode) {
+            leftForPip = true
+            return
+        }
+        // Closed with the window's X (device report). The activity is stopped first, while it
+        // still counts as in the window, so [onStop] left the stream playing for a window that
+        // was on its way out — and nothing ever silenced it. Now that the window is known gone,
+        // do what a stop with no window does.
+        if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            pauseInBackground()
+            return
+        }
         // Expanded back to full screen. Whether this lands before or after [onResume] differs
         // between Android versions, so both look; a window being closed instead never reaches
         // RESUMED, and must not start the sound again on its way out.
         val resumed = lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
-        if (!isInPictureInPictureMode && resumed) resumeIfFocusTookIt()
+        if (resumed) resumeIfFocusTookIt()
     }
 
     private fun enterPip() {
@@ -873,6 +894,8 @@ class MainActivity : ComponentActivity() {
         // is what lets a refused update pick itself back up instead of sending the user round
         // "check for updates" a second time (issue #29).
         ServiceLocator.updates.refreshInstallPermission()
+        // A window recreated in place passes through here too, and is still a window.
+        if (!inPip) leftForPip = false
         resumeIfFocusTookIt()
     }
 
@@ -909,7 +932,9 @@ class MainActivity : ComponentActivity() {
         // showing this stream.
         val pipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
         if (pipNow) return
-        if (vm.isRadioPlaying) {
+        // A window already reported gone, with no resume since, was closed with its X: the
+        // viewer asking for quiet, not for the radio to carry on in the background.
+        if (vm.isRadioPlaying && !leftForPip) {
             // A radio station has no picture to lose — locking or turning off the screen is not
             // a reason to stop it. RadioBackgroundService keeps the same stream running (see its
             // own doc comment) instead of the pause below.
@@ -920,9 +945,15 @@ class MainActivity : ComponentActivity() {
             // pause below — which is what this app did before the service existed.
             if (runCatching { RadioBackgroundService.start(this) }.isSuccess) return
         }
-        // A live TV channel kept downloading and decoding video for no surface, and playing
-        // sound from a backgrounded app with no notification and no way to stop it. Pause, drop
-        // the video track, and let [onStart] undo both.
+        pauseInBackground()
+    }
+
+    /**
+     * A live TV channel kept downloading and decoding video for no surface, and playing sound
+     * from a backgrounded app with no notification and no way to stop it. Pause, drop the video
+     * track, and let [onStart] undo both.
+     */
+    private fun pauseInBackground() {
         if (vm.playbackStatus.value.playWhenReady) {
             pausedInBackground = true
             ServiceLocator.player.setPlayWhenReady(false)
