@@ -2,9 +2,9 @@ name: Android build
 
 on:
   push:
-    # Every branch except the one this workflow publishes APKs to, so a build cannot
-    # trigger itself.
-    branches-ignore: ["apk"]
+    # Every branch except the ones this workflow publishes APKs to, so a build cannot
+    # trigger itself, and the QA evidence branch, which holds no app.
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
   workflow_dispatch:
 
 permissions:
@@ -100,9 +100,14 @@ jobs:
           retention-days: 30
 
       - name: Publish the APK to the apk branch
+        # `apk` holds main's build, the one devices update to; any other branch's goes to
+        # `apk-preview`. Until 2026-10-13 every push overwrote `apk`, so what it held depended
+        # on which branch pushed last, and a sideloaded feature build could carry the versionCode
+        # main was about to publish, leaving that device deaf to the real update.
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && 'apk' || 'apk-preview' }}
         run: |
           set -euo pipefail
           apk=$(ls dist/*.apk | head -1)
@@ -117,13 +122,13 @@ jobs:
           fetched with git rather than through the Actions artefact API.
           EOF
           cd "$staging"
-          git init -q -b apk
+          git init -q -b "$TARGET"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -qm "build: APK for ${GITHUB_SHA:0:8} (${GITHUB_REF_NAME})"
           git push -q --force \
-            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" apk
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$TARGET"
 
       - name: Publish the update manifest
         # Only a properly signed build from the integration branch can update an install, so
@@ -151,9 +156,29 @@ jobs:
           minSdk=$(grep -m1 'minSdk = ' app/build.gradle.kts | tr -dc '0-9')
           notes=$(git log -1 --pretty=%s)
 
-          published=$(curl -fsS "$HOST/latest.json" || echo '{}')
-          pubCode=$(jq -r '.versionCode // 0' <<<"$published")
+          # Only a 404 means nothing is published yet. Any other failure used to read as "{}",
+          # i.e. versionCode 0, and the version check below passed without having seen anything.
+          status=$(curl -sS -o "$RUNNER_TEMP/published.json" -w '%{http_code}' "$HOST/latest.json") || {
+            echo "::error::Could not reach $HOST to read the published version; nothing published."
+            exit 1
+          }
+          case "$status" in
+            200) published=$(cat "$RUNNER_TEMP/published.json") ;;
+            404) published='{}' ;;
+            *)
+              echo "::error::$HOST/latest.json answered HTTP $status; nothing published."
+              exit 1
+              ;;
+          esac
+          pubCode=$(jq -er '.versionCode // 0' <<<"$published") || {
+            echo "::error::$HOST/latest.json is not a manifest; nothing published."
+            exit 1
+          }
           pubSha=$(jq -r '.sha256 // ""' <<<"$published")
+          if ! [[ "$pubCode" =~ ^[0-9]+$ ]]; then
+            echo "::error::The published versionCode '$pubCode' is not a number; nothing published."
+            exit 1
+          fi
 
           if [ "$versionCode" -lt "$pubCode" ]; then
             echo "::error::versionCode $versionCode is older than the published $pubCode."
