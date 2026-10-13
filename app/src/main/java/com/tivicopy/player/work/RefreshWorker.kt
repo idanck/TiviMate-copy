@@ -34,18 +34,30 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val now = System.currentTimeMillis()
         var anyFailure = false
 
+        // No guide at all yet: the first guide download failed (or never ran) while the channel
+        // refresh beside it succeeded. The guide used to wait for the playlist's own clock, so a
+        // failed first attempt — and WorkManager's retry of this very run, which found nothing
+        // due — left the guide empty for a whole interval (a day, for the bundled channels).
+        val guideMissing = settings.epgRefreshIntervalMinutes > 0 && dao.programmeCount() == 0
+
         dao.playlists().filter { it.enabled }.forEach { playlist ->
             val due = playlist.refreshIntervalMinutes > 0 &&
                 now - playlist.lastRefreshUtc >= playlist.refreshIntervalMinutes * 60_000L
-            if (!due) return@forEach
+            val guideOnly = !due && guideMissing && !playlist.epgUrl.isNullOrBlank()
+            if (!due && !guideOnly) return@forEach
 
-            when (sources.refresh(playlist.id)) {
-                is Outcome.Err -> anyFailure = true
-                is Outcome.Ok -> Unit
+            if (due) {
+                when (sources.refresh(playlist.id)) {
+                    is Outcome.Err -> anyFailure = true
+                    is Outcome.Ok -> Unit
+                }
             }
 
             if (settings.epgRefreshIntervalMinutes > 0) {
-                val refreshed = dao.playlist(playlist.id) ?: return@forEach
+                // A playlist with no guide address (the bundled radio) has no guide to fail on;
+                // counting its "no guide URL" as a failure made every run that refreshed it retry.
+                val refreshed = dao.playlist(playlist.id)?.takeIf { !it.epgUrl.isNullOrBlank() }
+                    ?: return@forEach
                 if (epg.refreshGuide(refreshed) is Outcome.Err) anyFailure = true
             }
         }
