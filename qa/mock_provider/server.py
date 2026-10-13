@@ -66,8 +66,10 @@ CHANNELS = []  # (tvg_id, name, group, url, extra_attrs)
 for i in range(1, 25):
     group = GROUPS[(i - 1) % 3]
     variant = "abc"[(i - 1) % 3]
+    # The ?ch= tag is ignored when serving; it lets the request log tell one channel's stream
+    # from another that shares its variant (QA-22: was the locked channel fetched?).
     CHANNELS.append((f"qa.ch{i:02d}", f"QA {group} {i:02d}", group,
-                     f"{BASE}/hls/{variant}/live.m3u8", f'tvg-chno="{i}"'))
+                     f"{BASE}/hls/{variant}/live.m3u8?ch={i:02d}", f'tvg-chno="{i}"'))
 CHANNELS += [
     ("qa.hebrew", "ערוץ בדיקה עברית", "News", f"{BASE}/hls/b/live.m3u8", 'tvg-chno="25"'),
     ("qa.catchup", "QA Catchup", "News", f"{BASE}/hls/c/live.m3u8",

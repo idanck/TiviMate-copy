@@ -92,3 +92,31 @@ class PinAttemptLimiter(
         lockedUntil = 0
     }
 }
+
+/**
+ * What waits for the PIN (FR-PRF-04/05). Kept apart from the screens so the rules can be read —
+ * and tested — in one place. Nothing is gated until a PIN exists: a lock without a PIN has
+ * nothing to check against, and the switches that scope it are moot until then.
+ */
+object ParentalGate {
+
+    /** Playing a locked channel, or one in a locked group, with "require the PIN" on. */
+    fun channelNeedsPin(
+        channelLocked: Boolean,
+        groupLocked: Boolean,
+        pinSet: Boolean,
+        lockChannels: Boolean,
+        unlocked: Boolean,
+    ): Boolean = pinSet && lockChannels && !unlocked && (channelLocked || groupLocked)
+
+    /** Opening Settings at all, when the user asked for that. */
+    fun settingsNeedPin(pinSet: Boolean, lockSettings: Boolean, unlocked: Boolean): Boolean =
+        pinSet && lockSettings && !unlocked
+
+    /**
+     * Loosening parental controls — changing the PIN, a lock-scope switch, taking a lock off a
+     * channel. Removing the PIN is deliberately not here: it is the documented recovery for a
+     * forgotten PIN (FR-PRF-08), and it clears every lock, which is plain to see.
+     */
+    fun parentalChangeNeedsPin(pinSet: Boolean, unlocked: Boolean): Boolean = pinSet && !unlocked
+}

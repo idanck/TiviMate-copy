@@ -32,9 +32,11 @@ import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.prefs.AppLocale
+import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
+import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.keyProbe
 import kotlinx.coroutines.Dispatchers
@@ -230,37 +232,42 @@ fun RecordingSection(vm: AppViewModel) {
     )
 }
 
-/** PIN setup, lock scope and the documented recovery position (FR-PRF-04/08). */
+/**
+ * PIN setup, lock scope and the documented recovery position (FR-PRF-04/08).
+ *
+ * Once a PIN exists, loosening anything here asks for it first: the field to change it and the
+ * lock-scope switches stay out of reach until the PIN is entered. "Remove PIN" stays reachable
+ * either way — it is the recovery for a forgotten PIN, and it takes every lock with it.
+ */
 @Composable
-fun ParentalSection() {
+fun ParentalSection(vm: AppViewModel) {
     val settings = ServiceLocator.settings
     val s by settings.state.collectAsState()
+    val unlocked by vm.parentalUnlocked.collectAsState()
     var pin by remember { mutableStateOf("") }
     var feedback by remember { mutableStateOf<String?>(null) }
     val invalidPinMessage = stringResource(R.string.pin_hint)
+    val gated = ParentalGate.parentalChangeNeedsPin(s.parentalPinHash.isNotBlank(), unlocked)
 
     SettingsSectionTitle(stringResource(R.string.settings_parental), topDivider = false)
-    OutlinedTextField(
-        value = pin,
-        onValueChange = { pin = it.filter(Char::isDigit).take(6) },
-        label = { Text(if (s.parentalPinHash.isBlank()) stringResource(R.string.pin_set) else stringResource(R.string.pin_change)) },
-        placeholder = { Text(stringResource(R.string.pin_hint)) },
-        singleLine = true,
-        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-            keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
-        ),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
-    )
-    SettingsRow(title = stringResource(R.string.action_save), subtitle = feedback) {
-        if (ParentalPin.isValidPin(pin)) {
-            val hashed = ParentalPin.hash(pin)
-            settings.setParentalPin(hashed.hash, hashed.salt)
-            pin = ""
-            feedback = null
-        } else {
-            feedback = invalidPinMessage
-        }
+    if (gated) {
+        PinEntry(vm = vm, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp))
+    } else {
+        ParentalPinSetup(
+            pin = pin,
+            onPin = { pin = it },
+            feedback = feedback,
+            hasPin = s.parentalPinHash.isNotBlank(),
+            onSave = {
+                if (ParentalPin.isValidPin(pin)) {
+                    vm.setPin(pin)
+                    pin = ""
+                    feedback = null
+                } else {
+                    feedback = invalidPinMessage
+                }
+            },
+        )
     }
     if (s.parentalPinHash.isNotBlank()) {
         val scope = rememberCoroutineScope()
@@ -275,27 +282,53 @@ fun ParentalSection() {
             }
         }
     }
-    SettingsSwitch(
-        title = stringResource(R.string.pin_lock_settings),
-        checked = s.lockSettings,
-        onChange = settings::setLockSettings,
-    )
-    SettingsSwitch(
-        title = stringResource(R.string.pin_lock_channels),
-        checked = s.lockChannels,
-        onChange = settings::setLockChannels,
-    )
-    SettingsSwitch(
-        title = stringResource(R.string.pin_hide_locked),
-        checked = s.hideLockedChannels,
-        onChange = settings::setHideLockedChannels,
-    )
+    if (!gated) {
+        SettingsSwitch(
+            title = stringResource(R.string.pin_lock_settings),
+            checked = s.lockSettings,
+            onChange = settings::setLockSettings,
+        )
+        SettingsSwitch(
+            title = stringResource(R.string.pin_lock_channels),
+            checked = s.lockChannels,
+            onChange = settings::setLockChannels,
+        )
+        SettingsSwitch(
+            title = stringResource(R.string.pin_hide_locked),
+            checked = s.hideLockedChannels,
+            onChange = settings::setHideLockedChannels,
+        )
+    }
     Text(
         text = stringResource(R.string.pin_recovery),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
     )
+}
+
+/** The field and Save row that set or change the PIN. */
+@Composable
+private fun ParentalPinSetup(
+    pin: String,
+    onPin: (String) -> Unit,
+    feedback: String?,
+    hasPin: Boolean,
+    onSave: () -> Unit,
+) {
+    OutlinedTextField(
+        value = pin,
+        onValueChange = { onPin(it.filter(Char::isDigit).take(6)) },
+        label = { Text(if (!hasPin) stringResource(R.string.pin_set) else stringResource(R.string.pin_change)) },
+        placeholder = { Text(stringResource(R.string.pin_hint)) },
+        singleLine = true,
+        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+            keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
+        ),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+    SettingsRow(title = stringResource(R.string.action_save), subtitle = feedback, onClick = onSave)
 }
 
 /** Export and restore through the Storage Access Framework (FR-SET-08). */

@@ -50,6 +50,7 @@ import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.IdleScene
+import com.tivicopy.player.ui.common.PinRequestDialog
 import com.tivicopy.player.ui.common.Screensaver
 import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.describe
@@ -413,6 +414,10 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
+
+                        // FR-PRF-04: the PIN prompt for a locked channel, above whichever shell is
+                        // up — every route onto a channel ends in the one gate in `vm.play`.
+                        if (!inPip) PinRequestDialog(vm)
 
                         if (screensaverOn) {
                             Screensaver(
@@ -924,6 +929,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        // A correct PIN holds while the viewer who typed it is here; whoever picks the remote
+        // up after the app has been away is asked again (FR-PRF-04).
+        vm.lockParental()
         // Where an on-demand title got to, written before the player can be torn down. The
         // position has to be read here, on the thread that owns ExoPlayer, and while it still
         // has one (FR-PLB-29).

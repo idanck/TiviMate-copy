@@ -25,6 +25,9 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RefreshReport
 import com.tivicopy.player.data.model.VodItem
+import com.tivicopy.player.data.prefs.ParentalGate
+import com.tivicopy.player.data.prefs.ParentalPin
+import com.tivicopy.player.data.prefs.PinAttemptLimiter
 import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
@@ -179,6 +182,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val main = Handler(Looper.getMainLooper())
 
     private var listJob: Job? = null
+
+    // Parental state (FR-PRF-04/07), declared ahead of `init` so nothing it starts can find it
+    // unset; the rest of it is with the other parental functions below.
+    private val _pinRequest = MutableStateFlow<PinRequest?>(null)
+
+    /** A playback or an unlock waiting for the PIN; the root of either shell shows the prompt. */
+    val pinRequest: StateFlow<PinRequest?> = _pinRequest
+
+    private val _parentalUnlocked = MutableStateFlow(false)
+
+    /**
+     * Set by a correct PIN and kept until the app leaves the screen ([lockParental]): asking
+     * again on every zap would make a locked channel unwatchable for the parent too.
+     */
+    val parentalUnlocked: StateFlow<Boolean> = _parentalUnlocked
+
+    private val pinLimiter = PinAttemptLimiter()
 
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
@@ -473,6 +493,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
 
     fun play(channel: Channel) {
+        // FR-PRF-04/05: every way onto a channel — the list, zapping, a typed number, the last
+        // channel, a launcher deep link, the start channel — comes through here, so this is the
+        // one gate. Until 2026-10-13 a locked channel played on the first press.
+        if (channelNeedsPin(channel)) {
+            _pinRequest.value = PinRequest.Play(channel)
+            return
+        }
         leaveVod()
         val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
         val profile = playlist?.let { sources.profileFor(it) }
@@ -600,7 +627,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (id == 0L) return false
         val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return false
         play(channel)
-        return true
+        // A locked start channel waits on the PIN prompt instead; nothing is playing yet.
+        return _state.value.currentChannel?.id == channel.id
     }
 
     fun refreshNowNext(channel: Channel? = _state.value.currentChannel) {
@@ -869,6 +897,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setLocked(channel: Channel, locked: Boolean) {
+        // Putting a lock on is free; taking one off is loosening parental controls.
+        val s = settings.state.value
+        if (!locked && ParentalGate.parentalChangeNeedsPin(s.parentalPinHash.isNotBlank(), _parentalUnlocked.value)) {
+            _pinRequest.value = PinRequest.Unlock(channel)
+            return
+        }
+        applyLocked(channel, locked)
+    }
+
+    private fun applyLocked(channel: Channel, locked: Boolean) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, locked = locked) }
             loadChannels()
@@ -1031,6 +1069,82 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 _state.value = _state.value.copy(guideStats = stats)
             }
         }
+    }
+
+    // ---------------------------------------------------------------- parental (FR-PRF-04/05/07)
+
+    private fun channelNeedsPin(channel: Channel): Boolean {
+        val s = settings.state.value
+        // Groups come from the list on screen. A channel from a playlist that is not browsed
+        // (a deep link into another one) is judged on its own lock alone.
+        val groupLocked = channel.groupId
+            ?.let { id -> _state.value.list.groups.firstOrNull { it.id == id }?.locked }
+            ?: false
+        return ParentalGate.channelNeedsPin(
+            channelLocked = channel.locked,
+            groupLocked = groupLocked,
+            pinSet = s.parentalPinHash.isNotBlank(),
+            lockChannels = s.lockChannels,
+            unlocked = _parentalUnlocked.value,
+        )
+    }
+
+    /** Checks [pin]; on success unlocks and carries out whatever was waiting for it. */
+    fun submitPin(pin: String, onResult: (PinResult) -> Unit) {
+        val wait = pinLimiter.remainingLockMillis()
+        if (wait > 0) {
+            onResult(PinResult.LockedOut(((wait + 999) / 1000).toInt()))
+            return
+        }
+        val s = settings.state.value
+        viewModelScope.launch {
+            // 60,000 PBKDF2 rounds: a noticeable moment on a television box, so not on the
+            // main thread.
+            val ok = withContext(Dispatchers.Default) {
+                ParentalPin.verify(pin, s.parentalPinHash, s.parentalPinSalt)
+            }
+            if (!ok) {
+                pinLimiter.onFailure()
+                val lockedFor = pinLimiter.remainingLockMillis()
+                onResult(if (lockedFor > 0) PinResult.LockedOut(((lockedFor + 999) / 1000).toInt()) else PinResult.Wrong)
+                return@launch
+            }
+            pinLimiter.onSuccess()
+            _parentalUnlocked.value = true
+            val pending = _pinRequest.value
+            _pinRequest.value = null
+            when (pending) {
+                is PinRequest.Play -> play(pending.channel)
+                is PinRequest.Unlock -> applyLocked(pending.channel, false)
+                null -> Unit
+            }
+            onResult(PinResult.Accepted)
+        }
+    }
+
+    fun cancelPinRequest() {
+        _pinRequest.value = null
+    }
+
+    /**
+     * Stores a new PIN. Hashing it is the same 60,000 PBKDF2 rounds as checking one, and on the
+     * main thread it froze the screen long enough for Android to report the app as not
+     * responding (QA run 38420681633, television emulator).
+     */
+    fun setPin(pin: String) {
+        // Before the hash lands: whoever just set the PIN knows it, and the parental section
+        // must not flip to asking for it between Save and the next row.
+        _parentalUnlocked.value = true
+        viewModelScope.launch(Dispatchers.Default) {
+            val hashed = ParentalPin.hash(pin)
+            settings.setParentalPin(hashed.hash, hashed.salt)
+        }
+    }
+
+    /** The app left the screen: whoever picks the remote up next is asked again. */
+    fun lockParental() {
+        _parentalUnlocked.value = false
+        _pinRequest.value = null
     }
 
     // ---------------------------------------------------------------- refresh

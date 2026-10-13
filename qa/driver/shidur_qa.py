@@ -95,6 +95,14 @@ def hide_ime():
         time.sleep(0.5)
 
 
+def close_system_ui():
+    """Folds the notification shade and quick settings, which the monkey (QA-18) can leave open
+    over the app: run 38427581969 found QA-22 facing quick settings on the phone. Back does not
+    close them; the status bar service does."""
+    sh("cmd statusbar collapse")
+    time.sleep(0.5)
+
+
 def type_text(text):
     # `input text` takes %s for a space and needs shell metacharacters escaped. Sent in short
     # chunks: one long injection raced the soft keyboard on the phone and arrived truncated
@@ -327,6 +335,7 @@ class Runner:
             started = time.time()
             before = pid()
             try:
+                self.dismiss_anr()
                 fn(sid, title, area)
             except Exception as e:
                 self.record(sid, title, "FAIL", f"driver exception: {e!r}",
@@ -363,10 +372,48 @@ class Runner:
         launch()
         time.sleep(2)
 
+    def dismiss_anr(self, nodes=None):
+        """Answers Wait on an "isn't responding" dialog and records which app it named.
+
+        Run 38434134438 had one over the whole phone run from QA-04 on, and every scenario after
+        it failed to find its first button."""
+        nodes = self.ui.dump() if nodes is None else nodes
+        wait = self.ui.find("Wait", nodes, exact=True)
+        if not (wait and self.ui.find("Close app", nodes, exact=True)):
+            return False
+        print(f"[{self.form}]   ANR dialog: {self.ui.texts(nodes)}", flush=True)
+        self.facts.setdefault("anr_dialogs", []).append(self.ui.texts(nodes))
+        tap(*wait.center)
+        time.sleep(3)
+        return True
+
     def go_settings(self):
         if self.form == "phone":
-            n = self.ui.tap_label("Settings", scrolls=0, exact=True)
-            return n is not None
+            # The full-screen player hides the bottom bar; Back folds it into the mini player.
+            # A cold start takes ~10 s on the emulator and then opens the last channel full
+            # screen, so a Back pressed blind lands on the splash and the player opens after it
+            # (run 38413573319). Give the start a few looks before pressing Back on anything else.
+            hide_ime()
+            for attempt in range(6):
+                close_system_ui()
+                nodes = self.ui.dump()
+                if self.dismiss_anr(nodes):
+                    continue
+                n = self.ui.find("Settings", nodes, exact=True)
+                player = self.ui.find("Minimise the player", nodes, exact=True)
+                front = in_foreground()
+                print(f"[{self.form}]   go_settings #{attempt}: {len(nodes)} nodes, settings={bool(n)} "
+                      f"player={bool(player)} foreground={front}", flush=True)
+                if n:
+                    tap(*n.center)
+                    time.sleep(1.2)
+                    return True
+                if not front:
+                    launch()
+                elif attempt >= 2 or player:
+                    key("KEYCODE_BACK")
+                time.sleep(2)
+            return False
         # Television: Settings sits on the home rail; open the rail with Back/Left if needed.
         for attempt in range(4):
             n = self.ui.find("Settings", exact=True)
@@ -380,6 +427,28 @@ class Runner:
 
     def db(self):
         return read_db(self.out)
+
+    def edit_db(self, sql, args=()):
+        """Changes the app's database (debug build): stop the app, edit a copy, put it back."""
+        force_stop()
+        tmp = tempfile.mkdtemp(dir=self.out)
+        path = os.path.join(tmp, "tivicopy.db")
+        for suffix in ("", "-wal", "-shm"):
+            data = adb("exec-out", "run-as", PKG, "cat", f"databases/tivicopy.db{suffix}", binary=True, timeout=60)
+            if data and not data.startswith(b"cat:") and not data.startswith(b"run-as:"):
+                with open(path + suffix, "wb") as f:
+                    f.write(data)
+        db = sqlite3.connect(path)
+        changed = db.execute(sql, args).rowcount
+        db.commit()
+        db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        db.execute("PRAGMA journal_mode=DELETE")
+        db.close()
+        adb("push", path, "/data/local/tmp/qa_edit.db", timeout=60)
+        sh("chmod 644 /data/local/tmp/qa_edit.db")
+        sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/qa_edit.db > databases/tivicopy.db && "
+           f"rm -f databases/tivicopy.db-wal databases/tivicopy.db-shm'")
+        return changed
 
     # ---------------------------------------------------------------- scenarios
 
@@ -399,12 +468,14 @@ class Runner:
         }
 
         # Xtream before M3U, so the M3U playlist (with its guide loaded) is the active one for the
-        # guide, zapping and search checks that follow.
+        # guide, zapping and search checks that follow. The parental check runs before the monkey:
+        # on the phone the monkey leaves the notification shade open over the app, and three runs
+        # of QA-22 after it never got past that (38427581969, 38434134438, 38442977872).
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
                    self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s21_suspended_refresh,
-                   self.s16_locale, self.s17_scale, self.s18_monkey, self.s19_resources]:
+                   self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
         self.s20_audit()
         self.finish()
@@ -1064,7 +1135,8 @@ class Runner:
                 if db:
                     r = q(db, "SELECT (SELECT COUNT(*) FROM channels c WHERE c.playlist_id=p.id) FROM playlists p "
                               "WHERE name='QA Big'")
-                    count = r[0][0] if r else 0
+                    # A read that lands mid-write comes back as ("ERR", ...); count it as not yet.
+                    count = r[0][0] if r and isinstance(r[0][0], int) else 0
                     if count >= 5000:
                         break
                 time.sleep(4)
@@ -1116,7 +1188,9 @@ class Runner:
             # Monkey may switch network/airplane; restore.
             sh("svc wifi enable")
             sh("svc data enable")
+            sh("cmd connectivity airplane-mode disable")
             shot = self.ev.shot("after_monkey")
+            close_system_ui()
             crash_line = next((l for l in out.splitlines() if "Long Msg" in l or "Short Msg" in l), "")
             aborted = "Monkey aborted" in out
             self.record(sid, title, "FAIL" if crashed or anr else ("PASS" if done else "WARN"),
@@ -1146,6 +1220,135 @@ class Runner:
             self.record(sid, title, status, f"PSS {pss_mb} MB while playing (budget {budget}); java "
                         f"{self.facts['memory']['java_kb']} KB native {self.facts['memory']['native_kb']} KB; "
                         f"storage: {du.strip()}", [], area)
+
+    def s22_parental(self):
+        @self.scenario("QA-22", "Parental PIN: a locked channel and Settings wait for it", "parental")
+        def _(sid, title, area):
+            notes, shots, fail = [], [], False
+            # From a clean start: this runs after the monkey, which leaves keyboards open and
+            # screens half-entered (run 38407146385: a sticker keyboard swallowed every Back).
+            reached, trail = False, []
+            # The monkey can also switch airplane mode on from quick settings.
+            sh("cmd connectivity airplane-mode disable")
+            for start in range(2):
+                close_system_ui()
+                force_stop()
+                launch()
+                # The phone's cold start is ~10 s on the emulator and then opens the last channel.
+                time.sleep(4 if start == 0 else 12)
+                hide_ime()
+                if self.form == "tv":
+                    key("KEYCODE_BACK")
+                opened = self.go_settings()
+                found = opened and self.ui.tap_label("Parental controls", scrolls=4, exact=True)
+                trail.append(f"try {start + 1}: settings={opened} parental={bool(found)} "
+                             f"screen={self.ui.texts()[:12]}")
+                print(f"[{self.form}]   QA-22 {trail[-1]}", flush=True)
+                if found:
+                    reached = True
+                    break
+                self.ui.dump(f"parental_unreachable_{start + 1}")
+            if not reached:
+                self.record(sid, title, "FAIL", "could not reach Settings > Parental controls; " + " | ".join(trail),
+                            [self.ev.shot("parental_unreachable")], area)
+                return
+            notes.append(trail[-1].split(" screen=")[0])
+            self.fill("Set a PIN", "1234", secret=True)
+            self.ui.tap_label("Save", scrolls=2, exact=True)
+            # "Remove PIN" appears once the hash is stored, which is off the main thread.
+            saved = self.ui.wait_for("Remove PIN", timeout=20, exact=True)
+            switched = self.ui.tap_label("Require the PIN to open Settings", scrolls=3, exact=True)
+            time.sleep(1)
+            shots.append(self.ev.shot("parental_set"))
+            cid = self.channel_id("qa.ch05")
+            locked = self.edit_db("UPDATE channels SET locked=1 WHERE id=?", (cid,)) if cid else 0
+            notes.append(f"PIN saved={bool(saved)}; settings switch tapped={bool(switched)}; "
+                         f"qa.ch05 locked rows={locked}")
+            fail |= not saved or not switched
+
+            def enter(pin):
+                """Types [pin] into the prompt and presses OK; answers what it saw on the way."""
+                fields = [n for n in self.ui.dump() if "EditText" in n.cls]
+                if fields:
+                    tap(*fields[0].center)
+                clear_field()
+                type_text(pin)
+                typed = [n for n in self.ui.dump() if "EditText" in n.cls]
+                hide_ime()
+                # The prompt re-centres once the keyboard goes; a tap straight after hit where OK
+                # used to be and the PIN was never sent (run 38413573319).
+                time.sleep(1.5)
+                ok = self.ui.tap_label("OK", scrolls=0, exact=True)
+                return (f"field={'yes' if fields else 'no'} typed={len(typed[0].text) if typed else '-'} "
+                        f"ok={'yes' if ok else 'no'}")
+
+            # Something may already be playing behind the prompt (the last channel resumes on
+            # start), so what counts is whether the locked channel's own stream was fetched.
+            def fetched():
+                return len(self.mock_requests("ch=05"))
+
+            # A locked channel, reached the way the launcher reaches it.
+            launch()
+            time.sleep(6)
+            before = fetched()
+            deep_link(f"shidur://channel/{cid}")
+            time.sleep(6)
+            prompt = self.ui.find("Enter your PIN")
+            leaked = fetched() - before
+            shots.append(self.ev.shot("pin_prompt"))
+            notes.append(f"deep link to the locked channel: prompt={bool(prompt)} "
+                         f"locked stream requests behind it={leaked}")
+            fail |= not prompt or leaked > 0
+
+            # 60,000 PBKDF2 rounds: run 38448738662 took over 15 s on both emulators with the
+            # 5,000-channel playlist from QA-17 loaded, so the verdict gets a generous wait.
+            how = enter("9999")
+            wrong = self.ui.wait_for("That PIN is not correct", timeout=45)
+            if not wrong:
+                shots.append(self.ev.shot("pin_wrong_missing"))
+                self.ui.dump("pin_wrong_missing")
+            notes.append(f"wrong PIN refused={bool(wrong)} ({how}; screen={self.ui.texts()[:8]})")
+            fail |= not wrong
+
+            how = enter("1234")
+            notes.append(f"right PIN typed ({how})")
+            end = time.time() + 45
+            while time.time() < end and self.ui.find("Enter your PIN"):
+                time.sleep(1)
+            time.sleep(5)
+            closed = not self.ui.find("Enter your PIN")
+            started = fetched() - before - leaked
+            plays = audio_playing(self.uid)
+            shots.append(self.ev.shot("pin_accepted"))
+            notes.append(f"right PIN: prompt closed={closed} locked stream requests={started} sound={plays}")
+            fail |= not closed or started == 0 or not plays
+
+            # Away and back: the next person is asked again, and Settings is behind the PIN. On the
+            # phone the player is folded first: Home from the full-screen player enters PiP, and
+            # reopening the app while that animation was still running left it with no focused
+            # window, an ANR the system pinned on the app (run 38448738662, a platform race).
+            if self.form == "phone" and self.ui.find("Minimise the player", exact=True):
+                key("KEYCODE_BACK")
+                time.sleep(2)
+            key("KEYCODE_HOME")
+            time.sleep(5)
+            launch()
+            time.sleep(5)
+            if self.form == "tv":
+                key("KEYCODE_BACK")
+            self.go_settings()
+            time.sleep(2)
+            gate = self.ui.find("Enter your PIN")
+            exposed = self.ui.find("Playlists and guide", exact=True)
+            shots.append(self.ev.shot("settings_gate"))
+            notes.append(f"Settings after leaving the app: PIN asked={bool(gate)} settings shown={bool(exposed)}")
+            fail |= not gate or bool(exposed)
+
+            enter("1234")
+            opened = self.ui.wait_for("Playlists and guide", timeout=45, exact=True)
+            notes.append(f"Settings after the PIN: open={bool(opened)}")
+            fail |= not opened
+            self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), shots, area)
 
     def s20_audit(self):
         log = adb("logcat", "-d", "-v", "threadtime", timeout=120)
