@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -94,7 +93,8 @@ fun PinEntry(
 fun PinRequestDialog(vm: AppViewModel) {
     val request by vm.pinRequest.collectAsState()
     val pending = request ?: return
-    AlertDialog(
+    // The app's plate, not Material's dialog (ADR-025; FocusVocabularyTest holds it to that).
+    AppDialog(
         onDismissRequest = vm::cancelPinRequest,
         title = { Text(pending.channel.displayName) },
         text = { PinEntry(vm = vm, modifier = Modifier.fillMaxWidth()) },
