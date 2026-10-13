@@ -373,13 +373,17 @@ class Runner:
             for attempt in range(6):
                 nodes = self.ui.dump()
                 n = self.ui.find("Settings", nodes, exact=True)
+                player = self.ui.find("Minimise the player", nodes, exact=True)
+                front = in_foreground()
+                print(f"[{self.form}]   go_settings #{attempt}: {len(nodes)} nodes, settings={bool(n)} "
+                      f"player={bool(player)} foreground={front}", flush=True)
                 if n:
                     tap(*n.center)
                     time.sleep(1.2)
                     return True
-                if not in_foreground():
+                if not front:
                     launch()
-                elif attempt >= 2 or self.ui.find("Minimise the player", nodes, exact=True):
+                elif attempt >= 2 or player:
                     key("KEYCODE_BACK")
                 time.sleep(2)
             return False
@@ -1193,26 +1197,41 @@ class Runner:
             notes, shots, fail = [], [], False
             # From a clean start: this runs after the monkey, which leaves keyboards open and
             # screens half-entered (run 38407146385: a sticker keyboard swallowed every Back).
-            force_stop()
-            launch()
-            time.sleep(4)
-            hide_ime()
-            if self.form == "tv":
-                key("KEYCODE_BACK")
-            if not (self.go_settings() and self.ui.tap_label("Parental controls", scrolls=4, exact=True)):
-                self.ui.dump("parental_unreachable")
-                self.record(sid, title, "FAIL", "could not reach Settings > Parental controls",
+            reached, trail = False, []
+            for start in range(2):
+                force_stop()
+                launch()
+                # The phone's cold start is ~10 s on the emulator and then opens the last channel.
+                time.sleep(4 if start == 0 else 12)
+                hide_ime()
+                if self.form == "tv":
+                    key("KEYCODE_BACK")
+                opened = self.go_settings()
+                found = opened and self.ui.tap_label("Parental controls", scrolls=4, exact=True)
+                trail.append(f"try {start + 1}: settings={opened} parental={bool(found)} "
+                             f"screen={self.ui.texts()[:12]}")
+                print(f"[{self.form}]   QA-22 {trail[-1]}", flush=True)
+                if found:
+                    reached = True
+                    break
+                self.ui.dump(f"parental_unreachable_{start + 1}")
+            if not reached:
+                self.record(sid, title, "FAIL", "could not reach Settings > Parental controls; " + " | ".join(trail),
                             [self.ev.shot("parental_unreachable")], area)
                 return
+            notes.append(trail[-1].split(" screen=")[0])
             self.fill("Set a PIN", "1234", secret=True)
             self.ui.tap_label("Save", scrolls=2, exact=True)
-            time.sleep(2)
+            # "Remove PIN" appears once the hash is stored, which is off the main thread.
+            saved = self.ui.wait_for("Remove PIN", timeout=20, exact=True)
             switched = self.ui.tap_label("Require the PIN to open Settings", scrolls=3, exact=True)
             time.sleep(1)
             shots.append(self.ev.shot("parental_set"))
             cid = self.channel_id("qa.ch05")
             locked = self.edit_db("UPDATE channels SET locked=1 WHERE id=?", (cid,)) if cid else 0
-            notes.append(f"PIN set; settings switch tapped={bool(switched)}; qa.ch05 locked rows={locked}")
+            notes.append(f"PIN saved={bool(saved)}; settings switch tapped={bool(switched)}; "
+                         f"qa.ch05 locked rows={locked}")
+            fail |= not saved or not switched
 
             def enter(pin):
                 fields = [n for n in self.ui.dump() if "EditText" in n.cls]

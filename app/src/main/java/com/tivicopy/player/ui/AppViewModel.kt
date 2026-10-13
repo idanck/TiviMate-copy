@@ -1126,9 +1126,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         _pinRequest.value = null
     }
 
-    /** Whoever just set the PIN knows it; asking them for it on the next row would be absurd. */
-    fun onPinSet() {
+    /**
+     * Stores a new PIN. Hashing it is the same 60,000 PBKDF2 rounds as checking one, and on the
+     * main thread it froze the screen long enough for Android to report the app as not
+     * responding (QA run 38420681633, television emulator).
+     */
+    fun setPin(pin: String) {
+        // Before the hash lands: whoever just set the PIN knows it, and the parental section
+        // must not flip to asking for it between Save and the next row.
         _parentalUnlocked.value = true
+        viewModelScope.launch(Dispatchers.Default) {
+            val hashed = ParentalPin.hash(pin)
+            settings.setParentalPin(hashed.hash, hashed.salt)
+        }
     }
 
     /** The app left the screen: whoever picks the remote up next is asked again. */

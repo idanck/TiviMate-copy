@@ -260,9 +260,7 @@ fun ParentalSection(vm: AppViewModel) {
             hasPin = s.parentalPinHash.isNotBlank(),
             onSave = {
                 if (ParentalPin.isValidPin(pin)) {
-                    val hashed = ParentalPin.hash(pin)
-                    settings.setParentalPin(hashed.hash, hashed.salt)
-                    vm.onPinSet()
+                    vm.setPin(pin)
                     pin = ""
                     feedback = null
                 } else {
