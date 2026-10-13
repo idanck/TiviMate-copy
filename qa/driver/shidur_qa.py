@@ -335,6 +335,7 @@ class Runner:
             started = time.time()
             before = pid()
             try:
+                self.dismiss_anr()
                 fn(sid, title, area)
             except Exception as e:
                 self.record(sid, title, "FAIL", f"driver exception: {e!r}",
@@ -371,6 +372,21 @@ class Runner:
         launch()
         time.sleep(2)
 
+    def dismiss_anr(self, nodes=None):
+        """Answers Wait on an "isn't responding" dialog and records which app it named.
+
+        Run 38434134438 had one over the whole phone run from QA-04 on, and every scenario after
+        it failed to find its first button."""
+        nodes = self.ui.dump() if nodes is None else nodes
+        wait = self.ui.find("Wait", nodes, exact=True)
+        if not (wait and self.ui.find("Close app", nodes, exact=True)):
+            return False
+        print(f"[{self.form}]   ANR dialog: {self.ui.texts(nodes)}", flush=True)
+        self.facts.setdefault("anr_dialogs", []).append(self.ui.texts(nodes))
+        tap(*wait.center)
+        time.sleep(3)
+        return True
+
     def go_settings(self):
         if self.form == "phone":
             # The full-screen player hides the bottom bar; Back folds it into the mini player.
@@ -381,6 +397,8 @@ class Runner:
             for attempt in range(6):
                 close_system_ui()
                 nodes = self.ui.dump()
+                if self.dismiss_anr(nodes):
+                    continue
                 n = self.ui.find("Settings", nodes, exact=True)
                 player = self.ui.find("Minimise the player", nodes, exact=True)
                 front = in_foreground()
