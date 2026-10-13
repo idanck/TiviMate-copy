@@ -768,9 +768,15 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         // On the phone, browsing shows no video, so there is nothing for a PiP window to keep
         // showing — only the open player screen shrinks into one. The TV shell is always video.
-        if (!isTelevision && !playerOpen) return
         val prefs = ServiceLocator.settings.state.value
-        if (prefs.pipEnabled && prefs.pipOnHome) enterPip()
+        val wantsPip = (isTelevision || playerOpen) && prefs.pipEnabled && prefs.pipOnHome
+        if (wantsPip && enterPip()) return
+        // Home with no window to go to: silence it now. [onStop] pauses too, but a television
+        // launcher animating its rows holds that off for seconds, and the channel played on
+        // over the launcher meanwhile (emulator QA, QA-13: still sounding 4 s after Home) —
+        // the same delay [onPause] already works around for Back. A radio station is left to
+        // [onStop], which hands it to its background service instead of pausing it.
+        if (!vm.isRadioPlaying) pauseInBackground()
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -797,10 +803,12 @@ class MainActivity : ComponentActivity() {
         if (resumed) resumeIfFocusTookIt()
     }
 
-    private fun enterPip() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
-        runCatching { enterPictureInPictureMode(pipParams(vm.playbackStatus.value.playWhenReady)) }
+    /** Whether the system took the activity into a window. */
+    private fun enterPip(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return false
+        return runCatching { enterPictureInPictureMode(pipParams(vm.playbackStatus.value.playWhenReady)) }
+            .getOrDefault(false)
     }
 
     /**
