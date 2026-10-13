@@ -51,6 +51,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-14 | resilience | 20 s outage during playback: the mock provider drops every connection (and the phone also turns Wi-Fi/data off; the TV emulator is on Ethernet, which `svc wifi` cannot cut) | picture back within 45 s with no user action |
 | QA-15 | security | 7 malformed/hostile deep links | no crash |
 | QA-21 | sources | Add a playlist, then the provider answers with an HTML "suspended" page; Refresh now | the existing channels survive the bad refresh |
+| QA-22 | parental | Set a PIN, lock a channel, deep-link to it; wrong then right PIN; leave and reopen Settings | prompt and no sound before the PIN; wrong PIN refused; right PIN plays; Settings asks again after the app was away |
 | QA-16 | i18n | Hebrew per-app locale | Hebrew labels, no untranslated English labels |
 | QA-17 | performance | 5,000-channel playlist, fast scroll | loads < 60 s, alive; frame stats recorded, not judged (software GPU) |
 | QA-18 | stability | Monkey, 4,000 events, seed 4242 | no crash, no ANR |

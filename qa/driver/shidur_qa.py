@@ -365,8 +365,12 @@ class Runner:
 
     def go_settings(self):
         if self.form == "phone":
-            n = self.ui.tap_label("Settings", scrolls=0, exact=True)
-            return n is not None
+            # The full-screen player hides the bottom bar; Back folds it into the mini player.
+            for _ in range(3):
+                if self.ui.tap_label("Settings", scrolls=0, exact=True):
+                    return True
+                key("KEYCODE_BACK")
+            return False
         # Television: Settings sits on the home rail; open the rail with Back/Left if needed.
         for attempt in range(4):
             n = self.ui.find("Settings", exact=True)
@@ -380,6 +384,28 @@ class Runner:
 
     def db(self):
         return read_db(self.out)
+
+    def edit_db(self, sql, args=()):
+        """Changes the app's database (debug build): stop the app, edit a copy, put it back."""
+        force_stop()
+        tmp = tempfile.mkdtemp(dir=self.out)
+        path = os.path.join(tmp, "tivicopy.db")
+        for suffix in ("", "-wal", "-shm"):
+            data = adb("exec-out", "run-as", PKG, "cat", f"databases/tivicopy.db{suffix}", binary=True, timeout=60)
+            if data and not data.startswith(b"cat:") and not data.startswith(b"run-as:"):
+                with open(path + suffix, "wb") as f:
+                    f.write(data)
+        db = sqlite3.connect(path)
+        changed = db.execute(sql, args).rowcount
+        db.commit()
+        db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        db.execute("PRAGMA journal_mode=DELETE")
+        db.close()
+        adb("push", path, "/data/local/tmp/qa_edit.db", timeout=60)
+        sh("chmod 644 /data/local/tmp/qa_edit.db")
+        sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/qa_edit.db > databases/tivicopy.db && "
+           f"rm -f databases/tivicopy.db-wal databases/tivicopy.db-shm'")
+        return changed
 
     # ---------------------------------------------------------------- scenarios
 
@@ -404,7 +430,8 @@ class Runner:
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
                    self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s21_suspended_refresh,
-                   self.s16_locale, self.s17_scale, self.s18_monkey, self.s19_resources]:
+                   self.s16_locale, self.s17_scale, self.s18_monkey, self.s19_resources,
+                   self.s22_parental]:
             fn()
         self.s20_audit()
         self.finish()
@@ -1146,6 +1173,81 @@ class Runner:
             self.record(sid, title, status, f"PSS {pss_mb} MB while playing (budget {budget}); java "
                         f"{self.facts['memory']['java_kb']} KB native {self.facts['memory']['native_kb']} KB; "
                         f"storage: {du.strip()}", [], area)
+
+    def s22_parental(self):
+        @self.scenario("QA-22", "Parental PIN: a locked channel and Settings wait for it", "parental")
+        def _(sid, title, area):
+            notes, shots, fail = [], [], False
+            self.home_of_app()
+            if self.form == "tv":
+                key("KEYCODE_BACK")
+            if not (self.go_settings() and self.ui.tap_label("Parental controls", scrolls=4, exact=True)):
+                self.record(sid, title, "FAIL", "could not reach Settings > Parental controls",
+                            [self.ev.shot("parental_unreachable")], area)
+                return
+            self.fill("Set a PIN", "1234", secret=True)
+            self.ui.tap_label("Save", scrolls=2, exact=True)
+            time.sleep(2)
+            switched = self.ui.tap_label("Require the PIN to open Settings", scrolls=3, exact=True)
+            time.sleep(1)
+            shots.append(self.ev.shot("parental_set"))
+            cid = self.channel_id("qa.ch05")
+            locked = self.edit_db("UPDATE channels SET locked=1 WHERE id=?", (cid,)) if cid else 0
+            notes.append(f"PIN set; settings switch tapped={bool(switched)}; qa.ch05 locked rows={locked}")
+
+            def enter(pin):
+                fields = [n for n in self.ui.dump() if "EditText" in n.cls]
+                if fields:
+                    tap(*fields[0].center)
+                type_text(pin)
+                hide_ime()
+                self.ui.tap_label("OK", scrolls=0, exact=True)
+
+            # A locked channel, reached the way the launcher reaches it.
+            launch()
+            time.sleep(4)
+            deep_link(f"shidur://channel/{cid}")
+            time.sleep(6)
+            prompt = self.ui.find("Enter your PIN")
+            audio = audio_playing(self.uid)
+            shots.append(self.ev.shot("pin_prompt"))
+            notes.append(f"deep link to the locked channel: prompt={bool(prompt)} sound={audio}")
+            fail |= not prompt or bool(audio)
+
+            enter("9999")
+            time.sleep(3)
+            wrong = self.ui.find("That PIN is not correct")
+            notes.append(f"wrong PIN refused={bool(wrong)}")
+            fail |= not wrong
+
+            enter("1234")
+            time.sleep(8)
+            plays = audio_playing(self.uid)
+            shots.append(self.ev.shot("pin_accepted"))
+            notes.append(f"right PIN plays={plays}")
+            fail |= not plays
+
+            # Away and back: the next person is asked again, and Settings is behind the PIN.
+            key("KEYCODE_HOME")
+            time.sleep(3)
+            launch()
+            time.sleep(3)
+            if self.form == "tv":
+                key("KEYCODE_BACK")
+            self.go_settings()
+            time.sleep(2)
+            gate = self.ui.find("Enter your PIN")
+            exposed = self.ui.find("Playlists and guide", exact=True)
+            shots.append(self.ev.shot("settings_gate"))
+            notes.append(f"Settings after leaving the app: PIN asked={bool(gate)} settings shown={bool(exposed)}")
+            fail |= not gate or bool(exposed)
+
+            enter("1234")
+            time.sleep(3)
+            opened = self.ui.find("Playlists and guide", exact=True)
+            notes.append(f"Settings after the PIN: open={bool(opened)}")
+            fail |= not opened
+            self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), shots, area)
 
     def s20_audit(self):
         log = adb("logcat", "-d", "-v", "threadtime", timeout=120)

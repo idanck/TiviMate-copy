@@ -2,6 +2,7 @@ package com.tivicopy.player.ui.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -30,10 +31,12 @@ import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.data.prefs.BufferPreset
+import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.findActivity
 import com.tivicopy.player.tv.WatchNext
 import kotlinx.coroutines.launch
@@ -58,6 +61,13 @@ fun SettingsScreen(
     val settings = ServiceLocator.settings
     val s by settings.state.collectAsState()
     val context = LocalContext.current
+
+    // FR-PRF-04: "Require the PIN to open Settings" — until 2026-10-13 a switch nothing read.
+    val unlocked by vm.parentalUnlocked.collectAsState()
+    if (ParentalGate.settingsNeedPin(s.parentalPinHash.isNotBlank(), s.lockSettings, unlocked)) {
+        PinEntry(vm = vm, modifier = modifier.fillMaxWidth().padding(24.dp))
+        return
+    }
 
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
         when (section) {
@@ -400,7 +410,7 @@ fun SettingsScreen(
 
             SettingsSection.RECORDING -> RecordingSection(vm)
 
-            SettingsSection.PARENTAL -> ParentalSection()
+            SettingsSection.PARENTAL -> ParentalSection(vm)
 
             SettingsSection.BACKUP -> BackupSection(vm)
 
