@@ -33,5 +33,4 @@ ffmpeg -f lavfi -i "testsrc2=size=640x360:rate=25:duration=60" \
        -f lavfi -i "sine=frequency=520:sample_rate=48000:duration=60" \
        "${common[@]}" -shortest -movflags +faststart "$out/vod.mp4"
 
-ls -la "$out" "$out/a" | head -20
 echo "segments per channel: $(ls "$out/a"/seg_*.ts | wc -l)"
