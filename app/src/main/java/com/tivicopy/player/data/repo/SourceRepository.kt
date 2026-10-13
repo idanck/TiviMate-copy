@@ -7,6 +7,7 @@ import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.m3u.M3uEntry
 import com.tivicopy.player.data.m3u.M3uParser
+import com.tivicopy.player.data.m3u.M3uPlaylist
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.OutputFormat
 import com.tivicopy.player.data.model.Playlist
@@ -233,7 +234,7 @@ class SourceRepository(
                     }
                     val body = response.body ?: return Outcome.Err(AppError(AppError.Kind.EmptyResponse))
                     val parsed = body.charStream().buffered().use { M3uParser.parse(it) }
-                    Outcome.Ok(Fetched(parsed.entries, parsed.epgUrl))
+                    parsed.toFetched()
                 }
         } catch (t: Throwable) {
             if (t is kotlinx.coroutines.CancellationException) throw t
@@ -244,11 +245,24 @@ class SourceRepository(
     private fun fetchM3uFile(playlist: Playlist, reader: (() -> BufferedReader)?): Outcome<Fetched> = try {
         val stream = reader?.invoke() ?: openLocal(playlist.url)
         val parsed = stream.use { M3uParser.parse(it) }
-        Outcome.Ok(Fetched(parsed.entries, parsed.epgUrl))
+        parsed.toFetched()
     } catch (t: Throwable) {
         if (t is kotlinx.coroutines.CancellationException) throw t
         Outcome.Err(AppError.of(t))
     }
+
+    /**
+     * Nothing usable and something rejected is not an empty playlist but no playlist at all —
+     * typically the HTML page a panel sends with a 200 for a suspended account. Reported as a
+     * parse failure so the user reads "could not be read as a playlist", not "no channels".
+     * Either way the merge is skipped and the channels already stored survive (FR-SRC-12).
+     */
+    private fun M3uPlaylist.toFetched(): Outcome<Fetched> =
+        if (entries.isEmpty() && malformedLines > 0) {
+            Outcome.Err(AppError(AppError.Kind.ParseFailed, "response is not a playlist"))
+        } else {
+            Outcome.Ok(Fetched(entries, epgUrl))
+        }
 
     /**
      * A local playlist is normally a Storage Access Framework document, because that is the

@@ -55,6 +55,8 @@ data class M3uPlaylist(
  */
 object M3uParser {
 
+    private val SCHEME = Regex("^[A-Za-z][A-Za-z0-9+.-]*://")
+
     private val ATTRIBUTES = Regex("([A-Za-z0-9_-]+)\\s*=\\s*(?:\"([^\"]*)\"|'([^']*)'|([^\\s,]+))")
 
     fun parse(reader: BufferedReader): M3uPlaylist {
@@ -99,8 +101,15 @@ object M3uParser {
                 else -> {
                     val p = pending
                     if (p == null) {
-                        // A bare URL with no #EXTINF is still a playable channel.
-                        entries += M3uEntry(name = deriveName(line), url = line)
+                        // A bare URL with no #EXTINF is still a playable channel — but only a URL.
+                        // A suspended account or a captive portal answers 200 with an HTML page,
+                        // and taking its lines as channels made the refresh "succeed" and the
+                        // merge delete every real channel the user had.
+                        if (looksLikeAddress(line)) {
+                            entries += M3uEntry(name = deriveName(line), url = line)
+                        } else {
+                            malformed++
+                        }
                     } else {
                         entries += p.toEntry(line, globalUa)
                         pending = null
@@ -112,6 +121,10 @@ object M3uParser {
 
         return M3uPlaylist(entries, epgUrl?.takeIf { it.isNotBlank() }, globalUa, malformed)
     }
+
+    /** A scheme (`http://`, `rtsp://`, `content://`…) or an absolute path on the device. */
+    private fun looksLikeAddress(line: String): Boolean =
+        SCHEME.containsMatchIn(line) || line.startsWith("/")
 
     private fun deriveName(url: String): String =
         url.substringAfterLast('/').substringBefore('?').ifBlank { url }
