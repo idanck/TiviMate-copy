@@ -24,7 +24,7 @@ feature that was otherwise in scope is simply available.
 | FR-SRC-09 | Done | Settings → Playlists → Refresh now. |
 | FR-SRC-10 | Done | `RefreshWorker` runs hourly and refreshes each playlist when its own interval is due. |
 | FR-SRC-11 | Done | `SourceRepository.merge`; user-owned fields are carried over untouched. |
-| FR-SRC-12 | Done | An error or an empty list aborts the merge and records the failure. |
+| FR-SRC-12 | Done | An error or an empty list aborts the merge and records the failure. So does a response that is not a playlist at all: until 2026-10-13 a bare line was taken as a channel whatever it held, so the HTML page a panel sends with a 200 for a suspended account "refreshed" into one junk channel and the merge deleted every real one, with the user's favourites and edits (found by the emulator QA run, `docs/qa/`). Only a line with a scheme or an absolute path is a bare URL now; a response of nothing but rejected lines is a parse failure. |
 | FR-SRC-13 | Done | `RefreshReport`, shown in Settings. |
 | FR-SRC-14 | Not implemented | Deleting a playlist cascades; no retain-favourites offer. |
 | FR-SRC-15 | Partial | Account status and connection count are read and shown when testing a connection; no scheduled expiry warning. |
@@ -56,7 +56,7 @@ feature that was otherwise in scope is simply available.
 | FR-EPG-02 | Done | Xtream `xmltv.php`. |
 | FR-EPG-03 | Done | `url-tvg` / `x-tvg-url` from the `#EXTM3U` header. |
 | FR-EPG-04 | Not implemented | Multiple prioritised EPG sources. The `source_priority` column exists. |
-| FR-EPG-05 | Done | Scheduled through `RefreshWorker`, plus "Update guide now". |
+| FR-EPG-05 | Done | Scheduled through `RefreshWorker`, plus "Update guide now", and after every playlist refresh started from the app — adding a playlist included. Until 2026-10-13 only the first two existed, and the worker loaded a guide only when the playlist itself was due, so a new playlist showed an empty guide for up to its whole interval and a failed first guide download for the bundled channels waited a day. The worker now also retries while no guide has loaded at all, and no longer counts a playlist with no guide address as a failed run. |
 | FR-EPG-06 | Done | Pull parser, nothing accumulated, progress reported every 2,000 programmes. |
 | FR-EPG-07 | Done | `EpgMatcher`, four stages in strict order. |
 | FR-EPG-08 | Done | `manualEpgId` wins over every other stage and is never recomputed, and is now settable — the channel options offer a searchable list of guide entries. Until this change the binding could only be reached from the database. |
