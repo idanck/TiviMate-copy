@@ -1300,8 +1300,10 @@ class Runner:
                          f"locked stream requests behind it={leaked}")
             fail |= not prompt or leaked > 0
 
+            # 60,000 PBKDF2 rounds: run 38448738662 took over 15 s on both emulators with the
+            # 5,000-channel playlist from QA-17 loaded, so the verdict gets a generous wait.
             how = enter("9999")
-            wrong = self.ui.wait_for("That PIN is not correct", timeout=15)
+            wrong = self.ui.wait_for("That PIN is not correct", timeout=45)
             if not wrong:
                 shots.append(self.ev.shot("pin_wrong_missing"))
                 self.ui.dump("pin_wrong_missing")
@@ -1310,7 +1312,7 @@ class Runner:
 
             how = enter("1234")
             notes.append(f"right PIN typed ({how})")
-            end = time.time() + 20
+            end = time.time() + 45
             while time.time() < end and self.ui.find("Enter your PIN"):
                 time.sleep(1)
             time.sleep(5)
@@ -1321,11 +1323,17 @@ class Runner:
             notes.append(f"right PIN: prompt closed={closed} locked stream requests={started} sound={plays}")
             fail |= not closed or started == 0 or not plays
 
-            # Away and back: the next person is asked again, and Settings is behind the PIN.
+            # Away and back: the next person is asked again, and Settings is behind the PIN. On the
+            # phone the player is folded first: Home from the full-screen player enters PiP, and
+            # reopening the app while that animation was still running left it with no focused
+            # window, an ANR the system pinned on the app (run 38448738662, a platform race).
+            if self.form == "phone" and self.ui.find("Minimise the player", exact=True):
+                key("KEYCODE_BACK")
+                time.sleep(2)
             key("KEYCODE_HOME")
-            time.sleep(3)
+            time.sleep(5)
             launch()
-            time.sleep(3)
+            time.sleep(5)
             if self.form == "tv":
                 key("KEYCODE_BACK")
             self.go_settings()
@@ -1337,7 +1345,7 @@ class Runner:
             fail |= not gate or bool(exposed)
 
             enter("1234")
-            opened = self.ui.wait_for("Playlists and guide", timeout=15, exact=True)
+            opened = self.ui.wait_for("Playlists and guide", timeout=45, exact=True)
             notes.append(f"Settings after the PIN: open={bool(opened)}")
             fail |= not opened
             self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), shots, area)
