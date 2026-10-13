@@ -1091,7 +1091,8 @@ class Runner:
                 if db:
                     r = q(db, "SELECT (SELECT COUNT(*) FROM channels c WHERE c.playlist_id=p.id) FROM playlists p "
                               "WHERE name='QA Big'")
-                    count = r[0][0] if r else 0
+                    # A read that lands mid-write comes back as ("ERR", ...); count it as not yet.
+                    count = r[0][0] if r and isinstance(r[0][0], int) else 0
                     if count >= 5000:
                         break
                 time.sleep(4)
