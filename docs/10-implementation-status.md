@@ -88,7 +88,7 @@ feature that was otherwise in scope is simply available.
 | FR-PLB-14 | Partial | `videoTracks()` enumerates renditions; no picker UI. |
 | FR-PLB-15 | Not implemented | Auto frame rate. |
 | FR-PLB-16 | Done | Five presets plus explicit millisecond values. |
-| FR-PLB-17 | Done | Backoff, then failover down the URL list, with a notice. |
+| FR-PLB-17 | Done | Backoff, then failover down the URL list, with a notice. A live channel whose last source failed for want of a connection (no network, a timeout, a 5xx) no longer stops there: it goes round its sources again after 5 s, 10 s, then every 15 s for as long as the viewer stays on it and has not paused (`ReconnectPolicy`). Until 2026-10-13 the round of retries lasted about three seconds and the channel then sat dead with the network back — two minutes without a request after a 20-second outage in the emulator QA run. A stream that failed while the app was in the background is also prepared again when it comes back. |
 | FR-PLB-18 | Done | Auto-dismissing info card with now/next and a progress bar. |
 | FR-PLB-19 | Done | Numeric entry with a configurable confirm timeout. |
 | FR-PLB-20 | Done | `toggleLastChannel`. |

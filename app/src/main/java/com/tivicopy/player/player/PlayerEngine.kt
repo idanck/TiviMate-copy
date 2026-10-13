@@ -137,6 +137,8 @@ class PlayerEngine(
     private var currentUrls: List<String> = emptyList()
     private var currentSourceIndex = 0
     private var retriesUsed = 0
+    /** Rounds of [scheduleReconnect] since the channel last played; reset by READY and by a new source. */
+    private var reconnectAttempts = 0
     private var softwareFallbackApplied = false
     private var builtVideoMode = DecoderMode.AUTO
     private var builtAudioMode = DecoderMode.AUTO
@@ -184,7 +186,11 @@ class PlayerEngine(
      * notification and no way to stop it is a defect, not a feature.
      */
     fun setPlayWhenReady(wanted: Boolean) {
-        player?.playWhenReady = wanted
+        val exo = player ?: return
+        // Back from the background onto a stream that failed meanwhile: the flag alone starts
+        // nothing in IDLE (see [togglePlayPause]), so the viewer came back to a dead channel.
+        if (wanted && exo.playbackState == Player.STATE_IDLE && exo.mediaItemCount > 0) exo.prepare()
+        exo.playWhenReady = wanted
     }
 
     /**
@@ -378,6 +384,7 @@ class PlayerEngine(
         currentUrls = urlOverride?.let(::listOf) ?: channel.urls
         currentSourceIndex = 0
         retriesUsed = 0
+        reconnectAttempts = 0
         softwareFallbackApplied = false
         // The data source factory captures the profile, so a channel with its own headers or
         // user-agent needs the player rebuilt rather than just a new MediaItem.
@@ -394,6 +401,7 @@ class PlayerEngine(
         currentUrls = listOf(url)
         currentSourceIndex = 0
         retriesUsed = 0
+        reconnectAttempts = 0
         softwareFallbackApplied = false
         releasePlayer()
         player = build()
@@ -665,6 +673,7 @@ class PlayerEngine(
             )
             if (state == Player.STATE_READY) {
                 retriesUsed = 0
+                reconnectAttempts = 0
                 refreshDiagnostics()
             }
         }
@@ -753,6 +762,29 @@ class PlayerEngine(
             // otherwise go on naming one over a dead stream.
             streamTitle = null,
         )
+
+        // A live channel that failed for want of a connection is not gone: the Wi-Fi dropped,
+        // the router restarted, the provider blinked. The retries above last about three
+        // seconds, and until now that was it — the channel sat dead with the network long back
+        // (an emulator QA run: no request for two minutes after a 20-second outage) until the
+        // viewer zapped away and back. A 404 or a DRM refusal will not fix itself; these may.
+        if (ReconnectPolicy.applies(mapped.kind, live = currentChannel != null)) scheduleReconnect(title)
+    }
+
+    /**
+     * Another full round over the channel's sources, after [ReconnectPolicy.delayMs], for as long
+     * as the viewer stays on the channel — a zap bumps the generation and drops it.
+     */
+    private fun scheduleReconnect(title: String) {
+        reconnectAttempts++
+        schedule(ReconnectPolicy.delayMs(reconnectAttempts)) {
+            // Paused, by the viewer or by the app leaving the screen: nothing reconnects behind
+            // their back. [setPlayWhenReady] prepares the failed source when playback resumes.
+            if (player?.playWhenReady != true) return@schedule
+            currentSourceIndex = 0
+            retriesUsed = 0
+            startCurrentSource(title)
+        }
     }
 
     /**
@@ -809,4 +841,22 @@ class PlayerEngine(
 
         else -> AppError(AppError.Kind.Unknown, error.errorCodeName, error)
     }
+}
+
+/**
+ * When a live channel that ran out of retries and sources is tried again ([PlayerEngine]).
+ *
+ * Only for a failure that can pass on its own — no connection, a timeout, a 5xx (which
+ * [AppError.fromHttp] files under [AppError.Kind.Network]) — and only for a live channel: an
+ * on-demand title would restart from its beginning on every round.
+ */
+internal object ReconnectPolicy {
+    /** Waits grow by this much per attempt: 5 s, 10 s, then [MAX_MS] for as long as it takes. */
+    const val STEP_MS = 5_000L
+    const val MAX_MS = 15_000L
+
+    fun applies(kind: AppError.Kind, live: Boolean): Boolean =
+        live && (kind == AppError.Kind.Network || kind == AppError.Kind.Timeout)
+
+    fun delayMs(attempt: Int): Long = (STEP_MS * attempt.coerceAtLeast(1)).coerceAtMost(MAX_MS)
 }
