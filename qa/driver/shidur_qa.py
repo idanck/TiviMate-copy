@@ -113,6 +113,12 @@ def clear_field():
     time.sleep(0.3)
 
 
+def in_foreground():
+    """Whether the app holds the resumed activity (API 29+ prints topResumedActivity)."""
+    out = sh("dumpsys activity activities | grep -E 'topResumedActivity|ResumedActivity'", timeout=30)
+    return PKG in out
+
+
 def launch(wait=True):
     out = sh(f"am start {'-W ' if wait else ''}-n {PKG}/{ACTIVITY}", timeout=60)
     m = re.search(r"TotalTime:\s*(\d+)", out) or re.search(r"WaitTime:\s*(\d+)", out)
@@ -509,6 +515,20 @@ class Runner:
             key("KEYCODE_BACK", times=2, pause=0.8)
         return False
 
+    def open_sources(self):
+        """Settings > Playlists and guide, where "Refresh now" and "Update guide now" live."""
+        for attempt in range(3):
+            if self.ui.find("Refresh now", exact=True) or self.ui.find("Update guide now", exact=True):
+                return True
+            self.home_of_app()
+            if self.ui.find("Refresh now", exact=True):
+                return True
+            if (self.ui.find("Playlists and guide", exact=True) or self.go_settings()) and \
+                    self.ui.tap_label("Playlists and guide", scrolls=2, exact=True):
+                return True
+            key("KEYCODE_BACK", times=2, pause=0.8)
+        return False
+
     def fill(self, label, value, secret=False):
         for attempt in range(2):
             n = self.ui.tap_label(label, scrolls=3)
@@ -626,6 +646,7 @@ class Runner:
 
             # QA-06c: the guide pipeline itself, triggered by hand.
             sid_c, title_c = "QA-06c", "Update guide now loads and matches the mock XMLTV"
+            self.open_sources()
             pressed = self.ui.tap_label("Update guide now", scrolls=3, exact=True)
             prog, matched = 0, 0
             t1 = time.time()
@@ -862,13 +883,17 @@ class Runner:
                 frac, audio, s = self.check_playing("resume_after_home", wait=2)
                 shots += s
                 notes.append(f"return: motion={frac if frac is None else round(frac, 3)} audio={audio}")
-                # Back out of the app entirely.
-                for _ in range(4):
-                    key("KEYCODE_BACK", pause=0.8)
+                # Back out of the app entirely: Back climbs the screens, then asks for a second
+                # press to exit, so press until the app has really left the foreground.
+                presses = 0
+                while in_foreground() and presses < 8:
+                    key("KEYCODE_BACK", pause=0.6)
+                    presses += 1
                 time.sleep(2)
+                left = not in_foreground()
                 audio_back = audio_playing(self.uid)
-                notes.append(f"Back x4: audio={audio_back} foreground={PKG in sh('dumpsys activity activities | grep -m1 mResumedActivity')}")
-                if audio_back and not ("pinned" in sh("dumpsys activity activities | grep -i pinned")):
+                notes.append(f"Back x{presses}: left the app={left} audio={audio_back}")
+                if left and audio_back and "pinned" not in sh("dumpsys activity activities | grep -i pinned"):
                     fail = True
                     notes.append("SOUND CONTINUES after backing out")
             # Process death while in the background, then return.
@@ -903,6 +928,10 @@ class Runner:
                 return
             deep_link(f"shidur://channel/{cid}")
             time.sleep(8)
+            # The TV emulator is on Ethernet, which `svc wifi` does not touch (the first runs
+            # "passed" this without ever losing a packet). The mock provider dropping every
+            # connection for the same 20 s reaches both devices the same way.
+            self.mock_admin("outage?secs=20")
             sh("svc wifi disable")
             sh("svc data disable")
             time.sleep(20)
@@ -950,9 +979,7 @@ class Runner:
             # Save returns to Settings > Playlists, where "Refresh now" acts on the active playlist —
             # the one just saved.
             refreshed = self.ui.tap_label("Refresh now", scrolls=2, exact=True)
-            if not refreshed and self.open_add_source():
-                key("KEYCODE_BACK")
-                time.sleep(1)
+            if not refreshed and self.open_sources():
                 refreshed = self.ui.tap_label("Refresh now", scrolls=3, exact=True)
             time.sleep(10)
             db = self.db()
@@ -970,7 +997,8 @@ class Runner:
             if not before or not refreshed or len(served) < 2:
                 self.record(sid, title, "WARN", "could not set up: " + detail, [shot], area)
             else:
-                self.record(sid, title, "PASS" if after == before else "FAIL", detail, [shot], area)
+                kept = after == before and r and r[0][1] == 0
+                self.record(sid, title, "PASS" if kept else "FAIL", detail, [shot], area)
 
     def s15_deep_link_fuzz(self):
         @self.scenario("QA-15", "Malformed and hostile deep links are ignored", "security")

@@ -48,7 +48,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-11 | navigation | 20 D-pad keys around the home screen | a focused node exists after every key |
 | QA-12 | guide | Guide shows mock programmes; search finds "Sport 05" | both found |
 | QA-13 | lifecycle | Home, return, Back ×4, process death, rotation, PiP | no sound behind the launcher without PiP; app survives |
-| QA-14 | resilience | Network off 20 s during playback | picture back within 45 s with no user action |
+| QA-14 | resilience | 20 s outage during playback: the mock provider drops every connection (and the phone also turns Wi-Fi/data off; the TV emulator is on Ethernet, which `svc wifi` cannot cut) | picture back within 45 s with no user action |
 | QA-15 | security | 7 malformed/hostile deep links | no crash |
 | QA-21 | sources | Add a playlist, then the provider answers with an HTML "suspended" page; Refresh now | the existing channels survive the bad refresh |
 | QA-16 | i18n | Hebrew per-app locale | Hebrew labels, no untranslated English labels |
