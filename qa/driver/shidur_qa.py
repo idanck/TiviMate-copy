@@ -95,6 +95,14 @@ def hide_ime():
         time.sleep(0.5)
 
 
+def close_system_ui():
+    """Folds the notification shade and quick settings, which the monkey (QA-18) can leave open
+    over the app: run 38427581969 found QA-22 facing quick settings on the phone. Back does not
+    close them; the status bar service does."""
+    sh("cmd statusbar collapse")
+    time.sleep(0.5)
+
+
 def type_text(text):
     # `input text` takes %s for a space and needs shell metacharacters escaped. Sent in short
     # chunks: one long injection raced the soft keyboard on the phone and arrived truncated
@@ -371,6 +379,7 @@ class Runner:
             # (run 38413573319). Give the start a few looks before pressing Back on anything else.
             hide_ime()
             for attempt in range(6):
+                close_system_ui()
                 nodes = self.ui.dump()
                 n = self.ui.find("Settings", nodes, exact=True)
                 player = self.ui.find("Minimise the player", nodes, exact=True)
@@ -1160,7 +1169,9 @@ class Runner:
             # Monkey may switch network/airplane; restore.
             sh("svc wifi enable")
             sh("svc data enable")
+            sh("cmd connectivity airplane-mode disable")
             shot = self.ev.shot("after_monkey")
+            close_system_ui()
             crash_line = next((l for l in out.splitlines() if "Long Msg" in l or "Short Msg" in l), "")
             aborted = "Monkey aborted" in out
             self.record(sid, title, "FAIL" if crashed or anr else ("PASS" if done else "WARN"),
@@ -1198,7 +1209,10 @@ class Runner:
             # From a clean start: this runs after the monkey, which leaves keyboards open and
             # screens half-entered (run 38407146385: a sticker keyboard swallowed every Back).
             reached, trail = False, []
+            # The monkey can also switch airplane mode on from quick settings.
+            sh("cmd connectivity airplane-mode disable")
             for start in range(2):
+                close_system_ui()
                 force_stop()
                 launch()
                 # The phone's cold start is ~10 s on the emulator and then opens the last channel.
@@ -1234,16 +1248,20 @@ class Runner:
             fail |= not saved or not switched
 
             def enter(pin):
+                """Types [pin] into the prompt and presses OK; answers what it saw on the way."""
                 fields = [n for n in self.ui.dump() if "EditText" in n.cls]
                 if fields:
                     tap(*fields[0].center)
                 clear_field()
                 type_text(pin)
+                typed = [n for n in self.ui.dump() if "EditText" in n.cls]
                 hide_ime()
                 # The prompt re-centres once the keyboard goes; a tap straight after hit where OK
                 # used to be and the PIN was never sent (run 38413573319).
                 time.sleep(1.5)
-                self.ui.tap_label("OK", scrolls=0, exact=True)
+                ok = self.ui.tap_label("OK", scrolls=0, exact=True)
+                return (f"field={'yes' if fields else 'no'} typed={len(typed[0].text) if typed else '-'} "
+                        f"ok={'yes' if ok else 'no'}")
 
             # Something may already be playing behind the prompt (the last channel resumes on
             # start), so what counts is whether the locked channel's own stream was fetched.
@@ -1263,12 +1281,16 @@ class Runner:
                          f"locked stream requests behind it={leaked}")
             fail |= not prompt or leaked > 0
 
-            enter("9999")
+            how = enter("9999")
             wrong = self.ui.wait_for("That PIN is not correct", timeout=15)
-            notes.append(f"wrong PIN refused={bool(wrong)}")
+            if not wrong:
+                shots.append(self.ev.shot("pin_wrong_missing"))
+                self.ui.dump("pin_wrong_missing")
+            notes.append(f"wrong PIN refused={bool(wrong)} ({how}; screen={self.ui.texts()[:8]})")
             fail |= not wrong
 
-            enter("1234")
+            how = enter("1234")
+            notes.append(f"right PIN typed ({how})")
             end = time.time() + 20
             while time.time() < end and self.ui.find("Enter your PIN"):
                 time.sleep(1)
