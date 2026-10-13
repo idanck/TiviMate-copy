@@ -1039,32 +1039,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val id = playlistId ?: _state.value.activePlaylist?.id ?: return
         _state.value = _state.value.copy(refreshing = true)
         viewModelScope.launch {
-            when (val result = sources.refresh(id)) {
+            val refreshed = when (val result = sources.refresh(id)) {
                 is Outcome.Ok -> {
                     _state.value = _state.value.copy(lastRefresh = result.value)
                     post(UiMessage(text = null))
+                    true
                 }
-                is Outcome.Err -> post(UiMessage(error = result.error))
+                is Outcome.Err -> {
+                    post(UiMessage(error = result.error))
+                    false
+                }
             }
             _state.value = _state.value.copy(refreshing = false)
             reload()
+            // The guide comes with the channels, as it already does in the background refresh.
+            // Without this a playlist just added showed an empty guide until someone found
+            // "Update guide now", or for up to its whole refresh interval (12 hours by default).
+            // Read back from the database: the refresh may have filled in the guide address
+            // itself (an Xtream panel's xmltv.php, an M3U header's url-tvg).
+            if (refreshed) {
+                withContext(Dispatchers.IO) { dao.playlist(id) }
+                    ?.takeIf { !it.epgUrl.isNullOrBlank() }
+                    ?.let { loadGuide(it) }
+            }
         }
     }
 
     fun refreshGuide() {
         val playlist = _state.value.activePlaylist ?: return
+        viewModelScope.launch { loadGuide(playlist) }
+    }
+
+    private suspend fun loadGuide(playlist: Playlist) {
         _state.value = _state.value.copy(guideProgress = EpgProgress(0, 0))
-        viewModelScope.launch {
-            val result = epg.refreshGuide(playlist) { progress ->
-                _state.value = _state.value.copy(guideProgress = progress)
-            }
-            when (result) {
-                is Outcome.Ok -> _state.value = _state.value.copy(guideStats = result.value)
-                is Outcome.Err -> post(UiMessage(error = result.error))
-            }
-            _state.value = _state.value.copy(guideProgress = null)
-            refreshNowNext()
+        val result = epg.refreshGuide(playlist) { progress ->
+            _state.value = _state.value.copy(guideProgress = progress)
         }
+        when (result) {
+            is Outcome.Ok -> if (_state.value.activePlaylist?.id == playlist.id) {
+                _state.value = _state.value.copy(guideStats = result.value)
+            }
+            is Outcome.Err -> post(UiMessage(error = result.error))
+        }
+        _state.value = _state.value.copy(guideProgress = null)
+        refreshNowNext()
     }
 
     // ---------------------------------------------------------------- home screen

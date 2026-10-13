@@ -103,6 +103,28 @@ class M3uParserTest {
     }
 
     @Test
+    fun `an HTML error page is not a playlist`() {
+        // What a panel sends, with a 200, for a suspended account. Each line used to become a
+        // "bare URL" channel, so the refresh succeeded and the merge deleted every real channel.
+        val result = parse(
+            """
+            <html>
+            <body><h1>Account suspended</h1></body>
+            </html>
+            """.trimIndent(),
+        )
+        assertTrue(result.entries.isEmpty())
+        assertEquals(3, result.malformedLines)
+    }
+
+    @Test
+    fun `accepts a bare absolute path`() {
+        val result = parse("/storage/emulated/0/Movies/local.ts")
+        assertEquals(1, result.entries.size)
+        assertEquals("local.ts", result.entries[0].name)
+    }
+
+    @Test
     fun `handles a byte order mark and CRLF endings`() {
         val result = parse("﻿#EXTM3U\r\n#EXTINF:-1,A\r\nhttp://stream.example/a.ts\r\n")
         assertEquals(1, result.entries.size)
