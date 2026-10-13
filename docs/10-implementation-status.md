@@ -149,7 +149,7 @@ feature that was otherwise in scope is simply available.
 | FR-REC-11 | Partial | Fixed template, documented. |
 | FR-REC-12 | Done | Refused below the estimate, warned below the threshold. |
 | FR-REC-13 | Not implemented | Retention rules. |
-| FR-REC-14..17 | Done | Foreground service, exact alarms, boot re-arm, locks, honest wake warning. |
+| FR-REC-14..17 | Done | Foreground service, exact alarms, boot re-arm, locks, honest wake warning. Since 2026-10-13 (QA report): exact alarms via USE_EXACT_ALARM on 13+; a start Android refuses (inexact alarm, boot on 15) marks the recording failed with the reason instead of crashing the app; the Android 15 six-hour dataSync limit ends a recording as partial (`RecordingStartTest`). |
 | FR-REC-18 | Done | Reconnect and continue, gaps counted and reported. |
 | FR-REC-19 | Done | Every recording ends in a visible result record. |
 | FR-REC-20 | Partial | Play, delete and browse; no rename, mark-watched, share, filter or sort. |

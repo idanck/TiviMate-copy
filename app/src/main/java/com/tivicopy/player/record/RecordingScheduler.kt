@@ -6,12 +6,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.StatFs
+import com.tivicopy.player.R
 import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
+import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
 import java.io.File
 
@@ -274,15 +276,40 @@ class RecordingScheduler(
         }
     }
 
-    private fun startNow(recordingId: Long) {
+    /**
+     * Starts the recorder for [recordingId] now: from its alarm, or for one the device was off
+     * through (FR-REC-15).
+     *
+     * Android 12+ refuses a foreground service started from the background unless something
+     * exempts it. An exact alarm firing does; an inexact one does not, and on Android 15 neither
+     * does a boot broadcast for this service's type. The refusal is an exception, and uncaught —
+     * in the alarm receiver, or in `Application.onCreate` through [rearmAll] — it took the whole
+     * app down. The recording is marked failed with the reason instead, so the library says what
+     * happened rather than the recording silently never existing.
+     */
+    fun startNow(recordingId: Long) {
+        val recording = dao.recording(recordingId) ?: return
+        // Cancelled, or already started by another path: a service started for it would owe the
+        // platform a foreground notification it has nothing to show for.
+        if (recording.state != RecordingState.SCHEDULED) return
         val intent = Intent(context, RecordingService::class.java).apply {
             action = RecordingService.ACTION_START
             putExtra(RecordingService.EXTRA_RECORDING_ID, recordingId)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } catch (_: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException (Android 12+) is an IllegalStateException.
+            dao.upsertRecording(
+                recording.copy(
+                    state = RecordingState.FAILED,
+                    message = AppLocale.wrap(context).getString(R.string.rec_error_not_started),
+                ),
+            )
         }
     }
 

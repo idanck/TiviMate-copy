@@ -54,6 +54,10 @@ class RecordingService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var wifiLock: WifiManager.WifiLock? = null
 
+    /** Set by [onTimeout], so a recording it stopped says why instead of "Stopped". */
+    @Volatile
+    private var timedOut = false
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     /**
@@ -83,9 +87,20 @@ class RecordingService : Service() {
             if (jobs.isEmpty()) stopSelf()
             return
         }
-        if (recording.state == RecordingState.CANCELLED) return
-
-        promoteToForeground(recording)
+        // Started with startForegroundService, so the platform is owed a startForeground call
+        // before anything else — even for a recording cancelled since its alarm fired. Returning
+        // without one was a crash ("did not then call Service.startForeground").
+        val promoted = promoteToForeground(recording)
+        if (!promoted || recording.state == RecordingState.CANCELLED) {
+            if (!promoted && recording.state == RecordingState.SCHEDULED) {
+                finish(recording, RecordingState.FAILED, getString(R.string.rec_error_not_started), 0, 0)
+            }
+            if (jobs.isEmpty()) {
+                if (promoted) stopForegroundCompat()
+                stopSelf()
+            }
+            return
+        }
         acquireLocks()
 
         val job = scope.launch { runRecording(recording) }
@@ -165,7 +180,8 @@ class RecordingService : Service() {
                 return
             }
         } catch (_: kotlinx.coroutines.CancellationException) {
-            finish(recording, RecordingState.PARTIAL, getString(R.string.rec_stopped_by_user), written, gaps)
+            val reason = if (timedOut) R.string.rec_error_time_limit else R.string.rec_stopped_by_user
+            finish(recording, RecordingState.PARTIAL, getString(reason), written, gaps)
             return
         } catch (t: Throwable) {
             finish(recording, RecordingState.PARTIAL, t.message ?: "io error", written, gaps)
@@ -235,17 +251,41 @@ class RecordingService : Service() {
 
     // ------------------------------------------------------------ foreground
 
-    private fun promoteToForeground(recording: Recording) {
+    /**
+     * Answers whether the platform let the service into the foreground. Android 15 gives a
+     * dataSync service six hours in every 24, and past that refuses with
+     * ForegroundServiceStartNotAllowedException — an IllegalStateException — rather than
+     * letting the recording run.
+     */
+    private fun promoteToForeground(recording: Recording): Boolean {
         val notification = buildNotification(recording, ongoing = true)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                FOREGROUND_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
-            )
-        } else {
-            startForeground(FOREGROUND_ID, notification)
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    FOREGROUND_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                )
+            } else {
+                startForeground(FOREGROUND_ID, notification)
+            }
+            true
+        } catch (_: IllegalStateException) {
+            false
         }
+    }
+
+    /**
+     * Android 15: the dataSync allowance has run out. A service still running a few seconds after
+     * this is crashed, so every recording stops now and keeps what it has written, ending as
+     * partial with the reason.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        timedOut = true
+        jobs.values.forEach { it.cancel() }
+        releaseLocks()
+        stopForegroundCompat()
+        stopSelf()
     }
 
     private fun buildNotification(recording: Recording, ongoing: Boolean): Notification {

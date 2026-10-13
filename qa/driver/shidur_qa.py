@@ -450,6 +450,30 @@ class Runner:
            f"rm -f databases/tivicopy.db-wal databases/tivicopy.db-shm'")
         return changed
 
+    def edit_prefs(self, values):
+        """Changes the app's settings file (debug build): stop the app, edit it, put it back."""
+        force_stop()
+        xml = adb("exec-out", "run-as", PKG, "cat", "shared_prefs/settings.xml", timeout=30)
+        if not xml.strip().startswith("<?xml"):
+            xml = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map />"
+        root = ET.fromstring(xml.encode("utf-8"))
+        for name, value in values.items():
+            for el in [e for e in root if e.get("name") == name]:
+                root.remove(el)
+            if isinstance(value, bool):
+                ET.SubElement(root, "boolean", name=name, value="true" if value else "false")
+            elif isinstance(value, int):
+                ET.SubElement(root, "int", name=name, value=str(value))
+            else:
+                ET.SubElement(root, "string", name=name).text = value
+        path = os.path.join(tempfile.mkdtemp(dir=self.out), "settings.xml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n")
+            f.write(ET.tostring(root, encoding="unicode"))
+        adb("push", path, "/data/local/tmp/qa_prefs.xml", timeout=60)
+        sh("chmod 644 /data/local/tmp/qa_prefs.xml")
+        sh(f"run-as {PKG} sh -c 'cat /data/local/tmp/qa_prefs.xml > shared_prefs/settings.xml'")
+
     # ---------------------------------------------------------------- scenarios
 
     def run_all(self):
@@ -474,7 +498,8 @@ class Runner:
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s21_suspended_refresh,
+                   self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
+                   self.s23_scheduled_recording, self.s21_suspended_refresh,
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
         self.s20_audit()
@@ -1349,6 +1374,58 @@ class Runner:
             notes.append(f"Settings after the PIN: open={bool(opened)}")
             fail |= not opened
             self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), shots, area)
+
+    def s23_scheduled_recording(self):
+        @self.scenario("QA-23", "A scheduled recording starts from its alarm with the app closed", "recording")
+        def _(sid, title, area):
+            # Finding 8 of the QA report: on Android 12+ a recording's foreground service may only
+            # be started from the background by an exact alarm. Android 14 no longer grants
+            # SCHEDULE_EXACT_ALARM to new installs, so before USE_EXACT_ALARM the alarm was inexact
+            # and the start was refused with an exception that crashed the app.
+            cid = self.channel_id("qa.ts")
+            if not cid:
+                self.record(sid, title, "SKIP", "mock playlist missing", [], area)
+                return
+            notes, fail = [], False
+            # The app's own files directory needs no storage permission; PiP off so Home lets
+            # the process go to the background where it can be killed.
+            self.edit_prefs({"rec_folder": f"/data/user/0/{PKG}/files/qa-rec", "pip_on_home": False})
+            now = int(sh("date +%s").strip() or time.time()) * 1000
+            start, end = now + 100_000, now + 160_000
+            self.edit_db("INSERT INTO recordings(channel_id, channel_name, title, start_utc, end_utc, state) "
+                         "VALUES (?, ?, ?, ?, ?, 'SCHEDULED')", (cid, "QA Direct TS", "QA alarm", start, end))
+            launch()  # a cold start re-arms pending recordings
+            time.sleep(10)
+            key("KEYCODE_HOME")
+            time.sleep(4)
+            sh(f"am kill {PKG}")
+            time.sleep(3)
+            killed = not pid()
+            armed = sh("dumpsys alarm | grep -c com.tivicopy.player.record.ALARM").strip()
+            notes.append(f"process killed={killed}; alarm entries={armed}")
+            before = len(self.mock_requests("/ts/b.ts"))
+
+            def row():
+                db = self.db()
+                r = q(db, "SELECT state, file_size_bytes, message FROM recordings WHERE title='QA alarm'") if db else []
+                return r[0] if r else None
+
+            wait_mid = (start - int(sh("date +%s").strip() or time.time()) * 1000) / 1000 + 35
+            time.sleep(max(5, wait_mid))
+            mid = row()
+            started_by_alarm = bool(pid())
+            fetched = len(self.mock_requests("/ts/b.ts")) - before
+            notes.append(f"35 s after the start: process={started_by_alarm} row={mid} stream requests={fetched}")
+            wait_end = (end - int(sh("date +%s").strip() or time.time()) * 1000) / 1000 + 20
+            time.sleep(max(5, wait_end))
+            final = row()
+            notes.append(f"after the end: row={final}")
+            ok = bool(final) and final[0] in ("COMPLETED", "PARTIAL") and (final[1] or 0) > 0
+            fail = not ok or not started_by_alarm
+            self.edit_prefs({"pip_on_home": True})
+            launch()
+            time.sleep(3)
+            self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), [], area)
 
     def s20_audit(self):
         log = adb("logcat", "-d", "-v", "threadtime", timeout=120)

@@ -50,6 +50,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-13 | lifecycle | Home, return, Back ×4, process death, rotation, PiP | no sound behind the launcher without PiP; app survives |
 | QA-14 | resilience | 20 s outage during playback: the mock provider drops every connection (and the phone also turns Wi-Fi/data off; the TV emulator is on Ethernet, which `svc wifi` cannot cut) | picture back within 45 s with no user action |
 | QA-15 | security | 7 malformed/hostile deep links | no crash |
+| QA-23 | recording | Schedule a recording 100 s out on the TS channel, cold start once to arm it, Home and kill the process | the alarm starts the recorder with the app closed; the recording ends COMPLETED or PARTIAL with bytes written; no crash |
 | QA-21 | sources | Add a playlist, then the provider answers with an HTML "suspended" page; Refresh now | the existing channels survive the bad refresh |
 | QA-22 | parental | Set a PIN, lock a channel, deep-link to it; wrong then right PIN; leave and reopen Settings | prompt, and the locked channel's stream is not requested, before the PIN; wrong PIN refused; right PIN closes the prompt and starts that stream; Settings asks again after the app was away |
 | QA-16 | i18n | Hebrew per-app locale | Hebrew labels, no untranslated English labels |

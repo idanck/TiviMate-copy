@@ -192,7 +192,7 @@
     <string name="rec_concurrency">That would exceed your limit of simultaneous recordings.</string>
     <string name="rec_no_series_metadata">The guide has no series information for this programme, so a series recording would record nothing. Use a repeat rule instead.</string>
     <string name="rec_device_must_stay_on">Android cannot switch this device on by itself. Leave it on (standby is fine) or the recording will be missed.</string>
-    <string name="rec_exact_alarms_unavailable">Exact alarms are not permitted, so the start time may drift by a few minutes. Grant \"Alarms &amp; reminders\" in system settings to fix this.</string>
+    <string name="rec_exact_alarms_unavailable">Exact alarms are not permitted, so Android may stop the recording from starting while the app is closed. Grant \"Alarms &amp; reminders\" in system settings to fix this.</string>
     <string name="rec_notif_recording">Recording %1$s</string>
     <string name="rec_notif_done">Recording finished</string>
     <string name="rec_notif_partial">Recording incomplete: %1$s</string>
@@ -200,6 +200,8 @@
     <string name="rec_error_channel_missing">The channel no longer exists</string>
     <string name="rec_error_no_url">The channel has no stream URL</string>
     <string name="rec_error_destination">The recording folder could not be written to</string>
+    <string name="rec_error_not_started">Android did not let the recording start in the background. Grant \"Alarms &amp; reminders\" in system settings, or leave the app open.</string>
+    <string name="rec_error_time_limit">Android stopped the recording: recording in the background is limited to six hours a day</string>
     <string name="rec_stopped_by_user">Stopped</string>
     <string name="rec_gaps">Reconnected %1$d time(s); the recording has gaps</string>
     <string name="rec_uses_connection">A recording uses one of your provider connections for its whole duration.</string>

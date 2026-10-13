@@ -174,7 +174,7 @@
     <string name="rec_concurrency">זה יחרוג ממגבלת ההקלטות המקבילות שהגדרת.</string>
     <string name="rec_no_series_metadata">בלוח השידורים אין מידע על הסדרה, ולכן הקלטת סדרה לא תקליט דבר. השתמש בכלל חוזר במקום.</string>
     <string name="rec_device_must_stay_on">אנדרואיד אינו יכול להדליק את המכשיר בעצמו. השאר אותו דלוק (מצב המתנה בסדר) אחרת ההקלטה תוחמץ.</string>
-    <string name="rec_exact_alarms_unavailable">התראות מדויקות אינן מורשות, ולכן זמן ההתחלה עלול לסטות בכמה דקות. אשר \"התראות ותזכורות\" בהגדרות המערכת כדי לתקן.</string>
+    <string name="rec_exact_alarms_unavailable">התראות מדויקות אינן מורשות, ולכן אנדרואיד עלול למנוע את תחילת ההקלטה כשהאפליקציה סגורה. אשר \"התראות ותזכורות\" בהגדרות המערכת כדי לתקן.</string>
     <string name="rec_notif_recording">מקליט את %1$s</string>
     <string name="rec_notif_done">ההקלטה הסתיימה</string>
     <string name="rec_notif_partial">ההקלטה חלקית: %1$s</string>
@@ -182,6 +182,8 @@
     <string name="rec_error_channel_missing">הערוץ כבר לא קיים</string>
     <string name="rec_error_no_url">לערוץ אין כתובת שידור</string>
     <string name="rec_error_destination">לא ניתן לכתוב לתיקיית ההקלטות</string>
+    <string name="rec_error_not_started">אנדרואיד לא איפשר להתחיל את ההקלטה ברקע. אשר \"התראות ותזכורות\" בהגדרות המערכת, או השאר את האפליקציה פתוחה.</string>
+    <string name="rec_error_time_limit">אנדרואיד עצר את ההקלטה: הקלטה ברקע מוגבלת לשש שעות ביממה</string>
     <string name="rec_stopped_by_user">נעצר</string>
     <string name="rec_gaps">התחבר מחדש %1$d פעמים; בהקלטה יש קטעים חסרים</string>
     <string name="rec_uses_connection">הקלטה תופסת אחד מחיבורי הספק שלך לכל משך ההקלטה.</string>
