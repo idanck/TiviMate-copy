@@ -153,10 +153,16 @@ class App : Application(), ImageLoaderFactory {
         // idempotent, so these are no-ops after the first cold start.
         ServiceLocator.appScope.launch { ServiceLocator.sources.ensureBuiltInPlaylist() }
         ServiceLocator.appScope.launch { ServiceLocator.sources.ensureRadioPlaylist() }
-        // Re-arm anything that survived a process death but not a reboot.
+        // Re-arm anything that survived a process death but not a reboot. Kept on this thread:
+        // it also marks recordings a dead process left running as interrupted, and run alongside
+        // an alarm that has just fired, that sweep could catch the recording it started.
         ServiceLocator.recordings.rearmAll()
-        // Keep the on-disk cache inside its budget on every cold start (FR-SET-15).
-        ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+        // Keep the on-disk cache inside its budget on every cold start (FR-SET-15). That is a
+        // walk over every file in the cache, thousands of logos, so it runs off the main thread,
+        // where it held up every launch (docs/qa, finding 7).
+        ServiceLocator.appScope.launch {
+            ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+        }
         // The home screen's featured rail (FR-UI-26) and the launcher's continue-watching row
         // (FR-TVI-02). Both are rate-limited internally, both are no-ops when unconfigured or
         // off a television, and neither is allowed to matter: a promotional rail and a shelf
