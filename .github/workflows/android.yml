@@ -158,12 +158,13 @@ jobs:
 
           # Only a 404 means nothing is published yet. Any other failure used to read as "{}",
           # i.e. versionCode 0, and the version check below passed without having seen anything.
+          # Any 2xx is a manifest: the update Worker answers 206 with the whole file.
           status=$(curl -sS -o "$RUNNER_TEMP/published.json" -w '%{http_code}' "$HOST/latest.json") || {
             echo "::error::Could not reach $HOST to read the published version; nothing published."
             exit 1
           }
           case "$status" in
-            200) published=$(cat "$RUNNER_TEMP/published.json") ;;
+            2??) published=$(cat "$RUNNER_TEMP/published.json") ;;
             404) published='{}' ;;
             *)
               echo "::error::$HOST/latest.json answered HTTP $status; nothing published."
