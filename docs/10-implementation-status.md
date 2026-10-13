@@ -163,7 +163,7 @@ feature that was otherwise in scope is simply available.
 | FR-SET-01 | Not implemented | External-player handoff; the setting exists. |
 | FR-SET-02 | Done | Boot receiver, behind a setting. |
 | FR-SET-03..07 | Not implemented | Wake-from-standby, start behaviour beyond the three implemented, sleep timer, burn-in dimming. Exit confirmation (FR-SET-06) is done. Start behaviour (FR-SET-04) is now once per process and, on the phone, a resumed channel opens the Now Playing screen — previously it played invisibly behind the list, and a recreate (language change) restarted it over whatever was playing. |
-| FR-SET-08 | Done | JSON export/import, credentials excluded by default. |
+| FR-SET-08 | Done | JSON export/import, credentials excluded by default — and since 2026-10-13 excluded everywhere: without them, a playlist address loses its `username`/`password` parameters and any `user:password@`, and a guide address carrying them is left out (an Xtream playlist's is `xmltv.php?username=…&password=…`, and went out in clear text whatever the switch said). A restore matches a playlist on its stripped address too, so it updates the one it came from and keeps its working addresses. |
 | FR-SET-09 | Partial | Any SAF location, which covers Drive; no SMB. |
 | FR-SET-10 | Not implemented | Cloud sync. |
 | FR-SET-11 | Not implemented | Reminders. |
