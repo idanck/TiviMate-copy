@@ -366,6 +366,7 @@ class Runner:
     def go_settings(self):
         if self.form == "phone":
             # The full-screen player hides the bottom bar; Back folds it into the mini player.
+            hide_ime()
             for _ in range(3):
                 if self.ui.tap_label("Settings", scrolls=0, exact=True):
                     return True
@@ -1179,10 +1180,16 @@ class Runner:
         @self.scenario("QA-22", "Parental PIN: a locked channel and Settings wait for it", "parental")
         def _(sid, title, area):
             notes, shots, fail = [], [], False
-            self.home_of_app()
+            # From a clean start: this runs after the monkey, which leaves keyboards open and
+            # screens half-entered (run 38407146385: a sticker keyboard swallowed every Back).
+            force_stop()
+            launch()
+            time.sleep(4)
+            hide_ime()
             if self.form == "tv":
                 key("KEYCODE_BACK")
             if not (self.go_settings() and self.ui.tap_label("Parental controls", scrolls=4, exact=True)):
+                self.ui.dump("parental_unreachable")
                 self.record(sid, title, "FAIL", "could not reach Settings > Parental controls",
                             [self.ev.shot("parental_unreachable")], area)
                 return
