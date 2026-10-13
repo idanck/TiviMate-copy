@@ -39,11 +39,21 @@ class BackupManager(
                     put("id", p.id)
                     put("name", p.name)
                     put("type", p.type.name)
-                    put("url", p.url)
+                    // Without credentials means without them anywhere: an Xtream guide address is
+                    // xmltv.php?username=…&password=…, and an M3U panel address is get.php with
+                    // the same two parameters. Until this the switch only left out the two
+                    // columns while the same values went out inside the addresses.
+                    put("url", if (includeCredentials) p.url else BackupCredentials.strip(p.url))
                     put("outputFormat", p.outputFormat.name)
                     put("userAgent", p.userAgent)
                     put("headers", JSONObject(p.headers as Map<*, *>))
-                    put("epgUrl", p.epgUrl)
+                    // A guide address that carries credentials is left out rather than stripped:
+                    // a refresh only fills in a guide address the playlist does not have, so a
+                    // stripped one would stand in for the working one for good.
+                    put(
+                        "epgUrl",
+                        p.epgUrl?.takeIf { includeCredentials || BackupCredentials.strip(it) == it },
+                    )
                     put("refreshIntervalMinutes", p.refreshIntervalMinutes)
                     put("enabled", p.enabled)
                     put("colour", p.colour)
@@ -123,8 +133,12 @@ class BackupManager(
             var groups = 0
             var channels = 0
 
-            // Playlists are keyed on URL so restoring twice updates rather than duplicates.
-            val existingByUrl = dao.playlists().associateBy { it.url }
+            // Playlists are keyed on URL so restoring twice updates rather than duplicates — on
+            // the stripped form as well, so a backup without credentials still finds the
+            // playlist it came from, and leaves its working address alone.
+            val existing = dao.playlists()
+            val existingByUrl = existing.associateBy { BackupCredentials.strip(it.url) } +
+                existing.associateBy { it.url }
             val idMap = HashMap<Long, Long>()
 
             root.optJSONArray("playlists")?.let { arr ->
@@ -138,13 +152,13 @@ class BackupManager(
                         name = o.optString("name", "Restored"),
                         type = runCatching { SourceType.valueOf(o.optString("type")) }
                             .getOrDefault(SourceType.M3U_URL),
-                        url = url,
+                        url = previous?.url?.takeIf { BackupCredentials.strip(it) == url } ?: url,
                         username = o.optStringOrNull("username")?.let(SecureStore::encrypt) ?: previous?.username,
                         password = o.optStringOrNull("password")?.let(SecureStore::encrypt) ?: previous?.password,
                         outputFormat = OutputFormat.from(o.optString("outputFormat")),
                         userAgent = o.optStringOrNull("userAgent"),
                         headers = o.optJSONObject("headers")?.toStringMap().orEmpty(),
-                        epgUrl = o.optStringOrNull("epgUrl"),
+                        epgUrl = o.optStringOrNull("epgUrl") ?: previous?.epgUrl,
                         refreshIntervalMinutes = o.optInt("refreshIntervalMinutes", 720),
                         enabled = o.optBoolean("enabled", true),
                         colour = o.optInt("colour", 0),
@@ -262,4 +276,27 @@ private fun JSONObject.optStringOrNull(key: String): String? {
 
 private fun JSONObject.toStringMap(): Map<String, String> = buildMap {
     keys().forEach { k -> put(k, optString(k, "")) }
+}
+
+/**
+ * Takes the credentials out of an address for a backup written without them (NFR-SEC-07): the
+ * `username` and `password` query parameters an Xtream panel puts in `get.php` and `xmltv.php`,
+ * and any `user:password@` in front of the host. Everything else, order included, is kept.
+ */
+internal object BackupCredentials {
+    private val USER_INFO = Regex("^([A-Za-z][A-Za-z0-9+.-]*://)[^/?#@]*@")
+    private val SECRET_KEYS = setOf("username", "password")
+
+    fun strip(url: String): String {
+        val noUserInfo = USER_INFO.replace(url, "$1")
+        val queryStart = noUserInfo.indexOf('?')
+        if (queryStart < 0) return noUserInfo
+        val fragmentStart = noUserInfo.indexOf('#', queryStart).takeIf { it >= 0 } ?: noUserInfo.length
+        val kept = noUserInfo.substring(queryStart + 1, fragmentStart)
+            .split('&')
+            .filter { it.isNotEmpty() && it.substringBefore('=').lowercase() !in SECRET_KEYS }
+        val base = noUserInfo.substring(0, queryStart)
+        val query = if (kept.isEmpty()) "" else "?" + kept.joinToString("&")
+        return base + query + noUserInfo.substring(fragmentStart)
+    }
 }
