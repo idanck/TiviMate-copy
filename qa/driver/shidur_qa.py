@@ -468,13 +468,14 @@ class Runner:
         }
 
         # Xtream before M3U, so the M3U playlist (with its guide loaded) is the active one for the
-        # guide, zapping and search checks that follow.
+        # guide, zapping and search checks that follow. The parental check runs before the monkey:
+        # on the phone the monkey leaves the notification shade open over the app, and three runs
+        # of QA-22 after it never got past that (38427581969, 38434134438, 38442977872).
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
                    self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s21_suspended_refresh,
-                   self.s16_locale, self.s17_scale, self.s18_monkey, self.s19_resources,
-                   self.s22_parental]:
+                   self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
         self.s20_audit()
         self.finish()
