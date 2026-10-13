@@ -39,6 +39,8 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-04 | navigation | Every top-level destination opens | all open, no crash |
 | QA-05 | sources | Malformed, 404 and empty playlist URLs | no crash; failure is recorded, not reported as OK |
 | QA-06 | sources | Add the mock M3U + XMLTV through the UI | 30 channels, ≥3 groups, ≥28 matched to the guide |
+| QA-06b | guide | Wait 60 s after QA-06's Save, no user action | the XMLTV was requested and programmes exist |
+| QA-06c | guide | Press "Update guide now" | programmes loaded, ≥28 of 30 channels matched |
 | QA-07 | sources | Add the mock Xtream account, test connection | "Connection succeeded", 12 live, 6 films + 2 series |
 | QA-08 | playback | Deep link plays HLS and MPEG-TS | picture moves or audio is playing |
 | QA-09 | playback | Channel up/down, digits, last channel, D-pad up | ≥3 distinct channels reached |
@@ -48,8 +50,9 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-13 | lifecycle | Home, return, Back ×4, process death, rotation, PiP | no sound behind the launcher without PiP; app survives |
 | QA-14 | resilience | Network off 20 s during playback | picture back within 45 s with no user action |
 | QA-15 | security | 7 malformed/hostile deep links | no crash |
+| QA-21 | sources | Add a playlist, then the provider answers with an HTML "suspended" page; Refresh now | the existing channels survive the bad refresh |
 | QA-16 | i18n | Hebrew per-app locale | Hebrew labels, no untranslated English labels |
-| QA-17 | performance | 5,000-channel playlist, fast scroll | loads < 60 s, alive; jank recorded |
+| QA-17 | performance | 5,000-channel playlist, fast scroll | loads < 60 s, alive; frame stats recorded, not judged (software GPU) |
 | QA-18 | stability | Monkey, 4,000 events, seed 4242 | no crash, no ANR |
 | QA-19 | performance | Memory while playing | PSS < 350 MB (TV) / 450 MB (phone) |
 | QA-20 | stability | Log audit over the whole run | no FATAL, no ANR; top error tags listed |
@@ -71,7 +74,7 @@ Not provable on an emulator, checked by hand on the TVs before a release reaches
 ## 5. Running it
 
 * Push a change under `qa/` or run **QA (emulators)** from the Actions tab.
-* Evidence: the run's artefacts, and the `qa-results` branch (`tv/`, `phone/`, `build/`), each with
+* Evidence: the run's artefacts, and the `qa-results` branch (`qa-tv/`, `qa-phone/`, `build/`), each with
   `report.md`, `report.json`, `screenshots/`, `ui/`, `logcat.txt`, `mock/requests.jsonl`.
 * The mock provider runs anywhere: `python3 qa/mock_provider/server.py <media> <logs> 8080` after
   `qa/mock_provider/make_media.sh <media>` — useful for pointing a real TV at it on the home network.

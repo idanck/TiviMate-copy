@@ -79,7 +79,9 @@ def pid():
 
 
 def uid():
-    m = re.search(r"userId=(\d+)", sh(f"dumpsys package {PKG}"))
+    m = re.search(r"uid:(\d+)", sh(f"cmd package list packages -U {PKG}"))
+    if not m:
+        m = re.search(r"(?:userId|appId)=(\d+)", sh(f"dumpsys package {PKG}"))
     return m.group(1) if m else None
 
 
@@ -94,15 +96,26 @@ def hide_ime():
 
 
 def type_text(text):
-    # `input text` takes %s for a space and needs shell metacharacters escaped.
-    esc = re.sub(r"([\\&|;<>()$`'\"?*~#!\[\]{}])", r"\\\1", text).replace(" ", "%s")
-    sh(f"input text {esc}")
+    # `input text` takes %s for a space and needs shell metacharacters escaped. Sent in short
+    # chunks: one long injection raced the soft keyboard on the phone and arrived truncated
+    # ("/malformed.m3u" reached the server as "/malforme").
+    for i in range(0, len(text), 8):
+        chunk = text[i:i + 8]
+        esc = re.sub(r"([\\&|;<>()$`'\"?*~#!\[\]{}])", r"\\\1", chunk).replace(" ", "%s")
+        sh(f"input text {esc}")
+        time.sleep(0.3)
     time.sleep(0.6)
+
+
+def clear_field():
+    sh("input keyevent KEYCODE_MOVE_END")
+    sh("input keyevent " + " ".join(["KEYCODE_DEL"] * 80))
+    time.sleep(0.3)
 
 
 def launch(wait=True):
     out = sh(f"am start {'-W ' if wait else ''}-n {PKG}/{ACTIVITY}", timeout=60)
-    m = re.search(r"TotalTime:\s*(\d+)", out)
+    m = re.search(r"TotalTime:\s*(\d+)", out) or re.search(r"WaitTime:\s*(\d+)", out)
     return int(m.group(1)) if m else None
 
 
@@ -201,6 +214,15 @@ class UI:
     def focused(self, nodes=None):
         nodes = self.dump() if nodes is None else nodes
         return [n for n in nodes if n.focused]
+
+    @staticmethod
+    def label_within(node, nodes):
+        """A focused Compose container usually carries no text itself; its children do."""
+        if node.label:
+            return node.label
+        inside = [n.label for n in nodes if n.label and n.x1 >= node.x1 and n.x2 <= node.x2
+                  and n.y1 >= node.y1 and n.y2 <= node.y2]
+        return inside[0] if inside else ""
 
 
 # ====================================================================== evidence
@@ -370,11 +392,13 @@ class Runner:
             "screen": sh("wm size").strip(), "density": sh("wm density").strip(),
         }
 
+        # Xtream before M3U, so the M3U playlist (with its guide loaded) is the active one for the
+        # guide, zapping and search checks that follow.
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
-                   self.s05_add_m3u_errors, self.s06_add_m3u, self.s07_add_xtream, self.s08_playback,
+                   self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s16_locale,
-                   self.s17_scale, self.s18_monkey, self.s19_resources]:
+                   self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz, self.s21_suspended_refresh,
+                   self.s16_locale, self.s17_scale, self.s18_monkey, self.s19_resources]:
             fn()
         self.s20_audit()
         self.finish()
@@ -467,20 +491,55 @@ class Runner:
                         f"opened {len(dests) - len(missing)}/{len(dests)}: {dests}; missing {missing}", shots, area)
 
     def open_add_source(self):
-        self.home_of_app()
-        if not self.go_settings():
-            return False
-        if not self.ui.tap_label("Playlists and guide", scrolls=2, exact=True):
-            return False
-        return self.ui.tap_label("Add a playlist", scrolls=3, exact=True) is not None
+        """Settings > Playlists and guide > Add a playlist, from wherever the app was left.
 
-    def fill(self, label, value):
-        n = self.ui.tap_label(label, scrolls=3)
-        if not n:
-            return False
-        type_text(value)
-        hide_ime()
-        return True
+        After a Save the app returns to the Playlists screen inside Settings, and a relaunch
+        resumes there, so the first thing to look for is the row itself.
+        """
+        for attempt in range(3):
+            self.home_of_app()
+            if self.ui.tap_label("Add a playlist", scrolls=0, exact=True):
+                return True
+            if self.ui.find("Playlists and guide", exact=True) or self.go_settings():
+                if self.ui.tap_label("Playlists and guide", scrolls=2, exact=True) and \
+                        self.ui.tap_label("Add a playlist", scrolls=3, exact=True):
+                    return True
+            if self.ui.tap_label("Add a playlist", scrolls=2, exact=True):
+                return True
+            key("KEYCODE_BACK", times=2, pause=0.8)
+        return False
+
+    def fill(self, label, value, secret=False):
+        for attempt in range(2):
+            n = self.ui.tap_label(label, scrolls=3)
+            if not n:
+                return False
+            clear_field()
+            type_text(value)
+            hide_ime()
+            if secret:
+                return True
+            nodes = self.ui.dump()
+            if any(value in x.text for x in nodes if "EditText" in x.cls):
+                return True
+        self.facts.setdefault("typing_mismatch", []).append(label)
+        return False
+
+    def mock_requests(self, needle):
+        path = os.path.join(self.out, "mock", "requests.jsonl")
+        try:
+            with open(path) as f:
+                return [json.loads(l) for l in f if needle in l]
+        except OSError:
+            return []
+
+    def mock_admin(self, action):
+        import urllib.request
+        port = self.mock.rsplit(":", 1)[-1]
+        try:
+            return urllib.request.urlopen(f"http://127.0.0.1:{port}/admin/{action}", timeout=5).read().decode()
+        except Exception as e:
+            return repr(e)
 
     def s05_add_m3u_errors(self):
         @self.scenario("QA-05", "Bad playlist addresses fail cleanly", "sources")
@@ -527,36 +586,63 @@ class Runner:
             shot = self.ev.shot("add_m3u_filled")
             saved = self.ui.tap_label("Save", scrolls=3, exact=True)
             t0 = time.time()
-            rows, prog = [], 0
+            rows = []
             while time.time() - t0 < 90:
                 db = self.db()
                 if db:
                     rows = q(db, "SELECT id, (SELECT COUNT(*) FROM channels c WHERE c.playlist_id=p.id), "
                                  "(SELECT COUNT(*) FROM channel_groups g WHERE g.playlist_id=p.id), last_refresh_ok, "
                                  "last_refresh_message FROM playlists p WHERE name='QA M3U'")
-                    prog = q(db, "SELECT COUNT(*) FROM programmes")[0][0]
-                    matched = q(db, "SELECT COUNT(*) FROM channels c JOIN playlists p ON p.id=c.playlist_id "
-                                    "WHERE p.name='QA M3U' AND c.resolved_epg_id IS NOT NULL")[0][0]
-                    if rows and rows[0][1] and matched:
+                    if rows and rows[0][0] != "ERR" and rows[0][1]:
                         break
                 time.sleep(4)
             elapsed = round(time.time() - t0, 1)
             self.facts["m3u_refresh_seconds"] = elapsed
             after = self.ev.shot("after_add_m3u")
-            if not rows:
+            if not rows or rows[0][0] == "ERR":
                 self.record(sid, title, "FAIL", f"fields filled {ok}, saved={bool(saved)}, no playlist row",
                             [shot, after], area)
                 return
             pid_, count, groups, ok_flag, msg = rows[0]
             self.facts["m3u_playlist_id"] = pid_
             db = self.db()
-            matched = q(db, "SELECT COUNT(*) FROM channels WHERE playlist_id=? AND resolved_epg_id IS NOT NULL", pid_)[0][0]
             failover = q(db, "SELECT urls FROM channels WHERE playlist_id=? AND tvg_id='qa.failover'", pid_)
             expected_channels = 30  # 31 entries, the failover pair folds into one
-            detail = (f"{count} channels (expect {expected_channels}), {groups} groups, {matched} matched to guide, "
-                      f"{prog} programmes, refresh ok={ok_flag} {msg or ''}, {elapsed}s; failover urls={failover}")
-            status = "PASS" if count == expected_channels and matched >= 28 and groups >= 3 else "FAIL"
+            detail = (f"fields typed ok={ok}; {count} channels (expect {expected_channels}), {groups} groups, "
+                      f"refresh ok={ok_flag} {msg or ''}, {elapsed}s; failover urls={failover}")
+            status = "PASS" if count == expected_channels and groups >= 3 else "FAIL"
             self.record(sid, title, status, detail, [shot, after], area)
+
+            # QA-06b: does the guide arrive on its own? A viewer who just added a playlist opens
+            # the guide next; nothing in the UI tells them to press "Update guide now" first.
+            sid_b, title_b = "QA-06b", "Guide loads by itself after a playlist is added"
+            time.sleep(60)
+            auto = self.mock_requests("/guide.xml")
+            db = self.db()
+            prog_auto = q(db, "SELECT COUNT(*) FROM programmes")[0][0] if db else None
+            self.record(sid_b, title_b, "PASS" if auto and prog_auto else "FAIL",
+                        f"{len(auto)} guide requests and {prog_auto} programmes in the 60+ s after Save, "
+                        f"with no user action", [self.ev.shot("guide_not_loaded")], area)
+
+            # QA-06c: the guide pipeline itself, triggered by hand.
+            sid_c, title_c = "QA-06c", "Update guide now loads and matches the mock XMLTV"
+            pressed = self.ui.tap_label("Update guide now", scrolls=3, exact=True)
+            prog, matched = 0, 0
+            t1 = time.time()
+            while time.time() - t1 < 120:
+                db = self.db()
+                if db:
+                    prog = q(db, "SELECT COUNT(*) FROM programmes")[0][0]
+                    matched = q(db, "SELECT COUNT(*) FROM channels WHERE playlist_id=? AND resolved_epg_id IS NOT NULL",
+                                pid_)[0][0]
+                    if prog and matched:
+                        break
+                time.sleep(4)
+            secs = round(time.time() - t1, 1)
+            self.facts["guide_manual"] = {"pressed": bool(pressed), "programmes": prog, "matched": matched, "secs": secs}
+            self.record(sid_c, title_c, "PASS" if matched >= 28 and prog else "FAIL",
+                        f"pressed={bool(pressed)}; {prog} programmes, {matched}/30 channels matched in {secs} s",
+                        [self.ev.shot("guide_after_update")], area)
 
     def s07_add_xtream(self):
         @self.scenario("QA-07", "Add the mock Xtream account (live, VOD, series)", "sources")
@@ -568,7 +654,7 @@ class Runner:
             self.fill("Display name", "QA Xtream")
             self.fill("Server URL", self.mock)
             self.fill("Username", "qa")
-            self.fill("Password", "qa123")
+            self.fill("Password", "qa123", secret=True)
             self.ui.tap_label("HLS (better on unstable networks)", scrolls=2, exact=True)
             tested = self.ui.tap_label("Test connection", scrolls=3, exact=True)
             ok_msg = self.ui.wait_for("Connection succeeded", timeout=15)
@@ -593,9 +679,12 @@ class Runner:
             pw_note = "password stored in clear in SQLite" if stored_pw == "qa123" else "password not stored in clear"
             self.facts["xtream_password_at_rest"] = pw_note
             status = "PASS" if ok_msg and live == 12 and vod >= 8 else ("WARN" if live else "FAIL")
+            time.sleep(30)
+            xmltv = self.mock_requests("/xmltv.php")
             self.record(sid, title, status,
                         f"test ok shown={bool(ok_msg)}; {live} live (expect 12), {vod} VOD rows (expect 6 films + 2 "
-                        f"series), refresh ok={ok_flag} {msg or ''}; {pw_note}", [shot], area)
+                        f"series), refresh ok={ok_flag} {msg or ''}; {pw_note}; xmltv.php requested "
+                        f"{len(xmltv)} times in the 30+ s after Save", [shot], area)
 
     def channel_id(self, tvg, playlist_key="m3u_playlist_id"):
         db = self.db()
@@ -705,7 +794,8 @@ class Runner:
                 f = [n for n in nodes if n.focused]
                 if not f:
                     lost += 1
-                path.append(f"{k.replace('KEYCODE_', '')}:{(f[0].label[:18] if f and f[0].label else ('?' if f else '∅'))}")
+                lab = UI.label_within(f[0], nodes)[:18] if f else "∅"
+                path.append(f"{k.replace('KEYCODE_', '')}:{lab or '?'}")
             shot = self.ev.shot("focus_end")
             status = "PASS" if lost == 0 else ("WARN" if lost <= 2 else "FAIL")
             if self.form == "phone" and lost:
@@ -740,7 +830,8 @@ class Runner:
             hide_ime()
             time.sleep(3)
             s_nodes = self.ui.dump("search")
-            s_hits = [n.label for n in s_nodes if "Sport 05" in n.label]
+            # The query itself sits in the search field; only results count.
+            s_hits = [n.label for n in s_nodes if "Sport 05" in n.label and "EditText" not in n.cls]
             s_shot = self.ev.shot("search")
             status = "PASS" if guide_hits and s_hits else ("WARN" if guide_hits or s_hits else "FAIL")
             self.record(sid, title, status, f"guide cells seen: {guide_hits}; search hits: {s_hits}",
@@ -834,6 +925,53 @@ class Runner:
                         f"alive={alive}; on-screen while down: {during_text}; picture back after {recovered_at} s "
                         f"(budget 45 s, no user action)", [during, after], area)
 
+    def s21_suspended_refresh(self):
+        @self.scenario("QA-21", "A refresh that gets an HTML error page keeps the existing channels", "sources")
+        def _(sid, title, area):
+            self.mock_admin("restore")
+            if not self.open_add_source():
+                self.record(sid, title, "FAIL", "could not reach Add a playlist", [], area)
+                return
+            self.ui.tap_label("M3U / M3U8 playlist", scrolls=1, exact=True)
+            self.fill("Display name", "QA Switch")
+            self.fill("Playlist URL", f"{self.mock}/switchable.m3u")
+            self.ui.tap_label("Save", scrolls=3, exact=True)
+            before = 0
+            for _ in range(20):
+                db = self.db()
+                r = q(db, "SELECT (SELECT COUNT(*) FROM channels c WHERE c.playlist_id=p.id) FROM playlists p "
+                          "WHERE name='QA Switch'") if db else []
+                before = r[0][0] if r and r[0][0] != "ERR" else 0
+                if before:
+                    break
+                time.sleep(3)
+            # The provider now answers like a suspended account: HTTP 200, an HTML page.
+            self.mock_admin("suspend")
+            # Save returns to Settings > Playlists, where "Refresh now" acts on the active playlist —
+            # the one just saved.
+            refreshed = self.ui.tap_label("Refresh now", scrolls=2, exact=True)
+            if not refreshed and self.open_add_source():
+                key("KEYCODE_BACK")
+                time.sleep(1)
+                refreshed = self.ui.tap_label("Refresh now", scrolls=3, exact=True)
+            time.sleep(10)
+            db = self.db()
+            r = q(db, "SELECT (SELECT COUNT(*) FROM channels c WHERE c.playlist_id=p.id), last_refresh_ok, "
+                      "last_refresh_message FROM playlists p WHERE name='QA Switch'") if db else []
+            names = q(db, "SELECT c.name, c.urls FROM channels c JOIN playlists p ON p.id=c.playlist_id "
+                          "WHERE p.name='QA Switch' LIMIT 3") if db else []
+            shot = self.ev.shot("after_suspended_refresh")
+            self.mock_admin("restore")
+            after = r[0][0] if r else None
+            served = self.mock_requests("/switchable.m3u")
+            detail = (f"before {before} channels; provider switched to an HTML 'Account suspended' page; "
+                      f"Refresh now tapped={bool(refreshed)}; switchable.m3u requests={len(served)}; after: {r} "
+                      f"sample={names}")
+            if not before or not refreshed or len(served) < 2:
+                self.record(sid, title, "WARN", "could not set up: " + detail, [shot], area)
+            else:
+                self.record(sid, title, "PASS" if after == before else "FAIL", detail, [shot], area)
+
     def s15_deep_link_fuzz(self):
         @self.scenario("QA-15", "Malformed and hostile deep links are ignored", "security")
         def _(sid, title, area):
@@ -923,6 +1061,8 @@ class Runner:
             self.facts["scale"] = {"channels": count, "load_s": secs, "jank": jank.group(0) if jank else None,
                                    "frames": total.group(1) if total else None, "p90": p90.group(1) if p90 else None}
             alive = bool(pid())
+            # Frame statistics on a software-rendered emulator say little about a real TV box, so
+            # they are recorded, not judged.
             status = "PASS" if count >= 5000 and secs < 60 and alive else ("WARN" if count >= 5000 and alive else "FAIL")
             self.record(sid, title, status,
                         f"{count} channels in {secs} s; alive={alive}; {self.facts['scale']}", [shot], area)
@@ -950,8 +1090,10 @@ class Runner:
             sh("svc data enable")
             shot = self.ev.shot("after_monkey")
             crash_line = next((l for l in out.splitlines() if "Long Msg" in l or "Short Msg" in l), "")
+            aborted = "Monkey aborted" in out
             self.record(sid, title, "FAIL" if crashed or anr else ("PASS" if done else "WARN"),
-                        f"injected {m.group(1) if m else '?'}; crash={crashed} anr={anr} {crash_line[:200]}",
+                        f"injected {m.group(1) if m else '?'}; crash={crashed} anr={anr}"
+                        f"{' (monkey itself aborted, no app crash)' if aborted and not crashed else ''} {crash_line[:200]}",
                         [shot], area)
             self.ensure_running()
 
