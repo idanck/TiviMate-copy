@@ -366,11 +366,22 @@ class Runner:
     def go_settings(self):
         if self.form == "phone":
             # The full-screen player hides the bottom bar; Back folds it into the mini player.
+            # A cold start takes ~10 s on the emulator and then opens the last channel full
+            # screen, so a Back pressed blind lands on the splash and the player opens after it
+            # (run 38413573319). Give the start a few looks before pressing Back on anything else.
             hide_ime()
-            for _ in range(3):
-                if self.ui.tap_label("Settings", scrolls=0, exact=True):
+            for attempt in range(6):
+                nodes = self.ui.dump()
+                n = self.ui.find("Settings", nodes, exact=True)
+                if n:
+                    tap(*n.center)
+                    time.sleep(1.2)
                     return True
-                key("KEYCODE_BACK")
+                if not in_foreground():
+                    launch()
+                elif attempt >= 2 or self.ui.find("Minimise the player", nodes, exact=True):
+                    key("KEYCODE_BACK")
+                time.sleep(2)
             return False
         # Television: Settings sits on the home rail; open the rail with Back/Left if needed.
         for attempt in range(4):
@@ -1207,33 +1218,48 @@ class Runner:
                 fields = [n for n in self.ui.dump() if "EditText" in n.cls]
                 if fields:
                     tap(*fields[0].center)
+                clear_field()
                 type_text(pin)
                 hide_ime()
+                # The prompt re-centres once the keyboard goes; a tap straight after hit where OK
+                # used to be and the PIN was never sent (run 38413573319).
+                time.sleep(1.5)
                 self.ui.tap_label("OK", scrolls=0, exact=True)
+
+            # Something may already be playing behind the prompt (the last channel resumes on
+            # start), so what counts is whether the locked channel's own stream was fetched.
+            def fetched():
+                return len(self.mock_requests("ch=05"))
 
             # A locked channel, reached the way the launcher reaches it.
             launch()
-            time.sleep(4)
+            time.sleep(6)
+            before = fetched()
             deep_link(f"shidur://channel/{cid}")
             time.sleep(6)
             prompt = self.ui.find("Enter your PIN")
-            audio = audio_playing(self.uid)
+            leaked = fetched() - before
             shots.append(self.ev.shot("pin_prompt"))
-            notes.append(f"deep link to the locked channel: prompt={bool(prompt)} sound={audio}")
-            fail |= not prompt or bool(audio)
+            notes.append(f"deep link to the locked channel: prompt={bool(prompt)} "
+                         f"locked stream requests behind it={leaked}")
+            fail |= not prompt or leaked > 0
 
             enter("9999")
-            time.sleep(3)
-            wrong = self.ui.find("That PIN is not correct")
+            wrong = self.ui.wait_for("That PIN is not correct", timeout=15)
             notes.append(f"wrong PIN refused={bool(wrong)}")
             fail |= not wrong
 
             enter("1234")
-            time.sleep(8)
+            end = time.time() + 20
+            while time.time() < end and self.ui.find("Enter your PIN"):
+                time.sleep(1)
+            time.sleep(5)
+            closed = not self.ui.find("Enter your PIN")
+            started = fetched() - before - leaked
             plays = audio_playing(self.uid)
             shots.append(self.ev.shot("pin_accepted"))
-            notes.append(f"right PIN plays={plays}")
-            fail |= not plays
+            notes.append(f"right PIN: prompt closed={closed} locked stream requests={started} sound={plays}")
+            fail |= not closed or started == 0 or not plays
 
             # Away and back: the next person is asked again, and Settings is behind the PIN.
             key("KEYCODE_HOME")
@@ -1251,8 +1277,7 @@ class Runner:
             fail |= not gate or bool(exposed)
 
             enter("1234")
-            time.sleep(3)
-            opened = self.ui.find("Playlists and guide", exact=True)
+            opened = self.ui.wait_for("Playlists and guide", timeout=15, exact=True)
             notes.append(f"Settings after the PIN: open={bool(opened)}")
             fail |= not opened
             self.record(sid, title, "FAIL" if fail else "PASS", "; ".join(notes), shots, area)

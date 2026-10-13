@@ -627,7 +627,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (id == 0L) return false
         val channel = withContext(Dispatchers.IO) { dao.channel(id) } ?: return false
         play(channel)
-        return true
+        // A locked start channel waits on the PIN prompt instead; nothing is playing yet.
+        return _state.value.currentChannel?.id == channel.id
     }
 
     fun refreshNowNext(channel: Channel? = _state.value.currentChannel) {

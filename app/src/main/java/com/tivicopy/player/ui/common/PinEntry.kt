@@ -52,9 +52,11 @@ fun PinEntry(
     fun submit() {
         if (busy || pin.isEmpty()) return
         busy = true
-        vm.submitPin(pin) { result ->
+        val submitted = pin
+        vm.submitPin(submitted) { result ->
             busy = false
-            pin = ""
+            // Digits typed while the check ran are the next attempt, not this one's leftovers.
+            if (pin == submitted) pin = ""
             message = when (result) {
                 PinResult.Accepted -> null
                 PinResult.Wrong -> context.getString(R.string.pin_wrong)
