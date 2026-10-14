@@ -408,6 +408,7 @@ class MainActivity : ComponentActivity() {
                                     playerOpen = playerOpen,
                                     onPlayerOpenChange = { playerOpen = it },
                                     inPip = inPip,
+                                    numericEntry = numericEntry,
                                     onBrightness = ::adjustBrightness,
                                     onVolume = ::adjustVolume,
                                     modifier = Modifier.fillMaxSize(),
@@ -547,7 +548,7 @@ class MainActivity : ComponentActivity() {
      * menu, Back goes up one level and a second Back exits.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
-        if (!isTelevision) return super.onKeyDown(keyCode, event)
+        if (!isTelevision) return onPhoneKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             numericEntry = (numericEntry + (keyCode - KeyEvent.KEYCODE_0)).take(4)
@@ -614,6 +615,27 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_LAST_CHANNEL, KeyEvent.KEYCODE_TV -> { vm.toggleLastChannel(); true }
             else -> super.onKeyDown(keyCode, event)
         }
+    }
+
+    /**
+     * A phone with a Bluetooth remote or a keyboard: the channel keys, the digits and Last act on
+     * the full-screen player the way they do on the television (QA-09). Only there — over the
+     * lists they would change channel behind the user's back. A focused text field has already
+     * taken its own keys before the activity is asked.
+     */
+    private fun onPhoneKeyDown(keyCode: Int): Boolean {
+        if (!playerOpen || inPip) return false
+        when (keyCode) {
+            in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
+                numericEntry = (numericEntry + (keyCode - KeyEvent.KEYCODE_0)).take(4)
+                scheduleNumericCommit()
+            }
+            KeyEvent.KEYCODE_CHANNEL_UP -> vm.zap(1)
+            KeyEvent.KEYCODE_CHANNEL_DOWN -> vm.zap(-1)
+            KeyEvent.KEYCODE_LAST_CHANNEL -> vm.toggleLastChannel()
+            else -> return false
+        }
+        return true
     }
 
     /**
@@ -743,7 +765,8 @@ class MainActivity : ComponentActivity() {
                 if (numericEntry == snapshot && snapshot.isNotEmpty()) {
                     snapshot.toIntOrNull()?.let(vm::playByNumber)
                     numericEntry = ""
-                    showInfoCard()
+                    // The phone's player already names the channel it is on.
+                    if (isTelevision) showInfoCard()
                 }
             },
             timeout,
