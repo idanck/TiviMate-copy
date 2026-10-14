@@ -85,6 +85,25 @@ class SourceRepository(
     )
 
     /**
+     * Encrypts credentials that an earlier save had to store as typed because the keystore failed
+     * at that moment ([SecureStore.encrypt]). Nothing else would ever revisit them: a refresh
+     * leaves the row's credentials alone, so they stayed readable until the source was edited.
+     * Run on every cold start; a row whose credentials still cannot be sealed is left as it was.
+     */
+    suspend fun sealStoredCredentials() = withContext(Dispatchers.IO) {
+        dao.playlists().forEach { p ->
+            val user = p.username.takeUnless { it.isNullOrEmpty() || SecureStore.isSealed(it) }
+            val pass = p.password.takeUnless { it.isNullOrEmpty() || SecureStore.isSealed(it) }
+            if (user == null && pass == null) return@forEach
+            val sealedUser = user?.let(SecureStore::encrypt)
+            val sealedPass = pass?.let(SecureStore::encrypt)
+            if (sealedUser != null && !SecureStore.isSealed(sealedUser)) return@forEach
+            if (sealedPass != null && !SecureStore.isSealed(sealedPass)) return@forEach
+            dao.setPlaylistCredentials(p.id, sealedUser ?: p.username, sealedPass ?: p.password)
+        }
+    }
+
+    /**
      * The one bundled playlist this app ships with (docs/00-scope-and-platforms.md §0.1).
      * Idempotent and self-healing: run on every cold start, it only inserts the row the first
      * time, and quietly reinstates it if the user ever deletes it — no separate "first run" flag,

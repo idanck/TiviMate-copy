@@ -153,6 +153,7 @@ class App : Application(), ImageLoaderFactory {
         // idempotent, so these are no-ops after the first cold start.
         ServiceLocator.appScope.launch { ServiceLocator.sources.ensureBuiltInPlaylist() }
         ServiceLocator.appScope.launch { ServiceLocator.sources.ensureRadioPlaylist() }
+        ServiceLocator.appScope.launch { ServiceLocator.sources.sealStoredCredentials() }
         // Re-arm anything that survived a process death but not a reboot. Kept on this thread:
         // it also marks recordings a dead process left running as interrupted, and run alongside
         // an alarm that has just fired, that sweep could catch the recording it started.

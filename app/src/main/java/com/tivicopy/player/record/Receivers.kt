@@ -34,9 +34,11 @@ class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
+        // Only broadcasts the system alone may send. HTC's QUICKBOOT_POWERON was dropped: any
+        // installed app can send it, and the re-arm below marks a recording in progress as
+        // interrupted and the auto-start opens the app over whatever is on screen (docs/qa).
         val booted = action == Intent.ACTION_BOOT_COMPLETED ||
-            action == Intent.ACTION_LOCKED_BOOT_COMPLETED ||
-            action == "android.intent.action.QUICKBOOT_POWERON"
+            action == Intent.ACTION_LOCKED_BOOT_COMPLETED
         if (!booted && action != Intent.ACTION_MY_PACKAGE_REPLACED) return
 
         ServiceLocator.init(context)

@@ -61,6 +61,7 @@
     <string name="setup_test">Test connection</string>
     <string name="setup_testing">Testing…</string>
     <string name="setup_ok">Connection succeeded.</string>
+    <string name="setup_max_connections">Max connections: %1$d</string>
     <string name="setup_pick_file">Choose file</string>
     <string name="setup_http_warning">This address is plain HTTP; credentials travel unencrypted.</string>
 

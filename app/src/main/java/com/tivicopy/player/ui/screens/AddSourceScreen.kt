@@ -208,7 +208,7 @@ fun AddSourceScreen(
                                     val account = result.value
                                     context.getString(R.string.setup_ok) +
                                         (account.status?.let { " · $it" } ?: "") +
-                                        (account.maxConnections?.let { " · $it conn." } ?: "")
+                                        (account.maxConnections?.let { " · " + context.getString(R.string.setup_max_connections, it) } ?: "")
                                 }
                                 is Outcome.Err -> result.error.describe(context)
                             }
