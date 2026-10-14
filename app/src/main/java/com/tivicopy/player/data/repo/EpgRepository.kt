@@ -2,6 +2,7 @@ package com.tivicopy.player.data.repo
 
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
+import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.epg.EpgMatcher
@@ -72,10 +73,12 @@ class EpgRepository(
             }
 
             var count = 0
+            // Stored beside every guide channel, so without the account an Xtream guide address carries.
+            val storedUrl = TextNormalizer.redactUrl(url)
             Decompressor.wrap(stream).use { decompressed ->
                 dao.transaction { db ->
                     val parser = XmltvParser(
-                        onChannel = { ch -> dao.upsertEpgChannel(db, ch, url) },
+                        onChannel = { ch -> dao.upsertEpgChannel(db, ch, storedUrl) },
                         onProgramme = { p -> dao.insertProgramme(db, p, priority = 0) },
                         progress = { channels, programmes ->
                             onProgress(EpgProgress(channels, programmes))

@@ -41,7 +41,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-06 | sources | Add the mock M3U + XMLTV through the UI | 30 channels, ≥3 groups, ≥28 matched to the guide |
 | QA-06b | guide | Wait 60 s after QA-06's Save, no user action | the XMLTV was requested and programmes exist |
 | QA-06c | guide | Press "Update guide now" | programmes loaded, ≥28 of 30 channels matched |
-| QA-07 | sources | Add the mock Xtream account, test connection | "Connection succeeded", 12 live, 6 films + 2 series |
+| QA-07 | sources | Add the mock Xtream account, test connection; play one of its channels | "Connection succeeded", 12 live, 6 films + 2 series; the password in no stored channel URL or guide address, and the channel still requests `/live/qa/qa123/` |
 | QA-08 | playback | Deep link plays HLS and MPEG-TS | picture moves or audio is playing |
 | QA-09 | playback | Channel up/down, digits, last channel, D-pad up | ≥3 distinct channels reached |
 | QA-10 | playback | 404 stream, failover pair, slow start | 404 doesn't crash; failover ends up playing |

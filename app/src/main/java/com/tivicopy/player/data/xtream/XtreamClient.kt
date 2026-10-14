@@ -10,7 +10,6 @@ import com.tivicopy.player.data.net.HttpFactory
 import com.tivicopy.player.data.net.RequestProfile
 import org.json.JSONArray
 import org.json.JSONObject
-import java.net.URLEncoder
 
 data class XtreamAccount(
     val status: String?,
@@ -61,7 +60,9 @@ class XtreamClient(
     fun xmltvUrl(): String =
         "$root/xmltv.php?username=${enc(username)}&password=${enc(password)}"
 
-    private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8")
+    // One encoding for building these URLs and for finding the account in them again when they
+    // are stored (XtreamUrlCredentials).
+    private fun enc(s: String): String = XtreamUrlCredentials.encode(s)
 
     private fun get(url: String): Outcome<String> = try {
         HttpFactory.client(profile).newCall(HttpFactory.request(url, profile)).execute().use { r ->

@@ -223,7 +223,10 @@ distinct offset, streamed parsing, and a bounded cache — but no numbers have b
 reference device, and this file does not claim otherwise.
 
 NFR-SEC-01/02 are implemented: credentials are Keystore-encrypted at rest and redacted
-everywhere they could be shared. NFR-SEC-04 holds trivially — there is no telemetry code.
+everywhere they could be shared. Until 0.10.15 "at rest" stopped at the `playlists` row: an Xtream
+account was also spelled out in the clear in every stored stream URL and in the guide address
+beside it (docs/qa, finding 9). Those are now stored with a placeholder and filled in as `Dao`
+reads them (`XtreamUrlCredentials`); rows from older installs are rewritten on the next start. NFR-SEC-04 holds trivially — there is no telemetry code.
 
 Two ten-foot requirements were failing outright until 2026-08-21 and are worth naming, because
 neither had ever been recorded as failing:

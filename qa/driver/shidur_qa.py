@@ -798,10 +798,28 @@ class Runner:
             status = "PASS" if ok_msg and live == 12 and vod >= 8 else ("WARN" if live else "FAIL")
             time.sleep(30)
             xmltv = self.mock_requests("/xmltv.php")
+            # Finding 9: the account stays out of the stored URLs, and a channel still plays with it.
+            db = self.db()
+            leaked = q(db, "SELECT COUNT(*) FROM channels WHERE playlist_id=? AND urls LIKE '%qa123%'", pid_) \
+                if db else []
+            epg = q(db, "SELECT epg_url FROM playlists WHERE id=?", pid_) if db else []
+            leaked_n = leaked[0][0] if leaked else None
+            epg_leak = "qa123" in str(epg[0][0] if epg else "")
+            first = q(db, "SELECT id FROM channels WHERE playlist_id=? ORDER BY id LIMIT 1", pid_) if db else []
+            before = len(self.mock_requests("/live/qa/qa123/"))
+            if first:
+                deep_link(f"shidur://channel/{first[0][0]}")
+                time.sleep(8)
+            played = len(self.mock_requests("/live/qa/qa123/")) > before
+            at_rest = (f"password in {leaked_n} channel URLs and {'the' if epg_leak else 'not the'} guide address; "
+                       f"an Xtream channel {'requested' if played else 'did not request'} /live/qa/qa123/")
+            if status == "PASS" and (leaked_n != 0 or epg_leak or not played):
+                status = "FAIL"
             self.record(sid, title, status,
                         f"test ok shown={bool(ok_msg)}; {live} live (expect 12), {vod} VOD rows (expect 6 films + 2 "
                         f"series), refresh ok={ok_flag} {msg or ''}; {pw_note}; xmltv.php requested "
-                        f"{len(xmltv)} times in the 30+ s after Save", [shot], area)
+                        f"{len(xmltv)} times in the 30+ s after Save; {at_rest}",
+                        [shot, self.ev.shot("xtream_playing")], area)
 
     def channel_id(self, tvg, playlist_key="m3u_playlist_id"):
         db = self.db()
