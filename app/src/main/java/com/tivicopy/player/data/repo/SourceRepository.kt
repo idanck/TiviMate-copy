@@ -89,6 +89,8 @@ class SourceRepository(
      * at that moment ([SecureStore.encrypt]). Nothing else would ever revisit them: a refresh
      * leaves the row's credentials alone, so they stayed readable until the source was edited.
      * Run on every cold start; a row whose credentials still cannot be sealed is left as it was.
+     * Then does the same for the URLs stored before the account was kept out of them
+     * ([Dao.maskStoredCredentials]).
      */
     suspend fun sealStoredCredentials() = withContext(Dispatchers.IO) {
         dao.playlists().forEach { p ->
@@ -101,6 +103,8 @@ class SourceRepository(
             if (sealedPass != null && !SecureStore.isSealed(sealedPass)) return@forEach
             dao.setPlaylistCredentials(p.id, sealedUser ?: p.username, sealedPass ?: p.password)
         }
+        // The same account, in the clear in every stored stream URL of the source (finding 9).
+        dao.maskStoredCredentials()
     }
 
     /**

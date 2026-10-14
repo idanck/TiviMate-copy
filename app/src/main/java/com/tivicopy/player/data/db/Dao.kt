@@ -2,6 +2,7 @@ package com.tivicopy.player.data.db
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
+import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
 import com.tivicopy.player.data.model.ChannelSort
@@ -15,6 +16,10 @@ import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.data.model.VodItem
+import com.tivicopy.player.data.prefs.SecureStore
+import com.tivicopy.player.data.xtream.XtreamUrlCredentials
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Declares the escape character used by every `LIKE` clause here. See [Dao.likePattern]. */
 private const val LIKE_ESCAPE = " ESCAPE '\\'"
@@ -35,9 +40,33 @@ private const val NOT_AN_EPISODE = "season_number IS NULL"
  * Data access for [Database]. Every method takes or opens a writable handle; SQLiteOpenHelper
  * caches a single connection, and WAL lets guide writes proceed while the UI reads.
  */
-class Dao(private val helper: Database) {
+class Dao(
+    private val helper: Database,
+    /** How a stored credential is read back; the keystore outside of tests. */
+    private val decrypt: (String?) -> String? = SecureStore::decrypt,
+) {
 
     private val db: SQLiteDatabase get() = helper.writableDatabase
+
+    /**
+     * Each source's Xtream account, decrypted once, for [XtreamUrlCredentials]: a keystore decrypt
+     * per channel row read would cost more than the read. Dropped whenever a playlist's row
+     * changes, so an edited password is what the next read puts back.
+     */
+    private val accounts = ConcurrentHashMap<Long, AccountSlot>()
+
+    /**
+     * Bumped after every playlist write, so a read that loaded a row from before the write cannot
+     * cache it after the write has dropped the old entry.
+     */
+    private val accountsVersion = AtomicInteger()
+
+    private class AccountSlot(val account: XtreamUrlCredentials.Account?)
+
+    private fun forgetAccount(playlistId: Long) {
+        accountsVersion.incrementAndGet()
+        accounts.remove(playlistId)
+    }
 
     fun <T> transaction(body: (SQLiteDatabase) -> T): T {
         val d = db
@@ -70,7 +99,15 @@ class Dao(private val helper: Database) {
             put("output_format", p.outputFormat.name)
             put("user_agent", p.userAgent)
             put("headers", Json.encodeMap(p.headers))
-            put("epg_url", p.epgUrl)
+            // Masked with the row's own account, read back from what is stored beside it, and with
+            // the account it replaces: a restore that brings new credentials can keep the guide
+            // address read under the old ones, which would otherwise go to disk in the clear.
+            val account = accountOf(p.type.name, p.username, p.password).account
+            val replaced = if (p.id == 0L || account == null) null else accountFor(p.id)
+            put(
+                "epg_url",
+                p.epgUrl?.let { XtreamUrlCredentials.mask(XtreamUrlCredentials.mask(it, account), replaced) },
+            )
             put("refresh_interval_minutes", p.refreshIntervalMinutes)
             put("enabled", if (p.enabled) 1 else 0)
             put("colour", p.colour)
@@ -84,12 +121,14 @@ class Dao(private val helper: Database) {
         } else {
             v.put("id", p.id)
             db.update("playlists", v, "id=?", arrayOf(p.id.toString()))
+            forgetAccount(p.id)
             p.id
         }
     }
 
     fun deletePlaylist(id: Long) {
         db.delete("playlists", "id=?", arrayOf(id.toString()))
+        forgetAccount(id)
     }
 
     fun markRefresh(playlistId: Long, whenUtc: Long, ok: Boolean, message: String?) {
@@ -108,6 +147,83 @@ class Dao(private val helper: Database) {
             put("password", password)
         }
         db.update("playlists", v, "id=?", arrayOf(playlistId.toString()))
+        forgetAccount(playlistId)
+    }
+
+    /** [playlistId]'s Xtream account, or null for any other kind of source. */
+    private fun accountFor(playlistId: Long): XtreamUrlCredentials.Account? {
+        accounts[playlistId]?.let { return it.account }
+        val version = accountsVersion.get()
+        val slot = db.rawQuery(
+            "SELECT type, username, password FROM playlists WHERE id=?",
+            arrayOf(playlistId.toString()),
+        ).firstOrNull { c -> accountOf(c.str("type"), c.strOrNull("username"), c.strOrNull("password")) }
+            ?: return null
+        // Cached even when the keystore could not read it: asking again for every channel row of a
+        // long list is what would make that failure slow as well. The next playlist write retries.
+        if (accountsVersion.get() == version) accounts[playlistId] = slot
+        return slot.account
+    }
+
+    private fun accountOf(type: String, username: String?, password: String?): AccountSlot {
+        if (type != SourceType.XTREAM.name) return NO_ACCOUNT
+        val user = decrypt(username.orEmpty()) ?: return NO_ACCOUNT
+        val pass = decrypt(password.orEmpty()) ?: return NO_ACCOUNT
+        return AccountSlot(XtreamUrlCredentials.Account(user, pass))
+    }
+
+    /**
+     * Takes the account out of URLs stored before [XtreamUrlCredentials] existed (docs/qa,
+     * finding 9): every channel row of an Xtream source, its guide address, and the copy of that
+     * address each guide channel was imported with. Run on every cold start; a row already stored
+     * without the account no longer contains it, so it is not touched again.
+     */
+    fun maskStoredCredentials() {
+        val xtream = db.rawQuery(
+            "SELECT id FROM playlists WHERE type=?",
+            arrayOf(SourceType.XTREAM.name),
+        ).mapAll { it.getLong(0) }
+        for (playlistId in xtream) {
+            val account = accountFor(playlistId)?.takeIf { it.usable } ?: continue
+            transaction { d ->
+                // On the encoded password alone: the column is a JSON array, whose encoder
+                // escapes every `/` of the path around it. A password that turns up elsewhere in a
+                // URL only costs a row that masks to itself and is skipped.
+                d.rawQuery(
+                    "SELECT id, urls FROM channels WHERE playlist_id=? AND urls LIKE ?$LIKE_ESCAPE",
+                    arrayOf(playlistId.toString(), likePattern(account.pass)),
+                ).mapAll { c -> c.getLong(0) to c.getString(1) }
+                    .forEach { (id, raw) ->
+                        val masked = Json.encodeList(
+                            Json.decodeList(raw).map { XtreamUrlCredentials.mask(it, account) },
+                        )
+                        if (masked == raw) return@forEach
+                        val v = ContentValues().apply { put("urls", masked) }
+                        d.update("channels", v, "id=?", arrayOf(id.toString()))
+                    }
+
+                val epgUrl = d.rawQuery(
+                    "SELECT epg_url FROM playlists WHERE id=?",
+                    arrayOf(playlistId.toString()),
+                ).firstOrNull { c -> c.getString(0) }
+                val maskedEpg = epgUrl?.let { XtreamUrlCredentials.mask(it, account) }
+                if (epgUrl != null && maskedEpg != epgUrl) {
+                    d.update(
+                        "playlists",
+                        ContentValues().apply { put("epg_url", maskedEpg) },
+                        "id=?",
+                        arrayOf(playlistId.toString()),
+                    )
+                    // Write-only bookkeeping, never read back, so the redacted form loses nothing.
+                    d.update(
+                        "epg_channels",
+                        ContentValues().apply { put("source_url", TextNormalizer.redactUrl(epgUrl)) },
+                        "source_url=?",
+                        arrayOf(epgUrl),
+                    )
+                }
+            }
+        }
     }
 
     private fun readPlaylist(c: android.database.Cursor) = Playlist(
@@ -120,7 +236,7 @@ class Dao(private val helper: Database) {
         outputFormat = OutputFormat.from(c.strOrNull("output_format")),
         userAgent = c.strOrNull("user_agent"),
         headers = Json.decodeMap(c.strOrNull("headers")),
-        epgUrl = c.strOrNull("epg_url"),
+        epgUrl = c.strOrNull("epg_url")?.let { XtreamUrlCredentials.unmask(it, accountFor(c.long("id"))) },
         refreshIntervalMinutes = c.int("refresh_interval_minutes"),
         enabled = c.bool("enabled"),
         colour = c.int("colour"),
@@ -388,7 +504,7 @@ class Dao(private val helper: Database) {
         put("custom_logo_url", ch.customLogoUrl)
         if (ch.groupId == null) putNull("group_id") else put("group_id", ch.groupId)
         put("number", ch.number)
-        put("urls", Json.encodeList(ch.urls))
+        put("urls", Json.encodeList(maskUrls(ch.playlistId, ch.urls)))
         put("user_agent", ch.userAgent)
         put("headers", Json.encodeMap(ch.headers))
         put("license_type", ch.licenseType)
@@ -515,6 +631,19 @@ class Dao(private val helper: Database) {
         )
     }
 
+    /** A channel's URLs as stored: without its source's account ([XtreamUrlCredentials]). */
+    private fun maskUrls(playlistId: Long, urls: List<String>): List<String> {
+        val account = accountFor(playlistId) ?: return urls
+        return urls.map { XtreamUrlCredentials.mask(it, account) }
+    }
+
+    /** A channel row's URLs with its source's account put back. */
+    private fun readUrls(playlistId: Long, raw: String?): List<String> {
+        val urls = Json.decodeList(raw)
+        val account = accountFor(playlistId) ?: return urls
+        return urls.map { XtreamUrlCredentials.unmask(it, account) }
+    }
+
     private fun readChannel(c: android.database.Cursor) = Channel(
         id = c.long("id"),
         playlistId = c.long("playlist_id"),
@@ -527,7 +656,7 @@ class Dao(private val helper: Database) {
         customLogoUrl = c.strOrNull("custom_logo_url"),
         groupId = c.getColumnIndexOrThrow("group_id").let { if (c.isNull(it)) null else c.getLong(it) },
         number = c.int("number"),
-        urls = Json.decodeList(c.strOrNull("urls")),
+        urls = readUrls(c.long("playlist_id"), c.strOrNull("urls")),
         userAgent = c.strOrNull("user_agent"),
         headers = Json.decodeMap(c.strOrNull("headers")),
         licenseType = c.strOrNull("license_type"),
@@ -892,4 +1021,9 @@ class Dao(private val helper: Database) {
         resumePositionMs = c.long("resume_position_ms"),
         gapCount = c.int("gap_count"),
     )
+
+    private companion object {
+        /** Not an Xtream source, or one whose account the keystore could not read back. */
+        val NO_ACCOUNT = AccountSlot(null)
+    }
 }
