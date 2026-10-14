@@ -101,6 +101,15 @@ class Dao(private val helper: Database) {
         db.update("playlists", v, "id=?", arrayOf(playlistId.toString()))
     }
 
+    /** Rewrites only the stored credentials, so a refresh finishing meanwhile keeps its status. */
+    fun setPlaylistCredentials(playlistId: Long, username: String?, password: String?) {
+        val v = ContentValues().apply {
+            put("username", username)
+            put("password", password)
+        }
+        db.update("playlists", v, "id=?", arrayOf(playlistId.toString()))
+    }
+
     private fun readPlaylist(c: android.database.Cursor) = Playlist(
         id = c.long("id"),
         name = c.str("name"),

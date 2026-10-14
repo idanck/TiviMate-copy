@@ -23,6 +23,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
 import java.io.File
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
@@ -317,12 +318,20 @@ class UpdateManager(
         }
     }
 
+    /**
+     * The shared client, minus one concession: it follows a redirect from HTTPS to plain HTTP,
+     * because providers routinely hand an HTTPS portal's streams to HTTP servers. The update
+     * channel is HTTPS end to end, so a downgrade there is refused rather than followed.
+     */
+    private fun updateClient(profile: RequestProfile): OkHttpClient =
+        HttpFactory.client(profile).newBuilder().followSslRedirects(false).build()
+
     private fun fetchManifest(): Outcome<Pair<UpdateManifest, String>> {
         // The default profile deliberately, rather than the user's source profile: "allow
         // insecure TLS" is a concession to one broken provider, never to the update channel.
         val profile = RequestProfile(connectTimeoutSeconds = 15, readTimeoutSeconds = 20)
         return try {
-            HttpFactory.client(profile)
+            updateClient(profile)
                 .newCall(HttpFactory.request(MANIFEST_URL, profile))
                 .execute()
                 .use { response ->
@@ -356,7 +365,7 @@ class UpdateManager(
 
         val profile = RequestProfile(connectTimeoutSeconds = 20, readTimeoutSeconds = 60)
         return try {
-            HttpFactory.client(profile)
+            updateClient(profile)
                 .newCall(HttpFactory.request(manifest.apkUrl, profile))
                 .execute()
                 .use { response ->

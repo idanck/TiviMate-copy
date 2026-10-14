@@ -53,6 +53,7 @@
     <string name="setup_test">בדיקת חיבור</string>
     <string name="setup_testing">בודק…</string>
     <string name="setup_ok">החיבור הצליח.</string>
+    <string name="setup_max_connections">מספר חיבורים מרבי: %1$d</string>
     <string name="setup_pick_file">בחירת קובץ</string>
     <string name="setup_http_warning">הכתובת היא HTTP רגיל; פרטי ההתחברות נשלחים ללא הצפנה.</string>
     <string name="playlists_title">רשימות השמעה</string>

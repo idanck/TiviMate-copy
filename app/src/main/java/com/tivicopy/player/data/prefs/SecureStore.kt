@@ -4,6 +4,7 @@ import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -20,6 +21,7 @@ import javax.crypto.spec.GCMParameterSpec
  */
 object SecureStore {
 
+    private const val TAG = "SecureStore"
     private const val KEY_ALIAS = "tivicopy.credentials.v1"
     private const val TRANSFORM = "AES/GCM/NoPadding"
     private const val IV_LENGTH = 12
@@ -34,15 +36,24 @@ object SecureStore {
 
     fun encrypt(plain: String?): String? {
         if (plain.isNullOrEmpty()) return plain
-        val secret = runCatching { key() }.getOrNull() ?: return plain
-        return runCatching {
+        val sealed = runCatching {
+            val secret = key() ?: return@runCatching null
             val cipher = Cipher.getInstance(TRANSFORM)
             cipher.init(Cipher.ENCRYPT_MODE, secret)
             val iv = cipher.iv
             val body = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
             PREFIX + Base64.encodeToString(iv + body, Base64.NO_WRAP)
-        }.getOrDefault(plain)
+        }.getOrNull()
+        if (sealed != null) return sealed
+        // Stored as typed. Settings -> About said "protected" whenever the key could be created,
+        // even after a save had just fallen back like this, so the fallback now says so there.
+        available = false
+        Log.w(TAG, "Keystore unavailable; credentials saved unencrypted")
+        return plain
     }
+
+    /** Whether [stored] came out of [encrypt] sealed, rather than saved as typed. */
+    fun isSealed(stored: String?): Boolean = stored?.startsWith(PREFIX) == true
 
     fun decrypt(stored: String?): String? {
         if (stored.isNullOrEmpty() || !stored.startsWith(PREFIX)) return stored
