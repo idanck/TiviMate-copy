@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -99,6 +100,7 @@ fun MobileRoot(
     playerOpen: Boolean,
     onPlayerOpenChange: (Boolean) -> Unit,
     inPip: Boolean,
+    numericEntry: String,
     onBrightness: (Float) -> Unit,
     onVolume: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -425,6 +427,20 @@ fun MobileRoot(
                 twoPane = twoPane,
                 modifier = Modifier.fillMaxSize(),
             )
+            // Digits from a Bluetooth remote or a keyboard, as on the television (QA-09).
+            if (numericEntry.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.channel_number_entry, numericEntry),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .safeDrawingPadding()
+                        .padding(16.dp)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = prefs.overlayOpacity))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
 
         details?.let { (channel, programme) ->
