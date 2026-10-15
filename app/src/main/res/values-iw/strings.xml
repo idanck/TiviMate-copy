@@ -402,6 +402,8 @@
     <string name="settings_featured_url">כתובת פיד המומלצים</string>
     <string name="settings_featured_url_sub">פיד JSON לשורת המומלצים במסך הבית. ריק פירושו שאין שורה.</string>
     <string name="settings_featured_refresh">רענן את פיד המומלצים עכשיו</string>
+    <string name="settings_show_home_apps">הצגת האפליקציות המותקנות במסך הבית</string>
+    <string name="settings_show_home_apps_sub">שורה של האפליקציות שמותקנות במכשיר</string>
     <string name="settings_watch_next">פרסום ב־המשך צפייה</string>
     <string name="settings_watch_next_sub">מציע ערוצים שנצפו לאחרונה במסך הבית של Google TV</string>
     <string name="settings_screensaver">שומר מסך</string>
