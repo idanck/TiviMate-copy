@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הגדרות, בקרת הורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="בקרת הורים" search="false" back="true" hint-size="390px,56px"></dc-import></div><div style="position: absolute; top: 88px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 2px"><dc-import name="PListRow" label="שינוי קוד" sub="" glyph="lock" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><div style="padding: 4px 14px 8px"><dc-import name="PField" label="קוד חדש" value="••••" placeholder="4 עד 6 ספרות" glyph="" state="focus" ltr="false" width="330" hint-size="330px,78px"></dc-import></div><dc-import name="PListRow" label="דרוש קוד לפתיחת ההגדרות" sub="" glyph="" trail="off" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="דרוש קוד לערוצים נעולים" sub="" glyph="" trail="on" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="הסתר ערוצים נעולים במקום לחסום אותם" sub="" glyph="" trail="off" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="הסרת קוד" sub="" glyph="trash" trail="none" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><span style="display: flex; gap: 8px; align-items: flex-start; padding: 6px 14px 0; font-size: 13px; line-height: 1.5; color: var(--st-ink-3)"><span style="flex: 0 0 auto; margin-top: 1px; color: var(--st-ink-3)"><dc-import name="Icon" glyph="info" size="18" hint-size="18px,18px"></dc-import></span>הקוד נשמר רק כגיבוב עם מלח ואינו ניתן לשחזור. הסרתו כאן מנקה כל נעילת ערוץ וקבוצה, כך שקוד שנשכח לעולם לא ינעל תוכן לצמיתות.</span></div><div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="settings" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

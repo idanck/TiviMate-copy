@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הודעה קצרה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
+<div style="position: absolute; bottom: 96px; left: 0; right: 0; display: flex; justify-content: center"><dc-import name="Notice" text="יחס תצוגה: מילוי" glyph="aspect" hint-size="420px,76px"></dc-import></div>
+<div style="position: absolute; top: 96px; right: var(--st-safe-x); display: flex; flex-direction: column; align-items: flex-start; gap: 18px">
+<span class="st-t-caption" style="font-size: 22px">דוגמאות נוספות</span>
+<dc-import name="Notice" text="הדוח הועתק. פרטי ההתחברות מוסתרים." glyph="check" tone="ok" hint-size="620px,76px"></dc-import>
+<dc-import name="Notice" text="נשמר [שם הקובץ]." glyph="check" tone="ok" hint-size="420px,76px"></dc-import>
+<dc-import name="Notice" text="אין מספיק מקום פנוי." glyph="alert" tone="error" hint-size="420px,76px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

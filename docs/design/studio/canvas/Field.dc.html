@@ -12,19 +12,22 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<label style="width: {{w}}; display: flex; flex-direction: column; gap: 10px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<label style="width: {{w}}; opacity: {{op}}; display: flex; flex-direction: column; gap: 10px; font-family: var(--st-font-ui); color: var(--st-ink)">
 <sc-if value="{{hasLabel}}" hint-placeholder-val="{{true}}"><span style="font-size: 22px; font-weight: 600; color: var(--st-ink-2)">{{label}}</span></sc-if>
 <span class="st-anim" style="height: 72px; box-sizing: border-box; padding: 0 22px; border-radius: var(--st-r-control); background: {{bg}}; box-shadow: {{shadow}}; color: var(--st-ink-2); display: flex; align-items: center; gap: 14px">
 <sc-if value="{{hasIcon}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="{{glyph}}" size="28" hint-size="28px,28px"></dc-import></sc-if>
-<input class="st-input" dir="{{dir}}" value="{{value}}" placeholder="{{placeholder}}" readOnly="{{yes}}" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--st-ink); font-family: var(--st-font-ui); font-size: 26px">
+<input class="st-input" disabled="{{disabled}}" dir="{{dir}}" value="{{value}}" placeholder="{{placeholder}}" readOnly="{{yes}}" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--st-ink); font-family: var(--st-font-ui); font-size: 26px">
 </span>
+<sc-if value="{{hasHelper}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 8px; font-size: 20px; color: {{hc}}"><sc-if value="{{isError}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="alert" size="22" hint-size="22px,22px"></dc-import></sc-if>{{helper}}</span></sc-if>
 </label>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"כתובת הרשימה (M3U)"},"value":{"editor":"text","default":""},"placeholder":{"editor":"text","default":"https://"},"glyph":{"editor":"text","default":""},"state":{"editor":"enum","options":["rest","focus"],"default":"rest"},"ltr":{"editor":"boolean","default":false},"width":{"editor":"int","default":760,"min":240,"max":1728},"$preview":{"width":760,"height":110}}'>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"כתובת הרשימה (M3U)"},"value":{"editor":"text","default":""},"placeholder":{"editor":"text","default":"https://"},"glyph":{"editor":"text","default":""},"state":{"editor":"enum","options":["rest","focus","error","disabled"],"default":"rest"},"helper":{"editor":"text","default":""},"ltr":{"editor":"boolean","default":false},"width":{"editor":"int","default":760,"min":240,"max":1728},"$preview":{"width":760,"height":110}}'>
 class Component extends DCLogic {
   renderVals() {
     const p = this.props;
-    const focus = (p.state || 'rest') === 'focus';
+    const st = p.state || 'rest';
+    const focus = st === 'focus', err = st === 'error';
+    const helper = p.helper || '';
     const label = p.label ?? 'כתובת הרשימה (M3U)';
     return {
       yes: true, label: label, hasLabel: label !== '',
@@ -33,7 +36,9 @@ class Component extends DCLogic {
       dir: (p.ltr === true || p.ltr === 'true') ? 'ltr' : 'rtl',
       w: (Number(p.width) || 760) + 'px',
       bg: focus ? 'var(--st-card-focus)' : 'var(--st-surface)',
-      shadow: focus ? '0 0 0 var(--st-ring) var(--st-cue)' : 'inset 0 0 0 1px var(--st-hairline)'
+      shadow: focus ? '0 0 0 var(--st-ring) var(--st-cue)' : (err ? '0 0 0 2px var(--st-error)' : 'inset 0 0 0 1px var(--st-hairline)'),
+      helper: helper, hasHelper: helper !== '', isError: err, hc: err ? 'var(--st-error)' : 'var(--st-ink-3)',
+      disabled: st === 'disabled', op: st === 'disabled' ? '0.45' : '1'
     };
   }
 }

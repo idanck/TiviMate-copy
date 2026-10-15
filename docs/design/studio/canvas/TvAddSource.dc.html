@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הוספת מנוי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<section aria-label="הוספת המנוי שלך" style="position: absolute; top: 150px; right: var(--st-safe-x); width: 1000px; display: flex; flex-direction: column; gap: 18px">
+<h1 class="st-t-title">הוספת המנוי שלך</h1>
+<span class="st-t-meta" style="font-size: 24px">האפליקציה מנגנת את המנוי שכבר יש לך. היא אינה כוללת ערוצים ואינה מציעה ספקים — הוסף רשימת השמעה או חשבון Xtream כדי להתחיל.</span>
+<div role="group" aria-label="סוג המנוי" style="display: flex; gap: 12px; margin: 6px 0">
+<dc-import name="Chip" label="חשבון Xtream Codes" hint-size="240px,52px"></dc-import>
+<dc-import name="Chip" label="רשימת השמעה M3U / M3U8" state="selected" hint-size="300px,52px"></dc-import>
+<dc-import name="Chip" label="קובץ רשימת השמעה מקומי" hint-size="300px,52px"></dc-import>
+</div>
+<dc-import name="Field" label="שם לתצוגה" value="ערוצים פתוחים בישראל" placeholder="" width="1000" hint-size="1000px,110px"></dc-import>
+<dc-import name="Field" label="כתובת רשימת ההשמעה" value="https://…/channels.m3u" ltr="true" state="focus" width="1000" hint-size="1000px,110px"></dc-import>
+<dc-import name="Field" label="כתובת לוח שידורים (XMLTV) — אופציונלי" placeholder="https://" ltr="true" width="1000" hint-size="1000px,110px"></dc-import>
+<div style="display: flex; align-items: center; gap: 16px; margin-top: 10px">
+<dc-import name="Button" label="בדיקת חיבור" glyph="network" variant="secondary" size="m" focused="false" icon-only="false" hint-size="240px,64px"></dc-import><dc-import name="Button" label="שמירה" glyph="check" variant="primary" size="m" focused="false" icon-only="false" hint-size="180px,64px"></dc-import>
+<span style="display: flex; align-items: center; gap: 10px; margin-right: 12px; font-size: 22px; color: var(--st-ok)"><dc-import name="Icon" glyph="check" size="26" hint-size="26px,26px"></dc-import>החיבור הצליח. <span class="st-num" style="color: var(--st-ink-2)">מספר חיבורים מרבי: [n]</span></span>
+</div>
+</section>
+<aside class="st-panel" style="position: absolute; top: 150px; left: var(--st-safe-x); width: 580px; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 14px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 600"><dc-import name="Icon" glyph="lock" size="26" hint-size="26px,26px"></dc-import>פורמט השידור</span>
+<dc-import name="ListRow" label="MPEG-TS" sub="ההשהיה הנמוכה ביותר" glyph="" trail="check" value="" tone="muted" num="" state="selected" width="516" hint-size="516px,92px"></dc-import><dc-import name="ListRow" label="HLS" sub="עדיף ברשתות לא יציבות" glyph="" trail="none" value="" tone="muted" num="" state="rest" width="516" hint-size="516px,92px"></dc-import>
+<span class="st-t-caption" style="display: flex; gap: 10px; margin-top: 8px"><span style="color: var(--st-error); flex: 0 0 auto"><dc-import name="Icon" glyph="alert" size="22" hint-size="22px,22px"></dc-import></span>כשהכתובת היא HTTP רגיל: פרטי ההתחברות נשלחים ללא הצפנה.</span>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

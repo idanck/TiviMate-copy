@@ -15,6 +15,10 @@
    "name": "טלוויזיה · מסכים"
   },
   {
+   "id": "screens-more",
+   "name": "טלוויזיה · מסכים משלימים"
+  },
+  {
    "id": "components",
    "name": "טלוויזיה · רכיבים"
   },
@@ -25,6 +29,10 @@
   {
    "id": "phone-screens",
    "name": "טלפון · מסכים"
+  },
+  {
+   "id": "phone-screens-more",
+   "name": "טלפון · מסכים משלימים"
   },
   {
    "id": "phone-components",
@@ -376,12 +384,625 @@
    "h": 760,
    "title": "יסודות — טלפון",
    "page": "phone-foundations"
+  },
+  "HomeRails.dc.html": {
+   "x": 2000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "בית — מדפים (אחרי גלילה)",
+   "page": "screens"
+  },
+  "Channels.dc.html": {
+   "x": 4000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "ערוצים",
+   "page": "screens"
+  },
+  "PlayerTransport.dc.html": {
+   "x": 0,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "בתוך ערוץ — OK: פס שליטה",
+   "page": "screens"
+  },
+  "PlayerDetails.dc.html": {
+   "x": 2000,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "בתוך ערוץ — פרטי תוכנית והקלטה",
+   "page": "screens"
+  },
+  "PlayerMenu.dc.html": {
+   "x": 4000,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "בתוך ערוץ — לחיצה ארוכה על OK: אפשרויות",
+   "page": "screens"
+  },
+  "TvPin.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "קוד הורים",
+   "page": "screens-more"
+  },
+  "TvReconnect.dc.html": {
+   "x": 2000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "נגן — מתחבר מחדש",
+   "page": "screens-more"
+  },
+  "TvPlayError.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "נגן — שגיאה",
+   "page": "screens-more"
+  },
+  "TvUpdatePrompt.dc.html": {
+   "x": 6000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "יש עדכון",
+   "page": "screens-more"
+  },
+  "TvAddSource.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "הוספת מנוי",
+   "page": "screens-more"
+  },
+  "TvChannelMenu.dc.html": {
+   "x": 2000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "תפריט ערוץ",
+   "page": "screens-more"
+  },
+  "TvSearch.dc.html": {
+   "x": 4000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "חיפוש",
+   "page": "screens-more"
+  },
+  "TvVod.dc.html": {
+   "x": 6000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "VOD",
+   "page": "screens-more"
+  },
+  "TvSettingsSources.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — רשימות ולוח שידורים",
+   "page": "screens-more"
+  },
+  "TvSettingsParental.dc.html": {
+   "x": 2000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — בקרת הורים",
+   "page": "screens-more"
+  },
+  "TvSettingsUpdates.dc.html": {
+   "x": 4000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — עדכונים",
+   "page": "screens-more"
+  },
+  "Loader.dc.html": {
+   "x": 3620,
+   "y": 1252,
+   "w": 64,
+   "h": 64,
+   "title": "טעינה · Loader",
+   "page": "components"
+  },
+  "TvSettingsRecording.dc.html": {
+   "x": 6000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — הקלטה",
+   "page": "screens-more"
+  },
+  "TvSettingsBackup.dc.html": {
+   "x": 0,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — גיבוי ושחזור",
+   "page": "screens-more"
+  },
+  "TvSettingsDiagnostics.dc.html": {
+   "x": 2000,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — אבחון",
+   "page": "screens-more"
+  },
+  "PPin.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "קוד הורים",
+   "page": "phone-screens-more"
+  },
+  "PReconnect.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "נגן — מתחבר מחדש",
+   "page": "phone-screens-more"
+  },
+  "PPlayError.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "נגן — שגיאה",
+   "page": "phone-screens-more"
+  },
+  "PUpdatePrompt.dc.html": {
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "יש עדכון",
+   "page": "phone-screens-more"
+  },
+  "PAddSource.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "הוספת מנוי",
+   "page": "phone-screens-more"
+  },
+  "PChannelMenu.dc.html": {
+   "x": 2350,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "תפריט ערוץ",
+   "page": "phone-screens-more"
+  },
+  "PSearch.dc.html": {
+   "x": 2820,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "חיפוש",
+   "page": "phone-screens-more"
+  },
+  "PVod.dc.html": {
+   "x": 0,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "VOD",
+   "page": "phone-screens-more"
+  },
+  "PSettingsSources.dc.html": {
+   "x": 470,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — רשימות ולוח שידורים",
+   "page": "phone-screens-more"
+  },
+  "PSettingsParental.dc.html": {
+   "x": 940,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — בקרת הורים",
+   "page": "phone-screens-more"
+  },
+  "PSettingsUpdates.dc.html": {
+   "x": 1410,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — עדכונים",
+   "page": "phone-screens-more"
+  },
+  "PSettingsRecording.dc.html": {
+   "x": 1880,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — הקלטה",
+   "page": "phone-screens-more"
+  },
+  "PSettingsBackup.dc.html": {
+   "x": 2350,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — גיבוי ושחזור",
+   "page": "phone-screens-more"
+  },
+  "PSettingsDiagnostics.dc.html": {
+   "x": 2820,
+   "y": 964,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — אבחון",
+   "page": "phone-screens-more"
+  },
+  "PField.dc.html": {
+   "x": 1880,
+   "y": 456,
+   "w": 358,
+   "h": 78,
+   "title": "שדה · PField",
+   "page": "phone-components"
+  },
+  "MaterialMap.dc.html": {
+   "x": 0,
+   "y": 2640,
+   "w": 1920,
+   "h": 1780,
+   "title": "רכיבי בסיס — במקום Material",
+   "page": "components"
+  },
+  "Toggle.dc.html": {
+   "x": 2000,
+   "y": 1700,
+   "w": 64,
+   "h": 36,
+   "title": "מתג · Toggle",
+   "page": "components"
+  },
+  "Segmented.dc.html": {
+   "x": 2144,
+   "y": 1700,
+   "w": 420,
+   "h": 64,
+   "title": "בחירה מקטעית · Segmented",
+   "page": "components"
+  },
+  "Dialog.dc.html": {
+   "x": 2000,
+   "y": 1900,
+   "w": 900,
+   "h": 340,
+   "title": "חלון דו־שיח · Dialog",
+   "page": "components"
+  },
+  "PMaterialMap.dc.html": {
+   "x": 0,
+   "y": 1260,
+   "w": 1280,
+   "h": 1000,
+   "title": "רכיבי בסיס — במקום Material",
+   "page": "phone-components"
+  },
+  "PToggle.dc.html": {
+   "x": 1880,
+   "y": 620,
+   "w": 44,
+   "h": 26,
+   "title": "מתג · PToggle",
+   "page": "phone-components"
+  },
+  "PDialog.dc.html": {
+   "x": 1880,
+   "y": 720,
+   "w": 342,
+   "h": 220,
+   "title": "חלון דו־שיח · PDialog",
+   "page": "phone-components"
+  },
+  "TvChannelAdvanced.dc.html": {
+   "x": 4000,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "לוח שידורים ופענוח",
+   "page": "screens-more"
+  },
+  "TvGuideMap.dc.html": {
+   "x": 6000,
+   "y": 3600,
+   "w": 1920,
+   "h": 1080,
+   "title": "שיוך ללוח שידורים",
+   "page": "screens-more"
+  },
+  "TvUpdateDownloading.dc.html": {
+   "x": 0,
+   "y": 4800,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוריד עדכון",
+   "page": "screens-more"
+  },
+  "TvUpdatePermission.dc.html": {
+   "x": 2000,
+   "y": 4800,
+   "w": 1920,
+   "h": 1080,
+   "title": "אישור התקנה",
+   "page": "screens-more"
+  },
+  "PChannelAdvanced.dc.html": {
+   "x": 0,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "לוח שידורים ופענוח",
+   "page": "phone-screens-more"
+  },
+  "PGuideMap.dc.html": {
+   "x": 470,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "שיוך ללוח שידורים",
+   "page": "phone-screens-more"
+  },
+  "PUpdateDownloading.dc.html": {
+   "x": 940,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "מוריד עדכון",
+   "page": "phone-screens-more"
+  },
+  "PUpdatePermission.dc.html": {
+   "x": 1410,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "אישור התקנה",
+   "page": "phone-screens-more"
+  },
+  "IconSet.dc.html": {
+   "x": 0,
+   "y": 4540,
+   "w": 1920,
+   "h": 1240,
+   "title": "סט האייקונים — במקום Material Icons",
+   "page": "components"
+  },
+  "PIconSet.dc.html": {
+   "x": 0,
+   "y": 2380,
+   "w": 1280,
+   "h": 1160,
+   "title": "סט האייקונים — טלפון",
+   "page": "phone-components"
+  },
+  "ColorRules.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1300,
+   "title": "שימוש בצבע",
+   "page": "foundations"
+  },
+  "PColorRules.dc.html": {
+   "x": 0,
+   "y": 880,
+   "w": 1280,
+   "h": 1180,
+   "title": "שימוש בצבע — טלפון",
+   "page": "phone-foundations"
+  },
+  "TvFilmstrip.dc.html": {
+   "x": 4000,
+   "y": 4800,
+   "w": 1920,
+   "h": 1080,
+   "title": "רצועת ערוצים (במקום המיני-מדריך)",
+   "page": "screens-more"
+  },
+  "TvHomeApps.dc.html": {
+   "x": 6000,
+   "y": 4800,
+   "w": 1920,
+   "h": 1080,
+   "title": "בית — שורת אפליקציות",
+   "page": "screens-more"
+  },
+  "TvChannelEdit.dc.html": {
+   "x": 0,
+   "y": 6000,
+   "w": 1920,
+   "h": 1080,
+   "title": "עריכת ערוץ",
+   "page": "screens-more"
+  },
+  "TvGroups.dc.html": {
+   "x": 2000,
+   "y": 6000,
+   "w": 1920,
+   "h": 1080,
+   "title": "קבוצות",
+   "page": "screens-more"
+  },
+  "TvGroupMenu.dc.html": {
+   "x": 4000,
+   "y": 6000,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרויות קבוצה",
+   "page": "screens-more"
+  },
+  "TvGroupNew.dc.html": {
+   "x": 6000,
+   "y": 6000,
+   "w": 1920,
+   "h": 1080,
+   "title": "קבוצה חדשה",
+   "page": "screens-more"
+  },
+  "TvNotice.dc.html": {
+   "x": 0,
+   "y": 7200,
+   "w": 1920,
+   "h": 1080,
+   "title": "הודעה קצרה",
+   "page": "screens-more"
+  },
+  "TvEmptyChannels.dc.html": {
+   "x": 2000,
+   "y": 7200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מצב ריק — אין ערוצים",
+   "page": "screens-more"
+  },
+  "TvEmptyHidden.dc.html": {
+   "x": 4000,
+   "y": 7200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מצב ריק — אין ערוצים מוסתרים",
+   "page": "screens-more"
+  },
+  "TvGuideNoData.dc.html": {
+   "x": 6000,
+   "y": 7200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מדריך — ערוץ בלי לוח שידורים",
+   "page": "screens-more"
+  },
+  "PChannelEdit.dc.html": {
+   "x": 1880,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "עריכת ערוץ",
+   "page": "phone-screens-more"
+  },
+  "PGroups.dc.html": {
+   "x": 2350,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "קבוצות",
+   "page": "phone-screens-more"
+  },
+  "PGroupMenu.dc.html": {
+   "x": 2820,
+   "y": 1928,
+   "w": 390,
+   "h": 844,
+   "title": "אפשרויות קבוצה",
+   "page": "phone-screens-more"
+  },
+  "PGroupNew.dc.html": {
+   "x": 0,
+   "y": 2892,
+   "w": 390,
+   "h": 844,
+   "title": "קבוצה חדשה",
+   "page": "phone-screens-more"
+  },
+  "PNoticeBoard.dc.html": {
+   "x": 470,
+   "y": 2892,
+   "w": 390,
+   "h": 844,
+   "title": "הודעה קצרה",
+   "page": "phone-screens-more"
+  },
+  "PEmptyChannels.dc.html": {
+   "x": 940,
+   "y": 2892,
+   "w": 390,
+   "h": 844,
+   "title": "מצב ריק — אין ערוצים",
+   "page": "phone-screens-more"
+  },
+  "PEmptyHidden.dc.html": {
+   "x": 1410,
+   "y": 2892,
+   "w": 390,
+   "h": 844,
+   "title": "מצב ריק — אין ערוצים מוסתרים",
+   "page": "phone-screens-more"
+  },
+  "PGuideNoData.dc.html": {
+   "x": 1880,
+   "y": 2892,
+   "w": 390,
+   "h": 844,
+   "title": "מדריך — ערוץ בלי לוח שידורים",
+   "page": "phone-screens-more"
+  },
+  "Notice.dc.html": {
+   "x": 2000,
+   "y": 2300,
+   "w": 420,
+   "h": 76,
+   "title": "הודעה קצרה · Notice",
+   "page": "components"
+  },
+  "EmptyState.dc.html": {
+   "x": 2520,
+   "y": 2300,
+   "w": 760,
+   "h": 380,
+   "title": "מצב ריק · EmptyState",
+   "page": "components"
+  },
+  "PNotice.dc.html": {
+   "x": 1880,
+   "y": 1000,
+   "w": 260,
+   "h": 46,
+   "title": "הודעה קצרה · PNotice",
+   "page": "phone-components"
+  },
+  "PEmptyState.dc.html": {
+   "x": 1880,
+   "y": 1100,
+   "w": 300,
+   "h": 240,
+   "title": "מצב ריק · PEmptyState",
+   "page": "phone-components"
   }
  },
  "order": [
   "Main.dc.html",
   "MainMenu.dc.html",
   "MainRail.dc.html",
+  "HomeRails.dc.html",
+  "Channels.dc.html",
+  "PlayerMenu.dc.html",
+  "PlayerDetails.dc.html",
+  "PlayerTransport.dc.html",
   "Live.dc.html",
   "Guide.dc.html",
   "Radio.dc.html",
@@ -420,7 +1041,78 @@
   "PButton.dc.html",
   "PChip.dc.html",
   "PGuideCell.dc.html",
-  "PStyle.dc.html"
+  "PStyle.dc.html",
+  "TvPin.dc.html",
+  "TvReconnect.dc.html",
+  "TvPlayError.dc.html",
+  "TvUpdatePrompt.dc.html",
+  "TvAddSource.dc.html",
+  "TvChannelMenu.dc.html",
+  "TvSearch.dc.html",
+  "TvVod.dc.html",
+  "TvSettingsSources.dc.html",
+  "TvSettingsParental.dc.html",
+  "TvSettingsUpdates.dc.html",
+  "Loader.dc.html",
+  "TvSettingsRecording.dc.html",
+  "TvSettingsBackup.dc.html",
+  "TvSettingsDiagnostics.dc.html",
+  "PPin.dc.html",
+  "PReconnect.dc.html",
+  "PPlayError.dc.html",
+  "PUpdatePrompt.dc.html",
+  "PAddSource.dc.html",
+  "PChannelMenu.dc.html",
+  "PSearch.dc.html",
+  "PVod.dc.html",
+  "PSettingsSources.dc.html",
+  "PSettingsParental.dc.html",
+  "PSettingsUpdates.dc.html",
+  "PSettingsRecording.dc.html",
+  "PSettingsBackup.dc.html",
+  "PSettingsDiagnostics.dc.html",
+  "PField.dc.html",
+  "MaterialMap.dc.html",
+  "Toggle.dc.html",
+  "Segmented.dc.html",
+  "Dialog.dc.html",
+  "PMaterialMap.dc.html",
+  "PToggle.dc.html",
+  "PDialog.dc.html",
+  "TvChannelAdvanced.dc.html",
+  "TvGuideMap.dc.html",
+  "TvUpdateDownloading.dc.html",
+  "TvUpdatePermission.dc.html",
+  "PChannelAdvanced.dc.html",
+  "PGuideMap.dc.html",
+  "PUpdateDownloading.dc.html",
+  "PUpdatePermission.dc.html",
+  "IconSet.dc.html",
+  "PIconSet.dc.html",
+  "ColorRules.dc.html",
+  "PColorRules.dc.html",
+  "TvFilmstrip.dc.html",
+  "TvHomeApps.dc.html",
+  "TvChannelEdit.dc.html",
+  "TvGroups.dc.html",
+  "TvGroupMenu.dc.html",
+  "TvGroupNew.dc.html",
+  "TvNotice.dc.html",
+  "TvEmptyChannels.dc.html",
+  "TvEmptyHidden.dc.html",
+  "TvGuideNoData.dc.html",
+  "PChannelEdit.dc.html",
+  "PGroups.dc.html",
+  "PGroupMenu.dc.html",
+  "PGroupNew.dc.html",
+  "PNoticeBoard.dc.html",
+  "PEmptyChannels.dc.html",
+  "PEmptyHidden.dc.html",
+  "PGuideNoData.dc.html",
+  "Notice.dc.html",
+  "EmptyState.dc.html",
+  "PNotice.dc.html",
+  "PEmptyState.dc.html"
  ],
  "notes": {},
  "designSystems": []

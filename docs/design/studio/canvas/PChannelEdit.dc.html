@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — עריכת ערוץ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="עריכת ערוץ" search="false" back="true" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 84px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 12px">
+<span class="st-t-caption" style="padding: 0 2px">ערוץ 13</span>
+<dc-import name="PField" label="שם" value="ערוץ 13" placeholder="" glyph="" state="rest" ltr="false" width="358" hint-size="358px,78px"></dc-import><dc-import name="PField" label="כתובת הלוגו" value="" placeholder="https://" glyph="" state="rest" ltr="true" width="358" hint-size="358px,78px"></dc-import><dc-import name="PField" label="מספר ערוץ" value="13" placeholder="" glyph="" state="focus" ltr="false" width="160" hint-size="160px,78px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: 2px; margin-top: 4px"><dc-import name="PListRow" label="קבוצה" sub="ללא קבוצה" glyph="" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="בטל את השינויים שלי בערוץ הזה" sub="" glyph="restart" trail="none" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import></div>
+</div>
+<div style="position: absolute; bottom: 24px; right: var(--st-safe-x); width: 358px; display: flex; gap: 10px"><dc-import name="PButton" label="ביטול" glyph="" variant="ghost" size="l" icon-only="false" hint-size="120px,48px"></dc-import><div style="flex: 1 1 auto; display: flex"><dc-import name="PButton" label="שמירה" glyph="check" variant="primary" size="l" icon-only="false" hint-size="228px,48px"></dc-import></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

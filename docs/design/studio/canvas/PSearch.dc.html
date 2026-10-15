@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — חיפוש</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+
+<div style="position: absolute; top: var(--st-safe-top); right: 6px; left: var(--st-safe-x); height: 56px; display: flex; align-items: center; gap: 6px">
+<button aria-label="חזרה" style="flex: 0 0 var(--st-touch); width: var(--st-touch); height: var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="back" size="24" hint-size="24px,24px"></dc-import></button>
+<dc-import name="PField" label="" value="חדשות" placeholder="חיפוש" glyph="search" state="focus" ltr="false" width="318" hint-size="318px,78px"></dc-import>
+</div>
+<div style="position: absolute; top: 92px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 2px">
+<span class="st-t-caption" style="padding: 0 14px 4px">3 תוצאות</span>
+<h3 style="margin: 4px 0 2px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--st-ink-2)">מדריך</h3><dc-import name="PListRow" label="מהדורת החדשות המרכזית" sub="קשת 12 · היום 20:00–21:30" glyph="guide" trail="status" value="עכשיו" tone="tally" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="מהדורה בערבית" sub="מכאן 33 · היום 20:45–21:30" glyph="guide" trail="status" value="עכשיו" tone="tally" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="מהדורת לילה" sub="ערוץ 14 · היום 22:00–23:00" glyph="guide" trail="value" value="בעוד שעה" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import>
+<span class="st-t-caption" style="padding: 14px 14px 0">אין ערוצים שהשם שלהם מתאים.</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

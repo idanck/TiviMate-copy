@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — בית, מדפים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="--st-inset-start: calc(var(--st-w-rail) + 48px)">
+
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.82); pointer-events: none"></div>
+<div class="st-scrim-top"></div>
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+
+<div style="position: absolute; top: 140px; left: 0; right: 0; display: flex; flex-direction: column; gap: 16px">
+<sc-for list="{{rails}}" as="rail" hint-placeholder-count="3">
+<section aria-label="{{rail.title}}" style="display: flex; flex-direction: column">
+<div style="padding: 0 var(--st-inset-start) 0 var(--st-safe-x); display: flex; align-items: baseline; gap: 18px; margin-bottom: 18px">
+<h2 class="st-t-h1">{{rail.title}}</h2>
+<span class="st-t-caption">{{rail.caption}}</span>
+</div>
+<div style="display: flex; gap: var(--st-gap-rail); padding: 28px var(--st-inset-start) 28px var(--st-safe-x); margin-top: -28px; margin-bottom: -28px; overflow: hidden">
+<sc-for list="{{rail.cards}}" as="c" hint-placeholder-count="6">
+<div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{c}}" state="{{c.state}}" hint-size="320px,262px"></dc-import></div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="SideMenu" open="false" current="home" focus="" hint-size="112px,1080px"></dc-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (label, num, now, time, pct, state) => ({ label: label, num: num, now: now, time: time, pct: pct, state: state || 'rest' });
+    return {
+      rails: [
+        { title: 'המשך צפייה', caption: 'הערוצים שצפית בהם לאחרונה', cards: [
+          c('כאן 11', '11', 'סרט תעודה', '20:15–21:45', 45, 'focus'),
+          c('ערוץ 14', '14', 'פאנל ערב', '20:30–22:00', 29),
+          c('כאן חינוכית', '23', 'סדרת נוער', '20:30–21:00', 87),
+          c('מכאן 33', '33', 'מהדורה בערבית', '20:45–21:30', 24),
+          c('ערוץ הכנסת', '99', 'דיון במליאה', '19:00–23:00', 48),
+          c('ערוץ 13', '13', 'תוכנית אירוח', '20:00–21:00', 93)
+        ] },
+        { title: 'מתחיל בקרוב', caption: 'בשעה הקרובה', cards: [
+          c('ערוץ 13', '13', 'תחקיר', '21:00 · בעוד 4 דק׳', ''),
+          c('כאן חינוכית', '23', 'סדרת דרמה', '21:00 · בעוד 4 דק׳', ''),
+          c('קשת 12', '12', 'מגזין ערב', '21:30 · בעוד 34 דק׳', ''),
+          c('מכאן 33', '33', 'סדרה', '21:30 · בעוד 34 דק׳', ''),
+          c('כאן 11', '11', 'סרט עלילתי', '21:45 · בעוד 49 דק׳', ''),
+          c('ערוץ 14', '14', 'מהדורת לילה', '22:00 · בעוד שעה', '')
+        ] },
+        { title: 'ערוצים', caption: 'ערוצים פתוחים בישראל', cards: [
+          c('כאן 11', '11', 'סרט תעודה', '20:15–21:45', 45),
+          c('קשת 12', '12', 'מהדורת החדשות המרכזית', '20:00–21:30', 62, 'onscreen'),
+          c('ערוץ 13', '13', 'תוכנית אירוח', '20:00–21:00', 93),
+          c('ערוץ 14', '14', 'פאנל ערב', '20:30–22:00', 29),
+          c('כאן חינוכית', '23', 'סדרת נוער', '20:30–21:00', 87),
+          c('מכאן 33', '33', 'מהדורה בערבית', '20:45–21:30', 24)
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

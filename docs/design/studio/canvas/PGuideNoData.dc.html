@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — מדריך, ערוץ בלי לוח שידורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="מדריך" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 96px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<div style="display: flex; gap: 8px; height: 52px">
+<div style="flex: 0 0 64px; height: 52px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; background: var(--st-surface); display: flex; flex-direction: column; justify-content: center; gap: 2px"><span class="st-num" style="font-size: 11px; font-weight: 600; color: var(--st-ink-3)">{{r.num}}</span><span style="font-size: 12px; font-weight: 600; line-height: 1.15">{{r.name}}</span></div>
+<div style="position: relative; flex: 0 0 286px; height: 52px">
+<sc-if value="{{r.empty}}" hint-placeholder-val="{{false}}"><div style="position: absolute; inset: 0; border-radius: 8px; background: repeating-linear-gradient(-45deg, var(--st-past) 0 10px, var(--st-surface) 10px 20px); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); display: flex; align-items: center; padding: 0 12px; font-size: 13px; color: var(--st-ink-3)">אין נתוני לוח שידורים</div></sc-if>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="2"><div style="position: absolute; top: 0; right: {{c.right}}"><dc-import name="PGuideCell" item="{{c}}" state="{{c.state}}" width="{{c.width}}" hint-size="120px,52px"></dc-import></div></sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="guide" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {"rows": [{"name": "כאן 11", "num": "11", "cells": [{"title": "סרט תעודה", "time": "20:15–21:45", "right": "0px", "width": 234, "state": "airing"}, {"title": "סרט עלילתי", "time": "21:45–23:30", "right": "238px", "width": 44, "state": "future"}], "empty": false}, {"name": "קשת 12", "num": "12", "cells": [], "empty": true}, {"name": "ערוץ 13", "num": "13", "cells": [{"title": "תוכנית אירוח", "time": "20:00–21:00", "right": "0px", "width": 91, "state": "airing"}, {"title": "תחקיר", "time": "21:00–22:15", "right": "95px", "width": 187, "state": "future"}], "empty": false}, {"name": "ערוץ הכנסת", "num": "99", "cells": [], "empty": true}]}; }
+}
+</script>
+</body>
+</html>

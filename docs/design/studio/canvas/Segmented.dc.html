@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — בחירה מקטעית</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div role="radiogroup" aria-label="{{label}}" style="display: inline-flex; gap: 4px; padding: 4px; border-radius: {{r}}; background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-family: var(--st-font-ui)">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="3">
+<button role="radio" aria-checked="{{o.aria}}" class="st-anim" style="height: {{h}}; padding: 0 {{px}}; border: 0; border-radius: {{ri}}; background: {{o.bg}}; color: {{o.fg}}; box-shadow: {{o.shadow}}; font-family: var(--st-font-ui); font-size: {{fs}}; font-weight: {{o.fw}}; white-space: nowrap; cursor: pointer">{{o.t}}</button>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"options":{"editor":"text","default":"אוטומטי|חומרה|תוכנה"},"selected":{"editor":"int","default":0,"min":0,"max":6},"focus":{"editor":"int","default":-1,"min":-1,"max":6},"size":{"editor":"enum","options":["tv","phone"],"default":"tv"},"label":{"editor":"text","default":""},"$preview":{"width":420,"height":64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tv = (this.props.size || 'tv') === 'tv';
+    const sel = Number(this.props.selected ?? 0), foc = Number(this.props.focus ?? -1);
+    const opts = String(this.props.options || 'אוטומטי|חומרה|תוכנה').split('|').map((t, i) => {
+      const s = i === sel, f = i === foc;
+      return { t: t, aria: s ? 'true' : 'false',
+        bg: f ? 'var(--st-cue)' : (s ? 'var(--st-ink)' : 'transparent'),
+        fg: f ? 'var(--st-on-cue)' : (s ? 'var(--st-ground)' : 'var(--st-ink-2)'),
+        shadow: f ? 'var(--st-lift)' : 'none', fw: s || f ? '700' : '500' };
+    });
+    return { opts: opts, label: this.props.label || '', h: tv ? '56px' : '32px', px: tv ? '28px' : '14px', fs: tv ? '22px' : '14px', r: tv ? '14px' : '12px', ri: tv ? '10px' : '9px' };
+  }
+}
+</script>
+</body>
+</html>

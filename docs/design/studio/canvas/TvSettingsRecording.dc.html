@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הגדרות, הקלטה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<nav aria-label="סעיפי הגדרות" style="position: absolute; top: 160px; right: var(--st-safe-x); width: 560px; height: 866px; box-sizing: border-box; padding: 20px 16px; border-radius: var(--st-r-panel); background: var(--st-surface); display: flex; flex-direction: column; gap: 4px">
+<h1 class="st-t-title-s" style="padding: 0 12px 16px">הגדרות</h1>
+<dc-import name="ListRow" label="רשימות ולוח שידורים" sub="" glyph="tv" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="ניגון" sub="" glyph="play" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="מראה" sub="" glyph="appearance" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="רשת" sub="" glyph="network" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="הקלטה" sub="" glyph="record" trail="chevron" value="" tone="muted" num="" state="selected" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="בקרת הורים" sub="" glyph="lock" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="גיבוי ושחזור" sub="" glyph="backup" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="אבחון" sub="" glyph="pulse" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="אודות" sub="" glyph="info" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import>
+</nav>
+<section aria-label="הקלטה" style="position: absolute; top: 160px; right: 712px; width: 1112px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 14px">
+<h2 class="st-t-h1">הקלטה</h2>
+<span class="st-t-caption">הגדרות › הקלטה</span>
+</div>
+<dc-import name="ListRow" label="תיקיית ההקלטות" sub="[נתיב התיקייה במכשיר]" glyph="storage" trail="chevron" value="" tone="muted" num="" state="rest" width="1112" hint-size="1112px,92px"></dc-import><dc-import name="ListRow" label="ריפוד" sub="" glyph="" trail="value" value="2 דק׳ לפני, 5 דק׳ אחרי" tone="muted" num="" state="focus" width="1112" hint-size="1112px,72px"></dc-import><dc-import name="ListRow" label="הקלטות מקבילות" sub="" glyph="" trail="value" value="[מגבלה]" tone="muted" num="" state="rest" width="1112" hint-size="1112px,72px"></dc-import><div class="st-card" style="margin: 14px 0 6px; padding: 20px 24px; display: flex; gap: 16px; align-items: flex-start; box-shadow: inset 0 0 0 1px var(--st-hairline)">
+<span style="color: var(--st-error); flex: 0 0 auto"><dc-import name="Icon" glyph="alert" size="28" hint-size="28px,28px"></dc-import></span>
+<span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 22px; font-weight: 600">התראות מדויקות אינן מורשות</span><span class="st-t-meta">אנדרואיד עלול למנוע את תחילת ההקלטה כשהאפליקציה סגורה. אשר "התראות ותזכורות" בהגדרות המערכת כדי לתקן.</span></span>
+<dc-import name="Button" label="הגדרות המערכת" glyph="settings" variant="secondary" size="m" focused="false" icon-only="false" hint-size="260px,64px"></dc-import>
+</div><span class="st-t-caption" style="display: flex; gap: 10px; align-items: flex-start; padding: 6px 24px 0; line-height: 1.5"><span style="flex: 0 0 auto; margin-top: 2px; color: var(--st-ink-3)"><dc-import name="Icon" glyph="info" size="22" hint-size="22px,22px"></dc-import></span>הקלטה תופסת אחד מחיבורי הספק שלך לכל משך ההקלטה.</span><span class="st-t-caption" style="display: flex; gap: 10px; align-items: flex-start; padding: 6px 24px 0; line-height: 1.5"><span style="flex: 0 0 auto; margin-top: 2px; color: var(--st-ink-3)"><dc-import name="Icon" glyph="alert" size="22" hint-size="22px,22px"></dc-import></span>אנדרואיד אינו יכול להדליק את המכשיר בעצמו. השאר אותו דלוק (מצב המתנה בסדר) אחרת ההקלטה תוחמץ.</span>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — בתוך ערוץ, אפשרויות נגינה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.55); pointer-events: none"></div>
+<section aria-label="אפשרויות נגינה" style="position: absolute; top: 0; left: 0; width: 620px; height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) 56px var(--st-safe-y) var(--st-safe-x); background: var(--st-drawer); box-shadow: 1px 0 0 var(--st-hairline), 40px 0 90px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 6px">
+<h1 class="st-t-title-s" style="padding: 10px 24px 4px">אפשרויות</h1>
+<span class="st-t-caption" style="padding: 0 24px 20px">ערוץ 13 · תוכנית אירוח</span>
+<dc-import name="ListRow" label="פרטי התוכנית והקלטה" glyph="info" trail="chevron" width="468" hint-size="468px,72px"></dc-import>
+<dc-import name="ListRow" label="השהה" glyph="pause" trail="none" width="468" hint-size="468px,72px"></dc-import>
+<dc-import name="ListRow" label="ערוץ שמע" glyph="audio" trail="value" value="[שם הרצועה]" width="468" hint-size="468px,72px"></dc-import>
+<dc-import name="ListRow" label="כתוביות" glyph="subtitles" trail="value" value="כבוי" state="focus" width="468" hint-size="468px,72px"></dc-import>
+<dc-import name="ListRow" label="יחס תצוגה" glyph="aspect" trail="value" value="התאמה" width="468" hint-size="468px,72px"></dc-import>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

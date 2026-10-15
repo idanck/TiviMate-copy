@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — חלון דו־שיח</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<section role="{{role}}" aria-label="{{title}}" class="st-panel" style="width: {{w}}; box-sizing: border-box; padding: {{pad}}; display: flex; flex-direction: column; gap: {{gap}}; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div style="display: flex; align-items: center; gap: {{gap}}">
+<sc-if value="{{hasGlyph}}" hint-placeholder-val="{{true}}"><span style="flex: 0 0 {{ic}}; width: {{ic}}; height: {{ic}}; border-radius: 50%; background: var(--st-card); color: {{gc}}; display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="{{glyph}}" size="{{isz}}" hint-size="28px,28px"></dc-import></span></sc-if>
+<h2 style="margin: 0; font-size: {{tfs}}; font-weight: 700; line-height: 1.25">{{title}}</h2>
+</div>
+<sc-if value="{{hasBody}}" hint-placeholder-val="{{true}}"><p style="margin: 0; font-size: {{bfs}}; line-height: 1.5; color: var(--st-ink-2)">{{body}}</p></sc-if>
+<sc-if value="{{hasNote}}" hint-placeholder-val="{{false}}"><span dir="auto" style="font-size: {{nfs}}; line-height: 1.5; color: var(--st-ink-3)">{{note}}</span></sc-if>
+<div style="display: flex; flex-wrap: wrap; gap: {{bgap}}; margin-top: {{bmt}}; justify-content: {{justify}}">
+<sc-for list="{{actions}}" as="a" hint-placeholder-count="2">
+<dc-import name="PButton" label="{{a.label}}" glyph="" variant="{{a.variant}}" focused="{{a.focused}}" size="{{bsize}}" hint-size="200px,64px"></dc-import>
+</sc-for>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"למחוק את הקבוצה?"},"body":{"editor":"text","default":""},"note":{"editor":"text","default":""},"glyph":{"editor":"text","default":"info"},"tone":{"editor":"enum","options":["default","danger"],"default":"default"},"primary":{"editor":"text","default":"אישור"},"secondary":{"editor":"text","default":"ביטול"},"tertiary":{"editor":"text","default":""},"focus":{"editor":"enum","options":["primary","secondary","tertiary"],"default":"primary"},"width":{"editor":"int","default":342,"min":240,"max":1400},"$preview":{"width":342,"height":220}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const PH = true;
+    const danger = p.tone === 'danger';
+    const focus = p.focus || 'primary';
+    const acts = [['primary', p.primary ?? 'אישור'], ['secondary', p.secondary ?? 'ביטול'], ['tertiary', p.tertiary || '']].filter((a) => a[1]);
+    return {
+      role: danger ? 'alertdialog' : 'dialog', title: p.title ?? 'למחוק את הקבוצה?', body: p.body ?? '', note: p.note || '',
+      hasBody: !!(p.body ?? ''), hasNote: !!p.note, glyph: p.glyph ?? 'info', hasGlyph: !!(p.glyph ?? 'info'),
+      gc: danger ? 'var(--st-error)' : 'var(--st-ink)',
+      w: (Number(p.width) || (PH ? 342 : 900)) + 'px',
+      btn: PH ? 'PButton' : 'Button', bsize: PH ? 'l' : 'm',
+      pad: PH ? '22px 20px 18px' : '44px 52px', gap: PH ? '12px' : '18px', ic: PH ? '40px' : '64px', isz: PH ? 22 : 32,
+      tfs: PH ? '20px' : '36px', bfs: PH ? '14px' : '24px', nfs: PH ? '13px' : '20px', bgap: PH ? '8px' : '16px', bmt: PH ? '8px' : '18px',
+      justify: PH ? 'flex-end' : 'flex-start',
+      actions: acts.map((a, i) => ({
+        label: a[1],
+        focused: !PH && a[0] === focus,
+        variant: i === 0 ? (danger ? 'danger' : (PH ? 'primary' : 'primary')) : 'ghost'
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

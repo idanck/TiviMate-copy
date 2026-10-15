@@ -1,93 +1,231 @@
 # אולפן — החלפת שפת העיצוב בקוד
 
-מסמך העברה לסשן שמבצע את ההחלפה (Cowork או Claude Code). הוא נכתב בסוף סשן העיצוב, כדי שהסשן הבא יתחיל עם כל ההקשר.
+מסמך העברה לסשנים שמממשים את העיצוב (Claude Code). הוא נכתב בסוף סשני העיצוב, כדי שכל סשן יתחיל עם כל ההקשר.
 
 **לפני כל דבר אחר: לקרוא את `CLAUDE.md` בשורש הריפו.** הכללים שם גוברים על המסמך הזה, ובמיוחד שניים:
 - הסביבה בענן לא בונה את האפליקציה. ה-CI ב-GitHub הוא הבדיקה היחידה, ואסור לכתוב "נבנה" או "עבר" לפני שה-CI ירוק.
-- מיזוג ל-`main` מפרסם עדכון חתום לכל המכשירים המותקנים. לכן עובדים בשלבים (ראו בהמשך), וכל שלב ממוזג רק אחרי CI ירוק.
+- מיזוג ל-`main` מפרסם עדכון חתום לכל המכשירים המותקנים, וכל שינוי כזה מחייב העלאת `versionCode`.
+
+המסמך מחולק לשניים:
+- **סבב 1** הוא ההעברה המקורית. שלבים 1 עד 6d כבר נחתו ב-`main`.
+- **סבב 2** הוא כל מה שעוצב אחר כך ועוד לא קיים בקוד.
 
 ## מקור האמת של העיצוב
 
 - **הקנבס החי:** <https://claude.ai/artifact/HGAeW2DuNx6d6ETaxito6C>. אפשר לקרוא אותו עם כלי ה-Artifact (action `read`).
-- **עותק בריפו:** `docs/design/studio/canvas/`. כל הלוחות הם קובצי `.dc.html` (HTML עם תבנית), ו-`canvas.json` הוא האינדקס.
+- **עותק בריפו:** `docs/design/studio/canvas/`. כל הלוחות הם קובצי `.dc.html` (HTML עם תבנית), ו-`canvas.json` הוא האינדקס ומחלק אותם לעמודים.
 - **טוקנים:** `docs/design/studio/studio.css` לטלוויזיה ולערכים המשותפים, ו-`studio-phone.css` שנטען אחריו ומשנה רק מידות לטלפון.
 
 **יחידות.** בלוחות הטלוויזיה (1920×1080) פיקסל אחד שווה חצי dp, כי מסך 1080p הוא 960×540dp. בלוחות הטלפון (390×844) פיקסל אחד שווה dp אחד.
 
+**עמודי הקנבס:**
+- טלוויזיה: מסכים, מסכים משלימים, רכיבים, יסודות.
+- טלפון: מסכים, מסכים משלימים, רכיבים, יסודות.
+
+לוחות שהשם שלהם מתחיל ב-`P` שייכים לטלפון. לוחות שמתחילים ב-`Tv` הם מסכי טלוויזיה משלימים.
+
 ## השפה בקצרה
 
 - **שם:** אולפן. גרפיקה של שידור: שליש תחתון, נורית טאלי ותגים.
-- **שתי נוריות:**
-  - **טאלי** `#FF5A5F`: מה שמוצג או מתנגן עכשיו. בכרטיס: מילוי `--st-onscreen`, מסגרת אדומה דקה, הילה `--st-tally-glow` ותג "על המסך".
-  - **קיו** `#FFB547`: בטלוויזיה, איפה השלט נמצא. זה סימון הפוקוס היחיד: טבעת של 4px (2dp) בכרטיסים, או מילוי בכפתורים. בטלפון, שבו אין שלט, הוא מסמן את מה שפעיל או נבחר.
-- **הבא** `#9DC0F7`: מה שמגיע אחרי התוכנית הנוכחית.
-- **קרקע:** כחול לילה `#080C14`, ומשטחים בסולם `surface`, `card` ו-`card-focus`.
-- **גופנים:** Karantina 700 לכותרות של תוכניות ולשם האפליקציה בלבד, ו-IBM Plex Sans Hebrew לכל השאר, עם ספרות טבלאיות לשעות. שניהם מחליפים את Rubik.
-- **רדיוסים:** כרטיס 12, כפתור 14, צ'יפ 12, תג 10, פאנל 24 (בפיקסלים של הקנבס).
+- **צבעים ותפקידים** (הפירוט המלא בלוחות "שימוש בצבע" שבעמודי היסודות):
+  - **קיו** `#FFB547`: בטלוויזיה, רק פוקוס, כלומר איפה השלט נמצא. בטלפון, שבו אין שלט, רק מה שפעיל או נבחר: לשונית פעילה, פעולה ראשית, וי של בחירה ומתג דלוק.
+  - **טאלי** `#FF5A5F`: מה שעל המסך, בשידור חי, או מקליט עכשיו.
+  - **הבא** `#9DC0F7`: מה שמגיע אחרי התוכנית הנוכחית.
+  - **תקין ושגיאה:** הצלחה, וכשל או פעולה הרסנית.
+  - **כל השאר:** בצבעי הטקסט. זה כולל מועדף (כוכב מלא בלבן), קטגוריה וטעינה. **הענבר אף פעם לא מסמן סטטוס, קטגוריה, מועדף, טעינה או הודעה.**
+- **גופנים:** Karantina 700 לכותרות של תוכניות ולשם האפליקציה, ו-IBM Plex Sans Hebrew לכל השאר, עם ספרות טבלאיות לשעות.
+- **אייקונים:** סט קווי משלנו. הפירוט בסבב 2.
 
-## החלטות שנסגרו
+## סבב 1 — ההעברה המקורית (נחתה)
 
-1. **ניווט בטלוויזיה.** תפריט צד מימין, ברוחב 480px (240dp), בגובה מלא, שורות של אייקון וטקסט, בלי קפסולה. במצב סגור מוצג תמיד **פס צר** של 112px (56dp) עם אייקונים בלבד, באותו גובה שבו הם יושבים בתפריט הפתוח. התוכן זז פנימה דרך `--st-inset-start`.
-   - השורה העליונה (`TopBar`) מכילה את שם האפליקציה מימין ושעון ותאריך משמאל. **השעון נשאר בפינה השמאלית העליונה.**
-   - הניווט העליון בוטל.
-   - זה מחליף את הצורה שנקבעה ב-ADR-020 וב-ADR-022 (רייל מתקפל וקפסולה צפה).
-2. **ניווט בטלפון.** חמש לשוניות: ערוצים, מדריך, רדיו, הקלטות, הגדרות. **הקלטות מחליפה את VOD.** `MobileTab.RECORDINGS` כבר קיים, ו-ADR-016 קובע שאין תוכן VOD בהתקנה הזו.
-3. **אקולייזר ברדיו.** המקצב מגיע מ-**`TeeAudioProcessor` של Media3**: מחשבים FFT על ה-PCM של הנגן עצמו, בלי הרשאת `RECORD_AUDIO`. בקנבס המקצב מדומה.
-4. **רקע מתחלף ברדיו**, נגד צריבה. ארבעה גוונים כהים (`--st-amb-1` עד `--st-amb-4`) במחזור של 120 שניות. בריכת אור נודדת במסלול שלא נסגר (47s/76s, יחס הזהב), עם תנודת גוון של ±26°.
-5. **הערוץ שעל המסך מודגש** במילוי, במסגרת ובהילה בגוון הטאלי, וההדגשה נבדלת מהפוקוס.
+**החלטות שנסגרו:**
+1. **ניווט בטלוויזיה.** תפריט צד מימין ברוחב 480px. במצב סגור מוצג פס צר של 112px עם אייקונים. השורה העליונה מכילה את שם האפליקציה מימין ושעון משמאל.
+2. **ניווט בטלפון.** חמש לשוניות: ערוצים, מדריך, רדיו, הקלטות, הגדרות. הקלטות מחליפה את VOD (ADR-032).
+3. **אקולייזר ברדיו.** המקצב מגיע מ-`TeeAudioProcessor` של Media3 (ADR-031).
+4. **רקע מתחלף ברדיו**, והערוץ שעל המסך מודגש באדום.
 
-## נשאר פתוח
+**נושאים שהיו פתוחים ונסגרו בקוד:**
+- ערכות נושא: נשארו רק כהה ו-AMOLED (ADR-028).
+- שומר המסך של הרדיו (ADR-030).
+- רישיונות הגופנים: בשלב 1.
 
-- **שומר המסך של הרדיו (ADR-024).** כרגע הוא נשאר כמו שהוא. צריך להחליט איך הוא משתלב עם המסך החי החדש.
-- **ערכות נושא.** ב-`Theme.kt` יש SYSTEM, LIGHT, DARK ו-AMOLED, והקנבס מעצב רק כהה. צריך להחליט אם להשאיר את הבהיר ואת ה-AMOLED ואיך.
-- **גדלי טקסט בטלוויזיה.** הקטנים בקנבס הם caption 20px (10sp) ו-meta 22px (11sp). הקטן ביותר בקוד היום הוא `labelSmall` 12sp. צריך לבדוק על טלוויזיה אמיתית, ואם צריך להגדיל את כל הסולם.
-- **רישיונות גופנים.** להוריד את Karantina ואת IBM Plex Sans Hebrew מ-google/fonts (תיקיות `ofl/`), לוודא שהרישיון OFL ולהוסיף אותו כמו `rubik-ofl.txt`.
+**פתוח:** גדלי הטקסט בטלוויזיה (ADR-029) מסומנים "זמני" עד בדיקה על טלוויזיה אמיתית.
 
-## מיפוי לקוד
+**מחוץ לתכולה:** שומר המסך לא מעוצב מחדש. לפי החלטת עידן הוא לא יהיה רלוונטי.
 
-### טוקנים
+## סבב 2 — מה שעוצב אחרי ההעברה ועוד לא בקוד
+
+### 1. מסכים
+
+#### טלוויזיה — עמוד "מסכים"
+
+| לוח | מה | בקוד |
+|---|---|---|
+| `MainRail` | מסך הבית עם הפס הסגור (המצב הסופי) | `tv/TvHomeScreen.kt` |
+| `HomeRails` | מסך הבית אחרי גלילה: המשך צפייה, מתחיל בקרוב, ערוצים | `tv/TvHomeScreen.kt` (`HomeRails`) |
+| `Channels` | ערוצים: קבוצות, רשימה ותצוגה מקדימה, עם תג "ארכיון" | `screens/ChannelListScreen.kt` |
+| `PlayerTransport` | לחיצה על OK בזמן צפייה: שליש תחתון ושורת כפתורים | `tv/PlaybackControls.kt` |
+| `PlayerDetails` | פרטי תוכנית והקלטה, בפאנל מימין מעל הווידאו | `screens/ProgrammeDetails.kt` |
+| `PlayerMenu` | לחיצה ארוכה על OK: אפשרויות, בפאנל משמאל | `tv/PlaybackControls.kt` (`PlaybackMenu`) |
+
+#### טלוויזיה — עמוד "מסכים משלימים"
+
+| לוח | בקוד |
+|---|---|
+| `TvPin` | `common/PinEntry.kt`, `ParentalLock.kt` |
+| `TvReconnect`, `TvPlayError` | `common/PlaybackStateOverlay.kt`, `common/ErrorText.kt` |
+| `TvUpdatePrompt`, `TvUpdateDownloading`, `TvUpdatePermission` | `common/UpdatePrompt.kt` |
+| `TvAddSource` | `screens/AddSourceScreen.kt` |
+| `TvChannelMenu`, `TvChannelAdvanced`, `TvGuideMap`, `TvChannelEdit`, `TvGroups`, `TvGroupMenu`, `TvGroupNew` | `screens/ChannelMenu.kt` |
+| `TvSearch` | `screens/SearchScreen.kt` |
+| `TvVod` | `screens/VodScreen.kt` |
+| `TvSettingsSources`, `TvSettingsParental`, `TvSettingsRecording`, `TvSettingsBackup`, `TvSettingsDiagnostics` | `settings/SettingsSections.kt` |
+| `TvSettingsUpdates` | `settings/UpdateSettings.kt` |
+| `TvFilmstrip` | `tv/ChannelFilmstrip.kt` (הוא גם ה-`MINI_GUIDE`) |
+| `TvHomeApps` | `tv/HomeAppStrip.kt` |
+| `TvNotice` | `MainActivity.kt` (`SnackbarHost`) |
+| `TvEmptyChannels`, `TvEmptyHidden` | `screens/ChannelListScreen.kt` |
+| `TvGuideNoData` | `screens/GuideScreen.kt` |
+
+#### טלפון — עמוד "מסכים משלימים"
+
+אותם מסכים בגרסת טלפון:
+- `PPin`, `PReconnect`, `PPlayError`
+- `PUpdatePrompt`, `PUpdateDownloading`, `PUpdatePermission`
+- `PAddSource`
+- `PChannelMenu`, `PChannelAdvanced`, `PGuideMap`, `PChannelEdit`, `PGroups`, `PGroupMenu`, `PGroupNew`
+- `PSearch`, `PVod`
+- `PSettingsSources`, `PSettingsParental`, `PSettingsUpdates`, `PSettingsRecording`, `PSettingsBackup`, `PSettingsDiagnostics`
+- `PNoticeBoard`, `PEmptyChannels`, `PEmptyHidden`, `PGuideNoData`
+
+**דפוסים בטלפון:**
+- חלונות ותפריטים עולים כגיליון תחתון.
+- מצבי הנגן (טעינה ושגיאה) מוצגים בתוך אזור הווידאו של "מתנגן עכשיו".
+- לרצועת הערוצים ולשורת האפליקציות אין גרסת טלפון.
+
+### 2. רכיבים שמחליפים את Material
+
+הכל מוצג בלוח "רכיבי בסיס — במקום Material" בשני עמודי הרכיבים.
+
+| ב-Material (בקוד היום) | באולפן — טלוויזיה | באולפן — טלפון | איפה בקוד |
+|---|---|---|---|
+| `OutlinedTextField` | `Field` (רגיל, פוקוס, שגיאה עם טקסט עזר, לא זמין) | `PField` | `PinEntry`, `AddSourceScreen`, `ChannelMenu`, `SearchScreen`, `VodScreen`, `SettingsSections`, `ChannelListScreen` |
+| `TextButton` | `Button` במצב `ghost` | `PButton` במצב `ghost` | 9 קבצים. התוויות: סגירה, ביטול, אחר כך, אישור, דלג, הסתר, בחירת קובץ, הזזת המדריך בשעות, "עכשיו" |
+| `Button` | `Button` במצבים `primary`, `secondary` ו-`danger` | `PButton` במצבים `primary`, `secondary` ו-`danger` | אותם קבצים |
+| `Switch` | `Toggle` | `PToggle` | `settings/SettingsWidgets.kt`. גם `ListRow` ו-`PListRow` מציירים את המתג דרכם |
+| בחירה בין אפשרויות | `Segmented`, משותף לשני המכשירים (`size="phone"`) | אותו רכיב | מפענח וידאו ואודיו ב-`ChannelMenu` |
+| `LinearProgressIndicator` | `Progress`, עם אחוז או בלי (`indeterminate`) | אותו רכיב | `UpdatePrompt`, `UpdateSettings`, `SearchScreen`, `VodScreen` |
+| `CircularProgressIndicator` | `Loader`: טבעת בצבע הטקסט, לא בענבר | אותו רכיב | `PlaybackStateOverlay` |
+| `AlertDialog` (`AppDialog` ב-`common/Panel.kt`) | `Dialog` | `PDialog` | 13 חלונות ב-`ChannelMenu`, `ProgrammeDetails`, `UpdatePrompt` ו-`PinEntry` |
+| `Snackbar` | `Notice` | `PNotice` | `MainActivity.kt` |
+| (אין רכיב היום) | `EmptyState` | `PEmptyState` | הודעות ריקות ב-`ChannelListScreen` ו-`GuideScreen` |
+
+**כללים לרכיבים:**
+- בחלון הרסני בטלוויזיה הפוקוס מתחיל על "ביטול".
+- בטלפון, הפעולה הראשית בחלון צבועה בענבר.
+- ל-`ListRow` ו-`PListRow` נוספו שלושה דברים:
+  - מצב `danger`, שבו התווית באדום.
+  - סיום שורה מסוג `status`, שמציג תג צבעוני.
+  - מצב `onscreen` עם הדגשה אדומה, כמו בכרטיס.
+- בטלפון, תווית ארוכה נשברת לשתי שורות, ותיאור מגיע עד שלוש שורות.
+
+### 3. כללי צבע — שישה מקומות לתקן
+
+| קובץ | מה | היום | צריך להיות |
+|---|---|---|---|
+| `common/PlaybackStateOverlay.kt` | גלגל הטעינה | `primary` (ענבר) | `Loader` בצבע הטקסט |
+| `screens/AddSourceScreen.kt` | תוצאת בדיקת החיבור | `primary` | ירוק עם וי. בכישלון: צבע שגיאה |
+| `screens/ProgrammeDetails.kt` | קטגוריית התוכנית | `primary` | צ'יפ אפור על כרטיס |
+| `screens/VodScreen.kt` (×2) | כוכב מועדף | `primary` | כוכב מלא (`star-on`) בלבן |
+| `settings/SettingsSections.kt` | המקש האחרון באבחון | `primary` | בצבע הטקסט |
+
+### 4. סט האייקונים
+
+**הסט:** 43 אייקונים בלוח "סט האייקונים" בשני עמודי הרכיבים. ההגדרות שלהם (נתיבי SVG) נמצאות ב-`canvas/Icon.dc.html`.
+
+**כללי סגנון:**
+- קו בעובי 2 על גריד 24, עם קצוות מעוגלים.
+- אייקון מלא רק בניגון, השהיה, הקלטה ומועדף שסומן (`star-on`).
+
+**גדלים:** בטלוויזיה 30/26/22, בטלפון 24/22/20/18.
+
+**מימוש:** כל 35 אייקוני `Icons.Filled.*` שבקוד (86 שימושים ב-15 קבצים) צריכים לעבור לסט משלנו, למשל `ImageVector` ב-`ui/common/StudioIcons.kt`. המיפוי:
+
+| Material | אולפן |
+|---|---|
+| `PlayArrow`, `PlayCircle` | `play` |
+| `Pause` | `pause` |
+| `DateRange` | `guide` |
+| `StarBorder` / `Star` | `star` / `star-on` |
+| `FiberManualRecord` | `record` |
+| `Search` | `search` |
+| `Settings` | `settings` |
+| `KeyboardArrowUp`, `SkipPrevious` | `chevron-up` |
+| `KeyboardArrowDown`, `SkipNext` | `chevron-down` |
+| `Check` | `check` |
+| `Lock` | `lock` |
+| `Delete` | `trash` |
+| `Replay` | `restart` |
+| `AspectRatio` | `aspect` |
+| `LiveTv`, `Storage` | `tv` |
+| `Radio` | `radio` |
+| `VisibilityOff` | `hide` |
+| `Info` | `info` |
+| `ArrowBack` | `back` |
+| `Home` | `home` |
+| `Palette` | `appearance` |
+| `Wifi` | `network` |
+| `Backup` | `backup` |
+| `BugReport` | `pulse` |
+| `Close` | `close` |
+| `History` | `history` |
+| `SelectAll` | `grid` |
+| `MusicNote` | `music` |
+| `Movie` | `movie` |
+| `Fullscreen` | `fullscreen` |
+
+### 5. תוספות בעיצוב שלא קיימות היום בקוד
+
+אלה שינויי התנהגות, לא רק מראה. **לפני מימוש כל אחת מהן לשאול את עידן, ואם היא משנה דרישה, לכתוב ADR.**
+
+- **פס השליטה (OK בזמן צפייה):** כפתורי "פרטים" ו"הקלטה". בקוד יש היום רק ערוצים קודם והבא, השהיה, מועדף, מדריך, ושמע, כתוביות ויחס תצוגה.
+- **התפריט בלחיצה ארוכה על OK:** שורה "פרטי התוכנית והקלטה".
+- **מסך שגיאת ניגון:** כפתורים "נסה שוב", "הגדרות רשת" ו"רשימת ערוצים". בקוד מוצגת היום רק הודעה.
+- **קוד הורים בטלוויזיה:** מקלדת ספרות על המסך, נוסף על מקשי המספרים בשלט.
+- **חיפוש בטלוויזיה:** פאנל "איפה מחפשים".
+- **מדריך:** ערוץ בלי לוח שידורים מוצג כשורה מפוספסת עם "אין נתוני לוח שידורים", ולא נעלם.
+
+### 6. שלבים מוצעים לסבב 2
+
+כל שלב: ענף ו-PR נפרדים, העלאת `versionCode`, ו-CI ירוק.
+
+7. **רכיבי בסיס:**
+   - בונים את `StudioField`, `StudioToggle`, `StudioSegmented`, `StudioDialog` (שמחליף את המראה של `AppDialog`), `Loader`, `Notice` ו-`EmptyState`.
+   - מוסיפים ל-`StudioButton` את המצבים `ghost` ו-`danger`, ול-`StudioProgress` את המצב בלי אחוז.
+   - מחליפים בהם את כל השימושים ברכיבי Material, לפי הטבלה בסעיף 2.
+8. **כללי צבע:** ששת התיקונים מסעיף 3.
+9. **סט האייקונים:** מסעיף 4.
+10. **מסכי טלוויזיה:**
+    - כל המסכים בעמוד "מסכים משלימים".
+    - מעמוד "מסכים": `Channels`, `HomeRails` ושלושת לוחות "בתוך ערוץ" (רק המראה, בלי התוספות מסעיף 5).
+11. **מסכי טלפון:** כל המסכים בעמוד "מסכים משלימים" של הטלפון.
+
+**תיעוד:** לעדכן ADR-023 ו-ADR-025 (משטחים ותפריט אחד) כשהחלונות עוברים ל-`StudioDialog`, ולכתוב ADR לסט האייקונים.
+
+## מיפוי טוקנים לקוד (סבב 1, בתוקף)
 
 | בקנבס | בקוד |
 |---|---|
-| צבעים (`--st-*` ב-`studio.css`) | `ui/theme/Theme.kt`. התפקידים של M3: `background`←ground, `surface`←surface, `surfaceContainer`←card, `onSurface`←ink, `onSurfaceVariant`←ink-2, `primary`←cue. טאלי, הבא, onscreen, airing/future/past, scrim ו-hairline אינם תפקידים של M3: להוסיף אובייקט צבעים מורחב (CompositionLocal) |
-| טיפוגרפיה (`.st-t-*`) | `ui/theme/Type.kt`, `res/font/`, `TypefaceAssetsTest` |
-| צורה ומרווח | `ui/tv/TvSurfaces.kt` (`TV_PANEL_CORNER`, `TV_CARD_CORNER`), `ui/common/TvMetrics.kt`. בטלפון: `TvMetrics.Phone` |
-| פוקוס | `ui/common/Focus.kt` (`focusSurface`) |
+| צבעים (`--st-*` ב-`studio.css`) | `ui/theme/Theme.kt` ואובייקט הצבעים המורחב (`StudioColors`) |
+| טיפוגרפיה (`.st-t-*`) | `ui/theme/Type.kt` |
+| צורה ומרווח | `ui/tv/TvSurfaces.kt`, `ui/common/TvMetrics.kt` (בטלפון: `TvMetrics.Phone`) |
+| פוקוס | `ui/common/Focus.kt` |
 | תנועה | `ui/common/Motion.kt` |
-| רקע מתחלף | `ui/common/StationBackdrop.kt` |
+| רקע מתחלף ואקולייזר | `ui/common/StationBackdrop.kt` |
 
-### רכיבים — טלוויזיה
+**טוקנים שנוספו בסבב 2 ב-`studio.css`:**
+- `--st-next`, `--st-onscreen`, `--st-tally-glow`
+- `--st-drawer`, `--st-rail`, `--st-dim-open`, `--st-w-rail`, `--st-inset-start`
+- האנימציות `st-spin` (טעינה) ו-`st-indet` (התקדמות בלי אחוז)
 
-| רכיב בקנבס | בקוד |
-|---|---|
-| `SideMenu` (פתוח וסגור), `TopBar` | `ui/tv/TvHomeScreen.kt` (הקפסולה), `ui/tv/TvRoot.kt`, ומעטפת ה-overlay |
-| `ChannelCard` | `HomeCard` / `tvCard` |
-| `LowerThird` | כרטיס המידע בהחלפת ערוץ (ADR-023) |
-| `GuideCell`, `Chip` | `ui/screens/GuideScreen.kt` (משבצות ורצועת הימים) |
-| `ListRow` | `ui/settings/SettingsWidgets.kt`, `ui/screens/ChannelListScreen.kt`, `ui/common/Panel.kt`, `RecordingsScreen.kt` |
-| `StationDisc`, `Equalizer` | `StationBackdrop.kt`, `ChannelLogo(circular)`, ורכיב אקולייזר חדש |
-| `LiveBadge`, `Button`, `Field`, `Progress` | `ui/common/Components.kt` |
-
-### רכיבים — טלפון
-
-| רכיב בקנבס | בקוד |
-|---|---|
-| `PTopBar`, `PNavBar`, `PMiniPlayer` | `ui/mobile/MobileRoot.kt` (`TopAppBar`, `NavigationBar`, `MiniPlayerBar`) |
-| `PChannelRow`, `PListRow`, `PGuideCell`, `PChip`, `PButton` | המסכים המשותפים, בגרסה של `TvMetrics.Phone`, ו-`ui/mobile/PlayerScreen.kt` |
-
-## שלבים מומלצים
-
-כל שלב: ענף feature, CI ירוק, מיזוג ל-`main` לפי `CLAUDE.md`.
-
-1. **יסודות.** `Theme.kt`, `Type.kt` עם הגופנים והרישיונות, אובייקט הצבעים המורחב. בשלב הזה אין שינוי מבני.
-2. **משטחים, פוקוס ומידות.** `TvSurfaces.kt`, `Focus.kt`, `TvMetrics.kt`, `Motion.kt`.
-3. **ניווט בטלוויזיה.** תפריט צד, פס סגור ו-`TopBar`.
-4. **מסכי הטלוויזיה.** בית, החלפת ערוץ, מדריך, רדיו עם רקע מתחלף ואקולייזר, הגדרות, הקלטות.
-5. **טלפון.** ניווט (הקלטות במקום VOD), נגן מוקטן, מתנגן עכשיו, ומסכים.
-
-**תיעוד.** NFR-MAINT-05 מחייב ADR לכל החלטה שמשנה דרישה. צריך:
-- ADR לשפה עצמה, שמחליף את חלק הטיפוגרפיה של ADR-019, את צורת הניווט מ-ADR-020 ו-ADR-022, ואת הצבעים ב-`Theme.kt`.
-- ADR לאקולייזר ול-`TeeAudioProcessor`.
-- ADR להחלפת VOD בהקלטות בטלפון.
-
-בנוסף צריך לעדכן את `docs/design/README.md` ואת הקנבס הישן שבונה `build_canvas.py`.
+חלק מהם אולי כבר מומשו בשלבים 6a עד 6d. צריך לבדוק בקוד לפני שמוסיפים.

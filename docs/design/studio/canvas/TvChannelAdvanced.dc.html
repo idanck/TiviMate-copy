@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — לוח שידורים ופענוח</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl"><div style="position: absolute; inset: 0"><dc-import name="Channels" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.72); pointer-events: none"></div><section role="dialog" aria-label="לוח שידורים ופענוח" class="st-panel" style="position: absolute; top: 110px; left: 460px; width: 1000px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 8px"><h1 class="st-t-title-s" style="font-size: 48px">לוח שידורים ופענוח</h1><span class="st-t-caption">ערוץ 13</span></div><dc-import name="ListRow" label="היסט עבור הערוץ הזה" sub="" glyph="" trail="value" value="0 דק׳" tone="muted" num="" state="rest" width="904" hint-size="904px,72px"></dc-import><span style="font-size: 22px; font-weight: 600; color: var(--st-ink-2); padding: 10px 24px 0">מפענח וידאו</span><div style="padding: 0 24px"><dc-import name="Segmented" options="אוטומטי|חומרה|תוכנה" selected="0" focus="2" label="מפענח וידאו" hint-size="420px,64px"></dc-import></div><span style="font-size: 22px; font-weight: 600; color: var(--st-ink-2); padding: 10px 24px 0">מפענח אודיו</span><div style="padding: 0 24px 8px"><dc-import name="Segmented" options="אוטומטי|חומרה|תוכנה" selected="0" label="מפענח אודיו" hint-size="420px,64px"></dc-import></div><dc-import name="ListRow" label="החל על הערוץ הזה בלבד" sub="" glyph="" trail="on" value="" tone="muted" num="" state="rest" width="904" hint-size="904px,72px"></dc-import><dc-import name="ListRow" label="שיוך ללוח שידורים" sub="שויך אל ערוץ 13" glyph="guide" trail="chevron" value="" tone="muted" num="" state="rest" width="904" hint-size="904px,92px"></dc-import><div style="display: flex; padding: 10px 24px 0"><dc-import name="Button" label="סגירה" glyph="" variant="ghost" size="m" focused="false" icon-only="false" hint-size="150px,64px"></dc-import></div></section></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

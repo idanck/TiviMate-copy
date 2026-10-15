@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — שגיאת ניגון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PNowPlaying" hint-size="390px,844px"></dc-import></div>
+<div role="alert" style="position: absolute; top: var(--st-safe-top); right: 0; width: 390px; height: 219px; background: rgba(8,12,20,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(8,12,20,0.94); padding: 0 24px; box-sizing: border-box; text-align: center">
+<span style="color: var(--st-error)"><dc-import name="Icon" glyph="alert" size="28" hint-size="28px,28px"></dc-import></span>
+<span style="font-size: 15px; font-weight: 600; line-height: 1.45">השרת סירב לבקשה. שינוי ה-user agent פותר זאת בדרך כלל.</span>
+<dc-import name="PButton" label="נסה שוב" glyph="restart" variant="primary" size="m" icon-only="false" hint-size="110px,40px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

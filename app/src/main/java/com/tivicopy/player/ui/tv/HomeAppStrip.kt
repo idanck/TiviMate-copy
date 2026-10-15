@@ -115,9 +115,9 @@ internal fun HomeAppStrip(
     apps: List<HomeAppTile>,
     background: Color,
     /**
-     * Room kept clear at the leading edge for the home screen's navigation capsule, which is
+     * Room kept clear at the leading edge for the side menu's closed strip (ADR-027), which is
      * drawn over this row rather than beside it. The row itself stays full-bleed so its backdrop
-     * reaches the panel edge and the capsule has something to float on.
+     * reaches the screen edge under the strip.
      */
     startInset: Dp,
     modifier: Modifier = Modifier,

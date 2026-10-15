@@ -20,11 +20,12 @@ import com.tivicopy.player.ui.theme.StudioTheme
  * The floating plate the interface sits on, and the one menu drawn on it.
  *
  * ADR-023 defined this plate for the television shell and gave it to four surfaces: the transport
- * bar, the channel filmstrip, the navigation capsule and the playback menu. Every *other* menu in
- * the app — the channel menu and its six sheets, the programme details, the four update prompts —
- * was a stock `AlertDialog`, which is an opaque `surfaceContainerHigh` plate with no edge that
- * ignores the viewer's overlay-opacity setting outright. Which is the exact complaint ADR-023
- * opened with about the playback menu, left standing in the twelve places it was not looking.
+ * bar, the channel filmstrip, the navigation capsule (since replaced by ADR-027's side menu, which
+ * has a drawer surface of its own) and the playback menu. Every *other* menu in the app — the
+ * channel menu and its six sheets, the programme details, the four update prompts — was a stock
+ * `AlertDialog`, which is an opaque `surfaceContainerHigh` plate with no edge that ignores the
+ * viewer's overlay-opacity setting outright. Which is the exact complaint ADR-023 opened with
+ * about the playback menu, left standing in the twelve places it was not looking.
  *
  * A viewer long-pressing a channel and a viewer pressing OK on the transport bar are one press
  * apart, and they were looking at two different apps.
