@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -38,6 +35,7 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.tallyGlow
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Studio's channel row on a phone (`docs/design/studio/canvas/PChannelRow.dc.html`): 72dp, the
@@ -175,7 +173,7 @@ internal fun PhoneChannelRow(
         }
         IconButton(onClick = onToggleFavourite) {
             Icon(
-                imageVector = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                imageVector = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),

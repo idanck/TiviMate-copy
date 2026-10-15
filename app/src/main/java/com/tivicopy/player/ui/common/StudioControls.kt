@@ -29,10 +29,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -197,7 +193,7 @@ fun StudioField(
                 val colour = if (isError) studio.error else studio.ink3
                 if (isError) {
                     Icon(
-                        imageVector = Icons.Filled.Warning,
+                        imageVector = StudioIcons.Alert,
                         contentDescription = null,
                         tint = colour,
                         modifier = Modifier.size(if (tv) 11.dp else 16.dp),
@@ -452,7 +448,7 @@ fun StudioNoticeHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
         val tone = (data.visuals as? NoticeVisuals)?.tone ?: NoticeTone.DEFAULT
         StudioNotice(
             text = data.visuals.message,
-            icon = if (tone == NoticeTone.ERROR) Icons.Filled.ErrorOutline else null,
+            icon = if (tone == NoticeTone.ERROR) StudioIcons.Alert else null,
             tone = tone,
             modifier = Modifier.padding(16.dp),
         )
@@ -470,7 +466,7 @@ fun StudioNoticeHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
 fun EmptyState(
     text: String,
     modifier: Modifier = Modifier,
-    icon: ImageVector = Icons.Filled.Info,
+    icon: ImageVector = StudioIcons.Info,
     title: String? = null,
     action: String? = null,
     onAction: () -> Unit = {},

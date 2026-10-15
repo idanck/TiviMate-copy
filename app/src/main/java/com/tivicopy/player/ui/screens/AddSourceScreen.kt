@@ -11,9 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,6 +49,7 @@ import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Adding a source (FR-SRC-01..03, FR-SRC-06/08).
@@ -285,7 +283,7 @@ private fun TestResult(text: String, detail: String?, tone: NoticeTone) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         if (tone != NoticeTone.DEFAULT) {
             Icon(
-                imageVector = if (tone == NoticeTone.OK) Icons.Filled.Check else Icons.Filled.ErrorOutline,
+                imageVector = if (tone == NoticeTone.OK) StudioIcons.Check else StudioIcons.Alert,
                 contentDescription = null,
                 tint = colour,
                 modifier = Modifier.size(if (StudioTheme.television) 13.dp else 18.dp),

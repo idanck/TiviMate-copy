@@ -13,15 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SelectAll
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +55,7 @@ import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.mobile.PhoneChip
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Somewhere the shell can go, listed above the groups in the channel list's first column.
@@ -202,9 +194,9 @@ fun ChannelListScreen(
                         else -> stringResource(R.string.empty_no_results)
                     },
                     icon = when {
-                        state.list.selectedGroupId == VirtualGroup.HIDDEN -> Icons.Filled.VisibilityOff
-                        state.list.search.isBlank() -> Icons.Filled.LiveTv
-                        else -> Icons.Filled.Search
+                        state.list.selectedGroupId == VirtualGroup.HIDDEN -> StudioIcons.Hide
+                        state.list.search.isBlank() -> StudioIcons.Tv
+                        else -> StudioIcons.Search
                     },
                 )
             } else {
@@ -461,7 +453,7 @@ private fun ChannelRow(
         // one press on touch, and one step right on a D-pad.
         IconButton(onClick = onToggleFavourite) {
             Icon(
-                imageVector = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                imageVector = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
@@ -483,7 +475,7 @@ private fun FilterField(query: String, onQuery: (String) -> Unit) {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQuery("") }) {
                     Icon(
-                        Icons.Filled.Close,
+                        StudioIcons.Close,
                         contentDescription = stringResource(R.string.action_clear),
                         tint = StudioTheme.colors.ink2,
                     )
@@ -505,7 +497,7 @@ private fun FilterBanner(query: String, onClear: () -> Unit) {
         onClick = onClear,
         label = { Text(stringResource(R.string.filter_active, query), maxLines = 1) },
         trailingIcon = {
-            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+            Icon(StudioIcons.Close, contentDescription = stringResource(R.string.action_clear))
         },
         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
     )
@@ -557,28 +549,28 @@ private fun GroupColumn(
                 // Radio keeps `selectedGroupId` on ALL while a category narrows the list, so
                 // "All" and the chosen category would both draw as selected without this.
                 state.list.selectedGroupId == VirtualGroup.ALL && state.list.selectedRadioCategory == null,
-                icon = Icons.Filled.SelectAll,
+                icon = StudioIcons.Grid,
             ) { vm.selectGroup(VirtualGroup.ALL) }
         }
         item {
             GroupRow(
                 stringResource(R.string.favourites),
                 state.list.selectedGroupId == VirtualGroup.FAVOURITES,
-                icon = Icons.Filled.Star,
+                icon = StudioIcons.StarOn,
             ) { vm.selectGroup(VirtualGroup.FAVOURITES) }
         }
         item {
             GroupRow(
                 stringResource(R.string.recently_watched),
                 state.list.selectedGroupId == VirtualGroup.RECENT,
-                icon = Icons.Filled.History,
+                icon = StudioIcons.History,
             ) { vm.selectGroup(VirtualGroup.RECENT) }
         }
         item {
             GroupRow(
                 stringResource(R.string.hidden_channels),
                 state.list.selectedGroupId == VirtualGroup.HIDDEN,
-                icon = Icons.Filled.VisibilityOff,
+                icon = StudioIcons.Hide,
             ) { vm.selectGroup(VirtualGroup.HIDDEN) }
         }
         item { SectionHeader(text = stringResource(R.string.filter_categories)) }

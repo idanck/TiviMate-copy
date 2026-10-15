@@ -47,14 +47,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.PlayArrow
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The recordings library and the scheduled list (FR-REC-19..21).
@@ -85,7 +81,7 @@ fun RecordingsScreen(
     val finished = recordings.filter { it.state != RecordingState.SCHEDULED && it.state != RecordingState.RECORDING }
 
     if (recordings.isEmpty()) {
-        EmptyState(stringResource(R.string.rec_title), modifier, icon = Icons.Filled.FiberManualRecord)
+        EmptyState(stringResource(R.string.rec_title), modifier, icon = StudioIcons.Record)
         return
     }
 
@@ -318,14 +314,14 @@ private fun RecordingDetail(
             if (!scheduled && !recording.filePath.isNullOrBlank()) {
                 StudioButton(
                     label = stringResource(R.string.action_watch),
-                    icon = Icons.Filled.PlayArrow,
+                    icon = StudioIcons.Play,
                     size = StudioButtonSize.MEDIUM,
                     onClick = { onPlay(recording) },
                 )
             }
             StudioButton(
                 label = stringResource(if (scheduled) R.string.action_cancel else R.string.action_delete),
-                icon = if (scheduled) Icons.Filled.Close else Icons.Filled.Delete,
+                icon = if (scheduled) StudioIcons.Close else StudioIcons.Trash,
                 size = StudioButtonSize.MEDIUM,
                 onClick = { if (scheduled) onCancel(recording) else onDelete(recording) },
             )

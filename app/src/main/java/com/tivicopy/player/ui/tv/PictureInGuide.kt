@@ -15,10 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,6 +49,7 @@ import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The guide, laid out around the picture instead of over it.
@@ -331,7 +328,7 @@ private fun GuideFocusPanel(
             if (airing) {
                 StudioButton(
                     label = stringResource(R.string.action_watch),
-                    icon = Icons.Filled.PlayArrow,
+                    icon = StudioIcons.Play,
                     size = StudioButtonSize.MEDIUM,
                     onClick = { onWatch(channel) },
                 )
@@ -339,7 +336,7 @@ private fun GuideFocusPanel(
             if (replay && (airing || aired)) {
                 StudioButton(
                     label = stringResource(if (airing) R.string.guide_from_start else R.string.guide_watch_catchup),
-                    icon = Icons.Filled.Replay,
+                    icon = StudioIcons.Restart,
                     size = StudioButtonSize.MEDIUM,
                     onClick = { onCatchup(channel, programme) },
                 )
@@ -349,7 +346,7 @@ private fun GuideFocusPanel(
             if (!airing && !aired) {
                 StudioButton(
                     label = stringResource(R.string.action_record),
-                    icon = Icons.Filled.FiberManualRecord,
+                    icon = StudioIcons.Record,
                     size = StudioButtonSize.MEDIUM,
                     onClick = { onOpenProgramme(channel, programme) },
                 )

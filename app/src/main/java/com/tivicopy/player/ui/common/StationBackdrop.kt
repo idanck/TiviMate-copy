@@ -20,12 +20,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -497,7 +491,7 @@ fun AudioOnlyNowPlaying(
                                 label = stringResource(
                                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                                 ),
-                                icon = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                                 iconOnly = true,
                                 size = StudioButtonSize.MEDIUM,
                                 onClick = onFavourite,
@@ -588,7 +582,7 @@ internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modif
         modifier = modifier,
     ) {
         Icon(
-            imageVector = Icons.Filled.MusicNote,
+            imageVector = StudioIcons.Music,
             contentDescription = null,
             tint = StudioTheme.colors.ink2.copy(alpha = alpha),
             modifier = Modifier.size(if (compact) 16.dp else 24.dp),
@@ -755,7 +749,7 @@ private fun PlayPauseButton(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = if (playWhenReady) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            imageVector = if (playWhenReady) StudioIcons.Pause else StudioIcons.Play,
             contentDescription = label,
             tint = content,
             modifier = Modifier.size(if (compact) 24.dp else 13.dp),

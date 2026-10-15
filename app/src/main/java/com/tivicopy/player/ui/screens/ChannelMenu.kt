@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +35,7 @@ import com.tivicopy.player.ui.settings.OffsetRow
 import com.tivicopy.player.ui.settings.SettingsChoice
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Everything you can do to one channel, in one place (FR-ORG-03..05, FR-ORG-07, FR-ORG-09/10).
@@ -224,7 +223,7 @@ fun GuideBindingDialog(
                 value = query,
                 onValueChange = { query = it },
                 label = stringResource(R.string.action_search),
-                icon = Icons.Filled.Search,
+                icon = StudioIcons.Search,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (channel.manualEpgId != null) {

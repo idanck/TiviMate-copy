@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +36,7 @@ import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.TwoLine
 import kotlinx.coroutines.launch
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Search across channels, the guide and on-demand (FR-UI-09).
@@ -72,13 +71,13 @@ fun SearchScreen(
             value = query,
             onValueChange = { query = it },
             label = stringResource(R.string.action_search),
-            icon = Icons.Filled.Search,
+            icon = StudioIcons.Search,
             modifier = Modifier.fillMaxWidth(),
         )
         if (results.running) StudioProgress(fraction = 0f, indeterminate = true, modifier = Modifier.fillMaxWidth())
 
         if (query.isNotBlank() && !results.running && results.isEmpty) {
-            EmptyState(stringResource(R.string.empty_no_results), icon = Icons.Filled.Search)
+            EmptyState(stringResource(R.string.empty_no_results), icon = StudioIcons.Search)
             return@Column
         }
 

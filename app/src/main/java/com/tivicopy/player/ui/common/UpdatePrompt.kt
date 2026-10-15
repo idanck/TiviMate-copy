@@ -5,10 +5,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -80,7 +76,7 @@ fun UpdatePrompt() {
             StudioDialog(
                 onDismissRequest = { postponed = true },
                 title = stringResource(R.string.update_dialog_title),
-                icon = Icons.Filled.SystemUpdate,
+                icon = StudioIcons.Update,
                 buttons = {
                     DialogButton(
                         label = stringResource(R.string.update_now),
@@ -119,7 +115,7 @@ fun UpdatePrompt() {
                 onDismissRequest = {},
                 dismissOnClickOutside = false,
                 title = stringResource(R.string.update_dialog_title),
-                icon = Icons.Filled.SystemUpdate,
+                icon = StudioIcons.Update,
                 buttons = {
                     DialogButton(
                         label = stringResource(R.string.update_hide),
@@ -151,7 +147,7 @@ fun UpdatePrompt() {
             StudioDialog(
                 onDismissRequest = { watching = false },
                 title = stringResource(R.string.update_dialog_title),
-                icon = Icons.Filled.ErrorOutline,
+                icon = StudioIcons.Alert,
                 danger = true,
                 buttons = {
                     // Nothing here is retryable from this dialog, so the terminal state goes
@@ -187,7 +183,7 @@ fun UpdatePrompt() {
             StudioDialog(
                 onDismissRequest = { watching = false },
                 title = stringResource(R.string.update_dialog_title),
-                icon = Icons.Filled.Info,
+                icon = StudioIcons.Info,
                 buttons = {
                     if (intent == null) {
                         // The offer is deliberately left standing: the user fixes what the
