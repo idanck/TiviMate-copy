@@ -108,6 +108,8 @@
     <string name="playback_menu">ניגון</string>
     <string name="playback_connecting">מתחבר…</string>
     <string name="playback_reconnecting">מתחבר מחדש — ניסיון %1$d…</string>
+    <string name="card_on_screen">על המסך</string>
+    <string name="filmstrip_hint">ימינה ושמאלה בין הערוצים · OK מעביר</string>
     <string name="playback_error_hint">אפשר להחליף ערוץ בחצים למעלה ולמטה גם מכאן.</string>
     <string name="playback_audio_only">מתנגן — שידור שמע בלבד, אין תמונה</string>
     <string name="playback_live_badge">שידור חי</string>
@@ -386,6 +388,7 @@
     <string name="home_rail_starting_soon">מתחיל בקרוב</string>
     <string name="home_watch_fullscreen">מסך מלא</string>
     <string name="home_apps">אפליקציות</string>
+    <string name="home_apps_hint">רק מה שמותקן במכשיר</string>
     <string name="start_home">פתיחת מסך הבית</string>
     <string name="settings_featured_url">כתובת פיד המומלצים</string>
     <string name="settings_featured_url_sub">פיד JSON לשורת המומלצים במסך הבית. ריק פירושו שאין שורה.</string>

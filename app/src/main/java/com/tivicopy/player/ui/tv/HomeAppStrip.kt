@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,13 +46,13 @@ import coil.compose.AsyncImage
 import com.tivicopy.player.R
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
-import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.monogram
 import com.tivicopy.player.ui.common.monogramColour
 import com.tivicopy.player.ui.home.HomeApps
 import com.tivicopy.player.ui.home.LaunchableApp
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -124,18 +126,24 @@ internal fun HomeAppStrip(
 ) {
     val context = LocalContext.current
     Column(modifier = modifier.fillMaxWidth().background(background)) {
-        SectionHeader(
-            text = stringResource(R.string.home_apps),
-            topDivider = false,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            // Less what the header pads its own label by, so it lines up with the tiles below.
-            modifier = Modifier.padding(start = startInset - SECTION_HEADER_OWN_INSET),
-        )
+        // `TvHomeApps`: the h1 step in ink, and a caption saying where the list comes from.
+        Row(
+            modifier = Modifier.padding(start = startInset, top = 12.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = stringResource(R.string.home_apps), style = StudioTheme.type.h1, color = StudioTheme.colors.ink)
+            Text(
+                text = stringResource(R.string.home_apps_hint),
+                style = StudioTheme.type.caption,
+                color = StudioTheme.colors.ink2,
+                modifier = Modifier.padding(bottom = 2.dp),
+            )
+        }
         LazyRow(
             modifier = Modifier.fillMaxWidth().focusGroup(),
-            contentPadding = PaddingValues(start = startInset, end = 4.dp, top = 4.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(start = startInset, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(apps, key = { it.app.id }) { tile ->
                 AppTile(
@@ -159,73 +167,57 @@ internal fun HomeAppStrip(
 @Composable
 private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    // The card corner, from the same place the home tiles and the filmstrip take it.
+    // `TvHomeApps`: each app is a card — the card colour inside a faint edge, raised to
+    // `card-focus` in the cue ring when the remote is on it — with the app's own icon in the
+    // middle and its name under it.
     val shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
     Column(
-        modifier = Modifier
-            // The same lift every other card in the shell uses (`ui/common/Motion.kt`).
-            .focusLift(focused, shape = shape)
-            .width(APP_TILE_WIDTH.dp)
-            .clip(shape)
-            .onFocusChanged { focused = it.isFocused }
-            // As everywhere else in this shell: `clickable` is the focus target on its own, and
-            // adding `focusable()` beside it costs the remote a second press to leave the tile.
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = tile.app.label }
-            .padding(6.dp),
+        modifier = Modifier.width(APP_TILE_WIDTH.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(APP_ICON_SIZE.dp)
-                .clip(shape)
-                .then(
-                    // Only the monogram fallback paints a plate; a real launcher icon is its own
-                    // artwork and anything behind it is never seen.
-                    if (tile.icon == null) {
-                        Modifier.background(monogramColour(tile.app.label))
-                    } else {
-                        Modifier
-                    },
-                )
-                // The app's one focus treatment (`ui/common/Focus.kt`), ringing without filling:
-                // the icon is the content. The ring width now comes from the shell rather than
-                // from a literal that happened to match it.
-                .focusSurface(focused = focused, shape = shape, fill = FocusFill.NONE),
+                .width(APP_TILE_WIDTH.dp)
+                .aspectRatio(16f / 9f)
+                .focusLift(focused, shape = shape)
+                .focusSurface(focused = focused, shape = shape, fill = FocusFill.RAISE)
+                .onFocusChanged { focused = it.isFocused }
+                // `clickable` is the focus target on its own.
+                .clickable(onClick = onClick)
+                .semantics { contentDescription = tile.app.label },
             contentAlignment = Alignment.Center,
         ) {
             if (tile.icon == null) {
-                Text(
-                    text = monogram(tile.app.label),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                )
+                Box(
+                    modifier = Modifier
+                        .size(APP_ICON_SIZE.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(monogramColour(tile.app.label)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = monogram(tile.app.label), style = StudioTheme.type.rowLabel, color = Color.White)
+                }
             } else {
                 // Coil takes a `Drawable` as its model directly, which is what keeps the platform's
                 // own adaptive icon — mask, background layer and all — instead of a flattened bitmap.
                 AsyncImage(
                     model = tile.icon,
                     contentDescription = null,
-                    modifier = Modifier.size(APP_ICON_SIZE.dp).padding(4.dp),
+                    modifier = Modifier.size(APP_ICON_SIZE.dp),
                 )
             }
         }
         Text(
             text = tile.app.label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (focused) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
+            style = StudioTheme.type.caption,
+            color = if (focused) StudioTheme.colors.ink else StudioTheme.colors.ink2,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
 
-private const val APP_TILE_WIDTH = 92
-private const val APP_ICON_SIZE = 72
+/** `TvHomeApps`' tile: 200px at 1080p, 16:9, with the icon at 64px in it. */
+private const val APP_TILE_WIDTH = 100
+private const val APP_ICON_SIZE = 32

@@ -465,10 +465,10 @@ private fun HomeCardRail(
         SectionHeader(
             text = title,
             topDivider = false,
-            // Heavier than the app's default header: a rail title on a banner-led home screen is
-            // read from across the room, not scanned down a settings list.
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            // `HomeRails`: the h1 step in ink. A rail title on a banner-led home screen is read
+            // from across the room, not scanned down a settings list.
+            style = StudioTheme.type.h1,
+            color = StudioTheme.colors.ink,
             // Less the inset the header pads its own label by, so the heading starts on the same
             // line as the cards under it rather than 12dp past them.
             modifier = Modifier.padding(start = startInset - SECTION_HEADER_OWN_INSET),
@@ -487,7 +487,8 @@ private fun HomeCardRail(
                 top = 8.dp,
                 bottom = 8.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            // `--st-gap-rail`: 32px at 1080p.
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(cards, key = { it.key }) { card ->
                 HomeTile(
@@ -514,139 +515,26 @@ private fun HomeTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    Column(
-        modifier = modifier
-            // Grows on focus and is drawn over its neighbours while it does. Through a
-            // `graphicsLayer`, so the row it sits in does not re-measure and the cards either
-            // side of it do not move (`ui/common/Motion.kt`).
-            .focusLift(focused, shape = tvCardShape())
-            .width(width)
-            // The shell's one card look, shared with the filmstrip (`TvSurfaces.kt`).
-            .tvCard(focused = focused, playing = playing)
-            .onFocusChanged { focused = it.isFocused }
-            // `clickable` carries the focus target on its own; adding `focusable()` here would
-            // cost the remote a second press to leave every tile.
-            .clickable(onClick = onClick)
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        // The card knows its own shape: a station is round wherever it lands, including on the
-        // Continue and Favourites rails, which are built across every playlist (`HomeModels.kt`).
-        HomeTileArt(card = card, circular = card.circular, modifier = Modifier.fillMaxWidth())
-        Text(
-            text = card.title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            // The card for the channel that is actually playing says so, rather than leaving the
-            // ring around it to carry that alone: on a rail scrolled past the focused card there
-            // is no ring in view, and "which of these am I listening to" is the question a radio
-            // rail gets asked most.
-            if (playing) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        // The tally: red is what is on air, amber only where the remote is.
-                        .background(StudioTheme.colors.tally),
-                )
-            }
-            Text(
-                text = card.subtitle ?: stringResource(R.string.no_guide_data),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        when {
-            card.hasProgress -> ProgrammeProgress(startUtc = card.startUtc, endUtc = card.endUtc)
-            card.endUtc > card.startUtc -> Text(
-                // A window still ahead: the clock, not a bar sitting at zero. Isolated because a
-                // Latin time range inside a Hebrew layout reorders otherwise (FR-UI-22).
-                text = TimeModel.ltr(TimeModel.formatClockRange(card.startUtc, card.endUtc)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
-/**
- * The picture on a card: the source's own artwork, or a monogram tile in a colour derived from
- * the title, which is what [com.tivicopy.player.ui.common.ChannelLogo] already does for a
- * channel row. Written out here rather than reused because a card is not always a channel —
- * a promoted item carries a poster and a programme carries its own icon.
- *
- * Sixteen by nine, not the benchmark's 2:3 poster: every card this screen draws is a channel or
- * a programme on one, and a portrait poster of a channel logo is a tall box with a small mark in
- * the middle of it. The on-demand grid, which is where this app draws artwork for films and
- * series, does use 2:3 (`ui/screens/VodScreen.kt`).
- */
-@Composable
-private fun HomeTileArt(card: HomeCard, circular: Boolean, modifier: Modifier = Modifier) {
-    var failed by remember(card.imageUrl) { mutableStateOf(false) }
-    // The *outer* box keeps 16:9 whichever shape the mark inside it takes, so a rail of round
-    // station marks is exactly as tall as a rail of channel stills and the two sit in one column
-    // of rails without the row heights stepping.
-    val artShape = if (circular) CircleShape else RoundedCornerShape(8.dp)
-    val artSize = if (circular) {
-        Modifier.fillMaxHeight().aspectRatio(1f)
-    } else {
-        Modifier.fillMaxSize()
-    }
-    Box(
-        modifier = modifier.aspectRatio(16f / 9f),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = artSize
-                .clip(artShape)
-                .background(monogramColour(card.title)),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (card.imageUrl.isNullOrBlank() || failed) {
-                Text(
-                    text = monogram(card.title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                )
-            } else {
-                AsyncImage(
-                    model = card.imageUrl,
-                    contentDescription = card.title,
-                    modifier = Modifier.fillMaxSize().padding(10.dp),
-                    onError = { failed = true },
-                )
-            }
-        }
-        card.number?.let { number ->
-            Text(
-                // A bare Latin numeral beside Hebrew: isolated, or the layout reorders it.
-                text = TimeModel.ltr(number.toString()),
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(6.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .padding(horizontal = 6.dp, vertical = 2.dp),
-            )
-        }
-    }
+    // Studio's channel card (`HomeRails`): the tile is the card, the programme and its time are
+    // captions under it. A window still ahead gets its clock rather than a bar sitting at zero.
+    val now = System.currentTimeMillis()
+    StudioChannelCard(
+        label = card.title,
+        imageUrl = card.imageUrl,
+        number = card.number,
+        now = card.subtitle,
+        time = if (card.endUtc > card.startUtc) TimeModel.formatClockRange(card.startUtc, card.endUtc) else null,
+        progress = if (card.hasProgress) {
+            ((now - card.startUtc).toFloat() / (card.endUtc - card.startUtc).coerceAtLeast(1)).coerceIn(0f, 1f)
+        } else {
+            null
+        },
+        onScreen = playing,
+        circular = card.circular,
+        width = width,
+        onClick = onClick,
+        modifier = modifier,
+    )
 }
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */

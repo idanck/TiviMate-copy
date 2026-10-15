@@ -450,7 +450,8 @@ fun StudioNoticeHost(state: SnackbarHostState, modifier: Modifier = Modifier) {
             text = data.visuals.message,
             icon = if (tone == NoticeTone.ERROR) StudioIcons.Alert else null,
             tone = tone,
-            modifier = Modifier.padding(16.dp),
+            // `TvNotice`: centred, 48dp off the foot of a television's screen.
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = if (StudioTheme.television) 48.dp else 16.dp),
         )
     }
 }

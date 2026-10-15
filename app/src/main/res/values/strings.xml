@@ -122,6 +122,8 @@
     <string name="playback_menu">Playback</string>
     <string name="playback_connecting">Connecting…</string>
     <string name="playback_reconnecting">Reconnecting — attempt %1$d…</string>
+    <string name="card_on_screen">On screen</string>
+    <string name="filmstrip_hint">Left and right between channels · OK switches</string>
     <string name="playback_error_hint">Up and down still change channel from here.</string>
     <string name="playback_audio_only">Playing — audio only, no picture</string>
     <string name="playback_live_badge">Live</string>
@@ -418,6 +420,7 @@
     <string name="home_rail_starting_soon">Starting soon</string>
     <string name="home_watch_fullscreen">Watch fullscreen</string>
     <string name="home_apps">Apps</string>
+    <string name="home_apps_hint">Only what is installed on this device</string>
     <string name="start_home">Open the home screen</string>
     <string name="settings_featured_url">Featured feed address</string>
     <string name="settings_featured_url_sub">A JSON feed for the home screen’s Featured row. Empty means no row.</string>
