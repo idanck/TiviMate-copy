@@ -436,16 +436,26 @@ fun ClockText(
  */
 private const val CLOCK_TICK_MS = 20_000L
 
+/**
+ * A tag on a row or a sheet — "archive", a lock, a programme's category — as the canvas draws one
+ * (`ColorRules`, `ListRow`'s muted value): a grey chip on the card colour.
+ *
+ * It used to be a solid `primary` plate, which is the cue: amber means focus, and a tag is a fact
+ * about the thing, never where the remote is (MIGRATION.md §3).
+ */
 @Composable
-fun Badge(text: String, modifier: Modifier = Modifier, colour: Color = MaterialTheme.colorScheme.primary) {
+fun Badge(text: String, modifier: Modifier = Modifier) {
+    val studio = com.tivicopy.player.ui.theme.StudioTheme
+    val tv = studio.television
     Text(
         text = text,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onPrimary,
+        style = studio.type.caption,
+        color = studio.colors.ink2,
+        maxLines = 1,
         modifier = modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(colour)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
+            .clip(MaterialTheme.shapes.extraSmall)
+            .background(studio.colors.card)
+            .padding(horizontal = if (tv) 6.dp else 10.dp, vertical = if (tv) 2.dp else 4.dp),
     )
 }
 

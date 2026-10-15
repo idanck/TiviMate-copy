@@ -39,6 +39,7 @@ import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.keyProbe
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -532,7 +533,8 @@ fun KeyCodeProbe() {
             Text(
                 text = stringResource(R.string.diag_last_key, name, code),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+                // The text colour: the key last pressed is a reading, not where the remote is.
+                color = StudioTheme.colors.ink,
             )
         }
     }

@@ -10,6 +10,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,9 +23,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -31,6 +40,7 @@ import com.tivicopy.player.data.model.OutputFormat
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.NoticeTone
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.common.StudioButtonVariant
@@ -38,6 +48,7 @@ import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.settings.SettingsChoice
 import com.tivicopy.player.ui.settings.SettingsSectionTitle
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,6 +77,11 @@ fun AddSourceScreen(
     var epgUrl by remember { mutableStateOf("") }
     var format by remember { mutableStateOf(OutputFormat.TS) }
     var status by remember { mutableStateOf<String?>(null) }
+    // How the connection test came out: the verdict is green with a check, a failure the error
+    // colour with an alert (MIGRATION.md §3). It used to be `primary` either way, which is now the
+    // cue — the focus colour — and said "success" to a refused login too.
+    var statusTone by remember { mutableStateOf(NoticeTone.DEFAULT) }
+    var statusDetail by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
 
     val filePicker = rememberLauncherForActivityResult(
@@ -187,9 +203,7 @@ fun AddSourceScreen(
             )
         }
 
-        status?.let {
-            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-        }
+        status?.let { TestResult(text = it, detail = statusDetail, tone = statusTone) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (type == SourceType.XTREAM) {
@@ -200,16 +214,24 @@ fun AddSourceScreen(
                     onClick = {
                         busy = true
                         status = context.getString(R.string.setup_testing)
+                        statusTone = NoticeTone.DEFAULT
+                        statusDetail = null
                         scope.launch {
                             val result = ServiceLocator.sources.probeXtream(url, username, password, format)
-                            status = when (result) {
+                            when (result) {
                                 is Outcome.Ok -> {
                                     val account = result.value
-                                    context.getString(R.string.setup_ok) +
-                                        (account.status?.let { " · $it" } ?: "") +
-                                        (account.maxConnections?.let { " · " + context.getString(R.string.setup_max_connections, it) } ?: "")
+                                    status = context.getString(R.string.setup_ok)
+                                    statusTone = NoticeTone.OK
+                                    statusDetail = listOfNotNull(
+                                        account.status,
+                                        account.maxConnections?.let { context.getString(R.string.setup_max_connections, it) },
+                                    ).joinToString(" · ").ifEmpty { null }
                                 }
-                                is Outcome.Err -> result.error.describe(context)
+                                is Outcome.Err -> {
+                                    status = result.error.describe(context)
+                                    statusTone = NoticeTone.ERROR
+                                }
                             }
                             busy = false
                         }
@@ -243,6 +265,42 @@ fun AddSourceScreen(
                 },
             )
         }
+    }
+}
+
+/**
+ * The connection test's verdict (`TvAddSource`, `PAddSource`): a check and the verdict in the
+ * success colour, with the account's details after it in the secondary ink; a failure in the error
+ * colour with an alert glyph, so neither is told apart by colour alone. While the test runs it is
+ * a plain line in the secondary ink.
+ */
+@Composable
+private fun TestResult(text: String, detail: String?, tone: NoticeTone) {
+    val studio = StudioTheme.colors
+    val colour = when (tone) {
+        NoticeTone.OK -> studio.ok
+        NoticeTone.ERROR -> studio.error
+        NoticeTone.DEFAULT -> studio.ink2
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (tone != NoticeTone.DEFAULT) {
+            Icon(
+                imageVector = if (tone == NoticeTone.OK) Icons.Filled.Check else Icons.Filled.ErrorOutline,
+                contentDescription = null,
+                tint = colour,
+                modifier = Modifier.size(if (StudioTheme.television) 13.dp else 18.dp),
+            )
+        }
+        Text(
+            text = buildAnnotatedString {
+                append(text)
+                if (detail != null) {
+                    withStyle(SpanStyle(color = studio.ink2)) { append(" · $detail") }
+                }
+            },
+            style = StudioTheme.type.meta,
+            color = colour,
+        )
     }
 }
 

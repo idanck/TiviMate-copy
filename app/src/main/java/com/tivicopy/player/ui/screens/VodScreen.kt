@@ -65,6 +65,7 @@ import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -395,11 +396,8 @@ private fun EpisodeRow(episode: VodItem, onPlay: () -> Unit, onToggleFavourite: 
                 contentDescription = stringResource(
                     if (episode.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
-                tint = if (episode.favourite) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                // A favourite is a full star in white (`star-on`), never the cue: amber marks focus.
+                tint = if (episode.favourite) StudioTheme.colors.ink else StudioTheme.colors.ink2,
             )
         }
     }
@@ -471,11 +469,8 @@ private fun VodTile(
                     contentDescription = stringResource(
                         if (item.favourite) R.string.action_unfavourite else R.string.action_favourite,
                     ),
-                    tint = if (item.favourite) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    // A favourite is a full star in white (`star-on`), never the cue: amber marks focus.
+                    tint = if (item.favourite) StudioTheme.colors.ink else StudioTheme.colors.ink2,
                 )
             }
         }
