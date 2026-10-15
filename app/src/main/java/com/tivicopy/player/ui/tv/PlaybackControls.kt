@@ -43,9 +43,12 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.player.TrackOption
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
@@ -63,6 +66,7 @@ import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.screens.scheduleRecording
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
@@ -87,6 +91,8 @@ fun TransportBar(
     onOpenGuide: () -> Unit,
     onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The programme sheet for what is on air: watch, catch-up, record, series (ADR-034). */
+    onOpenDetails: (Channel, Programme) -> Unit = { _, _ -> },
 ) {
     val state by vm.state.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
@@ -215,7 +221,30 @@ fun TransportBar(
                     .height(22.dp)
                     .background(studio.hairline),
             )
+            // `PlayerTransport`'s two labelled actions on what is on air now (ADR-034). Without a
+            // known programme there is nothing for either to act on, and neither is drawn.
+            val onAir = state.now?.takeIf { liveChannel != null }
+            if (liveChannel != null && onAir != null) {
+                TransportButton(
+                    icon = StudioIcons.Info,
+                    description = stringResource(R.string.transport_details),
+                    onClick = { onOpenDetails(liveChannel, onAir) },
+                    labelled = true,
+                )
+                TransportButton(
+                    icon = StudioIcons.Record,
+                    description = stringResource(R.string.action_record),
+                    onClick = { vm.post(UiMessage(text = scheduleRecording(liveChannel, onAir))) },
+                    labelled = true,
+                )
+            }
             if (liveChannel != null) {
+                TransportButton(
+                    icon = StudioIcons.Guide,
+                    description = stringResource(R.string.nav_guide),
+                    onClick = onOpenGuide,
+                    labelled = true,
+                )
                 TransportButton(
                     icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                     description = stringResource(
@@ -223,11 +252,6 @@ fun TransportBar(
                         else R.string.action_favourite,
                     ),
                     onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
-                )
-                TransportButton(
-                    icon = StudioIcons.Guide,
-                    description = stringResource(R.string.nav_guide),
-                    onClick = onOpenGuide,
                 )
             }
             TransportButton(
@@ -253,9 +277,11 @@ fun TransportBar(
 }
 
 /**
- * One control on the transport bar: Studio's medium icon-only button (`PlayerTransport`), square,
- * becoming the cue when the remote is on it. Every one is the same weight; the canvas gives play
- * and pause no plate of their own.
+ * One control on the transport bar: Studio's medium button (`PlayerTransport`), square when it is
+ * a glyph alone, becoming the cue when the remote is on it. Every one is the same weight; the
+ * canvas gives play and pause no plate of their own.
+ *
+ * @param labelled the canvas's details, record and guide, which carry their name beside the glyph
  */
 @Composable
 private fun TransportButton(
@@ -263,12 +289,13 @@ private fun TransportButton(
     description: String,
     onClick: () -> Unit,
     focusRequester: FocusRequester? = null,
+    labelled: Boolean = false,
 ) {
     StudioButton(
         label = description,
         onClick = onClick,
         icon = icon,
-        iconOnly = true,
+        iconOnly = !labelled,
         size = StudioButtonSize.MEDIUM,
         focusRequester = focusRequester,
     )
@@ -287,6 +314,8 @@ fun PlaybackMenu(
     vm: AppViewModel,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The programme sheet for what is on air, from the menu's first row (ADR-034). */
+    onOpenDetails: (Channel, Programme) -> Unit = { _, _ -> },
 ) {
     val state by vm.state.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
@@ -338,7 +367,20 @@ fun PlaybackMenu(
             )
         }
 
+        // `PlayerMenu`'s first row, on a live channel whose programme is known.
+        val live = (state.nowPlaying as? NowPlayingInfo.Live)?.channel
+        val onAir = state.now?.takeIf { live != null }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            if (live != null && onAir != null) {
+                item {
+                    MenuEntry(
+                        title = stringResource(R.string.menu_programme_details),
+                        icon = StudioIcons.Info,
+                        chevron = true,
+                        onClick = { onOpenDetails(live, onAir) },
+                    )
+                }
+            }
             item {
                 MenuEntry(
                     title = stringResource(
@@ -416,12 +458,15 @@ private fun MenuEntry(
     detail: String? = null,
     selected: Boolean = false,
     icon: ImageVector? = null,
+    /** Opens something further in. */
+    chevron: Boolean = false,
 ) {
     ListRow(
         label = title,
         onClick = onClick,
         icon = icon,
         trail = when {
+            chevron -> RowTrail.CHEVRON
             detail != null -> RowTrail.VALUE
             selected -> RowTrail.CHECK
             else -> RowTrail.NONE
