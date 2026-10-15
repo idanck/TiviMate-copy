@@ -300,6 +300,8 @@
     <string name="pin_remove">הסרת קוד</string>
     <string name="pin_enter">הזן את הקוד</string>
     <string name="pin_hint">4 עד 6 ספרות</string>
+    <string name="pin_keypad_hint">אפשר גם להקיש את הספרות במקשי המספרים בשלט</string>
+    <string name="pin_erase">מחק</string>
     <string name="pin_wrong">הקוד שגוי.</string>
     <string name="pin_locked">יותר מדי ניסיונות. נסה שוב בעוד %1$d שנ\'.</string>
     <string name="pin_lock_settings">דרוש קוד לפתיחת ההגדרות</string>
