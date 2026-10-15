@@ -13,44 +13,43 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,17 +62,20 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
 import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
-import com.tivicopy.player.ui.common.ChannelLogo
+import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
+import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
 import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.labelRes
+import com.tivicopy.player.ui.common.panelSurface
 import com.tivicopy.player.ui.screens.ChannelListScreen
-import com.tivicopy.player.ui.screens.NowNextPane
+import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 /**
  * The phone's Now Playing screen (ADR-011): a full-screen surface over the browse shell, the
@@ -208,16 +210,32 @@ fun PlayerScreen(
                         modifier = Modifier.fillMaxSize(),
                     )
                     if (!landscape) {
-                        // The one piece of chrome on the video: the way back down. Landscape
-                        // stays clean — the system Back gesture does the same job there.
+                        // Studio's tally along the top edge of a picture that is on air.
+                        if (state.nowPlaying is NowPlayingInfo.Live) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopCenter)
+                                    .fillMaxWidth()
+                                    .height(3.dp)
+                                    .background(StudioTheme.colors.tally),
+                            )
+                        }
+                        // The one piece of chrome on the video: the way back down, on a scrim so
+                        // it reads over any frame. Landscape stays clean — the system Back gesture
+                        // does the same job there.
                         IconButton(
                             onClick = onClose,
-                            modifier = Modifier.align(Alignment.TopStart).padding(4.dp),
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(10.dp)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(StudioTheme.colors.scrim),
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowDown,
                                 contentDescription = stringResource(R.string.action_collapse_player),
-                                tint = Color.White,
+                                tint = StudioTheme.colors.ink,
                             )
                         }
                     }
@@ -257,11 +275,13 @@ fun PlayerScreen(
 }
 
 /**
- * The metadata half of the portrait player screen, keyed off what is actually playing: a live
- * channel gets its identity, zapping and now/next; catch-up, on-demand and recordings get the
- * title and what little else is known. Every kind gets the transport row (play/pause front and
- * centre) and the quality readout. Seeking stays on the surface's gestures (FR-UI-14) — there
- * is no scrubber yet, and docs/10 says so.
+ * The metadata half of the portrait player screen, Studio's `PNowPlaying`, keyed off what is
+ * actually playing. A live channel gets the live badge and its name, the programme title in
+ * Karantina, its time with progress and minutes left, zapping around play/pause, favourite /
+ * guide / view, and what comes next in a panel in the "next" blue. Catch-up, on-demand and
+ * recordings get their title and what little else is known, play/pause and the view action.
+ * Seeking stays on the surface's gestures (FR-UI-14) — there is no scrubber yet, and docs/10
+ * says so.
  */
 @Composable
 private fun NowPlayingDetails(
@@ -272,129 +292,112 @@ private fun NowPlayingDetails(
 ) {
     val state by vm.state.collectAsState()
     val playback by vm.playbackStatus.collectAsState()
-    // Re-read from the current list so the star and the pane reflect an edit made after
-    // playback started; the snapshot inside NowPlayingInfo never updates.
+    val studio = StudioTheme.colors
+    // Re-read from the current list so the star reflects an edit made after playback started;
+    // the snapshot inside NowPlayingInfo never updates.
     val live = state.nowPlaying as? NowPlayingInfo.Live
     val liveChannel = live?.let { l ->
         state.list.channels.firstOrNull { it.id == l.channel.id } ?: l.channel
     }
+    // The progress and the minutes left are read at composition; nothing else here changes once
+    // a minute, so a slow tick keeps them honest without recomposing more often.
+    var minute by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(MINUTE_MS - System.currentTimeMillis() % MINUTE_MS)
+            minute = System.currentTimeMillis()
+        }
+    }
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         when (val playing = state.nowPlaying) {
             is NowPlayingInfo.Live -> {
                 val channel = liveChannel ?: playing.channel
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    ChannelLogo(channel = channel, sizeDp = 56)
-                    Column(modifier = Modifier.weight(1f)) {
+                    LiveBadge()
+                    Text(
+                        text = channel.displayName,
+                        style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+                        color = studio.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (channel.number > 0) {
                         Text(
-                            text = channel.displayName,
-                            style = MaterialTheme.typography.titleLarge,
+                            text = stringResource(R.string.channel_number_entry, channel.number.toString()),
+                            style = StudioTheme.type.caption,
+                            color = studio.ink2,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                         )
-                        val group = state.list.groups.firstOrNull { it.id == channel.groupId }?.name
-                        val subtitle = listOfNotNull(
-                            channel.number.takeIf { it > 0 }?.toString(),
-                            group,
-                        ).joinToString(" · ")
-                        if (subtitle.isNotBlank()) {
-                            Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
                     }
-                    IconButton(onClick = { vm.setFavourite(channel, !channel.favourite) }) {
-                        Icon(
-                            imageVector = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
-                            contentDescription = stringResource(
-                                if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
-                            ),
-                            tint = if (channel.favourite) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
+                }
+                PlayerTitle(state.now?.title ?: channel.displayName)
+                state.now?.let { now ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        val span = (now.endUtc - now.startUtc).coerceAtLeast(1)
+                        val fraction = ((minute - now.startUtc).toFloat() / span).coerceIn(0f, 1f)
+                        val left = ((now.endUtc - minute) / MINUTE_MS).coerceAtLeast(0)
+                        Text(
+                            text = TimeModel.formatClockRange(now.startUtc, now.endUtc),
+                            style = StudioTheme.type.caption,
+                            color = studio.ink2,
+                        )
+                        StudioProgress(fraction = fraction, modifier = Modifier.weight(1f), height = 5.dp)
+                        Text(
+                            text = stringResource(R.string.home_minutes_left, left.toInt()),
+                            style = StudioTheme.type.caption,
+                            color = studio.ink2,
                         )
                     }
                 }
             }
 
             is NowPlayingInfo.Catchup -> {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    ChannelLogo(channel = playing.channel, sizeDp = 56)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = playing.programme.title,
-                            style = MaterialTheme.typography.titleLarge,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = playing.channel.displayName + " · " +
-                                TimeModel.formatClockRange(
-                                    playing.programme.startUtc,
-                                    playing.programme.endUtc,
-                                ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                playing.programme.description?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                Text(
+                    text = playing.channel.displayName,
+                    style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
+                )
+                PlayerTitle(playing.programme.title)
+                Text(
+                    text = TimeModel.formatClockRange(playing.programme.startUtc, playing.programme.endUtc),
+                    style = StudioTheme.type.caption,
+                    color = studio.ink2,
+                )
+                playing.programme.description?.let { PlayerDescription(it) }
             }
 
             is NowPlayingInfo.OnDemand -> {
-                Text(
-                    text = playing.item.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                PlayerTitle(playing.item.name)
                 val meta = listOfNotNull(playing.item.year, playing.item.rating).joinToString(" · ")
                 if (meta.isNotBlank()) {
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text(text = meta, style = StudioTheme.type.caption, color = studio.ink2)
                 }
-                playing.item.plot?.let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                playing.item.plot?.let { PlayerDescription(it) }
             }
 
             is NowPlayingInfo.RecordingFile -> {
                 Text(
-                    text = playing.recording.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    text = playing.recording.channelName,
+                    style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
                 )
+                PlayerTitle(playing.recording.title)
                 Text(
-                    text = playing.recording.channelName + " · " +
-                        TimeModel.formatDayTime(playing.recording.startUtc),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = TimeModel.formatDayTime(playing.recording.startUtc),
+                    style = StudioTheme.type.caption,
+                    color = studio.ink2,
                 )
             }
 
@@ -403,95 +406,144 @@ private fun NowPlayingDetails(
         }
 
         if (state.nowPlaying != null) {
+            Spacer(modifier = Modifier.height(16.dp))
             TransportRow(
                 wantsPlay = playback.playWhenReady,
                 showZap = live != null,
-                showGuide = live != null,
                 onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                 onZapPrevious = { vm.zap(-1) },
                 onZapNext = { vm.zap(1) },
-                onOpenGuide = onOpenGuide,
-                onCycleAspect = onCycleAspect,
             )
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (liveChannel != null) {
+                    PhoneButton(
+                        label = stringResource(R.string.player_favourite),
+                        icon = if (liveChannel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        size = PhoneButtonSize.M,
+                        onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    PhoneButton(
+                        label = stringResource(R.string.nav_guide),
+                        icon = Icons.Filled.DateRange,
+                        size = PhoneButtonSize.M,
+                        onClick = onOpenGuide,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                PhoneButton(
+                    label = stringResource(R.string.player_view),
+                    icon = Icons.Filled.AspectRatio,
+                    size = PhoneButtonSize.M,
+                    onClick = onCycleAspect,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             QualityLine(status = playback)
         }
-        if (liveChannel != null) {
-            HorizontalDivider()
-            NowNextPane(
-                channel = liveChannel,
-                now = state.now,
-                next = state.next,
-                modifier = Modifier.fillMaxWidth(),
-            )
+        val next = state.next
+        if (liveChannel != null && next != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .panelSurface(opacity = 1f)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.info_next) + " · " + TimeModel.ltr(TimeModel.formatClock(next.startUtc)),
+                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.next,
+                )
+                Text(
+                    text = next.title,
+                    style = StudioTheme.type.body.copy(fontSize = StudioTheme.type.body.fontSize * (18f / 16f), fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = TimeModel.formatClockRange(next.startUtc, next.endUtc),
+                    style = StudioTheme.type.caption,
+                    color = studio.ink2,
+                )
+            }
         }
     }
 }
 
+/** The programme's title as Studio sets it on the phone: Karantina, 44sp, two lines at most. */
+@Composable
+private fun PlayerTitle(text: String) {
+    val hero = StudioTheme.type.hero
+    Text(
+        text = text,
+        style = hero.copy(fontSize = hero.fontSize * (44f / 48f), lineHeight = hero.fontSize * (44f / 48f) * 0.95f),
+        color = StudioTheme.colors.ink,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
+
+@Composable
+private fun PlayerDescription(text: String) {
+    Text(
+        text = text,
+        style = StudioTheme.type.meta,
+        color = StudioTheme.colors.ink2,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
 /**
  * Play/pause front and centre — the one control every kind of playback needs (device report) —
- * with zapping around it for live, and the guide and aspect actions on a second line. The
- * arrows are deliberately not mirrored in RTL: like a seek bar, "next" keeps its direction
- * regardless of the reading order.
+ * in the cue, with zapping either side of it for live. The arrows are deliberately not mirrored
+ * in RTL: like a seek bar, "next" keeps its direction regardless of the reading order.
  */
 @Composable
 private fun TransportRow(
     /** The intent flag, not `isPlaying` — a rebuffering stream must still offer Pause. */
     wantsPlay: Boolean,
     showZap: Boolean,
-    showGuide: Boolean,
     onTogglePlay: () -> Unit,
     onZapPrevious: () -> Unit,
     onZapNext: () -> Unit,
-    onOpenGuide: () -> Unit,
-    onCycleAspect: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally),
         modifier = Modifier.fillMaxWidth(),
     ) {
         if (showZap) {
-            FilledTonalIconButton(onClick = onZapPrevious) {
-                Icon(
-                    imageVector = Icons.Filled.SkipPrevious,
-                    contentDescription = stringResource(R.string.channel_previous),
-                )
-            }
-        }
-        FilledIconButton(onClick = onTogglePlay, modifier = Modifier.size(64.dp)) {
-            Icon(
-                imageVector = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                contentDescription = stringResource(
-                    if (wantsPlay) R.string.action_pause else R.string.action_play,
-                ),
-                modifier = Modifier.size(32.dp),
+            PhoneButton(
+                label = stringResource(R.string.channel_previous),
+                icon = Icons.Filled.KeyboardArrowUp,
+                iconOnly = true,
+                size = PhoneButtonSize.L,
+                onClick = onZapPrevious,
             )
         }
+        PhoneButton(
+            label = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play),
+            icon = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            iconOnly = true,
+            variant = PhoneButtonVariant.PRIMARY,
+            size = PhoneButtonSize.XL,
+            onClick = onTogglePlay,
+        )
         if (showZap) {
-            FilledTonalIconButton(onClick = onZapNext) {
-                Icon(
-                    imageVector = Icons.Filled.SkipNext,
-                    contentDescription = stringResource(R.string.channel_next),
-                )
-            }
-        }
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        if (showGuide) {
-            TextButton(onClick = onOpenGuide) {
-                Icon(Icons.Filled.DateRange, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.nav_guide))
-            }
-        }
-        TextButton(onClick = onCycleAspect) {
-            Icon(Icons.Filled.AspectRatio, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.aspect_ratio))
+            PhoneButton(
+                label = stringResource(R.string.channel_next),
+                icon = Icons.Filled.KeyboardArrowDown,
+                iconOnly = true,
+                size = PhoneButtonSize.L,
+                onClick = onZapNext,
+            )
         }
     }
 }
@@ -568,6 +620,9 @@ private fun Modifier.gestureControls(
             onLongPress = { onCycleAspect() },
         )
     }
+
+/** A minute, for the details' clock. */
+private const val MINUTE_MS = 60_000L
 
 /** A full-width horizontal sweep seeks this far. */
 private const val SEEK_SWEEP_MS = 120_000f
