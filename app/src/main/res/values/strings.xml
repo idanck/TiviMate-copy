@@ -441,5 +441,6 @@
     <string name="radio_previous">Previous station</string>
     <string name="radio_next">Next station</string>
     <string name="radio_stations">Stations</string>
+    <string name="channel_on_screen">On screen</string>
     <string name="radio_equalizer">Equalizer</string>
 </resources>

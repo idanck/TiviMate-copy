@@ -1,6 +1,6 @@
 # ADR-027 — The Studio design language
 
-**Status:** accepted. Supersedes the typeface and the palette of ADR-019, and the *shape* of the
+**Status:** accepted; all five stages landed (0.11.0 to 0.13.3). Supersedes the typeface and the palette of ADR-019, and the *shape* of the
 television's navigation in ADR-020 and ADR-022. Lands in stages (see Consequences); this record
 covers the language as a whole so each stage does not need its own.
 
@@ -117,6 +117,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   bundled radio takes the whole player screen — the shifting background, the disc in a halo, the
   song in Karantina, the equaliser, favourite / previous / play-pause / next / guide, and a strip of
   stations under national / regional / other chips with the one on air marked by the tally.
+  Its fourth part is the channel list (`PChannelRow`, `ui/screens/PhoneChannelRow.kt`, and one
+  row of `PChip`s for the filters and categories): the number on a tile in Karantina (a station's
+  mark on a disc), what is on with its time and a progress line, and the channel on screen in the
+  tally. The row keeps a favourite star the canvas does not draw (FR-ORG-07).
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,
@@ -130,3 +134,8 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
 - Light and "follow system" themes are withdrawn, since Studio is drawn dark only: ADR-028.
 - `docs/design/README.md` and the older canvas (`build_canvas.py`) describe the pre-Studio system
   and are superseded by `docs/design/studio/` as each stage lands.
+- Not drawn yet, after the five stages: the guide's focused-programme panel and the top bar on the
+  television's guide, recordings and settings; two-pane settings and recordings; the television
+  radio's station strip; the phone's "more channels" rows under Now Playing and its guide's
+  selected-programme sheet; icons on the phone's settings rows; the tally glow. Each is a
+  layout addition on top of the language, not a change to it.

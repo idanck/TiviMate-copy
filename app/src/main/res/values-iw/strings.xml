@@ -409,5 +409,6 @@
     <string name="radio_previous">תחנה קודמת</string>
     <string name="radio_next">תחנה הבאה</string>
     <string name="radio_stations">תחנות</string>
+    <string name="channel_on_screen">על המסך</string>
     <string name="radio_equalizer">אקולייזר</string>
 </resources>

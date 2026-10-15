@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Generates the Design Components artboards for the Shidur design-system canvas.
 
+SUPERSEDED: the design language is Studio (docs/design/studio/, ADR-027). This script and
+the artboards it wrote describe the system before Studio and are kept for history only.
+
 Every value here is lifted verbatim from the app's own source:
 
   app/src/main/java/com/tivicopy/player/ui/theme/Theme.kt      colours, shapes
