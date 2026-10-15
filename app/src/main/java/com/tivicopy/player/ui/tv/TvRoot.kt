@@ -284,6 +284,15 @@ fun TvRoot(
                 onFavourite = state.nowPlaying.audioOnlyChannel()?.let { station ->
                     { vm.setFavourite(station, !station.favourite) }
                 },
+                // The bundled radio's stations along the bottom, while the remote is the shell's.
+                stationStrip = state.nowPlaying.audioOnlyChannel()
+                    ?.takeIf { overlay.leavesDpadToShell && isBundledRadio(state, it) }
+                    ?.let { station ->
+                        val strip: @Composable (Modifier) -> Unit = { stripModifier ->
+                            TvStationStrip(vm = vm, current = station, modifier = stripModifier)
+                        }
+                        strip
+                    },
                 modifier = pictureBounds,
             )
         }
@@ -866,4 +875,10 @@ private fun PlaybackErrorBanner(error: com.tivicopy.player.core.AppError, modifi
             color = MaterialTheme.colorScheme.onErrorContainer,
         )
     }
+}
+
+/** Whether [channel] is one of the bundled Israeli radio stations (ADR-015). */
+private fun isBundledRadio(state: com.tivicopy.player.ui.AppUiState, channel: com.tivicopy.player.data.model.Channel): Boolean {
+    val radioId = state.playlists.firstOrNull { it.url == com.tivicopy.player.data.builtin.IsraelRadioStations.M3U_URL }?.id
+    return radioId != null && channel.playlistId == radioId
 }

@@ -310,6 +310,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * Every bundled station but the Russian ones, each with its category, for the radio screen's
+     * station strip (`canvas/Radio.dc.html`). Read straight from the database, so it does not
+     * depend on the Radio list being the one open. Empty until the radio playlist exists.
+     */
+    suspend fun radioStations(): List<Pair<Channel, RadioCategory>> = withContext(Dispatchers.IO) {
+        val playlist = dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+            ?: return@withContext emptyList()
+        val groups = dao.groups(playlist.id, includeHidden = true)
+        dao.channels(playlist.id).mapNotNull { channel ->
+            val group = groups.firstOrNull { it.id == channel.groupId }?.name
+            if (RadioCategoryClassifier.isRussian(channel.displayName, group)) {
+                null
+            } else {
+                channel to RadioCategoryClassifier.classify(group, channel.displayName)
+            }
+        }
+    }
+
     /** Leaves the Radio destination, handing the channel list back to the normal active playlist. */
     fun closeRadio() {
         radioNavJob?.cancel()

@@ -356,6 +356,11 @@ fun AudioOnlyNowPlaying(
     live: Boolean = false,
     tasks: List<TaskItem> = emptyList(),
     onFavourite: (() -> Unit)? = null,
+    /**
+     * The stations along the bottom (`canvas/Radio.dc.html`), supplied by the shell, which knows
+     * the station list; null where the remote cannot reach it. Gives way to the task list.
+     */
+    stationStrip: (@Composable (Modifier) -> Unit)? = null,
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
@@ -501,6 +506,10 @@ fun AudioOnlyNowPlaying(
                     }
                 }
             }
+        }
+
+        if (tasks.isEmpty() && stationStrip != null) {
+            stationStrip(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(bottom = SAFE_Y))
         }
 
         // FR-UI-32: the task list, once nobody has touched the remote for a while.
