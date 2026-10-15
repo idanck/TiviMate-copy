@@ -169,6 +169,12 @@ class Settings(context: Context) {
          */
         val watchNextEnabled: Boolean,
         /**
+         * Whether the home screen leaves out its row of installed apps (FR-UI-28). Off by
+         * default, so the row shows as it always has; turning it on is how a viewer who never
+         * leaves the app for another one gets that space back for the channel rails.
+         */
+        val hideHomeApps: Boolean,
+        /**
          * Whether a still screen turns into a screensaver after [screensaverIdleMinutes]
          * (FR-UI-31). On by default: this is a burn-in guard, and a guard nobody switched on
          * protects nobody.
@@ -252,6 +258,7 @@ class Settings(context: Context) {
         featuredLastCheckUtc = prefs.getLong(K_FEATURED_LAST_CHECK, 0),
         featuredLastFeed = prefs.getString(K_FEATURED_FEED, null),
         watchNextEnabled = prefs.getBoolean(K_WATCH_NEXT, true),
+        hideHomeApps = prefs.getBoolean(K_HIDE_HOME_APPS, false),
         screensaverEnabled = prefs.getBoolean(K_SCREENSAVER, true),
         screensaverIdleMinutes = prefs.getInt(K_SCREENSAVER_IDLE, 10),
         screensaverTasks = prefs.getBoolean(K_SCREENSAVER_TASKS, false),
@@ -372,6 +379,8 @@ class Settings(context: Context) {
     }
 
     fun setWatchNextEnabled(v: Boolean) = commit { putBoolean(K_WATCH_NEXT, v) }
+
+    fun setHideHomeApps(v: Boolean) = commit { putBoolean(K_HIDE_HOME_APPS, v) }
 
     /** FR-UI-31. */
     fun setScreensaverEnabled(v: Boolean) = commit { putBoolean(K_SCREENSAVER, v) }
@@ -514,6 +523,7 @@ class Settings(context: Context) {
         const val K_FEATURED_LAST_CHECK = "featured_last_check"
         const val K_FEATURED_FEED = "featured_last_feed"
         const val K_WATCH_NEXT = "watch_next_enabled"
+        const val K_HIDE_HOME_APPS = "hide_home_apps"
         const val K_SCREENSAVER = "screensaver_enabled"
         const val K_SCREENSAVER_IDLE = "screensaver_idle_minutes"
         const val K_SCREENSAVER_TASKS = "screensaver_tasks"

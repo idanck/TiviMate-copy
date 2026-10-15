@@ -253,6 +253,14 @@ fun SettingsScreen(
                         }
                     },
                 )
+                // FR-UI-28. Off by default: the home screen keeps its row of installed apps
+                // unless the viewer asks for it gone.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_hide_home_apps),
+                    subtitle = stringResource(R.string.settings_hide_home_apps_sub),
+                    checked = s.hideHomeApps,
+                    onChange = settings::setHideHomeApps,
+                )
                 SettingsSwitch(
                     title = stringResource(R.string.settings_pip_home),
                     checked = s.pipOnHome,

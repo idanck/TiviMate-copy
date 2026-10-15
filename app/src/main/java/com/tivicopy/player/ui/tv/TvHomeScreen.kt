@@ -141,7 +141,9 @@ fun TvHomeScreen(
         rails = HomeRails.build(data, System.currentTimeMillis())
     }
 
-    val apps = rememberHomeApps()
+    // Hidden from Settings skips the `PackageManager` lookups too, not only the row: an empty list
+    // is the same "no strip at all" a device with none of the catalogue installed already gets.
+    val apps = if (prefs.hideHomeApps) emptyList<HomeAppTile>() else rememberHomeApps()
 
     /*
      * Rail titles and destination labels are resolved here, in the composable body.
