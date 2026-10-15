@@ -101,6 +101,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   buttons, the next programme in "next" blue) and the zapping card as Studio's lower third (a
   number tile under the tally, the title, and a "next" panel), with the shared live badge,
   progress bar and button they are built from.
+- Stage 4's radio part redraws the audio-only screen as Studio's radio (`AudioOnlyNowPlaying`):
+  the shifting background, the station's disc in a halo, the song in Karantina with the artist
+  under it, and play/pause and favourite as Studio buttons. How it meets the screensaver is
+  ADR-030.
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,

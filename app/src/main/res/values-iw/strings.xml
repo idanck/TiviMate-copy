@@ -402,4 +402,6 @@
     <string name="home_next_at">הבא ב־%1$s · %2$s</string>
     <string name="info_next">הבא</string>
     <string name="rec_summary">%1$d מתוזמנות · %2$d הושלמו</string>
+    <string name="radio_label">רדיו ישראלי</string>
+    <string name="radio_now_playing">מתנגן עכשיו · %1$s</string>
 </resources>

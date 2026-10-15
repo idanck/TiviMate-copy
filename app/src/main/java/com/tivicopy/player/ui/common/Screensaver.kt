@@ -130,9 +130,20 @@ fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120
  *
  * Separate from the countdown itself so the caller can arm one timer and forget it: this answers
  * "is this a screen worth protecting", the timer answers "has it been long enough".
+ *
+ * Only a still screen. Moving video protects itself, and so — since ADR-030 — does the radio:
+ * its screen is Studio's shifting background, which never holds still, so handing it to a
+ * screensaver would only replace one moving screen with another.
  */
 fun screensaverApplies(enabled: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
-    enabled && !inPip && scene != IdleScene.MOVING
+    enabled && !inPip && scene == IdleScene.STILL
+
+/**
+ * Whether the radio screen should be counting towards showing the task list (FR-UI-32, ADR-030):
+ * the screensaver and its tasks are switched on, and what is on screen is a station.
+ */
+fun radioTasksApply(enabled: Boolean, tasks: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
+    enabled && tasks && !inPip && scene == IdleScene.AUDIO_ONLY
 
 // ------------------------------------------------------------------------ maths
 
@@ -300,27 +311,37 @@ fun Screensaver(
                 SongLine(song = song, compact = compact, alpha = if (ambient) 0.8f else DARK_TEXT_ALPHA)
             }
 
-            if (tasks.isNotEmpty()) {
-                var index by remember(tasks) { mutableIntStateOf(0) }
-                LaunchedEffect(tasks) {
-                    while (true) {
-                        delay(TASK_DWELL_MS)
-                        index = (index + 1) % tasks.size
-                    }
-                }
-                val position = index % tasks.size
-                // Crossfade rather than a cut, and keyed on the task rather than on the index, so
-                // a list that refreshes underneath does not re-animate the card it is already
-                // showing. One recomposition every twelve seconds is the whole cost.
-                Crossfade(
-                    targetState = tasks[position] to position,
-                    animationSpec = tween(TASK_FADE_MS, easing = FastOutSlowInEasing),
-                    label = "task",
-                ) { (task, at) ->
-                    TaskCard(task = task, at = at, of = tasks.size, compact = compact)
-                }
-            }
+            if (tasks.isNotEmpty()) TaskRotation(tasks = tasks, compact = compact)
         }
+    }
+}
+
+/**
+ * The open tasks, one at a time (FR-UI-32): twelve seconds each, cross-faded. Shared by this
+ * screensaver and the radio screen, which carries the list itself now that it no longer hands
+ * over to a screensaver (ADR-030).
+ */
+@Composable
+internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Modifier = Modifier) {
+    if (tasks.isEmpty()) return
+    var index by remember(tasks) { mutableIntStateOf(0) }
+    LaunchedEffect(tasks) {
+        while (true) {
+            delay(TASK_DWELL_MS)
+            index = (index + 1) % tasks.size
+        }
+    }
+    val position = index % tasks.size
+    // Crossfade rather than a cut, and keyed on the task rather than on the index, so a list that
+    // refreshes underneath does not re-animate the card it is already showing. One recomposition
+    // every twelve seconds is the whole cost.
+    Crossfade(
+        targetState = tasks[position] to position,
+        animationSpec = tween(TASK_FADE_MS, easing = FastOutSlowInEasing),
+        label = "task",
+        modifier = modifier,
+    ) { (task, at) ->
+        TaskCard(task = task, at = at, of = tasks.size, compact = compact)
     }
 }
 

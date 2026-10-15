@@ -55,6 +55,7 @@ import com.tivicopy.player.ui.common.Screensaver
 import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.idleScene
+import com.tivicopy.player.ui.common.radioTasksApply
 import com.tivicopy.player.ui.common.screensaverApplies
 import com.tivicopy.player.ui.common.screensaverDelayMillis
 import com.tivicopy.player.ui.mobile.MobileRoot
@@ -344,14 +345,32 @@ class MainActivity : ComponentActivity() {
                 // request every half hour however often the screensaver comes and goes.
                 if (prefs.screensaverTasks) ServiceLocator.tasks.refresh(force = false)
             }
+            // ADR-030: the radio is no longer handed to the screensaver — its own shifting
+            // background protects the panel — but it still shows the task list once the viewer
+            // has been away as long as the screensaver would have waited (FR-UI-32).
+            val radioTasks = radioTasksApply(
+                enabled = prefs.screensaverEnabled,
+                tasks = prefs.screensaverTasks,
+                scene = scene,
+                inPip = inPip,
+            )
+            LaunchedEffect(radioTasks, lastInteractionAt, prefs.screensaverIdleMinutes) {
+                if (!radioTasks) {
+                    radioIdle = false
+                    return@LaunchedEffect
+                }
+                val due = lastInteractionAt + screensaverDelayMillis(prefs.screensaverIdleMinutes)
+                val wait = due - SystemClock.elapsedRealtime()
+                if (wait > 0) delay(wait)
+                radioIdle = true
+                // Fetched as the list is about to show rather than on a schedule of its own; the
+                // repository rate-limits it to one request every half hour.
+                ServiceLocator.tasks.refresh(force = false)
+            }
             val taskFeed by ServiceLocator.tasks.state.collectAsState()
             // Only the radio gets the tasks (FR-UI-32). A paused film is a screen somebody is
             // coming back to in a minute, and not the place for somebody's to-do list.
-            val tasks = if (prefs.screensaverTasks && scene == IdleScene.AUDIO_ONLY) {
-                taskFeed.items
-            } else {
-                emptyList()
-            }
+            val tasks = if (radioIdle) taskFeed.items else emptyList()
 
             TiviCopyTheme(
                 mode = prefs.theme,
@@ -401,6 +420,7 @@ class MainActivity : ComponentActivity() {
                                         onOverlayChange = { overlay = it },
                                         onSettingsSection = { settingsSection = it },
                                         numericEntry = numericEntry,
+                                        radioTasks = tasks,
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 }
@@ -437,7 +457,9 @@ class MainActivity : ComponentActivity() {
                                     state.currentChannel
                                 },
                                 headline = playback.title,
-                                tasks = tasks,
+                                // The tasks are the radio's now (ADR-030), and the radio never
+                                // reaches this screensaver.
+                                tasks = emptyList(),
                                 // Only for the station skin: the dark one is for a picture.
                                 song = playback.streamTitle.takeIf { scene == IdleScene.AUDIO_ONLY },
                                 modifier = Modifier.fillMaxSize(),
@@ -480,6 +502,9 @@ class MainActivity : ComponentActivity() {
     /** Whether the screensaver is on screen. Owned here because key dispatch has to know. */
     private var screensaverOn by mutableStateOf(false)
 
+    /** Whether the radio screen has been left long enough to show the task list (ADR-030). */
+    private var radioIdle by mutableStateOf(false)
+
     /**
      * Keys whose remaining events belong to the press that dismissed the screensaver.
      *
@@ -506,6 +531,7 @@ class MainActivity : ComponentActivity() {
         val now = SystemClock.elapsedRealtime()
         if (now - lastInteractionAt >= INTERACTION_RESOLUTION_MS) lastInteractionAt = now
         if (screensaverOn) screensaverOn = false
+        if (radioIdle) radioIdle = false
     }
 
     /**

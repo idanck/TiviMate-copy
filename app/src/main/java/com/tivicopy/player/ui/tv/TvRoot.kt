@@ -48,6 +48,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.VodItem
+import com.tivicopy.player.data.tasks.TaskItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
@@ -165,6 +166,8 @@ fun TvRoot(
     onSettingsSection: (SettingsSection) -> Unit,
     numericEntry: String,
     modifier: Modifier = Modifier,
+    /** The task list for the radio screen, already gated on idleness by the activity (ADR-030). */
+    radioTasks: List<TaskItem> = emptyList(),
 ) {
     val state by vm.state.collectAsState()
     val status by vm.playbackStatus.collectAsState()
@@ -277,6 +280,10 @@ fun TvRoot(
                 takeDpadFocus = overlay.leavesDpadToShell,
                 // Catch-up off a radio station reaches this screen too, and is not live.
                 live = state.nowPlaying.isLive(),
+                tasks = radioTasks,
+                onFavourite = state.nowPlaying.audioOnlyChannel()?.let { station ->
+                    { vm.setFavourite(station, !station.favourite) }
+                },
                 modifier = pictureBounds,
             )
         }
