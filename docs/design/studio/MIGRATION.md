@@ -199,7 +199,7 @@
 
 כל שלב: ענף ו-PR נפרדים, העלאת `versionCode`, ו-CI ירוק.
 
-7. **רכיבי בסיס:**
+7. **רכיבי בסיס:** (מומש. הרכיבים ב-`ui/common/StudioControls.kt`, `StudioButton.kt` ו-`Panel.kt`. גלגל הטעינה ב-`PlaybackStateOverlay` כבר עבר ל-`Loader`, כך שבשלב 8 נשארים חמישה תיקונים.)
    - בונים את `StudioField`, `StudioToggle`, `StudioSegmented`, `StudioDialog` (שמחליף את המראה של `AppDialog`), `Loader`, `Notice` ו-`EmptyState`.
    - מוסיפים ל-`StudioButton` את המצבים `ghost` ו-`danger`, ול-`StudioProgress` את המצב בלי אחוז.
    - מחליפים בהם את כל השימושים ברכיבי Material, לפי הטבלה בסעיף 2.

@@ -334,68 +334,6 @@ private fun MiniPlate(nowPlaying: NowPlayingInfo, radio: Boolean) {
     }
 }
 
-/** `PButton`'s three heights: 64, 48 and 40dp. */
-internal enum class PhoneButtonSize(val height: androidx.compose.ui.unit.Dp, val icon: androidx.compose.ui.unit.Dp) {
-    XL(64.dp, 30.dp),
-    L(48.dp, 22.dp),
-    M(40.dp, 18.dp),
-}
-
-/** `PButton`'s variants: the cue fill for the one main action, a card, or nothing behind. */
-internal enum class PhoneButtonVariant { PRIMARY, SECONDARY, GHOST }
-
-/**
- * `PButton`: Studio's button at a phone's scale. A primary button is the cue with a lift, a
- * secondary one a card inside a hairline, a ghost one only its icon and label. Icon-only buttons
- * are round; the others take the control radius.
- */
-@Composable
-internal fun PhoneButton(
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: ImageVector? = null,
-    iconOnly: Boolean = false,
-    variant: PhoneButtonVariant = PhoneButtonVariant.SECONDARY,
-    size: PhoneButtonSize = PhoneButtonSize.L,
-) {
-    val studio = StudioTheme.colors
-    val shape = if (iconOnly) CircleShape else RoundedCornerShape(LocalTvMetrics.current.controlCorner)
-    val content = if (variant == PhoneButtonVariant.PRIMARY) studio.onCue else studio.ink
-    val surface = when (variant) {
-        PhoneButtonVariant.PRIMARY -> Modifier.shadow(8.dp, shape).clip(shape).background(studio.cue)
-        PhoneButtonVariant.SECONDARY -> Modifier.clip(shape).background(studio.card).border(1.dp, studio.hairline, shape)
-        PhoneButtonVariant.GHOST -> Modifier.clip(shape)
-    }
-    Row(
-        modifier = modifier
-            .height(size.height)
-            .then(if (iconOnly) Modifier.width(size.height) else Modifier)
-            .then(surface)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label }
-            .padding(horizontal = if (iconOnly) 0.dp else if (size == PhoneButtonSize.M) 16.dp else 22.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
-    ) {
-        if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, tint = content, modifier = Modifier.size(size.icon))
-        }
-        if (!iconOnly) {
-            val action = StudioTheme.type.action
-            Text(
-                text = label,
-                style = action.copy(
-                    fontSize = if (size == PhoneButtonSize.M) action.fontSize * (14f / 16f) else action.fontSize,
-                    fontWeight = if (variant == PhoneButtonVariant.PRIMARY) FontWeight.Bold else FontWeight.Medium,
-                ),
-                color = content,
-                maxLines = 1,
-            )
-        }
-    }
-}
-
 /** `--st-h-topbar`. */
 private val TOP_BAR_HEIGHT = 56.dp
 

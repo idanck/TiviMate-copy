@@ -13,9 +13,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchColors
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioToggle
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
@@ -100,7 +98,7 @@ fun SettingsSwitch(title: String, subtitle: String? = null, checked: Boolean, on
     SettingsRow(
         title = title,
         subtitle = subtitle,
-        trailing = { Switch(checked = checked, onCheckedChange = onChange, colors = studioSwitchColours()) },
+        trailing = { StudioToggle(checked = checked) },
         onClick = { onChange(!checked) },
     )
 }
@@ -179,23 +177,6 @@ fun SettingsSlider(
         )
     }
     RowDivider()
-}
-
-/**
- * Studio's toggle (`ListRow`'s `on`/`off` trail): ink with a dark knob when on, the faint track with
- * a grey knob when off. Material's default would paint it in `primary`, which is now the cue.
- */
-@Composable
-private fun studioSwitchColours(): SwitchColors {
-    val studio = StudioTheme.colors
-    return SwitchDefaults.colors(
-        checkedThumbColor = studio.ground,
-        checkedTrackColor = studio.ink,
-        checkedBorderColor = studio.ink,
-        uncheckedThumbColor = studio.ink2,
-        uncheckedTrackColor = studio.track,
-        uncheckedBorderColor = studio.track,
-    )
 }
 
 /** The glyph on a section row. */

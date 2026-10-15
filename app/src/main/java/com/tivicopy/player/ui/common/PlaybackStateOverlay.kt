@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -103,10 +101,8 @@ fun PlaybackStateOverlay(
                 .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
             if (busy || retrying) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(36.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                // In the text colour, not the cue: loading is never where the remote is.
+                Loader(size = 36.dp)
             }
             if (status.title.isNotBlank()) {
                 Text(

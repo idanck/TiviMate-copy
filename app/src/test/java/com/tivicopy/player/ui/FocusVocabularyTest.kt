@@ -66,7 +66,7 @@ class FocusVocabularyTest {
             .filter { code(it).contains("AlertDialog(") }
             .map { it.name }
         assertEquals(
-            "these draw Material's dialog rather than AppDialog, so they ignore the panel shape, " +
+            "these draw Material's dialog rather than StudioDialog, so they ignore the panel shape, " +
                 "the hairline and the viewer's overlay opacity (ADR-025)",
             emptyList<String>(),
             offenders,

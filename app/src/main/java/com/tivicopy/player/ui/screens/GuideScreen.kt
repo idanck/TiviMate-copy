@@ -25,11 +25,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -63,6 +63,9 @@ import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.common.StudioButtonVariant
 import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
@@ -174,7 +177,7 @@ fun GuideScreen(
         HorizontalDivider()
 
         if (channels.isEmpty()) {
-            EmptyState(stringResource(R.string.empty_no_channels))
+            EmptyState(stringResource(R.string.empty_no_channels), icon = Icons.Filled.LiveTv)
             return@Column
         }
 
@@ -279,9 +282,25 @@ private fun GuideToolbar(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Box(modifier = Modifier.weight(1f))
-        TextButton(onClick = { onShift(-2) }) { Text(stringResource(R.string.guide_shift_back_hours)) }
-        Button(onClick = onJumpNow) { Text(stringResource(R.string.guide_jump_now)) }
-        TextButton(onClick = { onShift(2) }) { Text(stringResource(R.string.guide_shift_forward_hours)) }
+        // Ghosts, all three (MIGRATION.md §2): moving the window is not this screen's main action.
+        StudioButton(
+            label = stringResource(R.string.guide_shift_back_hours),
+            onClick = { onShift(-2) },
+            variant = StudioButtonVariant.GHOST,
+            size = StudioButtonSize.MEDIUM,
+        )
+        StudioButton(
+            label = stringResource(R.string.guide_jump_now),
+            onClick = onJumpNow,
+            variant = StudioButtonVariant.GHOST,
+            size = StudioButtonSize.MEDIUM,
+        )
+        StudioButton(
+            label = stringResource(R.string.guide_shift_forward_hours),
+            onClick = { onShift(2) },
+            variant = StudioButtonVariant.GHOST,
+            size = StudioButtonSize.MEDIUM,
+        )
         // The day buttons that used to sit here are the strip below; what is left is the pair
         // that moves inside a day. The clock is here because a full-screen overlay takes the
         // device's own away with it, and a guide is read against the current time.

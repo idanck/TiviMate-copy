@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -34,6 +34,8 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioField
+import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.TwoLine
 import kotlinx.coroutines.launch
 
@@ -66,17 +68,17 @@ fun SearchScreen(
     DisposableEffect(Unit) { onDispose { vm.clearSearch() } }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+        StudioField(
             value = query,
             onValueChange = { query = it },
-            label = { Text(stringResource(R.string.action_search)) },
-            singleLine = true,
+            label = stringResource(R.string.action_search),
+            icon = Icons.Filled.Search,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (results.running) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        if (results.running) StudioProgress(fraction = 0f, indeterminate = true, modifier = Modifier.fillMaxWidth())
 
         if (query.isNotBlank() && !results.running && results.isEmpty) {
-            EmptyState(stringResource(R.string.empty_no_results))
+            EmptyState(stringResource(R.string.empty_no_results), icon = Icons.Filled.Search)
             return@Column
         }
 

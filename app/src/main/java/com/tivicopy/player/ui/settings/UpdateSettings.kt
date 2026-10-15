@@ -4,11 +4,8 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,6 +19,10 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.update.UpdateBlocker
 import com.tivicopy.player.data.update.UpdateManifest
 import com.tivicopy.player.data.update.UpdateState
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.openUnknownSources
 import kotlinx.coroutines.launch
@@ -56,8 +57,8 @@ fun UpdateSettingsBlock() {
     )
 
     (state as? UpdateState.Downloading)?.let { downloading ->
-        LinearProgressIndicator(
-            progress = { downloading.fraction },
+        StudioProgress(
+            fraction = downloading.fraction,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
@@ -71,18 +72,20 @@ fun UpdateSettingsBlock() {
     }
     if (offered != null) {
         UpdateNotes(offered)
-        Button(
+        StudioButton(
+            label = stringResource(R.string.update_install),
             onClick = { ServiceLocator.appScope.launch { updates.downloadAndInstall(offered) } },
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-        ) {
-            Text(stringResource(R.string.update_install))
-        }
-        TextButton(
+            variant = StudioButtonVariant.PRIMARY,
+            size = StudioButtonSize.MEDIUM,
+        )
+        StudioButton(
+            label = stringResource(R.string.update_skip),
             onClick = { updates.skip(offered) },
             modifier = Modifier.padding(horizontal = 12.dp),
-        ) {
-            Text(stringResource(R.string.update_skip))
-        }
+            variant = StudioButtonVariant.GHOST,
+            size = StudioButtonSize.MEDIUM,
+        )
     }
 
     // Android will not let one app install another until the user says so once, per app. Watched

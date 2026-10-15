@@ -32,6 +32,9 @@ import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.PhoneButton
+import com.tivicopy.player.ui.common.PhoneButtonSize
+import com.tivicopy.player.ui.common.PhoneButtonVariant
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.theme.StudioTheme
 

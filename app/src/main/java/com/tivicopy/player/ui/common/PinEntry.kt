@@ -5,11 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,7 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -68,22 +66,26 @@ fun PinEntry(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        OutlinedTextField(
+        // A refusal is the field's own error state: the ring and the reason under it (`Field`).
+        StudioField(
             value = pin,
             onValueChange = { pin = it.filter(Char::isDigit).take(6) },
-            placeholder = { Text(stringResource(R.string.pin_hint)) },
-            singleLine = true,
+            placeholder = stringResource(R.string.pin_hint),
+            helper = message,
+            isError = message != null,
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { submit() }),
-            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+            focusRequester = focus,
+            modifier = Modifier.fillMaxWidth(),
         )
-        message?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
-        }
-        Button(onClick = { submit() }, enabled = !busy && pin.isNotEmpty()) {
-            Text(stringResource(R.string.action_ok))
-        }
+        StudioButton(
+            label = stringResource(R.string.action_ok),
+            onClick = { submit() },
+            variant = StudioButtonVariant.PRIMARY,
+            size = StudioButtonSize.MEDIUM,
+            enabled = !busy && pin.isNotEmpty(),
+        )
     }
 }
 
@@ -95,14 +97,15 @@ fun PinEntry(
 fun PinRequestDialog(vm: AppViewModel) {
     val request by vm.pinRequest.collectAsState()
     val pending = request ?: return
-    // The app's plate, not Material's dialog (ADR-025; FocusVocabularyTest holds it to that).
-    AppDialog(
+    // The app's dialog, not Material's (ADR-025; FocusVocabularyTest holds it to that).
+    StudioDialog(
         onDismissRequest = vm::cancelPinRequest,
-        title = { Text(pending.channel.displayName) },
-        text = { PinEntry(vm = vm, modifier = Modifier.fillMaxWidth()) },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = vm::cancelPinRequest) { Text(stringResource(R.string.action_cancel)) }
+        title = pending.channel.displayName,
+        icon = Icons.Filled.Lock,
+        buttons = {
+            DialogButton(label = stringResource(R.string.action_cancel), onClick = vm::cancelPinRequest)
         },
-    )
+    ) {
+        PinEntry(vm = vm, modifier = Modifier.fillMaxWidth())
+    }
 }

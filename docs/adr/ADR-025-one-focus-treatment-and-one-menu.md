@@ -5,6 +5,8 @@
 Accepted. Completes ADR-023, which defined the shell's two shapes and applied them to four
 surfaces. The single treatment stands; its colours, ring width and corners are restated in Studio
 terms by ADR-027 (cue for focus, tally for the channel on screen, a 2dp ring, the canvas's radii).
+The one menu is now Studio's `StudioDialog` rather than `AppDialog` over Material's dialog; see
+the addendum at the end.
 
 ## Context
 
@@ -106,3 +108,29 @@ the screen it was written for, and is trivially reintroduced by copying the comp
   the default down they are very nearly what they were; at 1.0 they are identical.
 - As ever, none of this could be compiled where it was written (see `CLAUDE.md`). The guard test
   is a JVM test and runs; the rendering is CI's to prove.
+
+## Addendum — Studio stage 7: the menu is Studio's own dialog
+
+`AppDialog` restyled Material's `AlertDialog`: right plate, wrong layout. Studio's canvas draws a
+dialog Material cannot be talked into (`Dialog.dc.html`, `PDialog.dc.html`) — an optional glyph in
+a circle beside the title, the title at the canvas's size, the body in the secondary ink, and a row
+of the app's own buttons that wraps rather than overflowing, starting at the reading edge on a
+television and ending at it on a phone. So `AppDialog` is gone, and `StudioDialog` in
+`ui/common/Panel.kt` draws that layout on Compose's bare `Dialog`, which still owns the window, the
+dim, back and focus containment. The plate is unchanged: `panelSurface` at the viewer's overlay
+opacity over the `MENU_MIN_OPACITY` floor, hairlined, at the panel corner.
+
+- **Thirteen dialogs moved**, every one `AppDialog` had: the channel menu and its six sheets, the
+  programme details, the four update prompts and the PIN prompt.
+- **Buttons are `DialogButton`s**: the canvas's medium button on a television and its large one on a
+  phone. A dialog's buttons are ghosts except the one it is for, which is primary — ink on a
+  television, the cue on a phone — and comes first.
+- **Focus starts on the primary action** where a dialog has one (the update prompts, the programme
+  details), and on "cancel" in a destructive one, which is the canvas's rule. No dialog today asks
+  to confirm a destruction; the rule is in `StudioDialog`'s contract for the first one that does.
+- **Width is the canvas's** (450dp on a television, 342 on a phone) rather than the platform's, and
+  the corner and the shell come from the theme, not from `LocalTvMetrics`: the update and PIN
+  prompts are drawn above the television shell, outside the metrics it provides.
+- **The guard still holds** (`FocusVocabularyTest`): nothing outside `Panel.kt` draws Material's
+  dialog. A sibling, `StudioComponentsTest`, does the same for the rest of what stage 7 replaced —
+  Material's text field, buttons, switch, progress indicators and snackbar.

@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,9 +50,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.PlayArrow
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.common.StudioButtonVariant
 
 /**
  * The recordings library and the scheduled list (FR-REC-19..21).
@@ -84,7 +85,7 @@ fun RecordingsScreen(
     val finished = recordings.filter { it.state != RecordingState.SCHEDULED && it.state != RecordingState.RECORDING }
 
     if (recordings.isEmpty()) {
-        EmptyState(stringResource(R.string.rec_title), modifier)
+        EmptyState(stringResource(R.string.rec_title), modifier, icon = Icons.Filled.FiberManualRecord)
         return
     }
 
@@ -234,7 +235,12 @@ private fun RecordingRow(
             )
         }
         RecordingStatusPill(recording.state)
-        TextButton(onClick = onPrimary) { Text(primaryLabel) }
+        StudioButton(
+            label = primaryLabel,
+            onClick = onPrimary,
+            variant = StudioButtonVariant.GHOST,
+            size = StudioButtonSize.MEDIUM,
+        )
     }
 }
 

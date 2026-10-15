@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -23,7 +25,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -54,7 +55,12 @@ import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.TwoLine
+import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.mobile.PhoneChip
 import kotlinx.coroutines.delay
@@ -178,10 +184,13 @@ fun ChannelListScreen(
             }
             if (compact) GroupChips(vm, isRadio = isRadio, onManageGroups = { managingGroups = true })
             if (state.list.selectedGroupId == VirtualGroup.HIDDEN && state.list.channels.isNotEmpty()) {
-                androidx.compose.material3.TextButton(
+                StudioButton(
+                    label = stringResource(R.string.action_show_all),
                     onClick = { vm.showAllHidden() },
                     modifier = Modifier.padding(horizontal = 8.dp),
-                ) { Text(stringResource(R.string.action_show_all)) }
+                    variant = StudioButtonVariant.GHOST,
+                    size = StudioButtonSize.MEDIUM,
+                )
             }
             val channels = state.list.channels
             if (channels.isEmpty()) {
@@ -191,6 +200,11 @@ fun ChannelListScreen(
                             stringResource(R.string.hidden_channels_empty)
                         state.list.search.isBlank() -> stringResource(R.string.empty_no_channels)
                         else -> stringResource(R.string.empty_no_results)
+                    },
+                    icon = when {
+                        state.list.selectedGroupId == VirtualGroup.HIDDEN -> Icons.Filled.VisibilityOff
+                        state.list.search.isBlank() -> Icons.Filled.LiveTv
+                        else -> Icons.Filled.Search
                     },
                 )
             } else {
@@ -464,15 +478,18 @@ private fun ChannelRow(
 /** The touch filter box. Always visible once set, which is what makes the leak impossible. */
 @Composable
 private fun FilterField(query: String, onQuery: (String) -> Unit) {
-    OutlinedTextField(
+    StudioField(
         value = query,
         onValueChange = onQuery,
-        label = { Text(stringResource(R.string.filter_channels)) },
-        singleLine = true,
-        trailingIcon = {
+        label = stringResource(R.string.filter_channels),
+        trailing = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQuery("") }) {
-                    Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_clear))
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.action_clear),
+                        tint = StudioTheme.colors.ink2,
+                    )
                 }
             }
         },
