@@ -98,8 +98,8 @@ import com.tivicopy.player.ui.common.StudioIcons
  *   pairing them costs the remote an extra press to leave every tile.
  * - **No text field.** On a D-pad surface a text field takes the first focus and pops the
  *   on-screen keyboard over the content. Search is a rail destination, not a box.
- * - **The side menu opens over the screen, never beside it.** It is drawn in a `Box` on top of
- *   the list and padded for at its closed strip's width only (`SideMenu.kt`), so focus crossing
+ * - **The side menu opens over the screen, never beside it.** `TvRoot` draws it on top of the
+ *   list, and the list pads for its closed strip's width only (`SideMenu.kt`), so focus crossing
  *   into it cannot reflow every card on the screen.
  */
 // `Modifier.focusGroup` is `@ExperimentalFoundationApi` at this Compose version, as
@@ -160,19 +160,6 @@ fun TvHomeScreen(
         HomeRailId.FAVOURITES to stringResource(R.string.favourites),
         HomeRailId.STARTING_SOON to stringResource(R.string.home_rail_starting_soon),
     )
-    // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline.
-    val destinations = listOf(
-        MenuDestination(stringResource(R.string.nav_home), StudioIcons.Home, null),
-        MenuDestination(stringResource(R.string.nav_live), StudioIcons.Tv, TvOverlay.CHANNELS),
-        MenuDestination(stringResource(R.string.nav_guide), StudioIcons.Guide, TvOverlay.GUIDE),
-        MenuDestination(stringResource(R.string.nav_radio), StudioIcons.Radio, TvOverlay.RADIO),
-        MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.History, TvOverlay.RECORDINGS),
-    )
-    val tools = listOf(
-        MenuDestination(stringResource(R.string.nav_search), StudioIcons.Search, TvOverlay.SEARCH),
-        MenuDestination(stringResource(R.string.nav_settings), StudioIcons.Settings, TvOverlay.SETTINGS),
-    )
-
     // OK on the channel already playing goes fullscreen; OK on any other card tunes it and stays
     // here, because the banner is what the live picture is for. One rule, and the banner's own
     // button says it out loud.
@@ -274,12 +261,8 @@ fun TvHomeScreen(
             showClock = !audioOnlyBackdrop,
             modifier = Modifier.align(Alignment.TopCenter),
         )
-
-        SideMenu(
-            destinations = destinations,
-            tools = tools,
-            onOpen = onOpen,
-        )
+        // The side menu over all of this is `TvRoot`'s, the same one every browse screen has
+        // (ADR-035); this screen only keeps its strip's room clear.
     }
 }
 

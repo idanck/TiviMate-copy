@@ -67,7 +67,6 @@ import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.screenEntrance
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
-import com.tivicopy.player.ui.screens.NavDestination
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.screens.SearchScreen
@@ -152,6 +151,15 @@ enum class TvOverlay {
      */
     val fullBleed: Boolean
         get() = this == HOME
+
+    /**
+     * Whether this overlay draws Studio's top bar inside its own layout, so [OverlayScaffold]
+     * must not draw a second one. Home pins it over its banner; the guide heads the column beside
+     * its channel rail with it (`canvas/Guide.dc.html`). Every other browse screen takes the
+     * scaffold's, at the same place and size as home's (ADR-035).
+     */
+    val drawsOwnTopBar: Boolean
+        get() = this == HOME || this == GUIDE
 }
 
 /**
@@ -425,6 +433,12 @@ fun TvRoot(
                 // would keep both screens composed, and two channel lists querying, two guides
                 // fetching and two screens asking for focus is a worse bargain than a fade-in.
                 entranceKey = overlay,
+                topBar = !overlay.drawsOwnTopBar,
+                // One menu for every browse screen, the one home has always had (ADR-035). It is
+                // drawn by the scaffold rather than by each screen so it is the same instance from
+                // one screen to the next: it does not fade out and back in with the screen under
+                // it, and only which entry is lit changes.
+                sideMenu = { SideMenu(current = overlay, onOpen = onOverlayChange) },
             ) {
                 when (overlay) {
                     // The television's root surface (ADR-016). Added here in the same edit as the
@@ -442,34 +456,12 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                     )
 
+                    // Where else to go is the side menu's, as on every other screen (ADR-035):
+                    // the group column holds the list's own filters and groups and nothing else.
                     TvOverlay.CHANNELS -> ChannelListScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
-                        onSearch = { onOverlayChange(TvOverlay.SEARCH) },
                         onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
-                        // The ten-foot equivalent of the phone's bottom bar. On demand had no
-                        // entry point at all before this — it could only be opened by searching
-                        // for a series and picking it (NFR-UX-01).
-                        destinations = listOf(
-                            NavDestination(stringResource(R.string.nav_home)) {
-                                onOverlayChange(TvOverlay.HOME)
-                            },
-                            NavDestination(stringResource(R.string.nav_radio)) {
-                                onOverlayChange(TvOverlay.RADIO)
-                            },
-                            NavDestination(stringResource(R.string.nav_guide)) {
-                                onOverlayChange(TvOverlay.GUIDE)
-                            },
-                            NavDestination(stringResource(R.string.nav_vod)) {
-                                onOverlayChange(TvOverlay.VOD)
-                            },
-                            NavDestination(stringResource(R.string.nav_recordings)) {
-                                onOverlayChange(TvOverlay.RECORDINGS)
-                            },
-                            NavDestination(stringResource(R.string.nav_settings)) {
-                                onOverlayChange(TvOverlay.SETTINGS)
-                            },
-                        ),
                         // Opening the list lands on the playing channel, focused, so zapping
                         // onward is one press instead of a scroll from the top.
                         scrollToCurrent = true,
@@ -487,27 +479,6 @@ fun TvRoot(
                     TvOverlay.RADIO -> ChannelListScreen(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
-                        onSearch = { onOverlayChange(TvOverlay.SEARCH) },
-                        destinations = listOf(
-                            NavDestination(stringResource(R.string.nav_home)) {
-                                onOverlayChange(TvOverlay.HOME)
-                            },
-                            NavDestination(stringResource(R.string.nav_live)) {
-                                onOverlayChange(TvOverlay.CHANNELS)
-                            },
-                            NavDestination(stringResource(R.string.nav_guide)) {
-                                onOverlayChange(TvOverlay.GUIDE)
-                            },
-                            NavDestination(stringResource(R.string.nav_vod)) {
-                                onOverlayChange(TvOverlay.VOD)
-                            },
-                            NavDestination(stringResource(R.string.nav_recordings)) {
-                                onOverlayChange(TvOverlay.RECORDINGS)
-                            },
-                            NavDestination(stringResource(R.string.nav_settings)) {
-                                onOverlayChange(TvOverlay.SETTINGS)
-                            },
-                        ),
                         scrollToCurrent = true,
                         focusCurrent = true,
                         showNowLine = true,
@@ -536,19 +507,14 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    // Studio's top bar heads the screens the side menu opens (ADR-027): the app's
-                    // name at the start, the clock and date at the end.
-                    TvOverlay.RECORDINGS -> Column(modifier = Modifier.fillMaxSize()) {
-                        StudioTopBar(startInset = 0.dp, showClock = true, scrim = false, endInset = 0.dp)
-                        RecordingsScreen(
-                            onPlayRecording = { recording ->
-                                vm.playRecording(recording)
-                                onOverlayChange(TvOverlay.NONE)
-                            },
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            twoPane = true,
-                        )
-                    }
+                    TvOverlay.RECORDINGS -> RecordingsScreen(
+                        onPlayRecording = { recording ->
+                            vm.playRecording(recording)
+                            onOverlayChange(TvOverlay.NONE)
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        twoPane = true,
+                    )
 
                     TvOverlay.VOD -> VodScreen(
                         vm = vm,
@@ -562,17 +528,14 @@ fun TvRoot(
                         state = vodState,
                     )
 
-                    TvOverlay.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
-                        StudioTopBar(startInset = 0.dp, showClock = true, scrim = false, endInset = 0.dp)
-                        SettingsScreen(
-                            vm = vm,
-                            section = settingsSection,
-                            onNavigate = onSettingsSection,
-                            onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            twoPane = true,
-                        )
-                    }
+                    TvOverlay.SETTINGS -> SettingsScreen(
+                        vm = vm,
+                        section = settingsSection,
+                        onNavigate = onSettingsSection,
+                        onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
+                        modifier = Modifier.fillMaxSize(),
+                        twoPane = true,
+                    )
 
                     TvOverlay.ADD_SOURCE -> AddSourceScreen(
                         vm = vm,
@@ -616,6 +579,13 @@ fun TvRoot(
  * put settings rows and on-demand titles flush against the edge of the panel, and a television
  * that still overscans would eat them. [TV_CONTENT_INSET] is what remains of the old overscan
  * margin — the surface reaches the edge, the words do not.
+ *
+ * Every screen in it shares one frame (ADR-035): the side menu's strip along the start edge, with
+ * the content kept clear of it by the same room home keeps ([sideMenuInset]), and Studio's top bar
+ * across the top, at the size and place home draws it. Before this, home was the only screen with
+ * the side menu; the channel list carried its own list of destinations in a different order with
+ * on demand in it, recordings and settings had the top bar but no menu, and search, on demand and
+ * adding a source had neither — so every screen the viewer chose was navigated differently.
  */
 @Composable
 private fun OverlayScaffold(
@@ -632,28 +602,66 @@ private fun OverlayScaffold(
     inset: Boolean = true,
     /** What the arrival animation is keyed on; see [com.tivicopy.player.ui.common.screenEntrance]. */
     entranceKey: Any? = Unit,
+    /** Whether to head the screen with Studio's top bar; off where the screen draws its own. */
+    topBar: Boolean = false,
+    /** The side menu, drawn over everything at the start edge; null for none. */
+    sideMenu: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxSize()
-            // Outermost, so the scrim and the surface fade in together rather than the scrim
-            // snapping on under a fading screen.
-            .screenEntrance(entranceKey)
-            .then(
-                if (scrim) {
-                    Modifier.background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
-                } else {
-                    Modifier
-                },
-            )
-            .then(if (inset) Modifier.padding(TV_CONTENT_INSET) else Modifier),
-    ) {
-        // Measured here rather than read from the Configuration: this box is what the screens
-        // actually get, insets and all, and it is the only honest input to how wide an hour of
-        // guide should be.
-        val metrics = tvMetricsFor(maxWidth.value, maxHeight.value)
-        CompositionLocalProvider(LocalTvMetrics provides metrics) { content() }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // The panel's own measure, for what belongs to the panel rather than to the screen: the
+        // side menu, the room kept for its strip and the top bar. Taken before any inset, as home
+        // takes its own, so none of the three changes size from one screen to the next.
+        val panelMetrics = tvMetricsFor(maxWidth.value, maxHeight.value)
+        val startRoom = if (sideMenu != null) sideMenuInset(panelMetrics) else TV_CONTENT_INSET
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                // Outermost, so the scrim and the surface fade in together rather than the scrim
+                // snapping on under a fading screen.
+                .screenEntrance(entranceKey)
+                .then(
+                    if (scrim) {
+                        Modifier.background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
+                    } else {
+                        Modifier
+                    },
+                ),
+        ) {
+            if (topBar) {
+                CompositionLocalProvider(LocalTvMetrics provides panelMetrics) {
+                    // No scrim of its own: the screen's backdrop is already under it.
+                    StudioTopBar(startInset = startRoom, showClock = true, scrim = false)
+                }
+            }
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .then(
+                        if (inset) {
+                            Modifier.padding(
+                                start = startRoom,
+                                end = TV_CONTENT_INSET,
+                                // The top bar is the room at the top when there is one.
+                                top = if (topBar) 0.dp else TV_CONTENT_INSET,
+                                bottom = TV_CONTENT_INSET,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    ),
+            ) {
+                // Measured here rather than read from the Configuration: this box is what the
+                // screens actually get, insets and all, and it is the only honest input to how
+                // wide an hour of guide should be.
+                val metrics = tvMetricsFor(maxWidth.value, maxHeight.value)
+                CompositionLocalProvider(LocalTvMetrics provides metrics) { content() }
+            }
+        }
+        if (sideMenu != null) {
+            CompositionLocalProvider(LocalTvMetrics provides panelMetrics) { sideMenu() }
+        }
     }
 }
 

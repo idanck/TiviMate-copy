@@ -31,38 +31,43 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
+import com.tivicopy.player.ui.common.StudioIcons
+import com.tivicopy.player.ui.common.TvMetrics
 import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-/**
- * One entry in the side menu. A null [overlay] is the entry for the screen the menu sits on.
- */
+/** One entry in the side menu: what it says, its glyph, and the screen it opens. */
 internal data class MenuDestination(
     val label: String,
     val icon: ImageVector,
-    val overlay: TvOverlay?,
+    val overlay: TvOverlay,
 )
 
 /**
@@ -77,23 +82,62 @@ internal data class MenuDestination(
  *
  * This replaces ADR-020's collapsing rail and ADR-022's floating capsule.
  *
+ * It is the television's one navigation (ADR-035): `TvRoot` draws this single instance over every
+ * browse screen, home included, so the same strip with the same entries in the same order is on
+ * screen wherever the viewer is, and only which entry is lit changes. Choosing an entry hands the
+ * remote to the screen it opened, as a press towards the content would, so the menu closes rather
+ * than staying open over the screen just chosen.
+ *
  * Every entry carries its label as a content description whether or not it is drawn, so the
  * closed strip is still a list of named destinations to TalkBack and to the D-pad (NFR-UX-05).
  *
- * @param destinations the main destinations, drawn first
- * @param tools the secondary ones (search, settings), drawn under a hairline
+ * @param current the overlay on screen; the entry that opens it is drawn as the current one, and a
+ *   screen with no entry of its own (on demand, adding a source) lights none
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SideMenu(
-    destinations: List<MenuDestination>,
-    tools: List<MenuDestination>,
+    current: TvOverlay,
     onOpen: (TvOverlay) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
     var open by remember { mutableStateOf(false) }
+    // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline. On demand
+    // is not among them, as on the phone (ADR-032): search reaches it where a source has any.
+    val destinations = listOf(
+        MenuDestination(stringResource(R.string.nav_home), StudioIcons.Home, TvOverlay.HOME),
+        MenuDestination(stringResource(R.string.nav_live), StudioIcons.Tv, TvOverlay.CHANNELS),
+        MenuDestination(stringResource(R.string.nav_guide), StudioIcons.Guide, TvOverlay.GUIDE),
+        MenuDestination(stringResource(R.string.nav_radio), StudioIcons.Radio, TvOverlay.RADIO),
+        MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
+    )
+    val tools = listOf(
+        MenuDestination(stringResource(R.string.nav_search), StudioIcons.Search, TvOverlay.SEARCH),
+        MenuDestination(stringResource(R.string.nav_settings), StudioIcons.Settings, TvOverlay.SETTINGS),
+    )
+
+    // The content lies towards the end edge: the left in Hebrew, the right in English.
+    val focusManager = LocalFocusManager.current
+    val towardContent = if (LocalLayoutDirection.current == LayoutDirection.Rtl) {
+        FocusDirection.Left
+    } else {
+        FocusDirection.Right
+    }
+    // Once the screen an entry opened is composed, the remote moves into it — unless that screen
+    // has already claimed it for its own first focus (home's banner, the playing channel's row),
+    // which is the better answer and is left alone. Two frames: one for the new screen to compose,
+    // one for its own claim to land.
+    LaunchedEffect(current) {
+        if (!open) return@LaunchedEffect
+        withFrameNanos { }
+        withFrameNanos { }
+        if (open) focusManager.moveFocus(towardContent)
+    }
+    val choose: (TvOverlay) -> Unit = { overlay ->
+        if (overlay == current) focusManager.moveFocus(towardContent) else onOpen(overlay)
+    }
     val width by animateDpAsState(
         targetValue = if (open) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
         animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
@@ -130,7 +174,7 @@ internal fun SideMenu(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             MenuHeader(open = open)
-            destinations.forEach { MenuEntry(it, open, onOpen) }
+            destinations.forEach { MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose) }
             Box(
                 modifier = Modifier
                     .padding(vertical = 7.dp)
@@ -138,7 +182,7 @@ internal fun SideMenu(
                     .height(1.dp)
                     .background(studio.hairline),
             )
-            tools.forEach { MenuEntry(it, open, onOpen) }
+            tools.forEach { MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose) }
         }
         // The inner edge: a hairline along the full height of the menu.
         Box(
@@ -203,13 +247,13 @@ private fun MenuHeader(open: Boolean) {
 @Composable
 private fun MenuEntry(
     destination: MenuDestination,
+    current: Boolean,
     open: Boolean,
-    onOpen: (TvOverlay) -> Unit,
+    onChoose: (TvOverlay) -> Unit,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
     var focused by remember { mutableStateOf(false) }
-    val current = destination.overlay == null
     val shape = RoundedCornerShape(metrics.controlCorner)
     val fill = animatedColour(
         when {
@@ -235,7 +279,7 @@ private fun MenuEntry(
             .onFocusChanged { focused = it.isFocused }
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
             // the remote a second press to pass every entry.
-            .clickable { destination.overlay?.let(onOpen) }
+            .clickable { onChoose(destination.overlay) }
             .semantics { contentDescription = destination.label }
             .padding(horizontal = ENTRY_ICON_INSET),
         verticalAlignment = Alignment.CenterVertically,
@@ -366,7 +410,10 @@ private fun TopBarClock() {
  * strip plus 48px at 1080p).
  */
 @Composable
-internal fun sideMenuInset(): Dp = LocalTvMetrics.current.homeNavRailCollapsedWidth + SIDE_MENU_GAP
+internal fun sideMenuInset(): Dp = sideMenuInset(LocalTvMetrics.current)
+
+/** [sideMenuInset] for metrics the caller already holds, outside the composition that provides them. */
+internal fun sideMenuInset(metrics: TvMetrics): Dp = metrics.homeNavRailCollapsedWidth + SIDE_MENU_GAP
 
 /*
  * Studio's ten-foot spacing, in dp (the canvas's 1080p pixels halved).
