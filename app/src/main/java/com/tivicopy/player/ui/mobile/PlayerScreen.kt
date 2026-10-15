@@ -79,7 +79,7 @@ import kotlin.math.roundToInt
  * The phone's Now Playing screen (ADR-011): a full-screen surface over the browse shell, the
  * way a music app expands its mini bar. Portrait pins the video on top with the channel's
  * identity, now/next and quick actions below it; landscape is the video alone, with the
- * channel list one tap away as a sheet. Back collapses it to [MiniPlayerBar].
+ * channel list one tap away as a sheet. Back collapses it to [PhoneMiniPlayer].
  *
  * The playback gestures (FR-UI-14) live on the video box here — the browse screens no longer
  * host any video for them to act on.
