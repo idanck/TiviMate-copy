@@ -543,6 +543,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Starts whatever failed again from the top: the error panel's "Retry" (ADR-034).
+     *
+     * Through the same entry point that started it, not a bare re-prepare of the player, so the
+     * request profile, the PIN gate, the catch-up window and the film's resume mark are all asked
+     * again — any of them can be why it failed, and a setting changed since is the usual fix.
+     */
+    fun retryPlayback() {
+        when (val playing = _state.value.nowPlaying) {
+            is NowPlayingInfo.Live -> play(playing.channel)
+            is NowPlayingInfo.Catchup -> playCatchup(playing.channel, playing.programme)
+            is NowPlayingInfo.OnDemand -> playVod(playing.item)
+            is NowPlayingInfo.RecordingFile -> playRecording(playing.recording)
+            null -> Unit
+        }
+    }
+
+    /**
      * Plays whatever channel [channelId] names, from outside the browsing state (FR-TVI-04).
      *
      * The entry point for a launcher deep link, so it reads the channel from the database rather

@@ -111,6 +111,8 @@
     <string name="card_on_screen">על המסך</string>
     <string name="filmstrip_hint">ימינה ושמאלה בין הערוצים · OK מעביר</string>
     <string name="playback_error_hint">אפשר להחליף ערוץ בחצים למעלה ולמטה גם מכאן.</string>
+    <string name="playback_network_settings">הגדרות רשת</string>
+    <string name="playback_channel_list">רשימת ערוצים</string>
     <string name="playback_audio_only">מתנגן — שידור שמע בלבד, אין תמונה</string>
     <string name="playback_live_badge">שידור חי</string>
     <string name="decoder_video">מפענח וידאו</string>

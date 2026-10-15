@@ -56,6 +56,7 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.tvMetricsFor
 import com.tivicopy.player.ui.common.describe
+import com.tivicopy.player.ui.common.PlaybackErrorActions
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.audioOnlyBackdropVisible
@@ -255,6 +256,10 @@ fun TvRoot(
             modifier = pictureBounds,
         )
 
+        // A settled failure puts its own buttons on screen (ADR-034), and the retry among them
+        // takes the remote; the station backdrop's play button must not claim it at the same time.
+        val failed = status.error != null && status.errorDetail != null
+
         // Radio (and any other audio-only stream) never produces a video frame, so the surface
         // above is a steady black rectangle with sound and nothing to look at — indistinguishable
         // from broken. Detected the same way PlaybackStatus already reports it (no video track),
@@ -277,7 +282,7 @@ fun TvRoot(
                 onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                 // Only while nothing else owns the arrows: an overlay draws its own focusable
                 // controls over this one, and two claims on the D-pad is one too many.
-                takeDpadFocus = overlay.leavesDpadToShell,
+                takeDpadFocus = overlay.leavesDpadToShell && !failed,
                 // Catch-up off a radio station reaches this screen too, and is not live.
                 live = state.nowPlaying.isLive(),
                 tasks = radioTasks,
@@ -303,6 +308,21 @@ fun TvRoot(
         PlaybackStateOverlay(
             status = status,
             opacity = prefs.overlayOpacity,
+            // Only while nothing else owns the remote: under the channel list or the transport
+            // bar, buttons here would be reachable by an arrow that ran off the end of those.
+            errorActions = if (overlay.leavesDpadToShell) {
+                PlaybackErrorActions(
+                    onRetry = vm::retryPlayback,
+                    onNetworkSettings = {
+                        onSettingsSection(SettingsSection.NETWORK)
+                        onOverlayChange(TvOverlay.SETTINGS)
+                    },
+                    onChannelList = { onOverlayChange(TvOverlay.CHANNELS) },
+                    takeFocus = true,
+                )
+            } else {
+                null
+            },
             modifier = Modifier.fillMaxSize(),
         )
 

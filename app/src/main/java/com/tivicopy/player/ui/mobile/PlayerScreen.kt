@@ -60,6 +60,7 @@ import com.tivicopy.player.ui.common.PhoneButtonSize
 import com.tivicopy.player.ui.common.PhoneButton
 import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
 import com.tivicopy.player.ui.common.LiveBadge
+import com.tivicopy.player.ui.common.PlaybackErrorActions
 import com.tivicopy.player.ui.common.PlaybackStateOverlay
 import com.tivicopy.player.ui.common.PlayerSurface
 import com.tivicopy.player.ui.common.StudioProgress
@@ -236,6 +237,8 @@ fun PlayerScreen(
                     PlaybackStateOverlay(
                         status = playback,
                         opacity = prefs.overlayOpacity,
+                        // `PPlayError`: the retry alone; the phone's other ways out are on screen.
+                        errorActions = PlaybackErrorActions(onRetry = vm::retryPlayback),
                         modifier = Modifier.fillMaxSize(),
                     )
                     if (!landscape) {
