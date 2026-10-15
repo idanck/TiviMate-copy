@@ -2,12 +2,16 @@ package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -33,6 +37,8 @@ import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.ListRow
+import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
+import com.tivicopy.player.ui.common.panelSurface
 import com.tivicopy.player.ui.common.RowTone
 import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.StudioField
@@ -70,82 +76,116 @@ fun SearchScreen(
     DisposableEffect(Unit) { onDispose { vm.clearSearch() } }
 
     // `TvSearch`: the field with the search glyph and no label, then the results under headings
-    // in the secondary ink, each a list row with its glyph. The canvas's "where we search" panel
-    // beside them is a behaviour change (MIGRATION.md round 2 §5) and is not drawn.
+    // in the secondary ink, each a list row with its glyph — and on a television, the panel
+    // beside them saying where the search looks (ADR-034).
     val tv = StudioTheme.television
-    Column(
-        modifier = modifier.fillMaxSize().padding(horizontal = if (tv) 24.dp else 12.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StudioField(
-            value = query,
-            onValueChange = { query = it },
-            placeholder = stringResource(R.string.action_search),
-            icon = StudioIcons.Search,
-            modifier = Modifier.fillMaxWidth().widthIn(max = 600.dp),
-        )
-        if (results.running) StudioProgress(fraction = 0f, indeterminate = true, modifier = Modifier.fillMaxWidth())
+    Row(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .padding(horizontal = if (tv) 24.dp else 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StudioField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = stringResource(R.string.action_search),
+                icon = StudioIcons.Search,
+                modifier = Modifier.fillMaxWidth().widthIn(max = 600.dp),
+            )
+            if (results.running) StudioProgress(fraction = 0f, indeterminate = true, modifier = Modifier.fillMaxWidth())
 
-        if (query.isNotBlank() && !results.running && results.isEmpty) {
-            EmptyState(stringResource(R.string.empty_no_results), icon = StudioIcons.Search)
-            return@Column
-        }
+            if (query.isNotBlank() && !results.running && results.isEmpty) {
+                EmptyState(stringResource(R.string.empty_no_results), icon = StudioIcons.Search)
+                return@Column
+            }
 
-        val now = System.currentTimeMillis()
-        LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            if (results.channels.isNotEmpty()) {
-                item { ResultHeading(stringResource(R.string.nav_live)) }
-                items(results.channels, key = { "c${it.id}" }) { channel ->
-                    FocusableRow(onClick = { onPlay(channel) }, contentDescription = channel.displayName) {
-                        ChannelLogo(channel = channel, sizeDp = 32)
-                        Text(
-                            text = channel.displayName,
-                            style = StudioTheme.type.rowLabel,
-                            color = StudioTheme.colors.ink,
-                            maxLines = 1,
-                            modifier = Modifier.weight(1f),
+            val now = System.currentTimeMillis()
+            LazyColumn(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (results.channels.isNotEmpty()) {
+                    item { ResultHeading(stringResource(R.string.nav_live)) }
+                    items(results.channels, key = { "c${it.id}" }) { channel ->
+                        FocusableRow(onClick = { onPlay(channel) }, contentDescription = channel.displayName) {
+                            ChannelLogo(channel = channel, sizeDp = 32)
+                            Text(
+                                text = channel.displayName,
+                                style = StudioTheme.type.rowLabel,
+                                color = StudioTheme.colors.ink,
+                                maxLines = 1,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+                if (results.programmes.isNotEmpty()) {
+                    item { ResultHeading(stringResource(R.string.nav_guide)) }
+                    items(results.programmes, key = { "p${it.id}" }) { programme ->
+                        val airing = programme.startUtc <= now && now < programme.endUtc
+                        ListRow(
+                            label = programme.title,
+                            sub = TimeModel.ltr(TimeModel.formatDayTime(programme.startUtc)),
+                            icon = StudioIcons.Guide,
+                            // On air is the tally, as everywhere: red is what is on now.
+                            trail = if (airing) RowTrail.STATUS else RowTrail.VALUE,
+                            tone = if (airing) RowTone.TALLY else RowTone.MUTED,
+                            value = if (airing) {
+                                stringResource(R.string.playback_live_badge)
+                            } else {
+                                TimeModel.formatDuration(programme.durationMillis)
+                            },
+                            // A guide hit used to do nothing when pressed. Resolving the channel it
+                            // belongs to turns it into watch, record and catch-up.
+                            onClick = {
+                                scope.launch {
+                                    vm.channelForProgramme(programme)?.let { onOpenProgramme(it, programme) }
+                                }
+                            },
+                        )
+                    }
+                }
+                if (results.vod.isNotEmpty()) {
+                    item { ResultHeading(stringResource(R.string.nav_vod)) }
+                    items(results.vod, key = { "v${it.id}" }) { item ->
+                        ListRow(
+                            label = item.name,
+                            sub = item.year,
+                            icon = StudioIcons.Movie,
+                            onClick = { if (item.isSeriesContainer) onOpenSeries(item) else onPlayVod(item) },
                         )
                     }
                 }
             }
-            if (results.programmes.isNotEmpty()) {
-                item { ResultHeading(stringResource(R.string.nav_guide)) }
-                items(results.programmes, key = { "p${it.id}" }) { programme ->
-                    val airing = programme.startUtc <= now && now < programme.endUtc
-                    ListRow(
-                        label = programme.title,
-                        sub = TimeModel.ltr(TimeModel.formatDayTime(programme.startUtc)),
-                        icon = StudioIcons.Guide,
-                        // On air is the tally, as everywhere: red is what is on now.
-                        trail = if (airing) RowTrail.STATUS else RowTrail.VALUE,
-                        tone = if (airing) RowTone.TALLY else RowTone.MUTED,
-                        value = if (airing) {
-                            stringResource(R.string.playback_live_badge)
-                        } else {
-                            TimeModel.formatDuration(programme.durationMillis)
-                        },
-                        // A guide hit used to do nothing when pressed. Resolving the channel it
-                        // belongs to turns it into watch, record and catch-up.
-                        onClick = {
-                            scope.launch {
-                                vm.channelForProgramme(programme)?.let { onOpenProgramme(it, programme) }
-                            }
-                        },
-                    )
-                }
-            }
-            if (results.vod.isNotEmpty()) {
-                item { ResultHeading(stringResource(R.string.nav_vod)) }
-                items(results.vod, key = { "v${it.id}" }) { item ->
-                    ListRow(
-                        label = item.name,
-                        sub = item.year,
-                        icon = StudioIcons.Movie,
-                        onClick = { if (item.isSeriesContainer) onOpenSeries(item) else onPlayVod(item) },
-                    )
-                }
-            }
         }
+        if (tv) SearchScopePanel(modifier = Modifier.padding(top = 12.dp, end = 24.dp).width(200.dp))
+    }
+}
+
+/**
+ * `TvSearch`'s "where we search": what the one field looks through, and where the keyboard will
+ * be while it is typed into. It explains; nothing in it is a filter (ADR-034).
+ */
+@Composable
+private fun SearchScopePanel(modifier: Modifier = Modifier) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    Column(
+        modifier = modifier
+            .panelSurface(opacity = MENU_MIN_OPACITY, shape = MaterialTheme.shapes.large)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.search_scope_title),
+            style = type.rowLabel.copy(fontWeight = FontWeight.SemiBold),
+            color = studio.ink,
+        )
+        Text(text = stringResource(R.string.search_scope_body), style = type.meta, color = studio.ink2)
+        Text(
+            text = stringResource(R.string.search_scope_keyboard),
+            style = type.caption.copy(fontWeight = FontWeight.Normal),
+            color = studio.ink2,
+        )
     }
 }
 

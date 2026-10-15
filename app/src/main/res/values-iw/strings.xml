@@ -20,6 +20,9 @@
     <string name="action_edit">עריכה</string>
     <string name="action_refresh">רענון</string>
     <string name="action_search">חיפוש</string>
+    <string name="search_scope_title">איפה מחפשים</string>
+    <string name="search_scope_body">שמות ערוצים, תוכניות בלוח השידורים, ו-VOD כשהספק מציע.</string>
+    <string name="search_scope_keyboard">המקלדת של המכשיר נפתחת בחצי התחתון של המסך בזמן ההקלדה.</string>
     <string name="action_watch">צפייה</string>
     <string name="action_record">הקלטה</string>
     <string name="action_favourite">הוסף למועדפים</string>
