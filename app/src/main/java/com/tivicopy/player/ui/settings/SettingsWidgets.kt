@@ -65,9 +65,21 @@ fun SettingsRow(
     title: String,
     subtitle: String? = null,
     trailing: @Composable () -> Unit = {},
+    /** Studio's `ListRow` glyph at the start; the section rows carry one (`canvas/Settings`). */
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    /** The section shown beside the list in the two-pane layout. */
+    selected: Boolean = false,
     onClick: () -> Unit = {},
 ) {
-    FocusableRow(onClick = onClick, contentDescription = title) {
+    FocusableRow(onClick = onClick, contentDescription = title, selected = selected) {
+        if (icon != null) {
+            androidx.compose.material3.Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = StudioTheme.colors.ink2,
+                modifier = Modifier.size(SETTINGS_ICON),
+            )
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(title, style = StudioTheme.type.rowLabel, color = StudioTheme.colors.ink)
             if (!subtitle.isNullOrBlank()) {
@@ -185,3 +197,6 @@ private fun studioSwitchColours(): SwitchColors {
         uncheckedBorderColor = studio.track,
     )
 }
+
+/** The glyph on a section row. */
+private val SETTINGS_ICON = 20.dp

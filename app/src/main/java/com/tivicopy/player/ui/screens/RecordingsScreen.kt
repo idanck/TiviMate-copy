@@ -44,6 +44,16 @@ import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
 
 /**
  * The recordings library and the scheduled list (FR-REC-19..21).
@@ -55,6 +65,11 @@ import kotlinx.coroutines.withContext
 fun RecordingsScreen(
     onPlayRecording: (Recording) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Studio's ten-foot layout (`canvas/Recordings.dc.html`): the list at the start and the
+     * recording the remote is on described at the end. Off on a phone.
+     */
+    twoPane: Boolean = false,
 ) {
     var recordings by remember { mutableStateOf<List<Recording>>(emptyList()) }
     var reloadToken by remember { mutableStateOf(0) }
@@ -74,8 +89,69 @@ fun RecordingsScreen(
     }
 
     val sectionStyle = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold)
+    var selectedId by remember { mutableStateOf<Long?>(null) }
+    val cancel: (Recording) -> Unit = { recording ->
+        scope.launch(Dispatchers.IO) {
+            ServiceLocator.recordings.cancel(recording.id)
+            withContext(Dispatchers.Main) { reloadToken++ }
+        }
+    }
+    val delete: (Recording) -> Unit = { recording ->
+        scope.launch(Dispatchers.IO) {
+            // Deletes the file itself, on a plain path or a SAF tree alike, so a removed
+            // recording does not keep occupying the user's storage.
+            RecordingStorage.delete(ServiceLocator.appContext, recording.filePath)
+            ServiceLocator.dao.deleteRecording(recording.id)
+            withContext(Dispatchers.Main) { reloadToken++ }
+        }
+    }
+    if (twoPane) {
+        Row(modifier = modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            RecordingsList(
+                scheduled = scheduled,
+                finished = finished,
+                sectionStyle = sectionStyle,
+                onCancel = cancel,
+                onDelete = delete,
+                onPlayRecording = onPlayRecording,
+                onFocused = { selectedId = it.id },
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+            RecordingDetail(
+                recording = recordings.firstOrNull { it.id == selectedId } ?: recordings.first(),
+                onPlay = onPlayRecording,
+                onCancel = cancel,
+                onDelete = delete,
+                modifier = Modifier.width(DETAIL_WIDTH).fillMaxHeight(),
+            )
+        }
+        return
+    }
+    RecordingsList(
+        scheduled = scheduled,
+        finished = finished,
+        sectionStyle = sectionStyle,
+        onCancel = cancel,
+        onDelete = delete,
+        onPlayRecording = onPlayRecording,
+        onFocused = {},
+        modifier = modifier.fillMaxSize(),
+    )
+}
+
+@Composable
+private fun RecordingsList(
+    scheduled: List<Recording>,
+    finished: List<Recording>,
+    sectionStyle: androidx.compose.ui.text.TextStyle,
+    onCancel: (Recording) -> Unit,
+    onDelete: (Recording) -> Unit,
+    onPlayRecording: (Recording) -> Unit,
+    onFocused: (Recording) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(8.dp),
+        modifier = modifier.padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         // Studio's screen head (`canvas/Recordings.dc.html`): the title as a channel would set it,
@@ -104,13 +180,9 @@ fun RecordingsScreen(
             items(scheduled, key = { it.id }) { recording ->
                 RecordingRow(
                     recording = recording,
-                    onPrimary = {
-                        scope.launch(Dispatchers.IO) {
-                            ServiceLocator.recordings.cancel(recording.id)
-                            withContext(Dispatchers.Main) { reloadToken++ }
-                        }
-                    },
+                    onPrimary = { onCancel(recording) },
                     primaryLabel = stringResource(R.string.action_cancel),
+                    onFocused = { onFocused(recording) },
                 )
             }
         }
@@ -119,17 +191,10 @@ fun RecordingsScreen(
             items(finished, key = { it.id }) { recording ->
                 RecordingRow(
                     recording = recording,
-                    onPrimary = {
-                        scope.launch(Dispatchers.IO) {
-                            // Deletes the file itself, on a plain path or a SAF tree alike, so a
-                            // removed recording does not keep occupying the user's storage.
-                            RecordingStorage.delete(ServiceLocator.appContext, recording.filePath)
-                            ServiceLocator.dao.deleteRecording(recording.id)
-                            withContext(Dispatchers.Main) { reloadToken++ }
-                        }
-                    },
+                    onPrimary = { onDelete(recording) },
                     primaryLabel = stringResource(R.string.action_delete),
                     onClick = { onPlayRecording(recording) },
+                    onFocused = { onFocused(recording) },
                 )
             }
         }
@@ -142,8 +207,9 @@ private fun RecordingRow(
     onPrimary: () -> Unit,
     primaryLabel: String,
     onClick: () -> Unit = {},
+    onFocused: () -> Unit = {},
 ) {
-    FocusableRow(onClick = onClick, contentDescription = recording.title) {
+    FocusableRow(onClick = onClick, contentDescription = recording.title, onFocused = onFocused) {
         Column(modifier = Modifier.weight(1f)) {
             TwoLine(
                 primary = recording.title,
@@ -167,21 +233,105 @@ private fun RecordingRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        val studio = StudioTheme.colors
-        StatusPill(
-            text = stringResource(recording.state.label()),
-            dot = when (recording.state) {
-                RecordingState.COMPLETED -> studio.ok
-                RecordingState.RECORDING -> studio.tally
-                RecordingState.PARTIAL -> studio.cue
-                RecordingState.FAILED -> studio.error
-                else -> studio.ink3
-            },
-            textColour = if (recording.state == RecordingState.FAILED) studio.error else studio.ink,
-        )
+        RecordingStatusPill(recording.state)
         TextButton(onClick = onPrimary) { Text(primaryLabel) }
     }
 }
+
+@Composable
+private fun RecordingStatusPill(state: RecordingState) {
+    val studio = StudioTheme.colors
+    StatusPill(
+        text = stringResource(state.label()),
+        dot = when (state) {
+            RecordingState.COMPLETED -> studio.ok
+            RecordingState.RECORDING -> studio.tally
+            RecordingState.PARTIAL -> studio.cue
+            RecordingState.FAILED -> studio.error
+            else -> studio.ink3
+        },
+        textColour = if (state == RecordingState.FAILED) studio.error else studio.ink,
+    )
+}
+
+/**
+ * The recording the remote is on, described beside the list (`canvas/Recordings.dc.html`): a
+ * plate with its channel where the canvas has a frame of it (the app keeps no thumbnails), its
+ * state, the title in Karantina, channel, day, time and length, and what can be done with it.
+ */
+@Composable
+private fun RecordingDetail(
+    recording: Recording,
+    onPlay: (Recording) -> Unit,
+    onCancel: (Recording) -> Unit,
+    onDelete: (Recording) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val metrics = com.tivicopy.player.ui.common.LocalTvMetrics.current
+    Column(modifier = modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(androidx.compose.foundation.shape.RoundedCornerShape(metrics.controlCorner))
+                .background(studio.card)
+                .border(1.dp, studio.hairline, androidx.compose.foundation.shape.RoundedCornerShape(metrics.controlCorner)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = recording.channelName,
+                style = type.titleSmall,
+                color = studio.ink2,
+                maxLines = 1,
+            )
+        }
+        RecordingStatusPill(recording.state)
+        Text(
+            text = recording.title,
+            style = type.titleSmall.copy(
+                fontSize = type.titleSmall.fontSize * DETAIL_TITLE_SCALE,
+                lineHeight = type.titleSmall.fontSize * DETAIL_TITLE_SCALE * 0.9f,
+            ),
+            color = studio.ink,
+            maxLines = 2,
+        )
+        val minutes = ((recording.endUtc - recording.startUtc) / 60_000L).toInt()
+        Text(
+            text = recording.channelName + " · " + TimeModel.ltr(
+                "${TimeModel.formatDay(recording.startUtc)} " +
+                    "${TimeModel.formatClock(recording.startUtc)}–${TimeModel.formatClock(recording.endUtc)}",
+            ) + " · " + stringResource(R.string.rec_minutes, minutes),
+            style = type.meta,
+            color = studio.ink2,
+        )
+        recording.message?.let { Text(text = it, style = type.caption, color = studio.ink2) }
+        Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val scheduled = recording.state == RecordingState.SCHEDULED || recording.state == RecordingState.RECORDING
+            if (!scheduled && !recording.filePath.isNullOrBlank()) {
+                StudioButton(
+                    label = stringResource(R.string.action_watch),
+                    icon = Icons.Filled.PlayArrow,
+                    size = StudioButtonSize.MEDIUM,
+                    onClick = { onPlay(recording) },
+                )
+            }
+            StudioButton(
+                label = stringResource(if (scheduled) R.string.action_cancel else R.string.action_delete),
+                icon = if (scheduled) Icons.Filled.Close else Icons.Filled.Delete,
+                size = StudioButtonSize.MEDIUM,
+                onClick = { if (scheduled) onCancel(recording) else onDelete(recording) },
+            )
+        }
+    }
+}
+
+/** `canvas/Recordings.dc.html`'s detail column: 640px at 1080p. */
+private val DETAIL_WIDTH = 320.dp
+
+/** The detail's title is 88px against the screen head's 64. */
+private const val DETAIL_TITLE_SCALE = 88f / 64f
 
 /**
  * Studio's status pill (`ListRow`'s `status` trail): a quiet `surface` plate with a coloured dot —

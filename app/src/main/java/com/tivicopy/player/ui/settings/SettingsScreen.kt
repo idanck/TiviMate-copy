@@ -40,6 +40,25 @@ import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.findActivity
 import com.tivicopy.player.tv.WatchNext
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.ui.draw.clip
+import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.theme.StudioTheme
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
@@ -57,6 +76,11 @@ fun SettingsScreen(
     onNavigate: (SettingsSection) -> Unit,
     onAddSource: () -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Studio's ten-foot layout (`canvas/Settings.dc.html`): the sections in a panel at the start,
+     * always on screen, and the open section beside them. Off on a phone, which has room for one.
+     */
+    twoPane: Boolean = false,
 ) {
     val settings = ServiceLocator.settings
     val s by settings.state.collectAsState()
@@ -69,22 +93,51 @@ fun SettingsScreen(
         return
     }
 
+    if (twoPane) {
+        Row(modifier = modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            Column(
+                modifier = Modifier
+                    .width(SECTIONS_PANEL_WIDTH)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(LocalTvMetrics.current.panelCorner))
+                    .background(StudioTheme.colors.surface)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_title),
+                    style = StudioTheme.type.titleSmall,
+                    color = StudioTheme.colors.ink,
+                    modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 8.dp),
+                )
+                SettingsSectionRows(selected = section, onNavigate = onNavigate)
+            }
+            if (section == SettingsSection.ROOT) {
+                // Nothing open yet: the panel is the whole of what there is to choose from.
+                Text(
+                    text = stringResource(R.string.settings_pick_section),
+                    style = StudioTheme.type.meta,
+                    color = StudioTheme.colors.ink2,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            } else {
+                SettingsScreen(
+                    vm = vm,
+                    section = section,
+                    onNavigate = onNavigate,
+                    onAddSource = onAddSource,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                )
+            }
+        }
+        return
+    }
+
     Column(modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
         when (section) {
             SettingsSection.ROOT -> {
                 SettingsSectionTitle(stringResource(R.string.settings_title), topDivider = false)
-                SettingsRow(stringResource(R.string.settings_sources)) { onNavigate(SettingsSection.SOURCES) }
-                SettingsRow(stringResource(R.string.settings_playback)) { onNavigate(SettingsSection.PLAYBACK) }
-                SettingsRow(stringResource(R.string.settings_appearance)) { onNavigate(SettingsSection.APPEARANCE) }
-                SettingsRow(stringResource(R.string.settings_network)) { onNavigate(SettingsSection.NETWORK) }
-                SettingsRow(stringResource(R.string.settings_recording)) { onNavigate(SettingsSection.RECORDING) }
-                SettingsRow(stringResource(R.string.settings_parental)) { onNavigate(SettingsSection.PARENTAL) }
-                SettingsRow(stringResource(R.string.settings_backup)) { onNavigate(SettingsSection.BACKUP) }
-                SettingsRow(stringResource(R.string.settings_diagnostics)) { onNavigate(SettingsSection.DIAGNOSTICS) }
-                SettingsRow(
-                    title = stringResource(R.string.settings_about),
-                    subtitle = BuildInfo.short,
-                ) { onNavigate(SettingsSection.ABOUT) }
+                SettingsSectionRows(selected = null, onNavigate = onNavigate)
             }
 
             SettingsSection.SOURCES -> SourcesSection(vm, onAddSource)
@@ -508,3 +561,34 @@ fun OffsetRow(title: String, minutes: Int, onChange: (Int) -> Unit) {
         steps = (1440 / TimeModel.OFFSET_STEP_MINUTES) - 1,
     ) { onChange(TimeModel.clampOffset(it.toInt())) }
 }
+
+/**
+ * The section rows, each with its glyph (`canvas/Settings.dc.html`, `PSettings.dc.html`): the root
+ * list on a phone and the panel beside the open section on a television, where [selected] marks
+ * the one that is open.
+ */
+@Composable
+private fun SettingsSectionRows(selected: SettingsSection?, onNavigate: (SettingsSection) -> Unit) {
+    val entries = listOf(
+        Triple(SettingsSection.SOURCES, R.string.settings_sources, Icons.Filled.Storage),
+        Triple(SettingsSection.PLAYBACK, R.string.settings_playback, Icons.Filled.PlayCircle),
+        Triple(SettingsSection.APPEARANCE, R.string.settings_appearance, Icons.Filled.Palette),
+        Triple(SettingsSection.NETWORK, R.string.settings_network, Icons.Filled.Wifi),
+        Triple(SettingsSection.RECORDING, R.string.settings_recording, Icons.Filled.FiberManualRecord),
+        Triple(SettingsSection.PARENTAL, R.string.settings_parental, Icons.Filled.Lock),
+        Triple(SettingsSection.BACKUP, R.string.settings_backup, Icons.Filled.Backup),
+        Triple(SettingsSection.DIAGNOSTICS, R.string.settings_diagnostics, Icons.Filled.BugReport),
+        Triple(SettingsSection.ABOUT, R.string.settings_about, Icons.Filled.Info),
+    )
+    entries.forEach { (target, label, icon) ->
+        SettingsRow(
+            title = stringResource(label),
+            subtitle = if (target == SettingsSection.ABOUT) BuildInfo.short else null,
+            icon = icon,
+            selected = target == selected,
+        ) { onNavigate(target) }
+    }
+}
+
+/** `canvas/Settings.dc.html`'s section panel: 560px at 1080p. */
+private val SECTIONS_PANEL_WIDTH = 280.dp

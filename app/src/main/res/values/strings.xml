@@ -449,5 +449,7 @@
     <string name="guide_from_start">From the start</string>
     <string name="guide_watch_catchup">Watch the replay</string>
     <string name="guide_on_screen">On screen · %1$s</string>
+    <string name="settings_pick_section">Choose a section</string>
+    <string name="rec_minutes">%1$d min</string>
     <string name="radio_equalizer">Equalizer</string>
 </resources>

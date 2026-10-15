@@ -417,5 +417,7 @@
     <string name="guide_from_start">מההתחלה</string>
     <string name="guide_watch_catchup">צפייה בשידור החוזר</string>
     <string name="guide_on_screen">על המסך · %1$s</string>
+    <string name="settings_pick_section">בחרו סעיף</string>
+    <string name="rec_minutes">%1$d דק׳</string>
     <string name="radio_equalizer">אקולייזר</string>
 </resources>

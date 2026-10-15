@@ -514,6 +514,7 @@ fun TvRoot(
                                 onOverlayChange(TvOverlay.NONE)
                             },
                             modifier = Modifier.fillMaxWidth().weight(1f),
+                            twoPane = true,
                         )
                     }
 
@@ -537,6 +538,7 @@ fun TvRoot(
                             onNavigate = onSettingsSection,
                             onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
                             modifier = Modifier.fillMaxWidth().weight(1f),
+                            twoPane = true,
                         )
                     }
 
