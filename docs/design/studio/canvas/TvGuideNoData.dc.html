@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — מדריך, ערוץ בלי לוח שידורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<div style="position: absolute; top: 200px; right: var(--st-safe-x); display: flex; align-items: baseline; gap: 16px"><h1 class="st-t-title-s">מדריך</h1><span class="st-t-caption">שורה בלי נתונים נשארת במקומה, כדי שהסדר לא יקפוץ</span></div>
+<div style="position: absolute; top: 300px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: var(--st-gap-row)"><div style="display: flex; gap: 16px; height: 58px"><div style="flex: 0 0 212px; height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: var(--st-r-card); background: var(--st-surface); display: flex; align-items: center; gap: 12px"><span class="st-num" style="width: 30px; font-size: 20px; font-weight: 600; color: var(--st-ink-3)">11</span><span style="font-size: 23px; font-weight: 600">כאן 11</span></div><div style="position: relative; flex: 0 0 1500px; height: 58px"><div style="position: absolute; top: 0; right: 0px"><dc-import name="GuideCell" item="{{o0}}" state="airing" width="744" hint-size="744px,58px"></dc-import></div><div style="position: absolute; top: 0; right: 750px"><dc-import name="GuideCell" item="{{o1}}" state="future" width="744" hint-size="744px,58px"></dc-import></div></div></div><div style="display: flex; gap: 16px; height: 58px"><div style="flex: 0 0 212px; height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: var(--st-r-card); background: var(--st-surface); display: flex; align-items: center; gap: 12px"><span class="st-num" style="width: 30px; font-size: 20px; font-weight: 600; color: var(--st-ink-3)">12</span><span style="font-size: 23px; font-weight: 600">קשת 12</span></div><div style="position: relative; flex: 0 0 1500px; height: 58px"><div style="position: absolute; inset: 0; border-radius: var(--st-r-card); background: repeating-linear-gradient(-45deg, var(--st-past) 0 14px, var(--st-surface) 14px 28px); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); display: flex; align-items: center; padding: 0 20px; font-size: 21px; color: var(--st-ink-3)">אין נתוני לוח שידורים</div></div></div><div style="display: flex; gap: 16px; height: 58px"><div style="flex: 0 0 212px; height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: var(--st-r-card); background: var(--st-surface); display: flex; align-items: center; gap: 12px"><span class="st-num" style="width: 30px; font-size: 20px; font-weight: 600; color: var(--st-ink-3)">13</span><span style="font-size: 23px; font-weight: 600">ערוץ 13</span></div><div style="position: relative; flex: 0 0 1500px; height: 58px"><div style="position: absolute; top: 0; right: 0px"><dc-import name="GuideCell" item="{{o2}}" state="airing" width="294" hint-size="294px,58px"></dc-import></div><div style="position: absolute; top: 0; right: 300px"><dc-import name="GuideCell" item="{{o3}}" state="future" width="744" hint-size="744px,58px"></dc-import></div><div style="position: absolute; top: 0; right: 1050px"><dc-import name="GuideCell" item="{{o4}}" state="future" width="444" hint-size="444px,58px"></dc-import></div></div></div><div style="display: flex; gap: 16px; height: 58px"><div style="flex: 0 0 212px; height: 58px; box-sizing: border-box; padding: 0 18px; border-radius: var(--st-r-card); background: var(--st-surface); display: flex; align-items: center; gap: 12px"><span class="st-num" style="width: 30px; font-size: 20px; font-weight: 600; color: var(--st-ink-3)">99</span><span style="font-size: 23px; font-weight: 600">ערוץ הכנסת</span></div><div style="position: relative; flex: 0 0 1500px; height: 58px"><div style="position: absolute; inset: 0; border-radius: var(--st-r-card); background: repeating-linear-gradient(-45deg, var(--st-past) 0 14px, var(--st-surface) 14px 28px); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); display: flex; align-items: center; padding: 0 20px; font-size: 21px; color: var(--st-ink-3)">אין נתוני לוח שידורים</div></div></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {"o0": {"title": "סרט תעודה", "time": "20:15–21:45"}, "o1": {"title": "סרט עלילתי", "time": "21:45–23:30"}, "o2": {"title": "תוכנית אירוח", "time": "20:00–21:00"}, "o3": {"title": "תחקיר", "time": "21:00–22:15"}, "o4": {"title": "קומדיה", "time": "22:15–23:15"}}; }
+}
+</script>
+</body>
+</html>

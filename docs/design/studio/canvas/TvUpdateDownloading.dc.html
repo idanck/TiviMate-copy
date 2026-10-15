@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — מוריד עדכון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl"><div style="position: absolute; inset: 0"><dc-import name="Main" hero-focus="false" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.72); pointer-events: none"></div><section role="dialog" aria-label="מוריד עדכון" class="st-panel" style="position: absolute; top: 300px; left: 510px; width: 900px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 14px"><div style="display: flex; align-items: center; gap: 16px"><span style="width: 64px; height: 64px; border-radius: 50%; background: var(--st-card); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="update" size="32" hint-size="32px,32px"></dc-import></span><h1 class="st-t-title-s">יש עדכון</h1></div><span class="st-num st-t-meta" style="font-size: 26px">גרסה [x.y.z] · [גודל] MB</span><div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px"><span class="st-num" style="font-size: 24px; font-weight: 600">מוריד… 42%</span><dc-import name="Progress" pct="42" width="804" hint-size="804px,8px"></dc-import></div><div style="display: flex; margin-top: 22px"><dc-import name="Button" label="הסתר" glyph="" variant="ghost" size="m" focused="true" icon-only="false" hint-size="150px,64px"></dc-import></div></section></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

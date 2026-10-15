@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — שיוך ללוח שידורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl"><div style="position: absolute; inset: 0"><dc-import name="Channels" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.72); pointer-events: none"></div><section role="dialog" aria-label="שיוך ללוח שידורים" class="st-panel" style="position: absolute; top: 150px; left: 460px; width: 1000px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 14px"><h1 class="st-t-h1" style="font-size: 36px; padding: 0 24px">בחר רשומת לוח שידורים עבור ערוץ 13</h1><div style="padding: 10px 24px 6px"><dc-import name="Field" label="" value="13" glyph="search" width="856" hint-size="856px,72px"></dc-import></div><dc-import name="ListRow" label="ערוץ 13" sub="[מזהה הרשומה בלוח השידורים]" glyph="" trail="check" value="" tone="muted" num="" state="selected" width="904" hint-size="904px,92px"></dc-import><dc-import name="ListRow" label="[רשומה דומה]" sub="[מזהה]" glyph="" trail="none" value="" tone="muted" num="" state="focus" width="904" hint-size="904px,92px"></dc-import><dc-import name="ListRow" label="[רשומה דומה]" sub="[מזהה]" glyph="" trail="none" value="" tone="muted" num="" state="rest" width="904" hint-size="904px,92px"></dc-import><div style="display: flex; gap: 16px; padding: 14px 24px 0"><dc-import name="Button" label="בטל שיוך" glyph="trash" variant="danger" size="m" focused="false" icon-only="false" hint-size="220px,64px"></dc-import><dc-import name="Button" label="סגירה" glyph="" variant="ghost" size="m" focused="false" icon-only="false" hint-size="150px,64px"></dc-import></div></section></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

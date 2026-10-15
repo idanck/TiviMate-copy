@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הגדרות, הקלטה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="הקלטה" search="false" back="true" hint-size="390px,56px"></dc-import></div><div style="position: absolute; top: 88px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 2px"><dc-import name="PListRow" label="תיקיית ההקלטות" sub="[נתיב התיקייה במכשיר]" glyph="storage" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="ריפוד" sub="2 דק׳ לפני, 5 דק׳ אחרי" glyph="" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="הקלטות מקבילות" sub="[מגבלה]" glyph="" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><div class="st-card" style="margin: 10px 0 4px; padding: 14px; display: flex; flex-direction: column; gap: 8px; box-shadow: inset 0 0 0 1px var(--st-hairline)">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600"><span style="color: var(--st-error); display: flex"><dc-import name="Icon" glyph="alert" size="20" hint-size="20px,20px"></dc-import></span>התראות מדויקות אינן מורשות</span>
+<span style="font-size: 13px; line-height: 1.5; color: var(--st-ink-2)">אנדרואיד עלול למנוע את תחילת ההקלטה כשהאפליקציה סגורה. אשר "התראות ותזכורות" בהגדרות המערכת כדי לתקן.</span>
+<div style="display: flex"><dc-import name="PButton" label="הגדרות המערכת" glyph="settings" variant="secondary" size="m" icon-only="false" hint-size="160px,40px"></dc-import></div>
+</div><span style="display: flex; gap: 8px; align-items: flex-start; padding: 6px 14px 0; font-size: 13px; line-height: 1.5; color: var(--st-ink-3)"><span style="flex: 0 0 auto; margin-top: 1px; color: var(--st-ink-3)"><dc-import name="Icon" glyph="info" size="18" hint-size="18px,18px"></dc-import></span>הקלטה תופסת אחד מחיבורי הספק שלך לכל משך ההקלטה.</span><span style="display: flex; gap: 8px; align-items: flex-start; padding: 6px 14px 0; font-size: 13px; line-height: 1.5; color: var(--st-ink-3)"><span style="flex: 0 0 auto; margin-top: 1px; color: var(--st-ink-3)"><dc-import name="Icon" glyph="alert" size="18" hint-size="18px,18px"></dc-import></span>אנדרואיד אינו יכול להדליק את המכשיר בעצמו. השאר אותו דלוק (מצב המתנה בסדר) אחרת ההקלטה תוחמץ.</span></div><div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="settings" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

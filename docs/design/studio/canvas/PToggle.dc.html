@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — מתג</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<span role="switch" aria-checked="{{aria}}" class="st-anim" style="position: relative; display: inline-block; flex: 0 0 {{w}}; width: {{w}}; height: {{h}}; border-radius: {{r}}; background: {{bg}}; box-shadow: {{ring}}; opacity: {{op}}"><span class="st-anim" style="position: absolute; top: {{inset}}; right: {{pos}}; width: {{k}}; height: {{k}}; border-radius: 50%; background: {{knob}}"></span></span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"on":{"editor":"boolean","default":true},"focused":{"editor":"boolean","default":false},"disabled":{"editor":"boolean","default":false},"$preview":{"width":44,"height":26}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    const on = yes(this.props.on), f = yes(this.props.focused), d = yes(this.props.disabled);
+    const W = 44, H = 26, K = 20, I = 3;
+    return {
+      aria: on ? 'true' : 'false', w: W + 'px', h: H + 'px', r: (H / 2) + 'px', k: K + 'px', inset: I + 'px',
+      pos: on ? (W - K - I) + 'px' : I + 'px',
+      bg: on ? 'var(--st-cue)' : 'var(--st-track)', knob: on ? 'var(--st-on-cue)' : 'var(--st-ink-2)',
+      ring: f ? '0 0 0 3px var(--st-ground), 0 0 0 6px var(--st-cue)' : 'none', op: d ? '0.45' : '1'
+    };
+  }
+}
+</script>
+</body>
+</html>

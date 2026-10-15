@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — שיוך ללוח שידורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="שיוך ללוח שידורים" search="false" back="true" hint-size="390px,56px"></dc-import></div><div style="position: absolute; top: 84px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 4px"><span class="st-t-meta" style="padding: 0 14px 6px">בחר רשומת לוח שידורים עבור ערוץ 13</span><div style="padding: 0 0 8px"><dc-import name="PField" label="" value="13" placeholder="חיפוש" glyph="search" state="rest" ltr="false" width="358" hint-size="358px,78px"></dc-import></div><dc-import name="PListRow" label="ערוץ 13" sub="[מזהה הרשומה בלוח השידורים]" glyph="" trail="check" value="" tone="muted" state="selected" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="[רשומה דומה]" sub="[מזהה]" glyph="" trail="none" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><dc-import name="PListRow" label="[רשומה דומה]" sub="[מזהה]" glyph="" trail="none" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import></div><div style="position: absolute; bottom: 24px; right: var(--st-safe-x); width: 358px; display: flex"><dc-import name="PButton" label="בטל שיוך" glyph="trash" variant="danger" size="l" icon-only="false" hint-size="358px,48px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

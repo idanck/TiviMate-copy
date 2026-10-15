@@ -13,20 +13,20 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<button class="st-anim" style="width: {{w}}; min-height: {{h}}; box-sizing: border-box; padding: 0 14px; border: 0; border-radius: var(--st-r-card); background: {{bg}}; color: {{fg}}; display: flex; align-items: center; gap: 14px; text-align: right; font-family: var(--st-font-ui); cursor: pointer">
+<button class="st-anim" style="width: {{w}}; min-height: {{h}}; box-sizing: border-box; padding: {{pad}} 14px; border: 0; border-radius: var(--st-r-card); background: {{bg}}; color: {{fg}}; display: flex; align-items: center; gap: 14px; text-align: right; font-family: var(--st-font-ui); cursor: pointer">
 <sc-if value="{{hasIcon}}" hint-placeholder-val="{{false}}"><span style="color: {{subc}}; display: flex"><dc-import name="Icon" glyph="{{glyph}}" size="22" hint-size="22px,22px"></dc-import></span></sc-if>
 <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
-<span style="font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{label}}</span>
-<sc-if value="{{hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; color: {{subc}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sub}}</span></sc-if>
+<span style="font-size: 16px; font-weight: 600; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical">{{label}}</span>
+<sc-if value="{{hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size: 13px; line-height: 1.35; color: {{subc}}; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical">{{sub}}</span></sc-if>
 </span>
 <sc-if value="{{tValue}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 auto; font-size: 14px; color: {{subc}}">{{value}}</span></sc-if>
 <sc-if value="{{tStatus}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); color: {{stFg}}; font-size: 12px; font-weight: 600; white-space: nowrap"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: {{stDot}}"></span>{{value}}</span></sc-if>
 <sc-if value="{{tChevron}}" hint-placeholder-val="{{true}}"><span style="color: var(--st-ink-3); display: flex"><dc-import name="Icon" glyph="chevron-left" size="20" hint-size="20px,20px"></dc-import></span></sc-if>
 <sc-if value="{{tCheck}}" hint-placeholder-val="{{false}}"><span style="color: var(--st-cue); display: flex"><dc-import name="Icon" glyph="check" size="22" hint-size="22px,22px"></dc-import></span></sc-if>
-<sc-if value="{{tToggle}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: relative; flex: 0 0 44px; width: 44px; height: 26px; border-radius: 13px; background: {{tgBg}}"><span style="position: absolute; top: 3px; right: {{tgPos}}; width: 20px; height: 20px; border-radius: 50%; background: {{tgKnob}}"></span></span></sc-if>
+<sc-if value="{{tToggle}}" hint-placeholder-val="{{false}}"><dc-import name="PToggle" on="{{tgOn}}" hint-size="44px,26px"></dc-import></sc-if>
 </button>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"מראה"},"sub":{"editor":"text","default":""},"glyph":{"editor":"text","default":""},"trail":{"editor":"enum","options":["chevron","on","off","check","value","status","none"],"default":"chevron"},"value":{"editor":"text","default":""},"tone":{"editor":"enum","options":["muted","tally","ok","error"],"default":"muted"},"state":{"editor":"enum","options":["rest","selected","disabled"],"default":"rest"},"width":{"editor":"int","default":358,"min":200,"max":420},"$preview":{"width":358,"height":64}}'>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"מראה"},"sub":{"editor":"text","default":""},"glyph":{"editor":"text","default":""},"trail":{"editor":"enum","options":["chevron","on","off","check","value","status","none"],"default":"chevron"},"value":{"editor":"text","default":""},"tone":{"editor":"enum","options":["muted","tally","ok","error"],"default":"muted"},"state":{"editor":"enum","options":["rest","selected","disabled","danger"],"default":"rest"},"width":{"editor":"int","default":358,"min":200,"max":420},"$preview":{"width":358,"height":64}}'>
 class Component extends DCLogic {
   renderVals() {
     const p = this.props;
@@ -37,13 +37,13 @@ class Component extends DCLogic {
     const tone = p.tone || 'muted';
     return {
       label: p.label ?? 'מראה', sub: sub, hasSub: sub !== '', glyph: p.glyph || '', hasIcon: !!p.glyph, value: p.value || '',
-      w: (Number(p.width) || 358) + 'px', h: sub ? '64px' : 'var(--st-h-row)',
+      w: (Number(p.width) || 358) + 'px', h: sub ? '64px' : 'var(--st-h-row)', pad: sub ? '10px' : '0px',
       bg: st === 'selected' ? 'var(--st-card)' : 'transparent',
-      fg: st === 'disabled' ? 'var(--st-ink-3)' : 'var(--st-ink)',
+      fg: st === 'disabled' ? 'var(--st-ink-3)' : (st === 'danger' ? 'var(--st-error)' : 'var(--st-ink)'),
       subc: st === 'disabled' ? 'var(--st-ink-3)' : 'var(--st-ink-2)',
       tValue: trail === 'value', tStatus: trail === 'status', tChevron: trail === 'chevron', tCheck: trail === 'check',
       tToggle: trail === 'on' || trail === 'off',
-      tgBg: on ? 'var(--st-cue)' : 'var(--st-track)', tgKnob: on ? 'var(--st-on-cue)' : 'var(--st-ink-2)', tgPos: on ? '21px' : '3px',
+      tgOn: on, tgBg: on ? 'var(--st-cue)' : 'var(--st-track)', tgKnob: on ? 'var(--st-on-cue)' : 'var(--st-ink-2)', tgPos: on ? '21px' : '3px',
       stDot: { tally: 'var(--st-tally)', error: 'var(--st-error)', ok: 'var(--st-ok)', muted: 'var(--st-ink-3)' }[tone] || 'var(--st-ink-3)',
       stFg: tone === 'error' ? 'var(--st-error)' : (tone === 'muted' ? 'var(--st-ink-2)' : 'var(--st-ink)')
     };

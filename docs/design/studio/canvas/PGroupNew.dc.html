@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — קבוצה חדשה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PChannels" hint-size="390px,844px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.66); pointer-events: none"></div>
+<section role="dialog" aria-label="קבוצה חדשה" class="st-panel" style="position: absolute; top: 280px; right: 24px; width: 342px; box-sizing: border-box; padding: 22px 20px 18px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 20px; font-weight: 700">קבוצה חדשה</h2>
+<dc-import name="PField" label="שם הקבוצה" value="" placeholder="" glyph="" state="focus" ltr="false" width="302" hint-size="302px,78px"></dc-import>
+<div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px"><dc-import name="PButton" label="ביטול" glyph="" variant="ghost" size="l" icon-only="false" hint-size="90px,48px"></dc-import><dc-import name="PButton" label="שמירה" glyph="" variant="primary" size="l" icon-only="false" hint-size="100px,48px"></dc-import></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

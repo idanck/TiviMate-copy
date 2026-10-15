@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — קוד הורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.8); pointer-events: none"></div>
+<section role="dialog" aria-label="הזן את הקוד" class="st-panel" style="position: absolute; top: 120px; left: 600px; width: 720px; box-sizing: border-box; padding: 44px 64px; display: flex; flex-direction: column; align-items: center; gap: 18px">
+<span style="color: var(--st-ink-2)"><dc-import name="Icon" glyph="lock" size="44" hint-size="44px,44px"></dc-import></span>
+<h1 class="st-t-h1" style="font-size: 40px">הזן את הקוד</h1>
+<span class="st-t-meta">4 עד 6 ספרות</span>
+<div style="display: flex; gap: 12px; margin: 8px 0 12px"><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center"><span style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-ink)"></span></span><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center"><span style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-ink)"></span></span><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center"><span style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-ink)"></span></span><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 2px var(--st-ink); display: flex; align-items: center; justify-content: center"></span><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center"></span><span aria-hidden="true" style="width: 56px; height: 68px; border-radius: var(--st-r-card); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center"></span></div>
+<div style="width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">1</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">2</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">3</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">4</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-cue); color: var(--st-on-cue); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; transform: scale(var(--st-focus-scale)); box-shadow: var(--st-lift)">5</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">6</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">7</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">8</button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">9</button>
+<button aria-label="ביטול" class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)"><dc-import name="Icon" glyph="back" size="30" hint-size="30px,30px"></dc-import></button>
+<button class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)">0</button>
+<button aria-label="אישור" class="st-num" style="height: 80px; border: 0; border-radius: var(--st-r-control); background: var(--st-card); color: var(--st-ink); font-family: var(--st-font-ui); font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: inset 0 0 0 1px var(--st-hairline-soft)"><dc-import name="Icon" glyph="check" size="30" hint-size="30px,30px"></dc-import></button>
+</div>
+<span class="st-t-caption">אפשר גם להקיש את הספרות במקשי המספרים בשלט</span>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — עריכת ערוץ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl"><div style="position: absolute; inset: 0"><dc-import name="Channels" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.72); pointer-events: none"></div><section role="dialog" aria-label="עריכת ערוץ" class="st-panel" style="position: absolute; top: 110px; left: 460px; width: 1000px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 8px"><h1 class="st-t-title-s" style="font-size: 48px">עריכת ערוץ</h1><span class="st-t-caption">ערוץ 13</span></div><div style="display: flex; flex-direction: column; gap: 14px; padding: 0 24px"><dc-import name="Field" label="שם" value="ערוץ 13" width="856" hint-size="856px,110px"></dc-import><dc-import name="Field" label="כתובת הלוגו" placeholder="https://" ltr="true" width="856" hint-size="856px,110px"></dc-import><dc-import name="Field" label="מספר ערוץ" value="13" state="focus" width="300" hint-size="300px,110px"></dc-import></div><dc-import name="ListRow" label="קבוצה" sub="" glyph="" trail="value" value="ללא קבוצה" tone="muted" num="" state="rest" width="904" hint-size="904px,72px"></dc-import><dc-import name="ListRow" label="בטל את השינויים שלי בערוץ הזה" sub="" glyph="restart" trail="none" value="" tone="muted" num="" state="rest" width="904" hint-size="904px,72px"></dc-import><div style="display: flex; gap: 16px; padding: 12px 24px 0"><dc-import name="Button" label="שמירה" glyph="check" variant="primary" size="m" focused="false" icon-only="false" hint-size="180px,64px"></dc-import><dc-import name="Button" label="ביטול" glyph="" variant="ghost" size="m" focused="false" icon-only="false" hint-size="150px,64px"></dc-import></div></section></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

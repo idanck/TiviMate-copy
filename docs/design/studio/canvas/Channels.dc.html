@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — ערוצים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="--st-inset-start: calc(var(--st-w-rail) + 48px)">
+
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.84); pointer-events: none"></div>
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+
+<nav aria-label="קבוצות" class="st-panel" style="position: absolute; top: 150px; right: var(--st-inset-start); width: 380px; height: 876px; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 4px">
+<h1 class="st-t-title-s" style="padding: 0 12px 16px">ערוצים</h1>
+<sc-for list="{{filters}}" as="g" hint-placeholder-count="6">
+<dc-import name="ListRow" label="{{g.label}}" glyph="{{g.glyph}}" trail="none" state="{{g.state}}" width="348" hint-size="348px,72px"></dc-import>
+</sc-for>
+<span aria-hidden="true" style="height: 1px; margin: 12px 12px; background: var(--st-hairline)"></span>
+<span class="st-t-caption" style="padding: 0 24px 6px">קבוצות</span>
+<dc-import name="ListRow" label="[קבוצה מרשימת ההשמעה]" glyph="tv" trail="chevron" width="348" hint-size="348px,72px"></dc-import>
+</nav>
+
+<section aria-label="כל הערוצים" style="position: absolute; top: 150px; right: 564px; width: 700px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 14px; padding: 6px 24px 14px">
+<h2 class="st-t-h1">כל הערוצים</h2>
+<span class="st-t-caption">7 ערוצים</span>
+</div>
+<sc-for list="{{channels}}" as="ch" hint-placeholder-count="7">
+<dc-import name="ListRow" label="{{ch.label}}" sub="{{ch.sub}}" num="{{ch.num}}" trail="{{ch.trail}}" value="ארכיון" tone="muted" state="{{ch.state}}" width="700" hint-size="700px,92px"></dc-import>
+</sc-for>
+</section>
+
+<aside aria-label="תצוגה מקדימה — ערוץ 13" class="st-panel" style="position: absolute; top: 150px; left: var(--st-safe-x); width: 536px; height: 876px; box-sizing: border-box; padding: 32px 30px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span class="st-num" style="font-family: var(--st-font-display); font-weight: 700; font-size: 64px; line-height: 1">13</span>
+<span style="font-size: 28px; font-weight: 600">ערוץ 13</span>
+</div>
+<dc-import name="LiveBadge" size="s" hint-size="140px,32px"></dc-import>
+<h2 class="st-t-title" style="font-size: 88px; margin-top: 6px">תוכנית אירוח</h2>
+<div class="st-num" style="display: flex; align-items: center; gap: 16px; font-size: 22px; color: var(--st-ink-2)">
+<span>20:00–21:00</span>
+<dc-import name="Progress" pct="93" width="200" hint-size="200px,8px"></dc-import>
+<span>נותרו 4 דק׳</span>
+</div>
+<span class="st-t-caption">[תקציר התוכנית מתוך לוח השידורים]</span>
+<span aria-hidden="true" style="height: 1px; margin: 8px 0; background: var(--st-hairline)"></span>
+<span class="st-num" style="font-size: 22px; font-weight: 600; color: var(--st-next)">הבא · 21:00</span>
+<span style="font-size: 32px; font-weight: 600">תחקיר</span>
+<span class="st-num st-t-meta">21:00–22:15</span>
+<div style="flex-grow: 1"></div>
+<div style="display: flex; gap: 14px">
+<dc-import name="Button" label="צפייה" glyph="play" size="m" hint-size="160px,64px"></dc-import>
+<dc-import name="Button" label="לוח שידורים" glyph="guide" size="m" hint-size="220px,64px"></dc-import>
+<dc-import name="Button" label="הוספה למועדפים" glyph="star" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+</div>
+<span class="st-t-caption">לחיצה ארוכה על ערוץ, או מקש Menu בשלט, פותחת את האפשרויות שלו.</span>
+</aside>
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="SideMenu" open="false" current="channels" focus="" hint-size="112px,1080px"></dc-import></div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const f = (label, glyph, state) => ({ label: label, glyph: glyph, state: state || 'rest' });
+    const ch = (num, label, sub, archive, state) => ({ num: num, label: label, sub: sub, trail: archive ? 'status' : 'none', state: state || 'rest' });
+    return {
+      filters: [
+        f('סינון מהיר', 'search'), f('כל הערוצים', 'grid', 'selected'), f('מועדפים', 'star'),
+        f('נצפו לאחרונה', 'history'), f('ערוצים מוסתרים', 'hide'), f('קבוצה חדשה', 'plus')
+      ],
+      channels: [
+        ch('11', 'כאן 11', 'סרט תעודה · 20:15–21:45', true),
+        ch('12', 'קשת 12', 'מהדורת החדשות המרכזית · 20:00–21:30', true, 'onscreen'),
+        ch('13', 'ערוץ 13', 'תוכנית אירוח · 20:00–21:00', false, 'focus'),
+        ch('14', 'ערוץ 14', 'פאנל ערב · 20:30–22:00', false),
+        ch('23', 'כאן חינוכית', 'סדרת נוער · 20:30–21:00', true),
+        ch('33', 'מכאן 33', 'מהדורה בערבית · 20:45–21:30', false),
+        ch('99', 'ערוץ הכנסת', 'דיון במליאה · 19:00–23:00', false)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -11,18 +11,20 @@
 <helmet>
 <style>body{margin:0}</style>
 </helmet>
-<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{pct}}" style="width: {{w}}; height: {{h}}; border-radius: {{r}}; background: var(--st-track); overflow: hidden"><div style="width: {{fill}}; height: 100%; border-radius: {{r}}; background: {{tone}}"></div></div>
+<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{pct}}" style="width: {{w}}; height: {{h}}; border-radius: {{r}}; background: var(--st-track); overflow: hidden"><div class="{{cls}}" style="width: {{fill}}; height: 100%; border-radius: {{r}}; background: {{tone}}"></div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"pct":{"editor":"range","default":62,"min":0,"max":100,"step":1},"width":{"editor":"int","default":520,"min":40,"max":1800},"size":{"editor":"enum","options":["m","s"],"default":"m"},"tone":{"editor":"enum","options":["ink","cue"],"default":"ink"},"$preview":{"width":520,"height":8}}'>
+<script type="text/x-dc" data-dc-script data-props='{"pct":{"editor":"range","default":62,"min":0,"max":100,"step":1},"width":{"editor":"int","default":520,"min":40,"max":1800},"size":{"editor":"enum","options":["m","s"],"default":"m"},"indeterminate":{"editor":"boolean","default":false},"$preview":{"width":520,"height":8}}'>
 class Component extends DCLogic {
   renderVals() {
     const pct = Math.max(0, Math.min(100, Number(this.props.pct ?? 62)));
     const m = (this.props.size || 'm') === 'm';
+    const ind = this.props.indeterminate === true || this.props.indeterminate === 'true';
     return {
-      pct: pct, fill: pct + '%',
+      cls: ind ? 'st-indet' : '',
+      pct: ind ? undefined : pct, fill: ind ? '32%' : pct + '%',
       w: (Number(this.props.width) || 520) + 'px',
       h: m ? '8px' : '5px', r: m ? '4px' : '3px',
-      tone: this.props.tone === 'cue' ? 'var(--st-cue)' : 'var(--st-ink)'
+      tone: 'var(--st-ink)'
     };
   }
 }

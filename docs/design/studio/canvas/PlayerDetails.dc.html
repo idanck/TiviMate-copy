@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — בתוך ערוץ, פרטי תוכנית והקלטה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.6); pointer-events: none"></div>
+<section aria-label="פרטי התוכנית" style="position: absolute; top: 0; right: 0; width: 860px; height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) var(--st-safe-x) var(--st-safe-y) 56px; background: var(--st-drawer); box-shadow: -1px 0 0 var(--st-hairline), -40px 0 90px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="position: relative; width: 64px; height: 64px; border-radius: var(--st-r-control); background: var(--st-scrim); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center; overflow: hidden"><span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--st-tally)"></span><span class="st-num" style="font-family: var(--st-font-display); font-weight: 700; font-size: 52px; line-height: 1; margin-top: 8px">13</span></span>
+<span style="font-size: 28px; font-weight: 600">ערוץ 13</span>
+<dc-import name="LiveBadge" size="s" hint-size="140px,32px"></dc-import>
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-size: 18px; font-weight: 600; color: var(--st-ink-2)"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-ink-3)"></span>ארכיון</span>
+</div>
+<h1 class="st-t-title" style="font-size: 96px; margin-top: 4px">תוכנית אירוח</h1>
+<div class="st-num" style="display: flex; align-items: center; gap: 16px; font-size: 22px; color: var(--st-ink-2)">
+<span>20:00–21:00 · אירוח</span>
+<dc-import name="Progress" pct="93" width="220" hint-size="220px,8px"></dc-import>
+<span>נותרו 4 דק׳</span>
+</div>
+<span class="st-t-meta">[תקציר התוכנית מתוך לוח השידורים]</span>
+<span aria-hidden="true" style="height: 1px; margin: 6px 0; background: var(--st-hairline)"></span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<dc-import name="ListRow" label="צפייה מההתחלה" sub="מהארכיון של הספק" glyph="restart" trail="none" width="708" hint-size="708px,92px"></dc-import>
+<dc-import name="ListRow" label="הקלטה" sub="מעכשיו ועד 21:00" glyph="record" trail="none" state="focus" width="708" hint-size="708px,92px"></dc-import>
+<dc-import name="ListRow" label="הקלט סדרה" sub="כל פרק של התוכנית בערוץ הזה" glyph="record" trail="none" width="708" hint-size="708px,92px"></dc-import>
+<dc-import name="ListRow" label="הוסף למועדפים" glyph="star" trail="none" width="708" hint-size="708px,72px"></dc-import>
+<dc-import name="ListRow" label="סגירה" glyph="close" trail="none" width="708" hint-size="708px,72px"></dc-import>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px">
+<span class="st-t-caption" style="display: flex; gap: 10px; align-items: flex-start"><span style="flex: 0 0 auto; margin-top: 1px"><dc-import name="Icon" glyph="info" size="22" hint-size="22px,22px"></dc-import></span>הקלטה תופסת אחד מחיבורי הספק שלך לכל משך ההקלטה.</span>
+<span class="st-t-caption" style="display: flex; gap: 10px; align-items: flex-start"><span style="flex: 0 0 auto; margin-top: 1px"><dc-import name="Icon" glyph="alert" size="22" hint-size="22px,22px"></dc-import></span>אנדרואיד אינו יכול להדליק את המכשיר בעצמו. השאר אותו דלוק (מצב המתנה בסדר) אחרת ההקלטה תוחמץ.</span>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

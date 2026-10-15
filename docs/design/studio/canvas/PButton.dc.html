@@ -18,7 +18,7 @@
 <sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}"><span>{{label}}</span></sc-if>
 </button>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה"},"variant":{"editor":"enum","options":["primary","secondary","ghost"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["xl","l","m"],"default":"l"},"round":{"editor":"boolean","default":false},"$preview":{"width":200,"height":48}}'>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה"},"variant":{"editor":"enum","options":["primary","secondary","ghost","danger"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["xl","l","m"],"default":"l"},"round":{"editor":"boolean","default":false},"$preview":{"width":200,"height":48}}'>
 class Component extends DCLogic {
   renderVals() {
     const yes = (v) => v === true || v === 'true';
@@ -31,7 +31,8 @@ class Component extends DCLogic {
     const V = {
       primary: { bg: 'var(--st-cue)', fg: 'var(--st-on-cue)', shadow: 'var(--st-lift)', fw: '700' },
       secondary: { bg: 'var(--st-card)', fg: 'var(--st-ink)', shadow: 'inset 0 0 0 1px var(--st-hairline)', fw: '500' },
-      ghost: { bg: 'transparent', fg: 'var(--st-ink)', shadow: 'none', fw: '500' }
+      ghost: { bg: 'transparent', fg: 'var(--st-ink)', shadow: 'none', fw: '500' },
+      danger: { bg: 'var(--st-card)', fg: 'var(--st-error)', shadow: 'inset 0 0 0 1px var(--st-hairline)', fw: '600' }
     }[v] || {};
     return Object.assign({
       label: label, glyph: glyph, hasIcon: !!glyph, showLabel: !iconOnly,

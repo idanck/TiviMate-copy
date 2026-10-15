@@ -137,3 +137,11 @@
 
 /* שדות */
 .st-input::placeholder { color: var(--st-ink-3); }
+
+/* טעינה — טבעת בצבע הטקסט, לא בענבר (הענבר שמור לפוקוס) */
+@keyframes st-spin { to { transform: rotate(360deg); } }
+.st-spin { animation: st-spin 900ms linear infinite; }
+
+/* התקדמות בלי אחוז — מקטע שנע מתחילת השורה לסופה */
+@keyframes st-indet { 0% { transform: translateX(110%); } 100% { transform: translateX(-330%); } }
+.st-indet { animation: st-indet 1.4s var(--st-ease) infinite; }

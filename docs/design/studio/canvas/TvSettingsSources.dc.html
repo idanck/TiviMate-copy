@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הגדרות, רשימות ולוח שידורים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<nav aria-label="סעיפי הגדרות" style="position: absolute; top: 160px; right: var(--st-safe-x); width: 560px; height: 866px; box-sizing: border-box; padding: 20px 16px; border-radius: var(--st-r-panel); background: var(--st-surface); display: flex; flex-direction: column; gap: 4px">
+<h1 class="st-t-title-s" style="padding: 0 12px 16px">הגדרות</h1>
+<dc-import name="ListRow" label="רשימות ולוח שידורים" sub="" glyph="tv" trail="chevron" value="" tone="muted" num="" state="selected" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="ניגון" sub="" glyph="play" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="מראה" sub="" glyph="appearance" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="רשת" sub="" glyph="network" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="הקלטה" sub="" glyph="record" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="בקרת הורים" sub="" glyph="lock" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="גיבוי ושחזור" sub="" glyph="backup" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="אבחון" sub="" glyph="pulse" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import><dc-import name="ListRow" label="אודות" sub="" glyph="info" trail="chevron" value="" tone="muted" num="" state="rest" width="528" hint-size="528px,72px"></dc-import>
+</nav>
+<section aria-label="רשימות ולוח שידורים" style="position: absolute; top: 160px; right: 712px; width: 1112px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 14px">
+<h2 class="st-t-h1">רשימות ולוח שידורים</h2>
+<span class="st-t-caption">הגדרות › רשימות ולוח שידורים</span>
+</div>
+<h3 style="margin: 0px 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">רשימות השמעה</h3><dc-import name="ListRow" label="ערוצים פתוחים בישראל" sub="רוענן לאחרונה היום 07:00 · 0 נוספו · 0 הוסרו · 1 שונו · 7 סה״כ" glyph="tv" trail="chevron" value="" tone="muted" num="" state="rest" width="1112" hint-size="1112px,92px"></dc-import><dc-import name="ListRow" label="רענן עכשיו" sub="" glyph="restart" trail="none" value="" tone="muted" num="" state="focus" width="1112" hint-size="1112px,72px"></dc-import><dc-import name="ListRow" label="הוספת רשימה" sub="Xtream Codes, כתובת M3U, או קובץ במכשיר" glyph="plus" trail="chevron" value="" tone="muted" num="" state="rest" width="1112" hint-size="1112px,92px"></dc-import><h3 style="margin: 22px 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">לוח שידורים</h3><dc-import name="ListRow" label="עדכן לוח שידורים עכשיו" sub="7 מתוך 7 ערוצים הותאמו (6 מדויק, 1 לפי שם, 0 מקורב, 0 ידני)" glyph="update" trail="none" value="" tone="muted" num="" state="rest" width="1112" hint-size="1112px,92px"></dc-import><dc-import name="ListRow" label="עדכון אוטומטי" sub="" glyph="" trail="value" value="יומי" tone="muted" num="" state="rest" width="1112" hint-size="1112px,72px"></dc-import><dc-import name="ListRow" label="היסט זמן בלוח השידורים" sub="" glyph="" trail="value" value="0 דק׳" tone="muted" num="" state="rest" width="1112" hint-size="1112px,72px"></dc-import>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

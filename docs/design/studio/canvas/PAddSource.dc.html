@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הוספת מנוי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="הוספת מנוי" search="false" back="true" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 84px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 12px">
+<span class="st-t-meta" style="line-height: 1.5">האפליקציה מנגנת את המנוי שכבר יש לך. היא אינה כוללת ערוצים ואינה מציעה ספקים — הוסף רשימת השמעה או חשבון Xtream כדי להתחיל.</span>
+<div role="group" aria-label="סוג המנוי" style="display: flex; flex-wrap: wrap; gap: 8px">
+<dc-import name="PChip" label="Xtream Codes" hint-size="120px,36px"></dc-import>
+<dc-import name="PChip" label="M3U / M3U8" state="selected" hint-size="120px,36px"></dc-import>
+<dc-import name="PChip" label="קובץ מקומי" hint-size="100px,36px"></dc-import>
+</div>
+<dc-import name="PField" label="שם לתצוגה" value="ערוצים פתוחים בישראל" placeholder="" glyph="" state="rest" ltr="false" width="358" hint-size="358px,78px"></dc-import><dc-import name="PField" label="כתובת רשימת ההשמעה" value="https://…/channels.m3u" placeholder="" glyph="" state="focus" ltr="true" width="358" hint-size="358px,78px"></dc-import><dc-import name="PField" label="כתובת לוח שידורים (XMLTV) — אופציונלי" value="" placeholder="https://" glyph="" state="rest" ltr="true" width="358" hint-size="358px,78px"></dc-import>
+<div style="margin: 0 -0px"><dc-import name="PListRow" label="פורמט השידור" sub="MPEG-TS (ההשהיה הנמוכה ביותר)" glyph="" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import></div>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--st-ok)"><dc-import name="Icon" glyph="check" size="18" hint-size="18px,18px"></dc-import>החיבור הצליח. <span class="st-num" style="color: var(--st-ink-2)">מספר חיבורים מרבי: [n]</span></span>
+</div>
+<div style="position: absolute; bottom: 24px; right: var(--st-safe-x); width: 358px; display: flex; gap: 10px">
+<dc-import name="PButton" label="בדיקת חיבור" glyph="network" variant="secondary" size="l" icon-only="false" hint-size="174px,48px"></dc-import><dc-import name="PButton" label="שמירה" glyph="check" variant="primary" size="l" icon-only="false" hint-size="174px,48px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הודעה קצרה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PChannels" hint-size="390px,844px"></dc-import></div>
+<div style="position: absolute; top: 640px; left: 0; right: 0; display: flex; justify-content: center"><dc-import name="PNotice" text="הדוח הועתק. פרטי ההתחברות מוסתרים." glyph="check" tone="ok" hint-size="330px,46px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

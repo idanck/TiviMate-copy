@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — שדה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<label style="width: {{w}}; display: flex; flex-direction: column; gap: 6px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<sc-if value="{{hasLabel}}" hint-placeholder-val="{{true}}"><span style="font-size: 14px; font-weight: 600; color: var(--st-ink-2)">{{label}}</span></sc-if>
+<span class="st-anim" style="height: var(--st-h-control-l); box-sizing: border-box; padding: 0 14px; border-radius: var(--st-r-control); background: var(--st-surface); box-shadow: {{shadow}}; color: var(--st-ink-2); display: flex; align-items: center; gap: 10px">
+<sc-if value="{{hasIcon}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="{{glyph}}" size="20" hint-size="20px,20px"></dc-import></sc-if>
+<input class="st-input" dir="{{dir}}" value="{{value}}" placeholder="{{placeholder}}" readOnly="{{yes}}" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--st-ink); font-family: var(--st-font-ui); font-size: 16px">
+</span>
+<sc-if value="{{hasHelper}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: {{hc}}"><sc-if value="{{isError}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="alert" size="16" hint-size="16px,16px"></dc-import></sc-if>{{helper}}</span></sc-if>
+</label>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"כתובת רשימת ההשמעה"},"value":{"editor":"text","default":""},"placeholder":{"editor":"text","default":"https://"},"glyph":{"editor":"text","default":""},"state":{"editor":"enum","options":["rest","focus","error"],"default":"rest"},"helper":{"editor":"text","default":""},"ltr":{"editor":"boolean","default":false},"width":{"editor":"int","default":358,"min":160,"max":420},"$preview":{"width":358,"height":78}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const label = p.label ?? 'כתובת רשימת ההשמעה';
+    const focus = (p.state || 'rest') === 'focus', err = p.state === 'error';
+    const helper = p.helper || '';
+    return {
+      yes: true, label: label, hasLabel: label !== '', value: p.value || '', placeholder: p.placeholder ?? 'https://',
+      glyph: p.glyph || '', hasIcon: !!p.glyph, dir: (p.ltr === true || p.ltr === 'true') ? 'ltr' : 'rtl',
+      w: (Number(p.width) || 358) + 'px',
+      shadow: focus ? '0 0 0 var(--st-ring) var(--st-cue)' : (err ? '0 0 0 1.5px var(--st-error)' : 'inset 0 0 0 1px var(--st-hairline)'),
+      helper: helper, hasHelper: helper !== '', isError: err, hc: err ? 'var(--st-error)' : 'var(--st-ink-3)'
+    };
+  }
+}
+</script>
+</body>
+</html>

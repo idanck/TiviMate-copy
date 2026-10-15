@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הגדרות, אבחון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="אבחון" search="false" back="true" hint-size="390px,56px"></dc-import></div><div style="position: absolute; top: 88px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 2px"><div class="st-card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px"><span style="font-size: 14px; font-weight: 700">השידור הנוכחי</span><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: var(--st-ink-2)">וידאו</span><span dir="ltr" class="st-num" style="font-weight: 600">H.264 1920x1080 @ 25.00 fps</span></div><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: var(--st-ink-2)">אודיו</span><span dir="ltr" class="st-num" style="font-weight: 600">AAC</span></div><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: var(--st-ink-2)">קצב סיביות</span><span dir="ltr" class="st-num" style="font-weight: 600">4,800 kbps</span></div><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: var(--st-ink-2)">פריימים שהושמטו</span><span dir="ltr" class="st-num" style="font-weight: 600">0</span></div><div style="display: flex; justify-content: space-between; gap: 10px; font-size: 13px"><span style="color: var(--st-ink-2)">חוצץ קדימה</span><span dir="ltr" class="st-num" style="font-weight: 600">12,400 ms</span></div></div><div class="st-card" style="padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px"><span style="font-size: 14px; font-weight: 700">לוח שידורים</span><span style="font-size: 13px; color: var(--st-ink-2); line-height: 1.45">1,240 תוכניות ב-7 ערוצי לוח שידורים · 7 מתוך 7 ערוצים הותאמו (6 מדויק, 1 לפי שם, 0 מקורב, 0 ידני)</span></div><dc-import name="PListRow" label="גרסת האפליקציה" sub="" glyph="" trail="value" value="[x.y.z]" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="מפענחים" sub="" glyph="pulse" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="העתק דוח אבחון" sub="פרטי ההתחברות מוסתרים בדוח" glyph="backup" trail="none" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import></div><div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="settings" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — מתחבר מחדש</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="[התמונה האחרונה שהתקבלה]" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.6); pointer-events: none"></div><span class="st-num" style="position: absolute; top: 48px; left: var(--st-safe-x); padding: 14px 20px; border-radius: var(--st-r-control); background: var(--st-scrim); font-size: 36px; font-weight: 600; line-height: 1">20:56</span>
+<div role="status" style="position: absolute; top: 400px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 22px">
+<dc-import name="Loader" size="72" label="מתחבר מחדש" hint-size="72px,72px"></dc-import>
+<span style="font-size: 34px; font-weight: 600">מתחבר מחדש — ניסיון 2…</span>
+<span class="st-t-meta" style="font-size: 24px">ערוץ 13 · תוכנית אירוח</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — חיפוש</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="--st-inset-start: calc(var(--st-w-rail) + 48px)">
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<section aria-label="חיפוש" style="position: absolute; top: 150px; right: var(--st-inset-start); width: 1200px; display: flex; flex-direction: column; gap: 10px">
+<dc-import name="Field" label="" value="חדשות" glyph="search" state="focus" width="1200" hint-size="1200px,72px"></dc-import>
+<span class="st-t-caption" style="padding: 10px 24px 0">3 תוצאות</span>
+<h3 style="margin: 8px 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">מדריך</h3><dc-import name="ListRow" label="מהדורת החדשות המרכזית" sub="קשת 12 · היום 20:00–21:30" glyph="guide" trail="status" value="בשידור עכשיו" tone="tally" num="" state="rest" width="1200" hint-size="1200px,92px"></dc-import><dc-import name="ListRow" label="מהדורה בערבית" sub="מכאן 33 · היום 20:45–21:30" glyph="guide" trail="status" value="בשידור עכשיו" tone="tally" num="" state="rest" width="1200" hint-size="1200px,92px"></dc-import><dc-import name="ListRow" label="מהדורת לילה" sub="ערוץ 14 · היום 22:00–23:00" glyph="guide" trail="value" value="בעוד שעה" tone="muted" num="" state="rest" width="1200" hint-size="1200px,92px"></dc-import>
+<span class="st-t-caption" style="padding: 16px 24px 0">אין ערוצים שהשם שלהם מתאים.</span>
+</section>
+<aside class="st-panel" style="position: absolute; top: 150px; left: var(--st-safe-x); width: 400px; box-sizing: border-box; padding: 28px; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 22px; font-weight: 600">איפה מחפשים</span>
+<span class="st-t-meta">שמות ערוצים, תוכניות בלוח השידורים, ו-VOD כשהספק מציע.</span>
+<span class="st-t-caption">המקלדת של המכשיר נפתחת בחצי התחתון של המסך בזמן ההקלדה.</span>
+</aside>
+<div style="position: absolute; top: 0; right: 0"><dc-import name="SideMenu" open="false" current="search" focus="" hint-size="112px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

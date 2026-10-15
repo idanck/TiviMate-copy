@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — רצועת ערוצים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="[השידור ממשיך בלי לעצור]" hint-size="1920px,1080px"></dc-import></div>
+<div class="st-scrim-bottom"></div>
+<span class="st-num" style="position: absolute; top: 48px; left: var(--st-safe-x); padding: 14px 20px; border-radius: var(--st-r-control); background: var(--st-scrim); font-size: 36px; font-weight: 600; line-height: 1">20:56</span>
+<div style="position: absolute; top: 700px; right: var(--st-safe-x); display: flex; align-items: baseline; gap: 16px"><h2 class="st-t-h1">ערוצים</h2><span class="st-t-caption">ימינה ושמאלה בין הערוצים · OK מעביר</span></div>
+<div style="position: absolute; top: 732px; left: 0; right: 0; display: flex; gap: var(--st-gap-rail); padding: 28px var(--st-safe-x); overflow: hidden"><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o0}}" state="rest" hint-size="320px,262px"></dc-import></div><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o1}}" state="onscreen" hint-size="320px,262px"></dc-import></div><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o2}}" state="focus" hint-size="320px,262px"></dc-import></div><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o3}}" state="rest" hint-size="320px,262px"></dc-import></div><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o4}}" state="rest" hint-size="320px,262px"></dc-import></div><div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{o5}}" state="rest" hint-size="320px,262px"></dc-import></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {"o0": {"label": "קשת 12", "num": "12", "now": "מהדורת החדשות המרכזית", "time": "20:00–21:30", "pct": 62}, "o1": {"label": "ערוץ 13", "num": "13", "now": "תוכנית אירוח", "time": "20:00–21:00", "pct": 93}, "o2": {"label": "ערוץ 14", "num": "14", "now": "פאנל ערב", "time": "20:30–22:00", "pct": 29}, "o3": {"label": "כאן חינוכית", "num": "23", "now": "סדרת נוער", "time": "20:30–21:00", "pct": 87}, "o4": {"label": "מכאן 33", "num": "33", "now": "מהדורה בערבית", "time": "20:45–21:30", "pct": 24}, "o5": {"label": "ערוץ הכנסת", "num": "99", "now": "דיון במליאה", "time": "19:00–23:00", "pct": 48}}; }
+}
+</script>
+</body>
+</html>

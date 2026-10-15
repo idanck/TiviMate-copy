@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — יש עדכון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PChannels" hint-size="390px,844px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.66); pointer-events: none"></div><section role="dialog" aria-label="יש עדכון" style="position: absolute; top: 520px; bottom: 0; right: 0; width: 390px; box-sizing: border-box; padding: 10px 16px 24px; border-radius: var(--st-r-sheet) var(--st-r-sheet) 0 0; background: var(--st-drawer); box-shadow: 0 -1px 0 var(--st-hairline), 0 -20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px"><span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: var(--st-track); margin-bottom: 6px"></span>
+<div style="display: flex; align-items: center; gap: 12px; padding: 4px 4px 0">
+<span style="width: 44px; height: 44px; border-radius: 50%; background: var(--st-card); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="update" size="22" hint-size="22px,22px"></dc-import></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><h1 class="st-t-h1">יש עדכון</h1><span class="st-num st-t-caption">גרסה [x.y.z] · [גודל] MB</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px">
+<div style="display: flex"><dc-import name="PButton" label="עדכן עכשיו" glyph="update" variant="primary" size="l" icon-only="false" hint-size="358px,48px"></dc-import></div>
+<div style="display: flex"><dc-import name="PButton" label="אחר כך" glyph="" variant="secondary" size="l" icon-only="false" hint-size="358px,48px"></dc-import></div>
+<div style="display: flex; justify-content: center"><dc-import name="PButton" label="דלג על גרסה זו" glyph="" variant="ghost" size="m" icon-only="false" hint-size="160px,40px"></dc-import></div>
+</div></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

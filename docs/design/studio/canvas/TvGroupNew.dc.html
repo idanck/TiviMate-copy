@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — קבוצה חדשה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl"><div style="position: absolute; inset: 0"><dc-import name="Channels" hint-size="1920px,1080px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.72); pointer-events: none"></div><section role="dialog" aria-label="קבוצה חדשה" class="st-panel" style="position: absolute; top: 330px; left: 560px; width: 800px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 12px"><div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 8px"><h1 class="st-t-title-s" style="font-size: 48px">קבוצה חדשה</h1><span class="st-t-caption"></span></div><div style="padding: 0 24px"><dc-import name="Field" label="שם הקבוצה" placeholder="" state="focus" width="704" hint-size="704px,110px"></dc-import></div><div style="display: flex; gap: 16px; padding: 18px 24px 0"><dc-import name="Button" label="שמירה" glyph="check" variant="primary" size="m" focused="false" icon-only="false" hint-size="180px,64px"></dc-import><dc-import name="Button" label="ביטול" glyph="" variant="ghost" size="m" focused="false" icon-only="false" hint-size="150px,64px"></dc-import></div></section></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

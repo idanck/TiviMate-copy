@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — לוח שידורים ופענוח</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PChannels" hint-size="390px,844px"></dc-import></div><div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.66); pointer-events: none"></div><section role="dialog" aria-label="לוח שידורים ופענוח" style="position: absolute; top: 300px; bottom: 0; right: 0; width: 390px; box-sizing: border-box; padding: 10px 16px 24px; border-radius: var(--st-r-sheet) var(--st-r-sheet) 0 0; background: var(--st-drawer); box-shadow: 0 -1px 0 var(--st-hairline), 0 -20px 60px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 10px"><span aria-hidden="true" style="align-self: center; width: 36px; height: 4px; border-radius: 2px; background: var(--st-track); margin-bottom: 6px"></span><div style="display: flex; align-items: baseline; gap: 8px; padding: 0 14px 4px"><h1 class="st-t-h1">לוח שידורים ופענוח</h1><span class="st-t-caption">ערוץ 13</span></div><dc-import name="PListRow" label="היסט עבור הערוץ הזה" sub="0 דק׳" glyph="" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import><span style="font-size: 14px; font-weight: 600; color: var(--st-ink-2); padding: 8px 14px 0">מפענח וידאו</span><div style="padding: 0 14px"><dc-import name="Segmented" options="אוטומטי|חומרה|תוכנה" selected="0" size="phone" label="מפענח וידאו" hint-size="240px,40px"></dc-import></div><span style="font-size: 14px; font-weight: 600; color: var(--st-ink-2); padding: 8px 14px 0">מפענח אודיו</span><div style="padding: 0 14px 6px"><dc-import name="Segmented" options="אוטומטי|חומרה|תוכנה" selected="2" size="phone" label="מפענח אודיו" hint-size="240px,40px"></dc-import></div><dc-import name="PListRow" label="החל על הערוץ הזה בלבד" sub="" glyph="" trail="on" value="" tone="muted" state="rest" width="358" hint-size="358px,56px"></dc-import><dc-import name="PListRow" label="שיוך ללוח שידורים" sub="שויך אל ערוץ 13" glyph="guide" trail="chevron" value="" tone="muted" state="rest" width="358" hint-size="358px,64px"></dc-import></section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
