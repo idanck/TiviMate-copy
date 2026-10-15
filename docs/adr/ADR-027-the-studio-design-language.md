@@ -148,3 +148,6 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   at the start with the open one beside them, and the recordings list with the one the remote is on
   described at the end (state, title in Karantina, channel, time and length, watch / delete or
   cancel). Section rows carry their glyphs on both shells.
+  Its third part is the television radio's station strip: a heading and national / regional /
+  other chips over the stations' discs, the one on air ringed in the tally and the one under the
+  remote in the cue; OK tunes it. It gives way to the task list (ADR-030).
