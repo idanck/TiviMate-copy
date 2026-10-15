@@ -275,26 +275,39 @@ private fun MenuEntry(
  *
  * @param startInset room kept clear for the side menu's closed strip
  * @param showClock false while the radio backdrop behind is already showing a clock of its own
+ * @param scrim the gradient that lets it read over video; off as the head of an overlay screen,
+ *   which already sits on its own panel and only needs the bar's own height
+ * @param endInset the room kept at the end edge; an overlay that pads itself passes zero
  */
 @Composable
 internal fun StudioTopBar(
     startInset: Dp,
     showClock: Boolean,
     modifier: Modifier = Modifier,
+    scrim: Boolean = true,
+    endInset: Dp = SAFE_X,
 ) {
     val studio = StudioTheme.colors
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(TOP_SCRIM_HEIGHT)
+            .height(if (scrim) TOP_SCRIM_HEIGHT else TOP_BAR_HEIGHT)
             // `.st-scrim-top`: the name and the clock have to read over any frame of video.
-            .background(Brush.verticalGradient(listOf(studio.ground.copy(alpha = 0.88f), studio.ground.copy(alpha = 0f)))),
+            .then(
+                if (scrim) {
+                    Modifier.background(
+                        Brush.verticalGradient(listOf(studio.ground.copy(alpha = 0.88f), studio.ground.copy(alpha = 0f))),
+                    )
+                } else {
+                    Modifier
+                },
+            ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(TOP_BAR_HEIGHT)
-                .padding(start = startInset, end = SAFE_X),
+                .padding(start = startInset, end = endInset),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {

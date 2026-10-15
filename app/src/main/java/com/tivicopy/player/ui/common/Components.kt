@@ -121,7 +121,7 @@ fun ChannelLogo(
  * in this language.
  */
 @Composable
-fun LiveBadge(modifier: Modifier = Modifier) {
+fun LiveBadge(modifier: Modifier = Modifier, label: String? = null) {
     val studio = com.tivicopy.player.ui.theme.StudioTheme.colors
     val shape = MaterialTheme.shapes.extraSmall
     Row(
@@ -140,7 +140,7 @@ fun LiveBadge(modifier: Modifier = Modifier) {
                 .background(studio.tally),
         )
         Text(
-            text = stringResource(R.string.playback_live_badge),
+            text = label ?: stringResource(R.string.playback_live_badge),
             style = com.tivicopy.player.ui.theme.StudioTheme.type.meta.copy(
                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
             ),

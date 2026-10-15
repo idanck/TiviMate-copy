@@ -442,5 +442,12 @@
     <string name="radio_next">Next station</string>
     <string name="radio_stations">Stations</string>
     <string name="channel_on_screen">On screen</string>
+    <string name="guide_status_airing">On air · %1$d min left</string>
+    <string name="guide_status_upcoming">Starts in %1$d min</string>
+    <string name="guide_status_upcoming_later">Later</string>
+    <string name="guide_status_aired">Aired</string>
+    <string name="guide_from_start">From the start</string>
+    <string name="guide_watch_catchup">Watch the replay</string>
+    <string name="guide_on_screen">On screen · %1$s</string>
     <string name="radio_equalizer">Equalizer</string>
 </resources>

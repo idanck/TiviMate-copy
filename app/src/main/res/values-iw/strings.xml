@@ -410,5 +410,12 @@
     <string name="radio_next">תחנה הבאה</string>
     <string name="radio_stations">תחנות</string>
     <string name="channel_on_screen">על המסך</string>
+    <string name="guide_status_airing">בשידור · נותרו %1$d דק׳</string>
+    <string name="guide_status_upcoming">מתחיל בעוד %1$d דק׳</string>
+    <string name="guide_status_upcoming_later">בהמשך</string>
+    <string name="guide_status_aired">שודר</string>
+    <string name="guide_from_start">מההתחלה</string>
+    <string name="guide_watch_catchup">צפייה בשידור החוזר</string>
+    <string name="guide_on_screen">על המסך · %1$s</string>
     <string name="radio_equalizer">אקולייזר</string>
 </resources>
