@@ -66,14 +66,6 @@ import kotlinx.coroutines.delay
 import com.tivicopy.player.ui.common.StudioIcons
 
 /**
- * Somewhere the shell can go, listed above the groups in the channel list's first column.
- *
- * @param label what the row says
- * @param onSelect what opening it does
- */
-data class NavDestination(val label: String, val onSelect: () -> Unit)
-
-/**
  * Groups on one side, channels in the middle, now/next on the other (docs/03 section 3.2).
  *
  * The same composable serves the TV overlay and the phone's Live tab; [compact] drops the
@@ -93,26 +85,16 @@ fun ChannelListScreen(
      * search overlay.
      */
     showFilter: Boolean = compact,
-    /** Opens the full search surface. Null hides the entry point. */
+    /**
+     * Opens the full search surface from a row at the head of the group column. Null hides the
+     * entry point — the television, whose side menu carries search on every screen (ADR-035).
+     */
     onSearch: (() -> Unit)? = null,
     /**
      * Opens the add-source screen, from the empty list's own button (`TvEmptyChannels`). Null
      * leaves the empty state with its sentence alone — the radio, whose stations come bundled.
      */
     onAddSource: (() -> Unit)? = null,
-    /**
-     * Where else the shell can go from here, drawn above the groups in the same column.
-     *
-     * This is the ten-foot answer to the phone's bottom navigation bar. The television had no
-     * on-screen navigation at all: every destination was a remote key, and two of them were keys
-     * plenty of remotes do not have. On demand was worse than hard to reach — it could only be
-     * opened by searching for a series and picking it, so a viewer who did not already know a
-     * title in the catalogue could not open the catalogue. That failed NFR-UX-01, which asks that
-     * every screen be reachable with D-pad, OK and Back alone.
-     *
-     * Empty on touch, which has a navigation bar of its own.
-     */
-    destinations: List<NavDestination> = emptyList(),
     /**
      * Opens the list scrolled to the playing channel instead of the top. One-shot per
      * appearance: a later filter or group change never fights the user's own scrolling.
@@ -172,7 +154,6 @@ fun ChannelListScreen(
             GroupColumn(
                 vm = vm,
                 onSearch = onSearch,
-                destinations = destinations,
                 onNewGroup = { creatingGroup = true },
                 onGroupOptions = { groupMenuFor = it },
                 isRadio = isRadio,
@@ -560,7 +541,6 @@ private fun FilterBanner(query: String, onClear: () -> Unit) {
 private fun GroupColumn(
     vm: AppViewModel,
     onSearch: (() -> Unit)?,
-    destinations: List<NavDestination>,
     onNewGroup: () -> Unit,
     onGroupOptions: (ChannelGroup) -> Unit,
     isRadio: Boolean = false,
@@ -582,18 +562,15 @@ private fun GroupColumn(
             // do not have. It needs somewhere on screen to live.
             item { GroupRow(stringResource(R.string.nav_search), selected = false, onClick = onSearch) }
         }
-        // The same argument as Search above, applied to the rest of the shell: the guide, the
-        // catalogue, the recordings and settings were each behind a remote key, and on demand
-        // behind no key at all.
-        items(destinations, key = { it.label }) { destination ->
-            GroupRow(destination.label, selected = false, onClick = destination.onSelect)
-        }
+        // The shell's other destinations used to be listed here too, on the television, in an
+        // order and a style of their own. They are the side menu's now, on every screen alike
+        // (ADR-035), and this column is the list's own filters and groups.
         // Split so "which of my four smart views" and "which of the provider's own categories"
         // read as two different questions, not one long undifferentiated list (FR-UI-08).
         item {
             SectionHeader(
                 text = stringResource(R.string.filter_quick),
-                topDivider = onSearch != null || destinations.isNotEmpty(),
+                topDivider = onSearch != null,
             )
         }
         item {

@@ -46,8 +46,9 @@ television that still overscans, content near the edge can be cropped. See `docs
    channel already playing in the hero, or by Back from any surface that was opened over it.
 3. **Channel list overlay** — groups on the left, channels in the middle, now/next on the
    right, video still playing behind. Opened with OK or Right.
-   - The group column carries Search, All channels, Favourites, Recently watched, Hidden
-     channels and New group above the playlist's own groups. Hidden groups stay listed, drawn
+   - The group column carries All channels, Favourites, Recently watched, Hidden channels and
+     New group above the playlist's own groups (on a tablet, Search above them too; on the
+     television search is in the side menu). Hidden groups stay listed, drawn
      dimmed, so hiding one is not a one-way door.
    - Each channel row carries a favourite toggle. **Menu** on the remote, or a long press on
      touch, opens that channel's options: watch, favourite, edit, hide, parental lock, and move
@@ -81,9 +82,11 @@ television that still overscans, content near the edge can be cropped. See `docs
 10. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
    section 3.4 and section 3.6.
 
-The home screen's navigation rail is the television's primary navigation: Home, Search, Channels,
-Radio, Guide, Recordings and Settings. It is the ten-foot answer to the phone's bottom bar, and it
-is visible without opening anything first — which the group column it replaces was not.
+The side menu is the television's one navigation: Home, Channels, Guide, Radio and Recordings, then
+Search and Settings under a hairline. It is the ten-foot answer to the phone's bottom bar, and it
+is on every browse screen — home, channels, radio, guide, search, on demand, recordings, settings
+and adding a source — as one strip in one place, with the screen you are on lit, under Studio's
+top bar (ADR-035). Choosing an entry hands the remote to the screen it opened.
 
 It shows icons only until focus enters it, and then expands *over* the screen — never beside it,
 so no card ever moves because focus crossed into the rail. Every destination carries its label as
@@ -96,12 +99,13 @@ entry point. Nothing installed means no strip at all. It is the one part of the 
 is about something other than this app's own content, and it is there because the television it
 runs on is shared with those apps (`ui/home/HomeApps.kt`, ADR-020).
 
-The group column of the channel-list overlay still carries the same destinations, plus Home, above
-the playlist's own groups. Keeping both is deliberate: NFR-UX-01 asks that every screen be
-reachable with D-pad, OK and Back alone, and a viewer who is already inside the channel list should
-not have to go back out to reach the guide. On demand is absent from the rail — the Xtream client
-exists in the code but is unused in this build (ADR-013, ADR-015), and a destination that opens an
-empty catalogue is worse than no destination.
+The group column of the channel-list overlay used to carry the same destinations again, in an
+order of its own and with on demand among them, so the channel list navigated differently from
+every other screen. It holds the list's own filters and groups only now: the side menu is one
+press away there as it is everywhere (ADR-035). On demand is absent from the menu — the Xtream
+client exists in the code but no source here carries films or series (ADR-016, ADR-032), and a
+destination that opens an empty catalogue is worse than no destination; search reaches it where a
+source has any, as on the phone.
 
 Radio (ADR-015) is its own destination on both shells, not a group inside Channels: it opens the
 same channel-list screen pointed at the bundled radio playlist instead of the active one, so its
