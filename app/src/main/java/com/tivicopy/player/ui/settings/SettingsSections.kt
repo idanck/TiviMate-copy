@@ -39,6 +39,7 @@ import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.keyProbe
+import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,6 +78,8 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
         val isRadio = playlist.url == IsraelRadioStations.M3U_URL
         SettingsRow(
             title = playlist.name,
+            icon = if (isRadio) StudioIcons.Radio else StudioIcons.Tv,
+            selected = playlist.id == state.activePlaylist?.id,
             subtitle = if (playlist.lastRefreshUtc == 0L) {
                 stringResource(R.string.playlist_never_refreshed)
             } else {
@@ -106,11 +109,14 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     SettingsRow(
         title = stringResource(R.string.playlist_add),
         subtitle = stringResource(R.string.playlist_add_hint),
+        icon = StudioIcons.Plus,
+        chevron = true,
         onClick = onAddSource,
     )
 
     SettingsRow(
         title = stringResource(R.string.playlist_refresh_now),
+        icon = StudioIcons.Restart,
         subtitle = state.lastRefresh?.let {
             stringResource(R.string.refresh_report, it.added, it.removed, it.renamed, it.total)
         },
@@ -118,6 +124,7 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     )
     SettingsRow(
         title = stringResource(R.string.guide_update_now),
+        icon = StudioIcons.Update,
         subtitle = state.guideProgress?.let {
             stringResource(R.string.guide_updating, it.channels, it.programmes)
         } ?: stringResource(
@@ -151,8 +158,8 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     }
     Text(
         text = TextNormalizer.redactUrl(state.activePlaylist?.epgUrl.orEmpty()),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = StudioTheme.type.caption,
+        color = StudioTheme.colors.ink3,
         modifier = Modifier.padding(horizontal = 12.dp),
     )
 }
@@ -271,7 +278,7 @@ fun ParentalSection(vm: AppViewModel) {
     }
     if (s.parentalPinHash.isNotBlank()) {
         val scope = rememberCoroutineScope()
-        SettingsRow(title = stringResource(R.string.pin_remove)) {
+        SettingsRow(title = stringResource(R.string.pin_remove), icon = StudioIcons.Trash) {
             settings.clearParentalPin()
             // Clearing the PIN also clears every lock, so a forgotten PIN can never make
             // content permanently unreachable.
@@ -301,8 +308,8 @@ fun ParentalSection(vm: AppViewModel) {
     }
     Text(
         text = stringResource(R.string.pin_recovery),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = StudioTheme.type.caption,
+        color = StudioTheme.colors.ink3,
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
@@ -321,13 +328,16 @@ private fun ParentalPinSetup(
         onValueChange = { onPin(it.filter(Char::isDigit).take(6)) },
         label = if (!hasPin) stringResource(R.string.pin_set) else stringResource(R.string.pin_change),
         placeholder = stringResource(R.string.pin_hint),
+        // A refused PIN is the field's own error state (`Field`), not a line under a button.
+        helper = feedback,
+        isError = feedback != null,
         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
         ),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     )
-    SettingsRow(title = stringResource(R.string.action_save), subtitle = feedback, onClick = onSave)
+    SettingsRow(title = stringResource(R.string.action_save), icon = StudioIcons.Check, onClick = onSave)
 }
 
 /** Export and restore through the Storage Access Framework (FR-SET-08). */

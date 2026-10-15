@@ -561,7 +561,7 @@ fun OffsetRow(title: String, minutes: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun SettingsSectionRows(selected: SettingsSection?, onNavigate: (SettingsSection) -> Unit) {
     val entries = listOf(
-        Triple(SettingsSection.SOURCES, R.string.settings_sources, StudioIcons.Storage),
+        Triple(SettingsSection.SOURCES, R.string.settings_sources, StudioIcons.Tv),
         Triple(SettingsSection.PLAYBACK, R.string.settings_playback, StudioIcons.Play),
         Triple(SettingsSection.APPEARANCE, R.string.settings_appearance, StudioIcons.Appearance),
         Triple(SettingsSection.NETWORK, R.string.settings_network, StudioIcons.Network),
@@ -576,6 +576,7 @@ private fun SettingsSectionRows(selected: SettingsSection?, onNavigate: (Setting
             title = stringResource(label),
             subtitle = if (target == SettingsSection.ABOUT) BuildInfo.short else null,
             icon = icon,
+            chevron = true,
             selected = target == selected,
         ) { onNavigate(target) }
     }
