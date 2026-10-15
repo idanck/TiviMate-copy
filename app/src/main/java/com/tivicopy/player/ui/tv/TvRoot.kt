@@ -504,13 +504,18 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    TvOverlay.RECORDINGS -> RecordingsScreen(
-                        onPlayRecording = { recording ->
-                            vm.playRecording(recording)
-                            onOverlayChange(TvOverlay.NONE)
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    // Studio's top bar heads the screens the side menu opens (ADR-027): the app's
+                    // name at the start, the clock and date at the end.
+                    TvOverlay.RECORDINGS -> Column(modifier = Modifier.fillMaxSize()) {
+                        StudioTopBar(startInset = 0.dp, showClock = true, scrim = false, endInset = 0.dp)
+                        RecordingsScreen(
+                            onPlayRecording = { recording ->
+                                vm.playRecording(recording)
+                                onOverlayChange(TvOverlay.NONE)
+                            },
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                    }
 
                     TvOverlay.VOD -> VodScreen(
                         vm = vm,
@@ -524,13 +529,16 @@ fun TvRoot(
                         state = vodState,
                     )
 
-                    TvOverlay.SETTINGS -> SettingsScreen(
-                        vm = vm,
-                        section = settingsSection,
-                        onNavigate = onSettingsSection,
-                        onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    TvOverlay.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
+                        StudioTopBar(startInset = 0.dp, showClock = true, scrim = false, endInset = 0.dp)
+                        SettingsScreen(
+                            vm = vm,
+                            section = settingsSection,
+                            onNavigate = onSettingsSection,
+                            onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                        )
+                    }
 
                     TvOverlay.ADD_SOURCE -> AddSourceScreen(
                         vm = vm,

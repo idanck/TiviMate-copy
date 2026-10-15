@@ -14,6 +14,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,22 +31,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
-import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.screens.GuideScreen
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * The guide, laid out around the picture instead of over it.
@@ -73,6 +84,9 @@ fun PictureInGuide(
     val state by vm.state.collectAsState()
     val metrics = LocalTvMetrics.current
     val pane = MaterialTheme.colorScheme.background.copy(alpha = opacity)
+    // The programme the remote is on in the grid, which the panel beside the picture describes.
+    // Until the grid reports one, the panel describes what is on screen.
+    var pick by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
 
     Row(modifier = modifier.fillMaxSize()) {
         ChannelRail(
@@ -85,12 +99,37 @@ fun PictureInGuide(
         )
 
         Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
+            // Studio's top bar (`canvas/Guide.dc.html`): the app's name and the clock, which the
+            // guide's own toolbar therefore no longer draws.
+            StudioTopBar(
+                startInset = 20.dp,
+                showClock = true,
+                scrim = false,
+                endInset = 20.dp,
+                modifier = Modifier.background(pane),
+            )
             Row(
                 modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Deliberately empty, and deliberately unpainted: this box exists only to be
-                // measured. The live picture is drawn into the rectangle it reports.
+                // The focused programme first, at the start edge, as the canvas sets it; the
+                // picture at the end.
+                val panelChannel = pick?.first ?: state.currentChannel
+                GuideFocusPanel(
+                    channel = panelChannel,
+                    programme = if (pick != null) pick?.second else state.now,
+                    onWatch = { channel -> onPlay(channel) },
+                    onCatchup = { channel, programme -> vm.playCatchup(channel, programme) },
+                    onOpenProgramme = onOpenProgramme,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(pane)
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                )
+                // Deliberately unpainted: this box exists to be measured, and the live picture is
+                // drawn into the rectangle it reports. What is drawn in it lies over the picture:
+                // the tally along its top and whose picture it is.
                 Box(
                     modifier = Modifier
                         .width(PREVIEW_WIDTH)
@@ -107,17 +146,22 @@ fun PictureInGuide(
                                 ),
                             )
                         },
-                )
-                NowPlayingCaption(
-                    channel = state.currentChannel,
-                    now = state.now,
-                    next = state.next,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(pane)
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                )
+                ) {
+                    val onAir = state.currentChannel
+                    if (onAir != null) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .fillMaxWidth()
+                                .height(3.dp)
+                                .background(StudioTheme.colors.tally),
+                        )
+                        LiveBadge(
+                            label = stringResource(R.string.guide_on_screen, onAir.displayName),
+                            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
+                        )
+                    }
+                }
             }
 
             GuideScreen(
@@ -125,6 +169,8 @@ fun PictureInGuide(
                 onPlay = onPlay,
                 onOpenProgramme = onOpenProgramme,
                 modifier = Modifier.fillMaxSize().background(pane),
+                onFocusProgramme = { channel, programme -> pick = channel to programme },
+                showClock = false,
             )
         }
     }
@@ -193,46 +239,121 @@ private fun ChannelRail(
     }
 }
 
-/** What is playing, beside the preview: the caption the picture cannot carry itself. */
+/**
+ * The focused programme, beside the picture (`canvas/Guide.dc.html`): its channel and number, its
+ * category, the title in Karantina, the time and where it stands now, the synopsis, and what can
+ * be done with it — watch it or start it over while it airs, watch the replay once it has aired,
+ * or open its details (record, remind) while it is still to come.
+ */
 @Composable
-private fun NowPlayingCaption(
+private fun GuideFocusPanel(
     channel: Channel?,
-    now: Programme?,
-    next: Programme?,
+    programme: Programme?,
+    onWatch: (Channel) -> Unit,
+    onCatchup: (Channel, Programme) -> Unit,
+    onOpenProgramme: (Channel, Programme) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (channel == null) return@Column
-        Text(
-            text = channel.displayName,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = now?.title ?: stringResource(R.string.no_guide_data),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        now?.let {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            ProgrammeProgress(it.startUtc, it.endUtc, modifier = Modifier.fillMaxWidth())
-        }
-        next?.let {
-            Text(
-                text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = channel.displayName,
+                style = type.rowLabel,
+                color = studio.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (channel.number > 0) {
+                Text(
+                    text = stringResource(R.string.channel_number_entry, channel.number.toString()),
+                    style = type.meta,
+                    color = studio.ink2,
+                )
+            }
+            programme?.category?.takeIf { it.isNotBlank() }?.let { category ->
+                Text(
+                    text = category,
+                    style = type.caption,
+                    color = studio.ink2,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(studio.card)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
+        Text(
+            text = programme?.title ?: stringResource(R.string.no_guide_data),
+            style = type.title,
+            color = studio.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (programme == null) return@Column
+        val now = System.currentTimeMillis()
+        val airing = now in programme.startUtc until programme.endUtc
+        val aired = programme.endUtc <= now
+        val status = when {
+            airing -> stringResource(R.string.guide_status_airing, ((programme.endUtc - now) / 60_000L).toInt())
+            aired -> stringResource(R.string.guide_status_aired)
+            programme.startUtc - now < 3 * 60 * 60_000L ->
+                stringResource(R.string.guide_status_upcoming, ((programme.startUtc - now) / 60_000L).toInt())
+            else -> stringResource(R.string.guide_status_upcoming_later)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = TimeModel.formatClockRange(programme.startUtc, programme.endUtc),
+                style = type.meta,
+                color = studio.ink2,
+            )
+            Text(text = "·", style = type.meta, color = studio.ink2)
+            Text(
+                text = status,
+                style = type.meta.copy(fontWeight = FontWeight.Medium),
+                color = studio.ink,
+            )
+        }
+        programme.description?.takeIf { it.isNotBlank() }?.let { synopsis ->
+            Text(
+                text = synopsis,
+                style = type.caption,
+                color = studio.ink2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        val replay = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
+        Row(modifier = Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (airing) {
+                StudioButton(
+                    label = stringResource(R.string.action_watch),
+                    icon = Icons.Filled.PlayArrow,
+                    size = StudioButtonSize.MEDIUM,
+                    onClick = { onWatch(channel) },
+                )
+            }
+            if (replay && (airing || aired)) {
+                StudioButton(
+                    label = stringResource(if (airing) R.string.guide_from_start else R.string.guide_watch_catchup),
+                    icon = Icons.Filled.Replay,
+                    size = StudioButtonSize.MEDIUM,
+                    onClick = { onCatchup(channel, programme) },
+                )
+            }
+            // Recording and reminders live in the programme's details, which already know the
+            // series rules and the padding; the panel opens them rather than repeating them.
+            if (!airing && !aired) {
+                StudioButton(
+                    label = stringResource(R.string.action_record),
+                    icon = Icons.Filled.FiberManualRecord,
+                    size = StudioButtonSize.MEDIUM,
+                    onClick = { onOpenProgramme(channel, programme) },
+                )
+            }
         }
     }
 }

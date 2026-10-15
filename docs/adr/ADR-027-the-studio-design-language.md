@@ -139,3 +139,8 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   radio's station strip; the phone's "more channels" rows under Now Playing and its guide's
   selected-programme sheet; icons on the phone's settings rows; the tally glow. Each is a
   layout addition on top of the language, not a change to it.
+- Stage 6 draws what the five stages left. Its first part is the television's guide as the canvas
+  lays it out: the focused programme beside the picture (channel, number, category, the title in
+  Karantina, time and status, synopsis, and watch / from the start / replay / record), the tally
+  along the top of the live picture with "on screen" over it, and Studio's top bar heading the
+  guide, recordings and settings.

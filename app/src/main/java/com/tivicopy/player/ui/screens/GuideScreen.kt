@@ -93,6 +93,13 @@ fun GuideScreen(
     onPlay: (Channel) -> Unit,
     onOpenProgramme: (Channel, Programme) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Told which programme the remote is on, so a panel beside the grid can describe it
+     * (`canvas/Guide.dc.html`'s focused programme). Null where nothing is listening.
+     */
+    onFocusProgramme: ((Channel, Programme) -> Unit)? = null,
+    /** Off where a Studio top bar above this screen already carries the clock. */
+    showClock: Boolean = true,
 ) {
     val state by vm.state.collectAsState()
     val channels = state.list.channels
@@ -143,6 +150,7 @@ fun GuideScreen(
     Column(modifier = modifier.fillMaxSize()) {
         GuideToolbar(
             windowStart = windowStart,
+            showClock = showClock,
             onJumpNow = { windowStart = snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L) },
             onShift = { hours -> windowStart += hours * 60 * 60_000L },
         )
@@ -192,6 +200,7 @@ fun GuideScreen(
                         onScreen = channel.id == state.currentChannel?.id,
                         onChannelClick = { onPlay(channel) },
                         onProgrammeClick = { onOpenProgramme(channel, it) },
+                        onProgrammeFocused = { onFocusProgramme?.invoke(channel, it) },
                     )
                 }
             }
@@ -255,6 +264,7 @@ private const val NOW_MARKER_TICK_MS = 60_000L
 @Composable
 private fun GuideToolbar(
     windowStart: Long,
+    showClock: Boolean,
     onJumpNow: () -> Unit,
     onShift: (Int) -> Unit,
 ) {
@@ -275,10 +285,12 @@ private fun GuideToolbar(
         // The day buttons that used to sit here are the strip below; what is left is the pair
         // that moves inside a day. The clock is here because a full-screen overlay takes the
         // device's own away with it, and a guide is read against the current time.
-        ClockText(
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (showClock) {
+            ClockText(
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -408,6 +420,7 @@ private fun GuideRow(
     onScreen: Boolean,
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
+    onProgrammeFocused: (Programme) -> Unit,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
@@ -496,6 +509,7 @@ private fun GuideRow(
                                     recordingState = recordings.stateFor(programme),
                                     onScreen = onScreen,
                                     onClick = { onProgrammeClick(programme) },
+                                    onFocused = { onProgrammeFocused(programme) },
                                 )
                             }
                             cursor = end
@@ -546,6 +560,7 @@ private fun ProgrammeCell(
     /** Whether this cell's channel is the one on screen; its airing cell then carries the tally. */
     onScreen: Boolean,
     onClick: () -> Unit,
+    onFocused: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
     val now = System.currentTimeMillis()
@@ -582,7 +597,10 @@ private fun ProgrammeCell(
             // so on a television every row in the channel list was ringed at 3dp and every cell
             // in the guide beside it at 2dp.
             .focusSurface(focused = focused, shape = cellShape)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocused()
+            }
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
             // with `focusable()` made every cell cost two D-pad presses to pass.
             .clickable(onClick = onClick)
