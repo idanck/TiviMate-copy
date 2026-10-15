@@ -13,13 +13,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -50,6 +56,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,8 +70,10 @@ import coil.request.SuccessResult
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.tasks.TaskItem
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -307,8 +316,17 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
 // ------------------------------------------------------------------------ ui
 
 /**
- * The audio-only Now Playing screen: the station's logo and name over a backdrop in its own
- * colour, the wall clock and date, and play/pause.
+ * The audio-only Now Playing screen — Studio's radio screen (`docs/design/studio/canvas/Radio.dc.html`,
+ * ADR-030).
+ *
+ * On a television: Studio's shifting background ([studioAmbient]) — which is also what protects
+ * the panel, since this screen no longer hands over to a screensaver — the live badge and the clock
+ * across the top, the station's disc haloed in light, and beside it what is playing: the song as a
+ * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. When
+ * the viewer has been away for the screensaver's idle time, the task list rides along the bottom
+ * (FR-UI-32).
+ *
+ * Under a phone's surface, or docked into the guide, the same content is laid out small.
  *
  * @param song the song the station says is on ([PlaybackStatus.streamTitle]), or null when it
  *   says nothing — most stations, and every catch-up.
@@ -319,6 +337,8 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * @param takeDpadFocus whether the button should claim D-pad focus. Only the ten-foot shell
  *   passes true, and only while nothing else on screen owns the arrows: a focusable control
  *   drawn under an open overlay would compete with that overlay's own focus.
+ * @param tasks the task list to show, already gated on idleness by the caller; empty shows none
+ * @param onFavourite toggles the station as a favourite; offered only where the remote can reach it
  */
 @Composable
 fun AudioOnlyNowPlaying(
@@ -334,133 +354,209 @@ fun AudioOnlyNowPlaying(
      * has not thought about it gets no claim rather than a wrong one.
      */
     live: Boolean = false,
+    tasks: List<TaskItem> = emptyList(),
+    onFavourite: (() -> Unit)? = null,
 ) {
-    val accent = rememberStationAccent(channel)
-    val top = remember(accent) { Color(accentShade(accent, BACKDROP_TOP_LIGHTNESS)) }
-    val bottom = remember(accent) { Color(accentShade(accent, BACKDROP_BOTTOM_LIGHTNESS)) }
-    val glow = remember(accent) { Color(accentShade(accent, BACKDROP_GLOW_LIGHTNESS)) }
-
-    BoxWithConstraints(modifier = modifier.background(Brush.verticalGradient(listOf(top, bottom)))) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    BoxWithConstraints(modifier = modifier.studioAmbient()) {
         // Under a phone's 16:9 surface this has a fraction of the room a television gives it, so
         // the same composable is measured rather than duplicated: same content, smaller.
         val compact = maxHeight < COMPACT_HEIGHT
-        val inset = if (compact) 12.dp else 32.dp
         // What this screen is *of*: the station when there is one, and otherwise whatever the
-        // stream calls itself. Resolved once, because the second line below has to know what the
-        // first one already said — printing the same string twice is what "no channel" used to
-        // produce, and it also cost the "audio only" line that would have been drawn instead.
+        // stream calls itself.
         val headline = channel?.displayName ?: title
+        val parts = song?.let(::splitSong)
+        // The second line when the station names no song: what is playing, when that is something
+        // other than the station itself — catch-up off a radio station, where the title is the
+        // programme's — and otherwise the audio-only explanation.
+        val programme = title.takeIf { it.isNotBlank() && it != headline }
 
-        // A pool of light behind the station, so the backdrop reads as lit from the middle rather
-        // than as a flat rectangle of colour. Faded to the same colour at zero alpha, never to
-        // `Color.Transparent`: transparent is transparent *black*, and interpolating towards it
-        // leaves a dirty ring at the edge of the gradient.
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.radialGradient(listOf(glow.copy(alpha = 0.5f), glow.copy(alpha = 0f)))),
-        )
-
-        StationClock(
-            compact = compact,
-            modifier = Modifier.align(Alignment.TopEnd).padding(inset),
-        )
-
-        // Opposite the clock, and only where there is room for it: the one thing this screen
-        // could not say before is that the silence-shaped rectangle is a *live* stream rather
-        // than a stalled one.
-        //
-        // Both conditions are load-bearing. This screen deliberately survives a pause — that is
-        // what keeps the pause button reachable (`audioOnlyBackdropVisible`) — so a badge tied to
-        // nothing but the backdrop would go on claiming "live" over a stopped stream; and it is
-        // drawn for catch-up as well as live, where the claim is simply false.
-        if (!compact && live && playWhenReady) {
-            LiveBadge(modifier = Modifier.align(Alignment.TopStart).padding(inset))
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 16.dp),
-            modifier = Modifier
-                .align(Alignment.Center)
-                // Held back from the full width on a television so a long station name cannot
-                // run under the clock in the corner.
-                .fillMaxWidth(if (compact) 1f else 0.7f)
-                .padding(horizontal = inset),
-        ) {
-            if (channel != null) {
-                // Round, and ringed with a halo of the backdrop's own light. A station is a mark
-                // rather than a still, and the square plate this used to draw read as a cropped
-                // thumbnail floating on a colour it had nothing to do with.
-                //
-                // The mark is inset by the ring's width rather than filling the box: a border is
-                // stroked inwards from the edge it is given, so a logo the same size as its ring
-                // gets the halo painted across its own outer band instead of around it.
-                val ringWidth = if (compact) 2.dp else 6.dp
-                val artSize = if (compact) 64.dp else 148.dp
-                Box(
-                    modifier = Modifier
-                        .size(artSize)
-                        .clip(CircleShape)
-                        .border(
-                            width = ringWidth,
-                            color = Color.White.copy(alpha = ART_RING_ALPHA),
-                            shape = CircleShape,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    ChannelLogo(
-                        channel = channel,
-                        sizeDp = (artSize - ringWidth * 2).value.roundToInt(),
-                        circular = true,
-                    )
-                }
-            }
-            Text(
-                text = headline,
-                style = if (compact) {
-                    MaterialTheme.typography.titleMedium
-                } else {
-                    MaterialTheme.typography.headlineMedium
-                },
-                color = Color.White,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (song != null) {
-                // The song, when the station announces one (`StreamTitle`) — shown on the compact
-                // layout too, since under a phone's surface it is the one thing worth the room.
-                SongLine(song = song, compact = compact)
-            } else if (!compact) {
-                // What is playing, when that is something other than the station itself.
-                //
-                // `PlaybackStatus.title` is set once per source by the player, so on a live
-                // station it is the channel's own name — filtered out here, and this line falls
-                // back to the audio-only explanation exactly as it always did. The case it does
-                // fire in is catch-up off a radio station, where the title is the programme's:
-                // that screen used to name the station twice and say nothing about what was on
-                // it. A station that names its song takes the branch above instead.
-                val programme = title.takeIf { it.isNotBlank() && it != headline }
+        if (compact) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 12.dp),
+            ) {
+                if (channel != null) StationDisc(channel = channel, size = 64.dp)
                 Text(
-                    text = programme ?: stringResource(R.string.playback_audio_only),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White.copy(alpha = SECONDARY_TEXT_ALPHA),
+                    text = headline,
+                    style = type.rowLabel,
+                    color = studio.ink,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (song != null) SongLine(song = song, compact = true)
+                if (onTogglePlay != null) {
+                    PlayPauseButton(
+                        playWhenReady = playWhenReady,
+                        onToggle = onTogglePlay,
+                        takeDpadFocus = takeDpadFocus,
+                        compact = true,
+                    )
+                }
             }
-            if (onTogglePlay != null) {
-                PlayPauseButton(
-                    playWhenReady = playWhenReady,
-                    onToggle = onTogglePlay,
-                    takeDpadFocus = takeDpadFocus,
-                    size = if (compact) 48.dp else 72.dp,
+            return@BoxWithConstraints
+        }
+
+        // Across the top: the badge and what this is on one side, the clock on the other.
+        Row(
+            modifier = Modifier.align(Alignment.TopStart).padding(start = SAFE_X, top = SAFE_Y),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            // Both conditions are load-bearing. This screen deliberately survives a pause — that
+            // is what keeps the pause button reachable (`audioOnlyBackdropVisible`) — so a badge
+            // tied to nothing but the backdrop would go on claiming "live" over a stopped stream;
+            // and it is drawn for catch-up as well as live, where the claim is simply false.
+            if (live && playWhenReady) LiveBadge()
+            Text(
+                text = stringResource(R.string.radio_label),
+                style = type.meta.copy(fontSize = type.meta.fontSize * RADIO_LABEL_SCALE),
+                color = studio.ink2,
+            )
+        }
+        StationClock(modifier = Modifier.align(Alignment.TopEnd).padding(end = SAFE_X, top = SAFE_Y))
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(start = DISC_START, top = DISC_TOP, end = SAFE_X),
+            horizontalArrangement = Arrangement.spacedBy(DISC_GAP),
+        ) {
+            if (channel != null) StationDisc(channel = channel, size = DISC_SIZE, halo = true)
+            Column(
+                modifier = Modifier.padding(top = NOW_TOP).widthIn(max = NOW_WIDTH),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.radio_now_playing_on, headline),
+                    style = type.body.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                // The song as a broadcast would set it; the station's own name when it names none.
+                Text(
+                    text = parts?.title ?: headline,
+                    style = type.hero.copy(
+                        fontSize = type.hero.fontSize * SONG_SCALE,
+                        lineHeight = type.hero.fontSize * SONG_SCALE * 0.88f,
+                        textDirection = TextDirection.Content,
+                    ),
+                    color = studio.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val second = parts?.artist ?: if (song == null) {
+                    programme ?: stringResource(R.string.playback_audio_only)
+                } else {
+                    null
+                }
+                if (second != null) {
+                    Text(
+                        text = second,
+                        style = type.h1.copy(
+                            fontSize = type.h1.fontSize * ARTIST_SCALE,
+                            fontWeight = FontWeight.Medium,
+                            textDirection = TextDirection.Content,
+                        ),
+                        color = studio.ink2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (onTogglePlay != null) {
+                    Row(
+                        modifier = Modifier.padding(top = 9.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        PlayPauseButton(
+                            playWhenReady = playWhenReady,
+                            onToggle = onTogglePlay,
+                            takeDpadFocus = takeDpadFocus,
+                            compact = false,
+                        )
+                        // Only while the remote can reach it: a focusable control under an open
+                        // overlay would compete with that overlay's own focus.
+                        if (onFavourite != null && channel != null && takeDpadFocus) {
+                            StudioButton(
+                                label = stringResource(
+                                    if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                                ),
+                                icon = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                                iconOnly = true,
+                                size = StudioButtonSize.MEDIUM,
+                                onClick = onFavourite,
+                            )
+                        }
+                    }
+                }
             }
         }
+
+        // FR-UI-32: the task list, once nobody has touched the remote for a while.
+        if (tasks.isNotEmpty()) {
+            TaskRotation(
+                tasks = tasks,
+                compact = false,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(start = SAFE_X, end = SAFE_X, bottom = SAFE_Y)
+                    .widthIn(max = TASKS_WIDTH),
+            )
+        }
     }
+}
+
+/**
+ * Studio's station disc (`canvas/StationDisc.dc.html`): the station's mark on a round `card`,
+ * edged with a hairline — and, for the station on air, ringed in the halo's light.
+ */
+@Composable
+internal fun StationDisc(channel: Channel, size: Dp, modifier: Modifier = Modifier, halo: Boolean = false) {
+    val studio = StudioTheme.colors
+    val haloWidth = if (halo) size * DISC_HALO_FRACTION else 0.dp
+    Box(
+        modifier = modifier
+            .size(size + haloWidth * 2)
+            .then(if (halo) Modifier.clip(CircleShape).background(studio.halo) else Modifier)
+            .padding(haloWidth),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(studio.card)
+                .border(1.dp, studio.hairline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            // The mark is inset rather than filling the disc: a round plate has no room at its
+            // edges for a wordmark's first and last letters.
+            ChannelLogo(
+                channel = channel,
+                sizeDp = (size.value * DISC_LOGO_FRACTION).roundToInt(),
+                circular = true,
+            )
+        }
+    }
+}
+
+/**
+ * A song as `Artist - Title`, which is how stations announce one (`StreamTitle`), split into its
+ * two halves. A song that does not follow the convention is all title.
+ */
+internal data class SongParts(val artist: String?, val title: String)
+
+internal fun splitSong(song: String): SongParts {
+    val at = song.indexOf(" - ")
+    if (at <= 0 || at + 3 >= song.length) return SongParts(null, song.trim())
+    val artist = song.substring(0, at).trim()
+    val title = song.substring(at + 3).trim()
+    return if (artist.isEmpty() || title.isEmpty()) SongParts(null, song.trim()) else SongParts(artist, title)
 }
 
 /**
@@ -479,7 +575,7 @@ internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modif
         Icon(
             imageVector = Icons.Filled.MusicNote,
             contentDescription = null,
-            tint = Color.White.copy(alpha = SECONDARY_TEXT_ALPHA * alpha),
+            tint = StudioTheme.colors.ink2.copy(alpha = alpha),
             modifier = Modifier.size(if (compact) 16.dp else 24.dp),
         )
         Text(
@@ -491,7 +587,7 @@ internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modif
                     MaterialTheme.typography.titleLarge
                 }
                 ).copy(textDirection = TextDirection.Content),
-            color = Color.White.copy(alpha = alpha),
+            color = StudioTheme.colors.ink.copy(alpha = alpha),
             textAlign = TextAlign.Center,
             maxLines = if (compact) 1 else 2,
             overflow = TextOverflow.Ellipsis,
@@ -519,9 +615,11 @@ internal fun rememberStationAccent(channel: Channel?): Int {
     return remember(logoAccent, name) { stationAccentColour(logoAccent, name) }
 }
 
-/** The wall clock and today's date, in white, over the station's backdrop. */
+/** The wall clock and today's date, Studio's top-bar clock (`canvas/Radio.dc.html`). */
 @Composable
-private fun StationClock(compact: Boolean, modifier: Modifier = Modifier) {
+private fun StationClock(modifier: Modifier = Modifier) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
     // The *configuration's* locale, not the platform default: the in-app language setting
     // (FR-UI-23) wraps this composition's context rather than changing the JVM default, so a
     // Hebrew interface would otherwise have printed an English day name.
@@ -541,21 +639,13 @@ private fun StationClock(compact: Boolean, modifier: Modifier = Modifier) {
     Column(modifier = modifier, horizontalAlignment = Alignment.End) {
         Text(
             text = TimeModel.ltr(TimeModel.formatClock(now)),
-            style = if (compact) {
-                MaterialTheme.typography.titleMedium
-            } else {
-                MaterialTheme.typography.displayMedium
-            },
-            color = Color.White,
+            style = type.h1.copy(fontSize = type.h1.fontSize * CLOCK_SCALE, fontWeight = FontWeight.SemiBold),
+            color = studio.ink,
         )
         Text(
-            text = TimeModel.formatFullDate(now, locale),
-            style = if (compact) {
-                MaterialTheme.typography.labelSmall
-            } else {
-                MaterialTheme.typography.titleMedium
-            },
-            color = Color.White.copy(alpha = SECONDARY_TEXT_ALPHA),
+            text = TimeModel.formatShortDate(now, locale),
+            style = type.caption,
+            color = studio.ink2,
         )
     }
 }
@@ -580,7 +670,8 @@ private fun PlayPauseButton(
     playWhenReady: Boolean,
     onToggle: () -> Unit,
     takeDpadFocus: Boolean,
-    size: Dp,
+    /** A round icon under a phone's surface; Studio's medium button, with its label, otherwise. */
+    compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -622,16 +713,17 @@ private fun PlayPauseButton(
         Modifier
     }
 
-    Box(
+    val label = stringResource(if (playWhenReady) R.string.action_pause else R.string.action_play)
+    // Studio's button (`canvas/Button.dc.html`): a control with a hairline at rest, the cue when
+    // the remote is on it. Drawn through the shared treatment rather than a copy of it.
+    val shape = if (compact) CircleShape else RoundedCornerShape(LocalTvMetrics.current.controlCorner)
+    val content = filledContentColour(focused)
+    Row(
         modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(if (focused) Color.White else Color.White.copy(alpha = 0.18f))
-            .border(
-                width = 2.dp,
-                color = Color.White.copy(alpha = if (focused) 1f else 0.55f),
-                shape = CircleShape,
-            )
+            .height(if (compact) 48.dp else 32.dp)
+            .then(if (compact) Modifier.width(48.dp) else Modifier)
+            .focusLift(focused, shape = shape)
+            .focusSurface(focused = focused, shape = shape, fill = FocusFill.FILLED)
             .then(dpad)
             // Deliberately not `clickable`: that would make the node focusable on the phone too,
             // and on the television it would claim the OK key press the comment above is about.
@@ -642,17 +734,29 @@ private fun PlayPauseButton(
             .semantics(mergeDescendants = true) {
                 role = Role.Button
                 onClick { toggle(); true }
-            },
-        contentAlignment = Alignment.Center,
+            }
+            .padding(horizontal = if (compact) 0.dp else 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = if (playWhenReady) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = stringResource(
-                if (playWhenReady) R.string.action_pause else R.string.action_play,
-            ),
-            tint = if (focused) Color.Black else Color.White,
-            modifier = Modifier.size(size / 2),
+            contentDescription = label,
+            tint = content,
+            modifier = Modifier.size(if (compact) 24.dp else 13.dp),
         )
+        if (!compact) {
+            val action = StudioTheme.type.action
+            Text(
+                text = label,
+                style = action.copy(
+                    fontSize = action.fontSize * BUTTON_LABEL_SCALE,
+                    fontWeight = if (focused) FontWeight.Bold else FontWeight.Medium,
+                ),
+                color = content,
+                maxLines = 1,
+            )
+        }
     }
 }
 
@@ -666,15 +770,34 @@ private val COMPACT_HEIGHT: Dp = 400.dp
 
 private const val MINUTE_MILLIS = 60_000L
 
-/** How the secondary white lines are held back from the primary ones. */
-private const val SECONDARY_TEXT_ALPHA = 0.75f
+/*
+ * The radio screen's measurements, from `canvas/Radio.dc.html` and `StationDisc.dc.html` (1080p
+ * pixels halved).
+ */
+private val SAFE_X = 48.dp
+private val SAFE_Y = 24.dp
+private val DISC_SIZE = 220.dp
+private val DISC_START = 110.dp
+private val DISC_TOP = 85.dp
+private val DISC_GAP = 36.dp
+private val NOW_TOP = 28.dp
+private val NOW_WIDTH = 500.dp
+private val TASKS_WIDTH = 560.dp
 
-/** The halo around the station's mark: light enough to read as lit, short of a second border. */
-private const val ART_RING_ALPHA = 0.16f
+/** The halo ring is 18px around a 440px disc. */
+private const val DISC_HALO_FRACTION = 18f / 440f
 
-private const val BACKDROP_TOP_LIGHTNESS = 0.34f
-private const val BACKDROP_BOTTOM_LIGHTNESS = 0.06f
-private const val BACKDROP_GLOW_LIGHTNESS = 0.46f
+/** How much of a disc the station's mark takes, leaving its rim clear. */
+private const val DISC_LOGO_FRACTION = 0.72f
+
+/** Type against the ramp: the song 150px (hero 140), the artist 40px (h1 34), the label 24px (meta 22). */
+private const val SONG_SCALE = 150f / 140f
+private const val ARTIST_SCALE = 40f / 34f
+private const val RADIO_LABEL_SCALE = 24f / 22f
+
+/** The clock is 36px against h1's 34; the medium button's label 24px against the action's 30. */
+private const val CLOCK_SCALE = 36f / 34f
+private const val BUTTON_LABEL_SCALE = 24f / 30f
 
 /** A pixel this transparent is a logo's margin, not its colour. */
 private const val MIN_OPAQUE_ALPHA = 128

@@ -130,10 +130,22 @@ class ScreensaverTest {
     @Test
     fun `the guard is off when the setting is off, in picture-in-picture, and over moving video`() {
         assertTrue(screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = false))
-        assertTrue(screensaverApplies(enabled = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
+        // The radio protects itself with Studio's shifting background (ADR-030), so it is never
+        // handed to the screensaver.
+        assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
         assertTrue(!screensaverApplies(enabled = false, scene = IdleScene.STILL, inPip = false))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = true))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.MOVING, inPip = false))
+    }
+
+    @Test
+    fun `the task list counts down only on the radio, and only when both switches are on`() {
+        assertTrue(radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
+        assertTrue(!radioTasksApply(enabled = true, tasks = false, scene = IdleScene.AUDIO_ONLY, inPip = false))
+        assertTrue(!radioTasksApply(enabled = false, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
+        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = true))
+        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.STILL, inPip = false))
+        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.MOVING, inPip = false))
     }
 
     @Test
