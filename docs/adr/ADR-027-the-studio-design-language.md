@@ -117,6 +117,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   bundled radio takes the whole player screen — the shifting background, the disc in a halo, the
   song in Karantina, the equaliser, favourite / previous / play-pause / next / guide, and a strip of
   stations under national / regional / other chips with the one on air marked by the tally.
+  Its fourth part is the channel list (`PChannelRow`, `ui/screens/PhoneChannelRow.kt`, and one
+  row of `PChip`s for the filters and categories): the number on a tile in Karantina (a station's
+  mark on a disc), what is on with its time and a progress line, and the channel on screen in the
+  tally. The row keeps a favourite star the canvas does not draw (FR-ORG-07).
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,

@@ -56,6 +56,7 @@ import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.TwoLine
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.mobile.PhoneChip
 import kotlinx.coroutines.delay
 
 /**
@@ -253,17 +254,30 @@ fun ChannelListScreen(
                 ) {
                     items(channels, key = { it.id }) { channel ->
                         val isCurrent = state.currentChannel?.id == channel.id
-                        ChannelRow(
-                            channel = channel,
-                            selected = isCurrent,
-                            nowProgramme = nowByChannel[channel.id],
-                            focusRequester = currentFocus.takeIf { focusCurrent && isCurrent },
-                            circularLogo = isRadio,
-                            onClick = { onPlay(channel) },
-                            onFocused = { previewChannel = channel },
-                            onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
-                            onOptions = { menuFor = channel },
-                        )
+                        if (compact) {
+                            // The phone draws Studio's channel row (ADR-027, stage 5).
+                            PhoneChannelRow(
+                                channel = channel,
+                                onScreen = isCurrent,
+                                nowProgramme = nowByChannel[channel.id],
+                                disc = isRadio,
+                                onClick = { onPlay(channel) },
+                                onLongClick = { menuFor = channel },
+                                onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
+                            )
+                        } else {
+                            ChannelRow(
+                                channel = channel,
+                                selected = isCurrent,
+                                nowProgramme = nowByChannel[channel.id],
+                                focusRequester = currentFocus.takeIf { focusCurrent && isCurrent },
+                                circularLogo = isRadio,
+                                onClick = { onPlay(channel) },
+                                onFocused = { previewChannel = channel },
+                                onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
+                                onOptions = { menuFor = channel },
+                            )
+                        }
                     }
                     item {
                         // The gesture is invisible otherwise, and on a television there is no
@@ -652,80 +666,68 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
     // See the matching comment in GroupColumn: computed here, in the composable body, not inside
     // the plain (non-@Composable) LazyRow content block below.
     val radioCategories = if (isRadio) radioCategoryBuckets(state) else emptyList()
-    fun icon(vector: androidx.compose.ui.graphics.vector.ImageVector): @Composable () -> Unit = {
-        Icon(imageVector = vector, contentDescription = null, modifier = Modifier.size(18.dp))
-    }
-    Column {
-        SectionHeader(text = stringResource(R.string.filter_quick), topDivider = false)
-        androidx.compose.foundation.lazy.LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            item {
-                androidx.compose.material3.FilterChip(
-                    // See the group list's own "All channels" row: a selected radio category
-                    // leaves the group id on ALL, and two selected chips read as a bug.
-                    selected = state.list.selectedGroupId == VirtualGroup.ALL &&
-                        state.list.selectedRadioCategory == null,
-                    onClick = { vm.selectGroup(VirtualGroup.ALL) },
-                    leadingIcon = icon(Icons.Filled.SelectAll),
-                    label = { Text(stringResource(R.string.all_channels)) },
-                )
-            }
-            item {
-                androidx.compose.material3.FilterChip(
-                    selected = state.list.selectedGroupId == VirtualGroup.FAVOURITES,
-                    onClick = { vm.selectGroup(VirtualGroup.FAVOURITES) },
-                    leadingIcon = icon(Icons.Filled.Star),
-                    label = { Text(stringResource(R.string.favourites)) },
-                )
-            }
-            item {
-                androidx.compose.material3.FilterChip(
-                    selected = state.list.selectedGroupId == VirtualGroup.RECENT,
-                    onClick = { vm.selectGroup(VirtualGroup.RECENT) },
-                    leadingIcon = icon(Icons.Filled.History),
-                    label = { Text(stringResource(R.string.recently_watched)) },
-                )
-            }
-            item {
-                androidx.compose.material3.FilterChip(
-                    selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
-                    onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
-                    leadingIcon = icon(Icons.Filled.VisibilityOff),
-                    label = { Text(stringResource(R.string.hidden_channels)) },
-                )
-            }
+    // Studio's chip row (`canvas/PChannels.dc.html`): one row of `PChip`s, the quick filters first
+    // and then the categories, the selected one in ink.
+    androidx.compose.foundation.lazy.LazyRow(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            PhoneChip(
+                label = stringResource(R.string.all_channels),
+                // See the group list's own "All channels" row: a selected radio category leaves
+                // the group id on ALL, and two selected chips read as a bug.
+                selected = state.list.selectedGroupId == VirtualGroup.ALL &&
+                    state.list.selectedRadioCategory == null,
+                onClick = { vm.selectGroup(VirtualGroup.ALL) },
+            )
         }
-        SectionHeader(text = stringResource(R.string.filter_categories))
-        androidx.compose.foundation.lazy.LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (isRadio) {
-                items(radioCategories, key = { it.second }) { (category, label) ->
-                    androidx.compose.material3.FilterChip(
-                        selected = state.list.selectedRadioCategory == category,
-                        onClick = { vm.selectRadioCategory(category) },
-                        label = { Text(label, maxLines = 1) },
-                    )
-                }
-            } else {
-                items(state.list.groups, key = { it.id }) { group ->
-                    androidx.compose.material3.FilterChip(
-                        selected = state.list.selectedGroupId == group.id,
-                        onClick = { vm.selectGroup(group.id) },
-                        label = { Text(group.name, maxLines = 1) },
-                    )
-                }
-                item {
-                    // A chip has no long press to hang a context menu on, so the phone reaches the
-                    // group actions through a manager instead of not at all.
-                    androidx.compose.material3.AssistChip(
-                        onClick = onManageGroups,
-                        label = { Text(stringResource(R.string.group_manage)) },
-                    )
-                }
+        item {
+            PhoneChip(
+                label = stringResource(R.string.favourites),
+                selected = state.list.selectedGroupId == VirtualGroup.FAVOURITES,
+                onClick = { vm.selectGroup(VirtualGroup.FAVOURITES) },
+            )
+        }
+        item {
+            PhoneChip(
+                label = stringResource(R.string.recently_watched),
+                selected = state.list.selectedGroupId == VirtualGroup.RECENT,
+                onClick = { vm.selectGroup(VirtualGroup.RECENT) },
+            )
+        }
+        item {
+            PhoneChip(
+                label = stringResource(R.string.hidden_channels),
+                selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
+                onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
+            )
+        }
+        if (isRadio) {
+            items(radioCategories, key = { it.second }) { (category, label) ->
+                PhoneChip(
+                    label = label,
+                    selected = state.list.selectedRadioCategory == category,
+                    onClick = { vm.selectRadioCategory(category) },
+                )
+            }
+        } else {
+            items(state.list.groups, key = { it.id }) { group ->
+                PhoneChip(
+                    label = group.name,
+                    selected = state.list.selectedGroupId == group.id,
+                    onClick = { vm.selectGroup(group.id) },
+                )
+            }
+            item {
+                // A chip has no long press to hang a context menu on, so the phone reaches the
+                // group actions through a manager instead of not at all.
+                PhoneChip(
+                    label = stringResource(R.string.group_manage),
+                    selected = false,
+                    onClick = onManageGroups,
+                )
             }
         }
     }
