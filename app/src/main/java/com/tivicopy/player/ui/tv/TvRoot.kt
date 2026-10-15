@@ -416,6 +416,7 @@ fun TvRoot(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onSearch = { onOverlayChange(TvOverlay.SEARCH) },
+                        onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
                         // The ten-foot equivalent of the phone's bottom bar. On demand had no
                         // entry point at all before this — it could only be opened by searching
                         // for a series and picking it (NFR-UX-01).

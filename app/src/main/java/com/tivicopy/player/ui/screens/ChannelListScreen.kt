@@ -88,6 +88,11 @@ fun ChannelListScreen(
     /** Opens the full search surface. Null hides the entry point. */
     onSearch: (() -> Unit)? = null,
     /**
+     * Opens the add-source screen, from the empty list's own button (`TvEmptyChannels`). Null
+     * leaves the empty state with its sentence alone — the radio, whose stations come bundled.
+     */
+    onAddSource: (() -> Unit)? = null,
+    /**
      * Where else the shell can go from here, drawn above the groups in the same column.
      *
      * This is the ten-foot answer to the phone's bottom navigation bar. The television had no
@@ -198,6 +203,14 @@ fun ChannelListScreen(
                         state.list.search.isBlank() -> StudioIcons.Tv
                         else -> StudioIcons.Search
                     },
+                    // Only for a list that is empty because there is nothing in it: a filter or the
+                    // hidden group being empty is not fixed by another playlist.
+                    action = stringResource(R.string.playlist_add).takeIf {
+                        onAddSource != null &&
+                            state.list.search.isBlank() &&
+                            state.list.selectedGroupId != VirtualGroup.HIDDEN
+                    },
+                    onAction = { onAddSource?.invoke() },
                 )
             } else {
                 val listState = rememberLazyListState()

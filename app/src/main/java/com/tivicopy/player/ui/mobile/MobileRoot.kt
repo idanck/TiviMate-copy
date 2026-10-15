@@ -317,6 +317,7 @@ fun MobileRoot(
                             // it is wide enough to drop the compact layout.
                             showFilter = true,
                             onSearch = { searching = true },
+                            onAddSource = { addingSource = true },
                             scrollToCurrent = true,
                             modifier = Modifier.fillMaxSize(),
                         )

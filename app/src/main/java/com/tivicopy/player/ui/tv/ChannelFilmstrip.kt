@@ -1,9 +1,10 @@
 package com.tivicopy.player.ui.tv
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -24,7 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,7 +36,7 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
-import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * A reel of neighbouring channels along the bottom of playing video (FR-UI-04).
@@ -61,7 +62,6 @@ fun ChannelFilmstrip(
     val state by vm.state.collectAsState()
     val channels = state.list.channels
     val listState = rememberLazyListState()
-    val metrics = LocalTvMetrics.current
     val currentFocus = remember { FocusRequester() }
     var nowByChannel by remember { mutableStateOf<Map<Long, Programme>>(emptyMap()) }
 
@@ -97,91 +97,67 @@ fun ChannelFilmstrip(
         }.toMap()
     }
 
-    LazyRow(
-        state = listState,
-        // A floating plate rather than an edge-to-edge band, so the reel belongs to the same
-        // family as the transport bar (`TvSurfaces.kt`) instead of reading as a black bar the
-        // picture stops at.
-        modifier = modifier
-            .padding(horizontal = TV_CONTENT_INSET, vertical = 12.dp)
-            .tvGlassPanel(opacity),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = 16.dp,
-            vertical = 14.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        items(channels, key = { it.id }) { channel ->
-            FilmstripTile(
-                channel = channel,
-                now = nowByChannel[channel.id],
-                playing = channel.id == state.currentChannel?.id,
-                logoSize = metrics.rowLogoSize,
-                onClick = { onPlay(channel) },
-                modifier = if (channel.id == state.currentChannel?.id) {
-                    Modifier.focusRequester(currentFocus)
-                } else {
-                    Modifier
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun FilmstripTile(
-    channel: Channel,
-    now: Programme?,
-    playing: Boolean,
-    logoSize: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var focused by remember { mutableStateOf(false) }
+    // `TvFilmstrip`: no plate. The reel runs edge to edge over the foot of the picture, on the
+    // canvas's bottom scrim, under a heading that says what the arrows do.
+    val studio = StudioTheme.colors
     Column(
         modifier = modifier
-            // Grows on focus and is drawn over its neighbours while it does, as the home rails
-            // do — through a `graphicsLayer`, so the reel does not re-measure and the tiles
-            // either side of it stay where they are.
-            .focusLift(focused, shape = tvCardShape())
-            .width(TILE_WIDTH)
-            // The same three states, the same ring, the same corner as a home tile: one card
-            // look for the whole shell (`TvSurfaces.kt`), rather than this file's own copy of it.
-            .tvCard(focused = focused, playing = playing)
-            .onFocusChanged { focused = it.isFocused }
-            // `clickable` carries the focus target on its own; pairing it with `focusable()`
-            // would cost the remote a second press to leave every tile.
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            ChannelLogo(channel = channel, sizeDp = logoSize)
-        }
-        Text(
-            text = channel.displayName,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Text(
-            text = now?.title ?: stringResource(R.string.no_guide_data),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        now?.let {
-            Text(
-                text = TimeModel.ltr(TimeModel.formatClockRange(it.startUtc, it.endUtc)),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    0f to studio.ground.copy(alpha = 0f),
+                    0.25f to studio.ground.copy(alpha = 0.55f * opacity.coerceAtLeast(0.5f)),
+                    0.5f to studio.ground.copy(alpha = 0.95f * opacity.coerceAtLeast(0.5f)),
+                    1f to studio.ground.copy(alpha = opacity.coerceAtLeast(0.5f)),
+                ),
             )
+            .padding(top = 40.dp, bottom = 14.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = TV_CONTENT_INSET),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = stringResource(R.string.nav_live), style = StudioTheme.type.h1, color = studio.ink)
+            Text(
+                text = stringResource(R.string.filmstrip_hint),
+                style = StudioTheme.type.caption,
+                color = studio.ink2,
+                modifier = Modifier.padding(bottom = 2.dp),
+            )
+        }
+        LazyRow(
+            state = listState,
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = TV_CONTENT_INSET,
+                vertical = 14.dp,
+            ),
+            // `--st-gap-rail`: 32px at 1080p.
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            items(channels, key = { it.id }) { channel ->
+                val programme = nowByChannel[channel.id]
+                val now = System.currentTimeMillis()
+                StudioChannelCard(
+                    label = channel.displayName,
+                    imageUrl = channel.displayLogo,
+                    number = channel.number.takeIf { it > 0 },
+                    now = programme?.title ?: stringResource(R.string.no_guide_data),
+                    time = programme?.let { TimeModel.formatClockRange(it.startUtc, it.endUtc) },
+                    progress = programme?.let {
+                        ((now - it.startUtc).toFloat() / (it.endUtc - it.startUtc).coerceAtLeast(1)).coerceIn(0f, 1f)
+                    },
+                    onScreen = channel.id == state.currentChannel?.id,
+                    circular = false,
+                    width = CARD_WIDTH,
+                    onClick = { onPlay(channel) },
+                    modifier = if (channel.id == state.currentChannel?.id) {
+                        Modifier.focusRequester(currentFocus)
+                    } else {
+                        Modifier
+                    },
+                )
+            }
         }
     }
 }
@@ -189,5 +165,5 @@ private fun FilmstripTile(
 /** How many channels either side of the playing one to caption with what is on now. */
 private const val NEIGHBOURS = 8
 
-/** Wide enough for a channel name and a programme title at ten feet, narrow enough to show several. */
-private val TILE_WIDTH = 200.dp
+/** `ChannelCard`'s width: 320px at 1080p. */
+private val CARD_WIDTH = 160.dp
