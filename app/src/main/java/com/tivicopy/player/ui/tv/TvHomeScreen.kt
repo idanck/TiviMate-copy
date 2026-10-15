@@ -1,12 +1,7 @@
 package com.tivicopy.player.ui.tv
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -58,7 +53,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -74,7 +68,6 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
-import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
@@ -112,9 +105,9 @@ import kotlinx.coroutines.delay
  *   pairing them costs the remote an extra press to leave every tile.
  * - **No text field.** On a D-pad surface a text field takes the first focus and pops the
  *   on-screen keyboard over the content. Search is a rail destination, not a box.
- * - **The navigation rail expands over the screen, never beside it.** It is drawn in a `Box` on
- *   top of the list and padded for at its collapsed width only, so focus crossing into it cannot
- *   reflow every card on the screen.
+ * - **The side menu opens over the screen, never beside it.** It is drawn in a `Box` on top of
+ *   the list and padded for at its closed strip's width only (`SideMenu.kt`), so focus crossing
+ *   into it cannot reflow every card on the screen.
  */
 // `Modifier.focusGroup` is `@ExperimentalFoundationApi` at this Compose version, as
 // `combinedClickable` is in `ui/common/Components.kt`. It keeps a D-pad step between rails
@@ -172,14 +165,17 @@ fun TvHomeScreen(
         HomeRailId.FAVOURITES to stringResource(R.string.favourites),
         HomeRailId.STARTING_SOON to stringResource(R.string.home_rail_starting_soon),
     )
+    // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline.
     val destinations = listOf(
-        HomeDestination(stringResource(R.string.nav_home), Icons.Filled.Home, null),
-        HomeDestination(stringResource(R.string.nav_search), Icons.Filled.Search, TvOverlay.SEARCH),
-        HomeDestination(stringResource(R.string.nav_live), Icons.Filled.LiveTv, TvOverlay.CHANNELS),
-        HomeDestination(stringResource(R.string.nav_radio), Icons.Filled.Radio, TvOverlay.RADIO),
-        HomeDestination(stringResource(R.string.nav_guide), Icons.Filled.DateRange, TvOverlay.GUIDE),
-        HomeDestination(stringResource(R.string.nav_recordings), Icons.Filled.History, TvOverlay.RECORDINGS),
-        HomeDestination(stringResource(R.string.nav_settings), Icons.Filled.Settings, TvOverlay.SETTINGS),
+        MenuDestination(stringResource(R.string.nav_home), Icons.Filled.Home, null),
+        MenuDestination(stringResource(R.string.nav_live), Icons.Filled.LiveTv, TvOverlay.CHANNELS),
+        MenuDestination(stringResource(R.string.nav_guide), Icons.Filled.DateRange, TvOverlay.GUIDE),
+        MenuDestination(stringResource(R.string.nav_radio), Icons.Filled.Radio, TvOverlay.RADIO),
+        MenuDestination(stringResource(R.string.nav_recordings), Icons.Filled.History, TvOverlay.RECORDINGS),
+    )
+    val tools = listOf(
+        MenuDestination(stringResource(R.string.nav_search), Icons.Filled.Search, TvOverlay.SEARCH),
+        MenuDestination(stringResource(R.string.nav_settings), Icons.Filled.Settings, TvOverlay.SETTINGS),
     )
 
     // OK on the channel already playing goes fullscreen; OK on any other card tunes it and stays
@@ -215,15 +211,11 @@ fun TvHomeScreen(
     val backdrop = MaterialTheme.colorScheme.background
     val scrim = backdrop.copy(alpha = prefs.overlayOpacity)
 
-    // Room the capsule needs at the leading edge, kept by every row's *content* rather than by
-    // padding the list. Padding the list is what the rail used to rely on, and it stopped working
-    // the moment the rail stopped being full height: a scrim that halts 64dp short of the panel
-    // leaves a column of bare video running down the side of every rail, above and below the
-    // capsule. Full-bleed rows with inset content give the capsule something to float on.
-    //
-    // The collapsed width, and never the expanded one: the rail grows *over* the list, so nothing
-    // reflows as focus crosses into it.
-    val railGutter = metrics.homeNavRailCollapsedWidth + NAV_RAIL_MARGIN * 2
+    // Room the side menu's closed strip needs at the leading edge, kept by every row's *content*
+    // rather than by padding the list, so the rows stay full-bleed under the strip. The strip's
+    // width and never the open menu's: the menu opens *over* the list, so nothing reflows as focus
+    // crosses into it.
+    val railGutter = sideMenuInset()
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -277,194 +269,19 @@ fun TvHomeScreen(
             }
         }
 
-        HomeNavRail(
+        // Pinned rather than scrolled with the banner: the clock stays in its corner however far
+        // down the rails the viewer goes.
+        StudioTopBar(
+            startInset = railGutter,
+            showClock = !audioOnlyBackdrop,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+
+        SideMenu(
             destinations = destinations,
+            tools = tools,
             onOpen = onOpen,
-            opacity = prefs.overlayOpacity,
-            modifier = Modifier.align(Alignment.CenterStart).padding(NAV_RAIL_MARGIN),
         )
-    }
-}
-
-/** One row of the navigation rail. A null [overlay] is the row for the screen you are on. */
-private data class HomeDestination(
-    val label: String,
-    val icon: ImageVector,
-    val overlay: TvOverlay?,
-)
-
-/**
- * The vertical navigation rail: icons only, until focus enters it.
- *
- * The teardown found the benchmark's rail collapsed to a strip of icons with the content still
- * visible behind it, which is the pattern this now follows — a ten-foot screen has no room to
- * spend a sixth of its width on words nobody is reading while they browse. Two things stop that
- * from being the accessibility regression the same report warned about:
- *
- * - every item carries its label as a `contentDescription` whether or not it is drawn, so
- *   TalkBack and the D-pad see a named destination at all times (NFR-UX-05);
- * - the labels appear the moment focus enters the rail, which is the only moment they are
- *   being read.
- *
- * It expands *over* the screen, not beside it. An earlier version of this rail kept its labels
- * permanently for exactly one reason — a rail that changes width reflows every card on the
- * screen each time focus crosses into it — and drawing it in a `Box` above the list, with the
- * list padded only for its collapsed width, keeps that property while letting it grow.
- *
- * It is a floating capsule rather than a full-height column: wrapped to its own content, centred
- * vertically, rounded and inset from the edge, so the rails and the banner read as one surface
- * with the rail resting on top of them rather than as a screen split into two panes. That is the
- * one piece both explored directions agreed on, and it is why the background here is drawn on a
- * clipped, rounded node instead of a bare rectangle.
- *
- * On-demand is deliberately absent. This build carries the two bundled Israeli playlists and
- * nothing else (ADR-013, ADR-015), and a destination that opens an empty catalogue is worse
- * than no destination.
- */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun HomeNavRail(
-    destinations: List<HomeDestination>,
-    onOpen: (TvOverlay) -> Unit,
-    /** The viewer's overlay-opacity setting (FR-UI-18), which this obeys like every other panel. */
-    opacity: Float,
-    modifier: Modifier = Modifier,
-) {
-    val metrics = LocalTvMetrics.current
-    var expanded by remember { mutableStateOf(false) }
-    // The rail slides open rather than snapping. It is drawn over the list, so this width is the
-    // one animation in the shell that does re-measure per frame — seven rows of it, and only
-    // while focus is crossing in or out.
-    val railWidth by animateDpAsState(
-        targetValue = if (expanded) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
-        animationSpec = tween(Motion.STANDARD),
-        label = "railWidth",
-    )
-    Column(
-        modifier = modifier
-            // Before `focusGroup`, so it observes the group's own focus state: `hasFocus` is true
-            // while any item inside is focused, which is exactly when the labels are wanted.
-            .onFocusChanged { expanded = it.hasFocus }
-            .focusGroup()
-            .width(railWidth)
-            // The shell's floating-panel look (`TvSurfaces.kt`), reaching for opacity as focus
-            // arrives: a rail whose labels are open is being read, and is worth more than the
-            // frame of video behind it; a rail merely being passed is not.
-            //
-            // Both ends are the viewer's own setting rather than constants — this capsule obeys
-            // FR-UI-18 like every other panel — with a floor under the focused end alone, which
-            // is the only moment there are words on it to read.
-            .tvGlassPanel(
-                animateFloatAsState(
-                    targetValue = if (expanded) {
-                        opacity.coerceAtLeast(RAIL_FOCUSED_MIN_OPACITY)
-                    } else {
-                        opacity
-                    },
-                    animationSpec = tween(Motion.STANDARD),
-                    label = "railOpacity",
-                ).value,
-            )
-            .padding(vertical = 12.dp, horizontal = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        RailHeader(expanded = expanded)
-        destinations.forEach { destination ->
-            NavRailItem(
-                destination = destination,
-                expanded = expanded,
-                onClick = { destination.overlay?.let(onOpen) },
-            )
-        }
-    }
-}
-
-/**
- * The app's name at the top of the rail, drawn only once the rail is open.
- *
- * Its own composable, and not just a `Box` inside the rail's `Column`, for a reason the compiler
- * insists on: inside that `Box` the enclosing `ColumnScope` is still an implicit receiver, so
- * `AnimatedVisibility` resolves to `ColumnScope.AnimatedVisibility` — an extension whose receiver
- * is no longer the innermost one, which does not compile. Here the only scope in sight is the
- * `Box`'s, and the plain overload is what gets called.
- *
- * The height is reserved whether or not the name is drawn. Without that, every destination below
- * would jump down the screen the moment focus entered the rail.
- */
-@Composable
-private fun RailHeader(expanded: Boolean) {
-    Box(
-        modifier = Modifier.height(RAIL_HEADER_HEIGHT).padding(horizontal = 10.dp),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn(tween(Motion.FAST)),
-            exit = fadeOut(tween(Motion.FAST)),
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-@Composable
-private fun NavRailItem(
-    destination: HomeDestination,
-    expanded: Boolean,
-    onClick: () -> Unit,
-) {
-    var focused by remember { mutableStateOf(false) }
-    val selected = destination.overlay == null
-    // A pill at the expanded width, a circle at the collapsed one — the "light round background"
-    // the benchmark marks its focused item with.
-    val shape = RoundedCornerShape(24.dp)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            // The app's one focus treatment (`ui/common/Focus.kt`). The pill answers the same two
-            // questions every row in every list answers — is this where focus is, is this the one
-            // you are on — and used to answer them with its own tint and its own 2dp ring.
-            .focusSurface(focused = focused, shape = shape, selected = selected)
-            .onFocusChanged { focused = it.isFocused }
-            // `clickable` carries the focus target on its own; `focusable()` beside it would cost
-            // the remote a second press to pass every destination.
-            .clickable(onClick = onClick)
-            // The label is spoken and searched for whether or not it is drawn, which is what
-            // keeps the collapsed rail navigable (NFR-UX-05).
-            .semantics { contentDescription = destination.label }
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            imageVector = destination.icon,
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = if (focused || selected) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
-        )
-        AnimatedVisibility(
-            visible = expanded,
-            enter = fadeIn(tween(Motion.FAST)),
-            exit = fadeOut(tween(Motion.FAST)),
-        ) {
-            Text(
-                text = destination.label,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
     }
 }
 
@@ -490,7 +307,7 @@ private fun HomeBanner(
     showIdentity: Boolean,
     backdrop: Color,
     scrim: Color,
-    /** Room kept clear at the leading edge for the navigation capsule drawn over this. */
+    /** Room kept clear at the leading edge for the side menu's strip drawn over this. */
     startInset: Dp,
     /** Null when nothing is playing: there is no button to focus, so nothing asks for it. */
     watchFocus: FocusRequester?,
@@ -514,7 +331,8 @@ private fun HomeBanner(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .fillMaxWidth()
-                    .padding(start = startInset, end = TV_CONTENT_INSET, top = 16.dp, bottom = 16.dp),
+                    // Under the top bar, which now carries the clock this row used to end with.
+                    .padding(start = startInset, end = TV_CONTENT_INSET, top = BANNER_IDENTITY_TOP, bottom = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -529,8 +347,6 @@ private fun HomeBanner(
                         modifier = Modifier.weight(1f, fill = false),
                     )
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                ClockText()
             }
         }
 
@@ -829,20 +645,8 @@ private fun HomeTileArt(card: HomeCard, circular: Boolean, modifier: Modifier = 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000
 
-/** Room kept at the top of the navigation rail for the app's name, drawn only when it is open. */
-private val RAIL_HEADER_HEIGHT = 44.dp
-
-/** How far the floating navigation capsule sits from the edge of the panel. */
-private val NAV_RAIL_MARGIN = 12.dp
-
-/**
- * The least opaque the capsule is drawn while its labels are open.
- *
- * Only the focused end has a floor. Collapsed, the rail is a strip of icons glanced past and the
- * viewer's setting is the whole answer; open, it carries seven words that have to be read off
- * moving video.
- */
-private const val RAIL_FOCUSED_MIN_OPACITY = 0.9f
+/** Where the banner's channel line starts: under the top bar (`StudioTopBar`, 64dp) and a gap. */
+private val BANNER_IDENTITY_TOP = 72.dp
 
 /**
  * How much [com.tivicopy.player.ui.common.SectionHeader] insets its own label.
@@ -853,8 +657,6 @@ private const val RAIL_FOCUSED_MIN_OPACITY = 0.9f
  * full-bleed the same alignment came out of a bare `12.dp` that quietly encoded it.
  */
 internal val SECTION_HEADER_OWN_INSET = 12.dp
-
-/** The banner's button lifts less than a card does; it is already the largest control on screen. */
 
 /** How much of the banner's width the progress bar takes. Long enough to read, short of a rule. */
 private const val BANNER_PROGRESS_FRACTION = 0.45f

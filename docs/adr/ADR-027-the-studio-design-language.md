@@ -96,6 +96,12 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   focused button and chip, a shadow under every lift, and Studio's durations and curve. The guide's
   cells take the airing/future/past tones. Glow (`--st-tally-glow`) is not drawn: Compose has no
   coloured blur below API 28, and the fill and tally ring already carry the state.
+- Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
+  a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
+  dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,
+  recordings, then search and settings under a hairline). The top bar (`StudioTopBar`) is pinned
+  over the home screen with the app's name at the start and the clock and date at the end; the
+  banner no longer draws a clock of its own. The other screens take the top bar as each is redrawn.
 - Stage 1 changes how every screen looks at once, through `MaterialTheme`. Most visibly, focus
   turns from blue to amber everywhere, and the background darkens.
 - Text sizes follow the canvas exactly, which takes the smallest television text below the 12sp
