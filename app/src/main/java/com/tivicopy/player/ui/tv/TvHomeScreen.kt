@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
@@ -76,9 +75,10 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.ClockText
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
-import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.ProgrammeProgress
@@ -598,36 +598,15 @@ private fun HomeBanner(
 @Composable
 private fun WatchFullscreenButton(focusRequester: FocusRequester?, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(LocalTvMetrics.current.controlCorner)
     val label = stringResource(R.string.home_watch_fullscreen)
     Row(
         modifier = Modifier
-            .focusLift(focused, BUTTON_FOCUS_SCALE)
-            .clip(shape)
-            .background(
-                animatedColour(
-                    if (focused) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
-                    },
-                ),
-            )
-            // One width, crossing colour. This is the shell's one outlined button rather than a
-            // focusable surface — it keeps an edge at rest because it sits over live video, where
-            // a plate with no edge bleeds into a bright frame — but focus is carried by the fill
-            // going solid, so the ring has no reason to widen and shift the label inside it.
-            .border(
-                width = 1.dp,
-                color = animatedColour(
-                    if (focused) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outline
-                    },
-                ),
-                shape = shape,
-            )
+            .focusLift(focused, shape = shape)
+            // Studio's button (`canvas/Button.dc.html`): a translucent control with a hairline
+            // edge at rest, because it sits over live video where a plate with no edge bleeds into
+            // a bright frame, and the cue when focused.
+            .focusSurface(focused = focused, shape = shape, fill = FocusFill.FILLED)
             .onFocusChanged { focused = it.isFocused }
             .then(
                 if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
@@ -638,11 +617,7 @@ private fun WatchFullscreenButton(focusRequester: FocusRequester?, onClick: () -
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        val tint = if (focused) {
-            MaterialTheme.colorScheme.onPrimary
-        } else {
-            MaterialTheme.colorScheme.onSurface
-        }
+        val tint = filledContentColour(focused)
         Icon(
             imageVector = Icons.Filled.Fullscreen,
             contentDescription = null,
@@ -723,7 +698,7 @@ private fun HomeTile(
             // Grows on focus and is drawn over its neighbours while it does. Through a
             // `graphicsLayer`, so the row it sits in does not re-measure and the cards either
             // side of it do not move (`ui/common/Motion.kt`).
-            .focusLift(focused)
+            .focusLift(focused, shape = tvCardShape())
             .width(width)
             // The shell's one card look, shared with the filmstrip (`TvSurfaces.kt`).
             .tvCard(focused = focused, playing = playing)
@@ -880,7 +855,6 @@ private const val RAIL_FOCUSED_MIN_OPACITY = 0.9f
 internal val SECTION_HEADER_OWN_INSET = 12.dp
 
 /** The banner's button lifts less than a card does; it is already the largest control on screen. */
-private const val BUTTON_FOCUS_SCALE = 1.04f
 
 /** How much of the banner's width the progress bar takes. Long enough to read, short of a rule. */
 private const val BANNER_PROGRESS_FRACTION = 0.45f

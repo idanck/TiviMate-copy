@@ -4,9 +4,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.common.FocusFill
-import com.tivicopy.player.ui.common.PANEL_CORNER
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.panelSurface
 
@@ -24,26 +23,25 @@ import com.tivicopy.player.ui.common.panelSurface
  * So there are two things here and nothing else:
  *
  * - **A panel** ([tvGlassPanel]) — a floating plate the interface sits on. Inset from the edges,
- *   rounded at [TV_PANEL_CORNER], translucent at the viewer's own overlay opacity (FR-UI-18) so
+ *   rounded at the shell's panel corner, translucent at the viewer's own overlay opacity (FR-UI-18) so
  *   the picture behind it is never quite gone, and outlined by a hairline that is what stops a
  *   translucent plate from dissolving into a bright frame of video.
- * - **A card** ([tvCard]) — one focusable thing on a panel. Rounded at [TV_CARD_CORNER], and
+ * - **A card** ([tvCard]) — one focusable thing on a panel. Rounded at the card corner, and
  *   carrying the three states that matter across a room: resting, playing, focused.
  *
  * Both are `surface` rather than `background`: a plate that floats over video is raised, and the
  * ramp in `ui/theme/Theme.kt` already says what raised looks like.
  */
 
-/**
- * The corner of a floating panel: the transport bar, the filmstrip, the navigation capsule.
- *
- * The plate itself now lives in `ui/common/Panel.kt`, so the menus in both shells can be drawn on
- * the same one; this is the ten-foot name for it.
+/*
+ * Both corners are Studio's (`--st-r-panel`, `--st-r-card`) and come from `LocalTvMetrics`, so
+ * this file and the channel list's rows are cut from the same numbers. The plate itself lives in
+ * `ui/common/Panel.kt`, so the menus in both shells can be drawn on the same one.
  */
-internal val TV_PANEL_CORNER = PANEL_CORNER
 
-/** The corner of one card on a panel: a home tile, a filmstrip tile. */
-internal val TV_CARD_CORNER = 14.dp
+/** The card corner as a shape, for a card's focus lift to cast its shadow in. */
+@Composable
+internal fun tvCardShape(): Shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
 
 /**
  * A floating plate: translucent, rounded, hairlined.
@@ -57,7 +55,7 @@ internal val TV_CARD_CORNER = 14.dp
 @Composable
 internal fun Modifier.tvGlassPanel(
     opacity: Float,
-    shape: Shape = RoundedCornerShape(TV_PANEL_CORNER),
+    shape: Shape = RoundedCornerShape(LocalTvMetrics.current.panelCorner),
 ): Modifier = this.panelSurface(opacity, shape)
 
 /**
@@ -68,6 +66,7 @@ internal fun Modifier.tvGlassPanel(
  * treatment, shared with every row, chip, cell and tile in both shells. This is only the card's
  * two choices on top of it: the card corner, and [FocusFill.RAISE], because a card floats over
  * moving video and cannot answer with a translucent tint the way a row on a settled surface can.
+ * [playing] is the channel on screen, and takes the tally.
  *
  * Does not include the focus lift; that is [com.tivicopy.player.ui.common.focusLift], applied
  * before this so the growth happens outside the clip.
@@ -76,7 +75,7 @@ internal fun Modifier.tvGlassPanel(
 internal fun Modifier.tvCard(
     focused: Boolean,
     playing: Boolean = false,
-    shape: Shape = RoundedCornerShape(TV_CARD_CORNER),
+    shape: Shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner),
 ): Modifier = this.focusSurface(
     focused = focused,
     shape = shape,

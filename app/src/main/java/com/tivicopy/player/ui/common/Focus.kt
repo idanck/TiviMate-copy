@@ -2,14 +2,13 @@ package com.tivicopy.player.ui.common
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * What focus looks like, defined once for the whole app.
@@ -28,32 +27,30 @@ import androidx.compose.ui.unit.dp
  * remote across the app, which is the only way anyone actually uses it.
  *
  * So there is one function here, and everything focusable goes through it: [focusSurface]. It
- * takes the ring width from [LocalTvMetrics], so a phone keeps its 2dp and a television gets 3dp
- * without a single call site knowing which it is on, and it crosses both colours rather than
- * cutting them (`Motion.kt`).
+ * takes the ring width from [LocalTvMetrics], so no call site needs to know which shell it is
+ * on, and it crosses both colours rather than cutting them (`Motion.kt`).
  *
  * ## Four fills, and why not one
  *
  * A fill is how the *thing itself* answers "am I the one", and it depends on what is behind it:
  *
- * - [FocusFill.TINT] — a row, a chip, a grid cell: something on a surface, in a list of its
- *   peers. Focus tints it with the accent, which reads at a glance without repainting the row.
+ * - [FocusFill.TINT] — a row, a grid cell: something on a surface, in a list of its peers.
+ *   Focus steps it up to `card-focus` inside a cue ring.
  * - [FocusFill.RAISE] — a card floating over live video. It cannot tint, because what is behind
  *   it is a moving picture and a translucent accent over that is a different colour every frame.
- *   It goes opaque and steps up the surface ramp instead.
+ *   It is an opaque card that steps up the surface ramp, and the card on screen takes the tally.
  * - [FocusFill.NONE] — a tile whose own artwork *is* the content: an app icon, a film poster.
  *   Painting behind it does nothing, and painting over it hides the thing being chosen. The ring
  *   carries the whole answer.
  * - [FocusFill.FILLED] — a button. A button is not one of a list of peers; it is the one thing to
- *   press, and it says so by *becoming* the accent. That is a strong enough signal on its own, so
- *   this is the one fill that draws no ring: a ring around a filled button is a second answer to
- *   a question already answered.
+ *   press, and it says so by *becoming* the cue. That is a strong enough signal on its own, so
+ *   its edge only shows at rest: focused, the ring is the fill's own colour.
  *
  * The ring is the same in the three that have one, which is what makes them one vocabulary
  * rather than three.
  */
 enum class FocusFill {
-    /** Accent tint. Rows, chips, grid cells, navigation pills. */
+    /** Steps up to `card-focus` in a cue ring. Rows, grid cells, navigation entries. */
     TINT,
 
     /** Opaque step up the surface ramp. Cards over video. */
@@ -62,38 +59,37 @@ enum class FocusFill {
     /** No fill; the ring alone. Tiles whose artwork is the content. */
     NONE,
 
-    /** Becomes the accent, and draws no ring. Buttons. */
+    /** Becomes the cue. Buttons and chips. */
     FILLED,
 }
 
-/** How much of the picture a resting [FocusFill.RAISE] card still lets through. */
-private const val RAISE_RESTING_ALPHA = 0.65f
-
-/** The accent tint a focused [FocusFill.TINT] element takes. */
-private const val TINT_FOCUSED_ALPHA = 0.22f
-
-/**
- * The ring on the thing that is playing, or chosen, but is not where focus is.
- *
- * Same width as the focus ring, and only the alpha separates them. It used to be a thinner ring
- * in some places and a differently-coloured fill in others, which meant "this is the one playing"
- * and "this is the one you are on" were told apart differently on every screen.
- */
-private const val SELECTED_RING_ALPHA = 0.45f
-
 /**
  * Draws the app's focus treatment: clip, fill, ring.
+ *
+ * The states are the Studio canvas's (`docs/design/studio/canvas/`, ADR-027), and its rule is that
+ * focus has exactly one colour — the **cue**, `primary` — while what is on screen has another,
+ * the **tally**. So:
+ *
+ * | Fill | Resting | Focused | Selected |
+ * | --- | --- | --- | --- |
+ * | [FocusFill.TINT] (`ListRow`, `GuideCell`) | nothing | `card-focus`, cue ring | `card` |
+ * | [FocusFill.RAISE] (`ChannelCard`) | `card`, faint edge | `card-focus`, cue ring | on-screen fill, tally ring |
+ * | [FocusFill.FILLED] (`Button`, `Chip`) | `control`, faint edge | cue | ink |
+ * | [FocusFill.NONE] | nothing | cue ring | nothing |
+ *
+ * A filled element's content has to change colour with it; [filledContentColour] says to what.
  *
  * Deliberately does *not* include the focus lift — that is [focusLift], and it has to be applied
  * before this so the growth happens outside the clip.
  *
  * @param focused whether focus is on this element
  * @param shape the element's own shape; this modifier clips to it and rings it
- * @param selected whether this is the playing/chosen one, when focus is elsewhere
+ * @param selected for a card, that it is the channel on screen; for anything else, that it is
+ *   the chosen one, when focus is elsewhere
  * @param fill which of the four fills applies; see [FocusFill]
- * @param ringWidth defaults to the surrounding shell's ring — 2dp on a phone, 3dp on a
- *   television — and should only be passed explicitly by something that is not a normal
- *   focusable surface at all.
+ * @param ringWidth defaults to the surrounding shell's ring — 2dp in both shells, Studio's 4px at
+ *   1080p — and should only be passed explicitly by something that is not a normal focusable
+ *   surface at all.
  */
 @Composable
 fun Modifier.focusSurface(
@@ -103,33 +99,41 @@ fun Modifier.focusSurface(
     fill: FocusFill = FocusFill.TINT,
     ringWidth: Dp = LocalTvMetrics.current.focusRingWidth,
 ): Modifier {
-    val scheme = MaterialTheme.colorScheme
+    val studio = StudioTheme.colors
     // Every resting value is its own colour at alpha zero, never `Color.Transparent`: transparent
     // is transparent *black*, and a bright ring interpolating towards it darkens on its way out.
     val ring = animatedColour(
-        when {
-            focused -> scheme.primary
-            selected -> scheme.primary.copy(alpha = SELECTED_RING_ALPHA)
-            else -> scheme.primary.copy(alpha = 0f)
+        when (fill) {
+            FocusFill.TINT, FocusFill.NONE -> if (focused) studio.cue else studio.cue.copy(alpha = 0f)
+            FocusFill.RAISE -> when {
+                focused -> studio.cue
+                selected -> studio.tally
+                else -> studio.hairlineSoft
+            }
+            FocusFill.FILLED -> when {
+                focused -> studio.cue
+                selected -> studio.ink
+                else -> studio.hairline
+            }
         },
     )
     val background = when (fill) {
         FocusFill.TINT -> when {
-            focused -> scheme.primary.copy(alpha = TINT_FOCUSED_ALPHA)
-            selected -> scheme.surfaceVariant
-            else -> scheme.surfaceVariant.copy(alpha = 0f)
+            focused -> studio.cardFocus
+            selected -> studio.card
+            else -> studio.cardFocus.copy(alpha = 0f)
         }
 
         FocusFill.RAISE -> when {
-            focused -> scheme.surfaceVariant
-            selected -> scheme.surface
-            else -> scheme.surface.copy(alpha = RAISE_RESTING_ALPHA)
+            focused -> studio.cardFocus
+            selected -> studio.onScreen
+            else -> studio.card
         }
 
         FocusFill.FILLED -> when {
-            focused -> scheme.primary
-            selected -> scheme.primaryContainer
-            else -> scheme.surfaceVariant
+            focused -> studio.cue
+            selected -> studio.ink
+            else -> studio.control
         }
 
         // Not painted at all, rather than painted with something transparent: a background of any
@@ -145,7 +149,29 @@ fun Modifier.focusSurface(
                 Modifier.background(animatedColour(background))
             },
         )
-        // One width for all three states. It used to widen on focus in several places, which
-        // moves the element's own contents inside the clip at the moment it is pressed.
-        .border(if (fill == FocusFill.FILLED) 0.dp else ringWidth, ring, shape)
+        // One width for every state. It used to widen on focus in several places, which moves
+        // the element's own contents inside the clip at the moment it is pressed. A filled
+        // element's edge matches its fill when focused or selected, so only the resting hairline
+        // shows.
+        .border(ringWidth, ring, shape)
+}
+
+/**
+ * The colour of a [FocusFill.FILLED] element's label or icon, which has to turn over with its
+ * fill: dark on the cue, dark on the ink of a selected chip or a primary button, and ink on a
+ * resting control.
+ *
+ * @param muted for a resting chip, whose label is secondary until it is chosen
+ */
+@Composable
+fun filledContentColour(focused: Boolean, selected: Boolean = false, muted: Boolean = false): Color {
+    val studio = StudioTheme.colors
+    return animatedColour(
+        when {
+            focused -> studio.onCue
+            selected -> studio.ground
+            muted -> studio.ink2
+            else -> studio.ink
+        },
+    )
 }

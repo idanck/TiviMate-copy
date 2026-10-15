@@ -3,7 +3,8 @@
 ## Status
 
 Accepted. Completes ADR-023, which defined the shell's two shapes and applied them to four
-surfaces.
+surfaces. The single treatment stands; its colours, ring width and corners are restated in Studio
+terms by ADR-027 (cue for focus, tally for the channel on screen, a 2dp ring, the canvas's radii).
 
 ## Context
 

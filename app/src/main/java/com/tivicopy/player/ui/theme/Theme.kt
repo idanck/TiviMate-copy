@@ -173,17 +173,28 @@ private val StudioScheme = schemeFor(Studio)
 private val StudioAmoledScheme = schemeFor(StudioAmoled)
 
 /**
- * One corner ramp for the whole app. Unchanged by the Studio palette: the canvas's radii (`--st-r-*`)
- * land with the surfaces and focus treatment they belong to, in the next step of the migration
- * (`docs/design/studio/MIGRATION.md`), not here.
+ * The canvas's corner radii (`--st-r-*`) as Material's ramp, so a stock Material component — a
+ * dialog, a menu — lands on a Studio corner without knowing which shell it is in. The television's
+ * are the canvas's 1080p pixels halved; the phone's are as drawn. The app's own surfaces read the
+ * same numbers by name from `LocalTvMetrics`.
  */
-private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(28.dp),
-)
+private fun shapesFor(television: Boolean) = if (television) {
+    Shapes(
+        extraSmall = RoundedCornerShape(5.dp), // badge
+        small = RoundedCornerShape(6.dp), // card, chip
+        medium = RoundedCornerShape(7.dp), // control
+        large = RoundedCornerShape(12.dp), // panel
+        extraLarge = RoundedCornerShape(12.dp), // panel, menu
+    )
+} else {
+    Shapes(
+        extraSmall = RoundedCornerShape(8.dp), // badge
+        small = RoundedCornerShape(10.dp), // card
+        medium = RoundedCornerShape(12.dp), // control
+        large = RoundedCornerShape(20.dp), // panel
+        extraLarge = RoundedCornerShape(24.dp), // sheet, menu
+    )
+}
 
 private val LocalStudioColors = staticCompositionLocalOf { Studio }
 private val LocalStudioType = staticCompositionLocalOf { studioTypeFor(television = true, scale = 1f) }
@@ -223,6 +234,7 @@ fun TiviCopyTheme(
     val scale = fontScale.coerceIn(0.8f, 1.6f)
     val type = remember(television, scale) { studioTypeFor(television, scale) }
     val typography = remember(type) { typographyFor(type) }
+    val shapes = remember(television) { shapesFor(television) }
     CompositionLocalProvider(
         LocalStudioColors provides colors,
         LocalStudioType provides type,
@@ -230,7 +242,7 @@ fun TiviCopyTheme(
         MaterialTheme(
             colorScheme = scheme,
             typography = typography,
-            shapes = AppShapes,
+            shapes = shapes,
             content = content,
         )
     }

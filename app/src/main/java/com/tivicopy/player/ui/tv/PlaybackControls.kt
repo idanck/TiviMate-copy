@@ -55,6 +55,8 @@ import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.filledContentColour
+import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.labelRes
@@ -245,6 +247,7 @@ private fun TransportButton(
     Box(
         modifier = modifier
             .size(size)
+            .focusLift(focused, shape = CircleShape)
             // A button says it has focus by becoming the accent, which is what this one already
             // did — over a ring that widened from 0dp to 3dp and rested on `Color.Transparent`,
             // so the icon shifted inside the circle and the ring darkened on its way out. The
@@ -262,11 +265,9 @@ private fun TransportButton(
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = if (focused) {
-                MaterialTheme.colorScheme.onPrimary
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
+            // The play button is Studio's primary variant — ink at rest — so its icon turns over
+            // with it as every other button's does with focus.
+            tint = filledContentColour(focused, selected = primary),
             modifier = Modifier.size(if (primary) 32.dp else 24.dp),
         )
     }
@@ -413,12 +414,14 @@ private fun MenuEntry(
     // from the shell rather than written again here. This menu is the one surface ADR-023 fixed,
     // and its own rows were still drawing an 8dp corner, a 2dp ring, and both colours cut rather
     // than crossed — over `Color.Transparent`, which is transparent *black*.
-    val shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
+    val metrics = LocalTvMetrics.current
+    val shape = RoundedCornerShape(metrics.rowCorner)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
+            .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
             .focusSurface(focused = focused, shape = shape, selected = selected)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)

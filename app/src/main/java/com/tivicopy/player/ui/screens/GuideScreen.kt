@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -56,10 +57,12 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.EmptyState
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
-import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 
 // The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
@@ -320,19 +323,16 @@ private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit) {
 @Composable
 private fun DayChip(label: String, date: String, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    // `large` from the ramp rather than a literal 20dp, which is what this always was.
-    val shape = MaterialTheme.shapes.large
+    // Studio's chip (`canvas/Chip.dc.html`): a quiet surface at rest, ink when it is the chosen
+    // day, the cue when focus is on it.
+    val shape = RoundedCornerShape(LocalTvMetrics.current.chipCorner)
     // One line, not two. This strip sits between the guide's preview and its grid on a
     // television, where every dp it takes is taken from the rows — and a row is what anyone
     // opened the guide to read.
     Row(
         modifier = Modifier
-            .focusLift(focused, DAY_CHIP_FOCUS_SCALE)
-            // The chip's states are the app's states: the chosen day is `selected`, drawn the
-            // same way the playing channel is drawn in every list. It used to answer with a
-            // `primaryContainer` fill and a 2dp ring, which meant "this is the one" looked
-            // different here from everywhere else a viewer had just been.
-            .focusSurface(focused = focused, shape = shape, selected = selected)
+            .focusLift(focused, shape = shape)
+            .focusSurface(focused = focused, shape = shape, selected = selected, fill = FocusFill.FILLED)
             .onFocusChanged { focused = it.isFocused }
             // As everywhere else in this grid: `clickable` is the focus target on its own.
             .clickable(onClick = onClick)
@@ -344,14 +344,14 @@ private fun DayChip(label: String, date: String, selected: Boolean, onClick: () 
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = filledContentColour(focused, selected),
             maxLines = 1,
         )
         Text(
             // `dd/MM` beside Hebrew reorders unless it is isolated (FR-UI-21).
             text = TimeModel.ltr(date),
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = filledContentColour(focused, selected, muted = true),
             maxLines = 1,
         )
     }
@@ -519,20 +519,25 @@ private fun ProgrammeCell(
     // in this grid has to be visible at rest, and the one airing now is what the grid is read to
     // find. The focus treatment layers over it (`ui/common/Focus.kt`) instead of replacing it,
     // which is what lets a focused cell still say whether it is the live one.
-    val body = animatedColour(
-        if (live) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-    )
+    // Studio's three cell tones (`canvas/GuideCell.dc.html`): aired, airing now, still to come.
+    val studio = StudioTheme.colors
+    val body = when {
+        live -> studio.airing
+        programme.endUtc <= now -> studio.past
+        else -> studio.future
+    }
     val metrics = LocalTvMetrics.current
-    // The corner comes from the ramp rather than a literal: a cell is the smallest thing the app
-    // cuts a corner on, which is exactly what `extraSmall` is for.
-    val cellShape = MaterialTheme.shapes.extraSmall
+    // A cell is a card in Studio, and is cut like one.
+    val cellShape = RoundedCornerShape(metrics.rowCorner)
     Column(
         modifier = Modifier
             // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
             // alone is hard to find on a wall of cells from across a room. It grew instantly
             // until `focusLift` existed, which on a grid this dense read as the cells flickering
             // rather than as one of them rising (`ui/common/Motion.kt`).
-            .focusLift(focused, FOCUSED_CELL_SCALE)
+            // Studio does not grow a cell — on a grid this dense it would cover its neighbours —
+            // but it does lift it: the shadow and the cue ring are the answer.
+            .focusLift(focused, scale = 1f, shape = cellShape)
             .width(millisToDp(widthMillis, metrics.guideHourWidth))
             .height(metrics.guideRowHeight)
             .padding(2.dp)
@@ -585,12 +590,6 @@ private fun ProgrammeCell(
         }
     }
 }
-
-/** How far a focused cell lifts. Enough to read as raised, short of covering its neighbours. */
-private const val FOCUSED_CELL_SCALE = 1.05f
-
-/** A day chip is small; it lifts less, or it reads as jumping. */
-private const val DAY_CHIP_FOCUS_SCALE = 1.04f
 
 private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
 

@@ -51,7 +51,7 @@ data class TvMetrics(
     /** Width of one card on a home-screen rail. */
     val homeCardWidth: Dp,
     /**
-     * The corner every focusable list row is cut to.
+     * The corner every card and focusable list row is cut to (Studio `--st-r-card`).
      *
      * A phone row is read at arm's length and a television row from three metres, where the
      * original 8dp read as a plain rectangle. Giving the ten-foot shell a card corner is what
@@ -64,11 +64,24 @@ data class TvMetrics(
      * ring in that shell is (NFR-UX-02): it is read at distance, and often against moving video.
      */
     val focusRingWidth: Dp,
+    /** The corner of a button (Studio `--st-r-control`). */
+    val controlCorner: Dp,
+    /** The corner of a chip, such as the guide's day strip (Studio `--st-r-chip`). */
+    val chipCorner: Dp,
+    /** The corner of a floating panel and of every menu (Studio `--st-r-panel`). */
+    val panelCorner: Dp,
+    /**
+     * How much a focused card or button grows (Studio `--st-focus-scale`). One on a phone, where
+     * nothing has focus in the ten-foot sense and a tile that grows under a finger reads as a bug.
+     */
+    val focusScale: Float,
+    /** How much a focused list row grows: less than a card, because a row is the width of a panel. */
+    val rowFocusScale: Float,
 ) {
     companion object {
         /**
          * The values every screen used before this type existed, and what the touch shell still
-         * uses.
+         * uses. Its shapes and focus are Studio's phone values (`studio-phone.css`).
          */
         val Phone = TvMetrics(
             guideHourWidth = 240.dp,
@@ -81,8 +94,13 @@ data class TvMetrics(
             homeNavRailCollapsedWidth = 64.dp,
             homeHeroHeight = 320.dp,
             homeCardWidth = 180.dp,
-            rowCorner = 8.dp,
+            rowCorner = 10.dp,
             focusRingWidth = 2.dp,
+            controlCorner = 12.dp,
+            chipCorner = 18.dp,
+            panelCorner = 20.dp,
+            focusScale = 1f,
+            rowFocusScale = 1f,
         )
     }
 }
@@ -131,11 +149,16 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         homeNavRailCollapsedWidth = base.homeNavRailCollapsedWidth * scale,
         homeHeroHeight = heroHeightFor(heightDp).dp,
         homeCardWidth = base.homeCardWidth * scale,
-        // Flat, not scaled. These two are about how a shape reads at a viewing distance, and a
+        // Flat, not scaled. These are about how a shape reads at a viewing distance, and a
         // bigger panel does not move the sofa: a 4K television wants the same corner and the same
         // ring as a 1080p one, which is exactly what scaling them would take away.
-        rowCorner = TV_ROW_CORNER,
+        rowCorner = TV_CARD_CORNER,
         focusRingWidth = TV_FOCUS_RING_WIDTH,
+        controlCorner = TV_CONTROL_CORNER,
+        chipCorner = TV_CHIP_CORNER,
+        panelCorner = TV_PANEL_CORNER,
+        focusScale = TV_FOCUS_SCALE,
+        rowFocusScale = TV_ROW_FOCUS_SCALE,
     )
 }
 
@@ -165,14 +188,21 @@ private const val RAIL_TEASER_HEIGHT = 150f
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.6f
 
-/**
- * The ten-foot row shape, matching `ui/tv/TvSurfaces.kt`'s card corner so a channel row and a
- * home tile are cut the same way.
+/*
+ * The ten-foot shapes and focus, from the Studio canvas (`docs/design/studio/studio.css`), whose
+ * 1080p pixels are half a dp. A card and a row share a corner, so a channel row and a home tile
+ * are cut the same way.
  */
-private val TV_ROW_CORNER = 14.dp
+private val TV_CARD_CORNER = 6.dp
+private val TV_CONTROL_CORNER = 7.dp
+private val TV_CHIP_CORNER = 6.dp
+private val TV_PANEL_CORNER = 12.dp
 
-/** The ten-foot focus ring, matching every other ring the television shell draws. */
-private val TV_FOCUS_RING_WIDTH = 3.dp
+/** The cue ring: 4px on the canvas. One width for every ring the television shell draws. */
+private val TV_FOCUS_RING_WIDTH = 2.dp
+
+private const val TV_FOCUS_SCALE = 1.05f
+private const val TV_ROW_FOCUS_SCALE = 1.02f
 
 /** Floors and ceilings for the derived row height, so an odd viewport cannot produce a silly one. */
 private const val MIN_ROW_HEIGHT = 56f
