@@ -230,11 +230,14 @@ fun MobileRoot(
                 // otherwise has no entry point at all on the phone.
                 val searchable = !showAddSource && !searching &&
                     tab in setOf(MobileTab.LIVE, MobileTab.RADIO, MobileTab.GUIDE, MobileTab.VOD)
-                // Only the tabs that draw no heading of their own take a title: recordings and
-                // every settings section set theirs in the screen, and the add screen and search
-                // do too, so a title here would be the same words twice.
+                // Only the screens that draw no heading of their own take a title: recordings and
+                // every settings section set theirs in the screen, and search is its field. The
+                // add screen and on-demand title themselves on a television only; on a phone their
+                // title is this bar's (`PAddSource`, `PVod`).
                 val title = when {
-                    showAddSource || searching -> null
+                    showAddSource -> stringResource(R.string.setup_title)
+                    searching -> null
+                    tab == MobileTab.VOD -> stringResource(R.string.nav_vod)
                     tab == MobileTab.LIVE -> stringResource(R.string.nav_live)
                     tab == MobileTab.GUIDE -> stringResource(R.string.nav_guide)
                     tab == MobileTab.RADIO -> stringResource(R.string.nav_radio)

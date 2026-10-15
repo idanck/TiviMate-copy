@@ -162,11 +162,10 @@ fun AddSourceScreen(
         ) {
             // `TvAddSource`: a Karantina title, the sentence that says what the app is, and the three
             // kinds of source as chips.
-            Text(
-                text = stringResource(R.string.setup_title),
-                style = if (tv) StudioTheme.type.title else StudioTheme.type.titleSmall,
-                color = studio.ink,
-            )
+            // A phone's title is its top bar's (`PAddSource`).
+            if (tv) {
+                Text(text = stringResource(R.string.setup_title), style = StudioTheme.type.title, color = studio.ink)
+            }
             Text(
                 text = stringResource(R.string.setup_intro),
                 style = if (tv) StudioTheme.type.body else StudioTheme.type.meta,
@@ -260,7 +259,7 @@ fun AddSourceScreen(
                     StudioButton(
                         label = stringResource(R.string.setup_test),
                         icon = StudioIcons.Network,
-                        size = StudioButtonSize.MEDIUM,
+                        size = if (tv) StudioButtonSize.MEDIUM else StudioButtonSize.LARGE,
                         variant = StudioButtonVariant.SECONDARY,
                         enabled = !busy && url.isNotBlank(),
                         onClick = {
@@ -294,7 +293,7 @@ fun AddSourceScreen(
                 StudioButton(
                     label = stringResource(R.string.action_save),
                     icon = StudioIcons.Check,
-                    size = StudioButtonSize.MEDIUM,
+                    size = if (tv) StudioButtonSize.MEDIUM else StudioButtonSize.LARGE,
                     variant = StudioButtonVariant.PRIMARY,
                     enabled = !busy && url.isNotBlank(),
                     onClick = {
