@@ -1,6 +1,6 @@
 # ADR-027 — The Studio design language
 
-**Status:** accepted. Supersedes the typeface and the palette of ADR-019, and the *shape* of the
+**Status:** accepted; all five stages landed (0.11.0 to 0.13.3). Supersedes the typeface and the palette of ADR-019, and the *shape* of the
 television's navigation in ADR-020 and ADR-022. Lands in stages (see Consequences); this record
 covers the language as a whole so each stage does not need its own.
 
@@ -134,3 +134,8 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
 - Light and "follow system" themes are withdrawn, since Studio is drawn dark only: ADR-028.
 - `docs/design/README.md` and the older canvas (`build_canvas.py`) describe the pre-Studio system
   and are superseded by `docs/design/studio/` as each stage lands.
+- Not drawn yet, after the five stages: the guide's focused-programme panel and the top bar on the
+  television's guide, recordings and settings; two-pane settings and recordings; the television
+  radio's station strip; the phone's "more channels" rows under Now Playing and its guide's
+  selected-programme sheet; icons on the phone's settings rows; the tally glow. Each is a
+  layout addition on top of the language, not a change to it.
