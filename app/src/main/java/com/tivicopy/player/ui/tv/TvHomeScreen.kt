@@ -489,7 +489,8 @@ private fun HomeCardRail(
                 .focusGroup(),
             // The home screen is drawn without `OverlayScaffold`'s content inset — a full-bleed
             // banner cannot start 24dp from the edge — so the rails apply it themselves, plus
-            // room for the navigation capsule at the leading edge and a focused card's ring.
+            // room for the side menu's closed strip at the leading edge and a focused card's
+            // ring.
             contentPadding = PaddingValues(
                 start = startInset,
                 end = TV_CONTENT_INSET,

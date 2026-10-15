@@ -100,8 +100,8 @@ fun ChannelFilmstrip(
     LazyRow(
         state = listState,
         // A floating plate rather than an edge-to-edge band, so the reel belongs to the same
-        // family as the navigation capsule and the transport bar (`TvSurfaces.kt`) instead of
-        // reading as a black bar the picture stops at.
+        // family as the transport bar (`TvSurfaces.kt`) instead of reading as a black bar the
+        // picture stops at.
         modifier = modifier
             .padding(horizontal = TV_CONTENT_INSET, vertical = 12.dp)
             .tvGlassPanel(opacity),

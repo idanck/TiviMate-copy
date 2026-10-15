@@ -12,13 +12,13 @@ import com.tivicopy.player.ui.common.panelSurface
 /**
  * The two shapes every ten-foot surface is drawn from, and the modifiers that draw them.
  *
- * ADR-020 built the home screen and ADR-022 made its navigation a floating capsule, but each
- * surface in this shell had arrived with its own idea of what a surface looks like: the transport
- * bar and the channel filmstrip were edge-to-edge bands of `background` at the viewer's overlay
- * opacity, the playback menu was a square-cornered `surface` plate at a hard-coded 0.97, the home
- * tiles were 12dp cards and the filmstrip's were 10dp — with the *same* three-state colour and
- * border logic copied into both. Screens that were built at different times looked it, which is
- * exactly the complaint this file exists to answer.
+ * ADR-020 built the home screen and ADR-022 made its navigation a floating capsule (since
+ * replaced by ADR-027's side menu), but each surface in this shell had arrived with its own idea
+ * of what a surface looks like: the transport bar and the channel filmstrip were edge-to-edge
+ * bands of `background` at the viewer's overlay opacity, the playback menu was a square-cornered
+ * `surface` plate at a hard-coded 0.97, the home tiles were 12dp cards and the filmstrip's were
+ * 10dp — with the *same* three-state colour and border logic copied into both. Screens that were
+ * built at different times looked it, which is exactly the complaint this file exists to answer.
  *
  * So there are two things here and nothing else:
  *

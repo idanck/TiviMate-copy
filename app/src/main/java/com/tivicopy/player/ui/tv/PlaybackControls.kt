@@ -109,8 +109,7 @@ fun TransportBar(
 
     Column(
         // A floating plate, inset from the edges, rather than a band the picture stops at —
-        // the same surface the filmstrip and the navigation capsule are drawn from
-        // (`TvSurfaces.kt`).
+        // the same surface the filmstrip is drawn from (`TvSurfaces.kt`).
         modifier = modifier
             .fillMaxWidth()
             .padding(TV_CONTENT_INSET)
