@@ -90,6 +90,12 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   change; (2) surfaces, focus, metrics and motion; (3) television navigation; (4) television
   screens; (5) the phone. Between stages the app is a consistent mix: Studio's colour and type on
   the previous layout.
+- Stage 2 puts Studio's shapes, focus and motion into the shared modifiers: the canvas's radii
+  per shell in `TvMetrics` (and Material's `Shapes`), a 2dp cue ring on a television where it was
+  3dp, `card-focus` as the focused fill, the tally on the card that is on screen, the cue as the
+  focused button and chip, a shadow under every lift, and Studio's durations and curve. The guide's
+  cells take the airing/future/past tones. Glow (`--st-tally-glow`) is not drawn: Compose has no
+  coloured blur below API 28, and the fill and tally ring already carry the state.
 - Stage 1 changes how every screen looks at once, through `MaterialTheme`. Most visibly, focus
   turns from blue to amber everywhere, and the background darkens.
 - Text sizes follow the canvas exactly, which takes the smallest television text below the 12sp

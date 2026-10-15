@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
 import com.tivicopy.player.ui.common.FocusFill
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
@@ -159,11 +160,11 @@ internal fun HomeAppStrip(
 private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     // The card corner, from the same place the home tiles and the filmstrip take it.
-    val shape = RoundedCornerShape(TV_CARD_CORNER)
+    val shape = RoundedCornerShape(LocalTvMetrics.current.rowCorner)
     Column(
         modifier = Modifier
             // The same lift every other card in the shell uses (`ui/common/Motion.kt`).
-            .focusLift(focused)
+            .focusLift(focused, shape = shape)
             .width(APP_TILE_WIDTH.dp)
             .clip(shape)
             .onFocusChanged { focused = it.isFocused }

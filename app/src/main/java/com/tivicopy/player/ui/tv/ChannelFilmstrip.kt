@@ -143,7 +143,7 @@ private fun FilmstripTile(
             // Grows on focus and is drawn over its neighbours while it does, as the home rails
             // do — through a `graphicsLayer`, so the reel does not re-measure and the tiles
             // either side of it stay where they are.
-            .focusLift(focused)
+            .focusLift(focused, shape = tvCardShape())
             .width(TILE_WIDTH)
             // The same three states, the same ring, the same corner as a home tile: one card
             // look for the whole shell (`TvSurfaces.kt`), rather than this file's own copy of it.

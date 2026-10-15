@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * The floating plate the interface sits on, and the one menu drawn on it.
@@ -32,17 +33,13 @@ import com.tivicopy.player.ServiceLocator
  * `ui/tv/TvSurfaces.kt` keeps the ten-foot names that point at it.
  */
 
-/** The corner of a floating plate. The same value `Shapes.extraLarge` carries, deliberately. */
-val PANEL_CORNER = 28.dp
-
-/**
- * The hairline around a panel.
+/*
+ * The hairline around a panel (Studio `--st-hairline`).
  *
  * Load-bearing rather than decorative. A translucent plate over a dark scene has an edge; over a
  * bright one it does not, and the interface appears to bleed into the picture. A single low-alpha
- * line off `onSurface` reads on both without ever becoming a frame.
+ * white line reads on both without ever becoming a frame.
  */
-private const val PANEL_BORDER_ALPHA = 0.12f
 
 /**
  * The floor a menu keeps under the viewer's overlay-opacity setting.
@@ -62,13 +59,13 @@ const val MENU_MIN_OPACITY = 0.92f
 @Composable
 fun Modifier.panelSurface(
     opacity: Float,
-    shape: Shape = RoundedCornerShape(PANEL_CORNER),
+    shape: Shape = RoundedCornerShape(LocalTvMetrics.current.panelCorner),
 ): Modifier = this
     .clip(shape)
     .background(MaterialTheme.colorScheme.surface.copy(alpha = opacity))
     .border(
         width = 1.dp,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = PANEL_BORDER_ALPHA),
+        color = StudioTheme.colors.hairline,
         shape = shape,
     )
 
@@ -105,7 +102,7 @@ fun AppDialog(
         confirmButton = confirmButton,
         modifier = modifier.border(
             width = 1.dp,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = PANEL_BORDER_ALPHA),
+            color = StudioTheme.colors.hairline,
             shape = shape,
         ),
         dismissButton = dismissButton,

@@ -2,7 +2,7 @@ package com.tivicopy.player.ui.common
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -35,7 +36,7 @@ import androidx.compose.ui.zIndex
  *   recompose or re-measure it. That is why [focusLift] hands the animation into the lambda
  *   rather than reading it with `by` in the composition, which would recompose the tile on
  *   every frame of every focus change.
- * - **One vocabulary.** Focus lifts by [FOCUS_SCALE] on a spring; colours cross in [Motion.FAST];
+ * - **One vocabulary.** Focus lifts by [TvMetrics.focusScale] on a spring; colours cross in [Motion.FAST];
  *   a surface arriving fades and rises in [Motion.ENTRANCE]. A screen that invents its own
  *   timing reads as a different app.
  * - **Nothing loops.** No idle animation anywhere: with nothing happening the app renders zero
@@ -48,14 +49,20 @@ import androidx.compose.ui.zIndex
  */
 object Motion {
 
-    /** A colour crossing, a label appearing: short enough to feel immediate. */
-    const val FAST = 120
+    /** A colour crossing, a label appearing: short enough to feel immediate (Studio `--st-dur-focus`). */
+    const val FAST = 150
 
     /** The default for anything with size or position in it. */
     const val STANDARD = 200
 
-    /** A whole surface arriving over the video. */
-    const val ENTRANCE = 260
+    /** A whole surface arriving over the video (Studio `--st-dur-panel`). */
+    const val ENTRANCE = 220
+
+    /**
+     * The one curve every timed transition uses (Studio `--st-ease`, `cubic-bezier(0.2, 0, 0, 1)`):
+     * it leaves at once and settles slowly, so a change reads as having already happened.
+     */
+    val Ease = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
     /**
      * The focus lift.
@@ -71,31 +78,52 @@ object Motion {
     )
 }
 
-/** How much a focused card grows. Enough to find from across a room, short of hiding its neighbour. */
-const val FOCUS_SCALE = 1.06f
+/**
+ * How far a lifted element's shadow falls (Studio `--st-lift`, `0 14px 30px` at 1080p). The shadow
+ * is what makes the lift read as *rising* rather than just growing.
+ */
+private val LIFT_ELEVATION = 8.dp
 
 /**
- * Lifts a focused element: it grows a little and is drawn over what it now overlaps.
+ * Lifts a focused element: it grows a little, casts a shadow, and is drawn over what it now
+ * overlaps.
  *
  * The scale is applied in a `graphicsLayer`, so nothing around it moves — a focused card in a
  * row does not push the row along, which is what makes this safe to put on every tile in a
  * `LazyRow`. [zIndex] is read from the boolean rather than from the animation so it costs one
  * recomposition per focus change instead of one per frame.
+ *
+ * @param scale how much to grow; defaults to the shell's card scale ([TvMetrics.focusScale]),
+ *   which is 1 on a phone
+ * @param shape the element's own shape, for its shadow. Null casts none — for something that
+ *   is not a raised object, such as a row on a panel.
  */
 @Composable
-fun Modifier.focusLift(focused: Boolean, scale: Float = FOCUS_SCALE): Modifier {
-    val factor = animateFloatAsState(
-        targetValue = if (focused) scale else 1f,
+fun Modifier.focusLift(
+    focused: Boolean,
+    scale: Float = LocalTvMetrics.current.focusScale,
+    shape: Shape? = null,
+): Modifier {
+    val lift = animateFloatAsState(
+        targetValue = if (focused) 1f else 0f,
         animationSpec = Motion.FocusSpring,
         label = "focusLift",
     )
+    val liftShape = shape
+    val elevationPx = if (liftShape == null) 0f else with(LocalDensity.current) { LIFT_ELEVATION.toPx() }
     return this
         .zIndex(if (focused) 1f else 0f)
         .graphicsLayer {
             // Read here, in the draw phase: the frames of this animation cost a redraw of one
             // node and no recomposition at all.
-            scaleX = factor.value
-            scaleY = factor.value
+            val factor = 1f + (scale - 1f) * lift.value
+            scaleX = factor
+            scaleY = factor
+            if (liftShape != null) {
+                this.shape = liftShape
+                clip = false
+                shadowElevation = elevationPx * lift.value.coerceIn(0f, 1f)
+            }
         }
 }
 
@@ -110,7 +138,7 @@ fun Modifier.focusLift(focused: Boolean, scale: Float = FOCUS_SCALE): Modifier {
 fun animatedColour(target: Color, durationMillis: Int = Motion.FAST): Color =
     animateColorAsState(
         targetValue = target,
-        animationSpec = tween(durationMillis, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis, easing = Motion.Ease),
         label = "colour",
     ).value
 
@@ -130,7 +158,7 @@ fun Modifier.screenEntrance(key: Any?, rise: Dp = 12.dp): Modifier {
     val progress = remember { Animatable(0f) }
     LaunchedEffect(key) {
         progress.snapTo(0f)
-        progress.animateTo(1f, tween(Motion.ENTRANCE, easing = FastOutSlowInEasing))
+        progress.animateTo(1f, tween(Motion.ENTRANCE, easing = Motion.Ease))
     }
     val risePx = with(LocalDensity.current) { rise.toPx() }
     return this.graphicsLayer {

@@ -221,6 +221,9 @@ fun FocusableRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
             .fillMaxWidth()
+            // Studio's row lift (`--st-focus-scale-row`): less than a card's, because a row is
+            // the width of its panel. One on a phone.
+            .focusLift(focused, scale = rowMetrics.rowFocusScale, shape = rowShape)
             // The app's one focus treatment (`ui/common/Focus.kt`), tinting rather than raising
             // because a row sits on a settled surface. Every list in the app is built from this
             // row, so this one call is most of what focus feels like here.
