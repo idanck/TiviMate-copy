@@ -105,6 +105,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   the shifting background, the station's disc in a halo, the song in Karantina with the artist
   under it, and play/pause and favourite as Studio buttons. How it meets the screensaver is
   ADR-030; its equaliser, measured from the player's own output, is ADR-031.
+- Stage 5 redraws the phone. Its first part is the chrome: `PTopBar` (back, the title in
+  Karantina, search), `PNavBar` (five tabs, the current one in a cue pill, recordings in
+  on-demand's place: ADR-032) and `PMiniPlayer` (a card with the channel under a tally dot, the
+  title, play/pause and a 2dp progress line), in `ui/mobile/PhoneChrome.kt`.
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,
