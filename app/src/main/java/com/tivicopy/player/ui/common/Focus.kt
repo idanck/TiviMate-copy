@@ -5,9 +5,11 @@ import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
@@ -141,6 +143,8 @@ fun Modifier.focusSurface(
         FocusFill.NONE -> Color.Unspecified
     }
     return this
+        // Studio's tally glow (`--st-tally-glow`) round the card that is on screen.
+        .then(if (fill == FocusFill.RAISE && selected && !focused) Modifier.tallyGlow(shape) else Modifier)
         .clip(shape)
         .then(
             if (fill == FocusFill.NONE) {
@@ -175,3 +179,19 @@ fun filledContentColour(focused: Boolean, selected: Boolean = false, muted: Bool
         },
     )
 }
+
+/**
+ * Studio's tally glow (`--st-tally-glow`): a soft red light round what is on screen, drawn as a
+ * coloured shadow. Shadow colours exist from Android 9 (API 28); below that a shadow can only be
+ * black, which would read as depth rather than as the light, so older devices go without — the
+ * on-screen fill and the tally ring already carry the state.
+ */
+@Composable
+fun Modifier.tallyGlow(shape: Shape): Modifier {
+    if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) return this
+    val glow = StudioTheme.colors.tallyGlow
+    return shadow(elevation = TALLY_GLOW_ELEVATION, shape = shape, clip = false, ambientColor = glow, spotColor = glow)
+}
+
+/** How far the glow spreads: `0 0 22px` at the phone's scale. */
+private val TALLY_GLOW_ELEVATION = 11.dp

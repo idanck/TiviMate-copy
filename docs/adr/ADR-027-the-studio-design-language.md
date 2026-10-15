@@ -134,11 +134,6 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
 - Light and "follow system" themes are withdrawn, since Studio is drawn dark only: ADR-028.
 - `docs/design/README.md` and the older canvas (`build_canvas.py`) describe the pre-Studio system
   and are superseded by `docs/design/studio/` as each stage lands.
-- Not drawn yet, after the five stages: the guide's focused-programme panel and the top bar on the
-  television's guide, recordings and settings; two-pane settings and recordings; the television
-  radio's station strip; the phone's "more channels" rows under Now Playing and its guide's
-  selected-programme sheet; icons on the phone's settings rows; the tally glow. Each is a
-  layout addition on top of the language, not a change to it.
 - Stage 6 draws what the five stages left. Its first part is the television's guide as the canvas
   lays it out: the focused programme beside the picture (channel, number, category, the title in
   Karantina, time and status, synopsis, and watch / from the start / replay / record), the tally
@@ -151,3 +146,8 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   Its third part is the television radio's station strip: a heading and national / regional /
   other chips over the stations' discs, the one on air ringed in the tally and the one under the
   remote in the cue; OK tunes it. It gives way to the task list (ADR-030).
+  Its fourth part finishes the phone: "more channels" under Now Playing (the next two channels as
+  Studio rows with what each is showing), the guide's programme sheet (`PGuide`: tapping a
+  programme opens a sheet with its time, category, title, status and watch / from the start /
+  replay / record / details), and the tally glow round what is on screen. The glow is a coloured
+  shadow, which Android draws from API 28; older devices keep the fill and the ring without it.

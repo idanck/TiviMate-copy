@@ -57,6 +57,8 @@ import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelRadioStations
+import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.AppViewModel
@@ -73,6 +75,7 @@ import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.common.panelSurface
 import com.tivicopy.player.ui.screens.ChannelListScreen
+import com.tivicopy.player.ui.screens.PhoneChannelRow
 import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -505,8 +508,53 @@ private fun NowPlayingDetails(
                 )
             }
         }
+        if (liveChannel != null) {
+            MoreChannels(vm = vm, current = liveChannel, channels = state.list.channels)
+        }
     }
 }
+
+/**
+ * `PNowPlaying`'s "more channels": the two channels after the one playing, as Studio's channel
+ * rows with what each is showing, so the next zap can be read before it is made.
+ */
+@Composable
+private fun MoreChannels(vm: AppViewModel, current: Channel, channels: List<Channel>) {
+    val at = channels.indexOfFirst { it.id == current.id }
+    if (at < 0 || channels.size < 2) return
+    val neighbours = (1..MORE_CHANNELS).map { channels[(at + it) % channels.size] }.distinctBy { it.id }
+        .filter { it.id != current.id }
+    if (neighbours.isEmpty()) return
+    var nows by remember { mutableStateOf<Map<Long, Programme>>(emptyMap()) }
+    LaunchedEffect(neighbours.map { it.id }) {
+        val now = System.currentTimeMillis()
+        nows = vm.guideWindow(neighbours, now, now + 1)
+            .mapNotNull { (id, list) -> list.firstOrNull { now in it.startUtc until it.endUtc }?.let { id to it } }
+            .toMap()
+    }
+    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.player_more_channels),
+            style = StudioTheme.type.h1.copy(fontSize = StudioTheme.type.h1.fontSize * (16f / 20f)),
+            color = StudioTheme.colors.ink,
+            modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
+        )
+        neighbours.forEach { channel ->
+            PhoneChannelRow(
+                channel = channel,
+                onScreen = false,
+                nowProgramme = nows[channel.id],
+                disc = false,
+                onClick = { vm.play(channel) },
+                onLongClick = {},
+                onToggleFavourite = { vm.setFavourite(channel, !channel.favourite) },
+            )
+        }
+    }
+}
+
+/** How many channels "more channels" lists. */
+private const val MORE_CHANNELS = 2
 
 /** The programme's title as Studio sets it on the phone: Karantina, 44sp, two lines at most. */
 @Composable

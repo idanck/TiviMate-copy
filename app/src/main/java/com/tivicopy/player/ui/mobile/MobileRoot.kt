@@ -43,7 +43,6 @@ import com.tivicopy.player.ui.NowPlayingInfo
 import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
-import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.screens.ProgrammeDetailsDialog
 import com.tivicopy.player.ui.screens.RecordingsScreen
 import com.tivicopy.player.ui.common.UpdatePrompt
@@ -337,9 +336,11 @@ fun MobileRoot(
                             isRadio = true,
                             modifier = Modifier.fillMaxSize(),
                         )
-                        MobileTab.GUIDE -> GuideScreen(
+                        // The grid with Studio's programme sheet under it (`PGuide`).
+                        MobileTab.GUIDE -> PhoneGuide(
                             vm = vm,
                             onPlay = { channel -> vm.play(channel); openPlayer() },
+                            onCatchup = { channel, programme -> if (vm.playCatchup(channel, programme)) openPlayer() },
                             onOpenProgramme = { channel, programme -> details = channel to programme },
                             modifier = Modifier.fillMaxSize(),
                         )

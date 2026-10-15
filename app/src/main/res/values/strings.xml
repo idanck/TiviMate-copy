@@ -451,5 +451,7 @@
     <string name="guide_on_screen">On screen · %1$s</string>
     <string name="settings_pick_section">Choose a section</string>
     <string name="rec_minutes">%1$d min</string>
+    <string name="player_more_channels">More channels</string>
+    <string name="guide_details">Details</string>
     <string name="radio_equalizer">Equalizer</string>
 </resources>
