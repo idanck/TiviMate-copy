@@ -401,4 +401,5 @@
     <string name="home_minutes_left">נותרו %1$d דק׳</string>
     <string name="home_next_at">הבא ב־%1$s · %2$s</string>
     <string name="info_next">הבא</string>
+    <string name="rec_summary">%1$d מתוזמנות · %2$d הושלמו</string>
 </resources>

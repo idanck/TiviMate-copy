@@ -5,18 +5,26 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * A thin wrapper over the shared [SectionHeader] with Settings' own, more prominent look (it
@@ -30,19 +38,22 @@ fun SettingsSectionTitle(text: String, topDivider: Boolean = true) {
     SectionHeader(
         text = text,
         modifier = if (topDivider) Modifier else Modifier.padding(top = 12.dp),
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
+        // Studio's section heading (`canvas/Settings.dc.html`): the h1 step in ink. It used to be
+        // `primary`, which is now the cue — the focus colour — and a heading is never focus.
+        style = StudioTheme.type.h1,
+        color = StudioTheme.colors.ink,
         topDivider = topDivider,
     )
 }
 
-/** A low-emphasis rule between adjacent options, so two unrelated settings never sit flush. */
+/**
+ * The space between adjacent options. Studio's rows are separated by a gap rather than a rule
+ * (`--st-gap-row`): each row is its own card when focused, and a line under it would cut through
+ * the card.
+ */
 @Composable
 private fun RowDivider() {
-    HorizontalDivider(
-        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-        modifier = Modifier.padding(horizontal = 12.dp),
-    )
+    Spacer(modifier = Modifier.height(4.dp))
 }
 
 /**
@@ -58,12 +69,12 @@ fun SettingsRow(
 ) {
     FocusableRow(onClick = onClick, contentDescription = title) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(title, style = StudioTheme.type.rowLabel, color = StudioTheme.colors.ink)
             if (!subtitle.isNullOrBlank()) {
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.Normal),
+                    color = StudioTheme.colors.ink2,
                 )
             }
         }
@@ -77,7 +88,7 @@ fun SettingsSwitch(title: String, subtitle: String? = null, checked: Boolean, on
     SettingsRow(
         title = title,
         subtitle = subtitle,
-        trailing = { Switch(checked = checked, onCheckedChange = onChange) },
+        trailing = { Switch(checked = checked, onCheckedChange = onChange, colors = studioSwitchColours()) },
         onClick = { onChange(!checked) },
     )
 }
@@ -93,14 +104,28 @@ fun <T> SettingsChoice(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
+            style = StudioTheme.type.rowLabel,
+            color = StudioTheme.colors.ink2,
             modifier = Modifier.padding(start = 12.dp, top = 8.dp),
         )
+        // Studio's choice is a row with a check at its end (`ListRow`'s `check` trail), not a
+        // form's radio button: this is a list of what is on.
         options.forEach { (value, label) ->
             FocusableRow(onClick = { onSelect(value) }, selected = value == selected, contentDescription = label) {
-                RadioButton(selected = value == selected, onClick = { onSelect(value) })
-                Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    label,
+                    style = StudioTheme.type.body,
+                    color = StudioTheme.colors.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                if (value == selected) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = null,
+                        tint = StudioTheme.colors.ink,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
             }
         }
     }
@@ -122,10 +147,41 @@ fun SettingsSlider(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
-            Text(valueLabel, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = StudioTheme.type.rowLabel, color = StudioTheme.colors.ink)
+            Text(valueLabel, style = StudioTheme.type.meta, color = StudioTheme.colors.ink2)
         }
-        Slider(value = value, onValueChange = onChange, valueRange = range, steps = steps)
+        val studio = StudioTheme.colors
+        Slider(
+            value = value,
+            onValueChange = onChange,
+            valueRange = range,
+            steps = steps,
+            // Ink on the track, as Studio's progress bar is: the cue is reserved for focus.
+            colors = SliderDefaults.colors(
+                thumbColor = studio.ink,
+                activeTrackColor = studio.ink,
+                inactiveTrackColor = studio.track,
+                activeTickColor = studio.ground,
+                inactiveTickColor = studio.ink3,
+            ),
+        )
     }
     RowDivider()
+}
+
+/**
+ * Studio's toggle (`ListRow`'s `on`/`off` trail): ink with a dark knob when on, the faint track with
+ * a grey knob when off. Material's default would paint it in `primary`, which is now the cue.
+ */
+@Composable
+private fun studioSwitchColours(): SwitchColors {
+    val studio = StudioTheme.colors
+    return SwitchDefaults.colors(
+        checkedThumbColor = studio.ground,
+        checkedTrackColor = studio.ink,
+        checkedBorderColor = studio.ink,
+        uncheckedThumbColor = studio.ink2,
+        uncheckedTrackColor = studio.track,
+        uncheckedBorderColor = studio.track,
+    )
 }

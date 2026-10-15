@@ -433,4 +433,5 @@
     <string name="home_minutes_left">%1$d min left</string>
     <string name="home_next_at">Next at %1$s · %2$s</string>
     <string name="info_next">Next</string>
+    <string name="rec_summary">%1$d scheduled · %2$d completed</string>
 </resources>
