@@ -387,6 +387,12 @@ fun TvRoot(
                 vm = vm,
                 onOpenGuide = { onOverlayChange(TvOverlay.GUIDE) },
                 onOpenMenu = { onOverlayChange(TvOverlay.PLAYBACK_MENU) },
+                // The sheet is a dialog over the bare picture: the bar goes, and closing the sheet
+                // leaves the viewer watching rather than back on a bar they did not ask for.
+                onOpenDetails = { channel, programme ->
+                    details = channel to programme
+                    onOverlayChange(TvOverlay.NONE)
+                },
                 modifier = Modifier.align(Alignment.BottomCenter).screenEntrance(Unit),
             )
         }
@@ -395,6 +401,10 @@ fun TvRoot(
             PlaybackMenu(
                 vm = vm,
                 onDismiss = { onOverlayChange(TvOverlay.NONE) },
+                onOpenDetails = { channel, programme ->
+                    details = channel to programme
+                    onOverlayChange(TvOverlay.NONE)
+                },
                 // `PlayerMenu`: a drawer against the end edge of the screen, full height.
                 modifier = Modifier
                     .align(Alignment.CenterEnd)

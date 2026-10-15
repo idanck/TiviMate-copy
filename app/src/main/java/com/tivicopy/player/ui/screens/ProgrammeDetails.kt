@@ -149,8 +149,11 @@ fun ProgrammeDetailsDialog(
     }
 }
 
-/** Schedules and returns the sentence to show the user, warnings included. */
-private fun scheduleRecording(channel: Channel, programme: Programme): String =
+/**
+ * Schedules and returns the sentence to show the user, warnings included. Also the transport
+ * bar's "Record" (ADR-034), so a recording started there says exactly what one started here does.
+ */
+internal fun scheduleRecording(channel: Channel, programme: Programme): String =
     describe(ServiceLocator.recordings.scheduleProgramme(channel, programme), programme.title)
 
 /** FR-REC-04/05: a series the guide cannot describe is refused, not silently accepted. */

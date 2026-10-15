@@ -386,6 +386,8 @@
     <!-- The phone's Now Playing screen and mini player bar (ADR-011). -->
     <string name="now_playing">Now playing</string>
     <string name="playback_menu_hint">Hold OK for more options</string>
+    <string name="transport_details">Details</string>
+    <string name="menu_programme_details">Programme details and recording</string>
     <string name="action_collapse_player">Minimise the player</string>
     <string name="action_play">Play</string>
     <string name="action_pause">Pause</string>
