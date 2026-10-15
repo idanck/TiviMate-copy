@@ -122,6 +122,7 @@
     <string name="playback_menu">Playback</string>
     <string name="playback_connecting">Connecting…</string>
     <string name="playback_reconnecting">Reconnecting — attempt %1$d…</string>
+    <string name="playback_error_hint">Up and down still change channel from here.</string>
     <string name="playback_audio_only">Playing — audio only, no picture</string>
     <string name="playback_live_badge">Live</string>
     <string name="decoder_video">Video decoder</string>
@@ -253,6 +254,9 @@
     <string name="group_options">Group options</string>
     <string name="group_delete">Delete this group</string>
     <string name="group_rename_provider">Groups that came with your playlist are matched by name on every refresh, so they cannot be renamed. You can hide one, or make a group of your own.</string>
+    <string name="group_section_playlist">From the playlist</string>
+    <string name="group_section_custom">Yours</string>
+    <string name="group_hidden">Hidden</string>
     <string name="channel_options">Channel options</string>
     <string name="channel_options_hint">Long press a channel, or press Menu on the remote, for its options.</string>
     <string name="channel_move_up">Move up</string>

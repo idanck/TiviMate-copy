@@ -73,10 +73,13 @@ fun UpdatePrompt() {
             val megabytes = manifest.sizeBytes / (1024.0 * 1024.0)
             val notes = manifest.notesFor(Locale.getDefault().toLanguageTag())
 
+            // `TvUpdatePrompt`: an announcement, so a Karantina title, and three equal choices —
+            // all secondary, with focus on "update now".
             StudioDialog(
                 onDismissRequest = { postponed = true },
                 title = stringResource(R.string.update_dialog_title),
                 icon = StudioIcons.Update,
+                display = true,
                 buttons = {
                     DialogButton(
                         label = stringResource(R.string.update_now),
@@ -84,11 +87,20 @@ fun UpdatePrompt() {
                             watching = true
                             ServiceLocator.appScope.launch { updates.downloadAndInstall(manifest) }
                         },
-                        variant = StudioButtonVariant.PRIMARY,
+                        variant = StudioButtonVariant.SECONDARY,
+                        icon = StudioIcons.Update,
                         initialFocus = true,
                     )
-                    DialogButton(label = stringResource(R.string.update_later), onClick = { postponed = true })
-                    DialogButton(label = stringResource(R.string.update_skip), onClick = { updates.skip(manifest) })
+                    DialogButton(
+                        label = stringResource(R.string.update_later),
+                        onClick = { postponed = true },
+                        variant = StudioButtonVariant.SECONDARY,
+                    )
+                    DialogButton(
+                        label = stringResource(R.string.update_skip),
+                        onClick = { updates.skip(manifest) },
+                        variant = StudioButtonVariant.SECONDARY,
+                    )
                 },
             ) {
                 Text(
@@ -116,6 +128,7 @@ fun UpdatePrompt() {
                 dismissOnClickOutside = false,
                 title = stringResource(R.string.update_dialog_title),
                 icon = StudioIcons.Update,
+                display = true,
                 buttons = {
                     DialogButton(
                         label = stringResource(R.string.update_hide),
@@ -183,7 +196,9 @@ fun UpdatePrompt() {
             StudioDialog(
                 onDismissRequest = { watching = false },
                 title = stringResource(R.string.update_dialog_title),
-                icon = StudioIcons.Info,
+                // The permission prompt (`TvUpdatePermission`) wears the lock; any other refusal
+                // is information.
+                icon = if (permission) StudioIcons.Lock else StudioIcons.Info,
                 buttons = {
                     if (intent == null) {
                         // The offer is deliberately left standing: the user fixes what the

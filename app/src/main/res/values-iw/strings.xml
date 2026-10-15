@@ -108,6 +108,7 @@
     <string name="playback_menu">ניגון</string>
     <string name="playback_connecting">מתחבר…</string>
     <string name="playback_reconnecting">מתחבר מחדש — ניסיון %1$d…</string>
+    <string name="playback_error_hint">אפשר להחליף ערוץ בחצים למעלה ולמטה גם מכאן.</string>
     <string name="playback_audio_only">מתנגן — שידור שמע בלבד, אין תמונה</string>
     <string name="playback_live_badge">שידור חי</string>
     <string name="decoder_video">מפענח וידאו</string>
@@ -228,6 +229,9 @@
     <string name="group_options">אפשרויות קבוצה</string>
     <string name="group_delete">מחיקת הקבוצה</string>
     <string name="group_rename_provider">קבוצות שהגיעו עם רשימת ההשמעה מזוהות לפי השם בכל רענון, ולכן אי אפשר לשנות את שמן. אפשר להסתיר קבוצה, או ליצור קבוצה משלך.</string>
+    <string name="group_section_playlist">מרשימת ההשמעה</string>
+    <string name="group_section_custom">שיצרת</string>
+    <string name="group_hidden">מוסתרת</string>
     <string name="channel_options">אפשרויות ערוץ</string>
     <string name="channel_options_hint">לחיצה ארוכה על ערוץ, או מקש Menu בשלט, פותחת את האפשרויות שלו.</string>
     <string name="channel_move_up">הזז למעלה</string>
