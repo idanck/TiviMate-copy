@@ -192,11 +192,14 @@ private fun VodGrid(
     Column(modifier = modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // `TvVod`: a Karantina title with the filters as chips beside it, then the posters.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                text = stringResource(R.string.nav_vod),
-                style = StudioTheme.type.titleSmall,
-                color = StudioTheme.colors.ink,
-            )
+            // A phone's title is its top bar's (`PVod`).
+            if (StudioTheme.television) {
+                Text(
+                    text = stringResource(R.string.nav_vod),
+                    style = StudioTheme.type.titleSmall,
+                    color = StudioTheme.colors.ink,
+                )
+            }
             StudioChip(
                 label = stringResource(R.string.favourites),
                 selected = state.favouritesOnly,

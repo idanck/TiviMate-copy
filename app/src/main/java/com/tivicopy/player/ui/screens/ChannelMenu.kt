@@ -455,13 +455,13 @@ fun ChannelEditDialog(
                     onDismiss()
                 },
                 variant = StudioButtonVariant.PRIMARY,
-                size = StudioButtonSize.MEDIUM,
+                size = sheetButtonSize(),
             )
             StudioButton(
                 label = stringResource(R.string.action_cancel),
                 onClick = onDismiss,
                 variant = StudioButtonVariant.GHOST,
-                size = StudioButtonSize.MEDIUM,
+                size = sheetButtonSize(),
             )
         },
     ) {
@@ -518,9 +518,14 @@ private fun CloseButton(onDismiss: () -> Unit) {
         label = stringResource(R.string.action_close),
         onClick = onDismiss,
         variant = StudioButtonVariant.GHOST,
-        size = StudioButtonSize.MEDIUM,
+        size = sheetButtonSize(),
     )
 }
+
+/** A sheet's buttons: the canvas's medium on a television, its large on a phone (`PChannelEdit`). */
+@Composable
+private fun sheetButtonSize(): StudioButtonSize =
+    if (StudioTheme.television) StudioButtonSize.MEDIUM else StudioButtonSize.LARGE
 
 /** A group of rows' heading inside a sheet (`TvGroups`' "from the playlist"). */
 @Composable
