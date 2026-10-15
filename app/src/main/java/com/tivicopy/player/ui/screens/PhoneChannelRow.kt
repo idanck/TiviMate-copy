@@ -36,6 +36,7 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.tallyGlow
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
@@ -66,6 +67,7 @@ internal fun PhoneChannelRow(
         modifier = modifier
             .fillMaxWidth()
             .height(72.dp)
+            .then(if (onScreen) Modifier.tallyGlow(shape) else Modifier)
             .clip(shape)
             .then(
                 if (onScreen) {
