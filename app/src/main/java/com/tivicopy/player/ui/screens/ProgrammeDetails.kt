@@ -21,6 +21,7 @@ import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.record.ScheduleResult
+import com.tivicopy.player.ui.common.Badge
 import com.tivicopy.player.ui.common.DialogButton
 import com.tivicopy.player.ui.common.StudioButtonVariant
 import com.tivicopy.player.ui.common.StudioDialog
@@ -114,9 +115,8 @@ fun ProgrammeDetailsDialog(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             programme.subtitle?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
-            programme.category?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            }
+            // A grey chip, not the cue: a category is never where the remote is (MIGRATION.md §3).
+            programme.category?.let { Badge(it) }
             if (programme.seasonNumber != null || programme.episodeNumber != null) {
                 Text(
                     text = "S${programme.seasonNumber ?: 0}E${programme.episodeNumber ?: 0}",

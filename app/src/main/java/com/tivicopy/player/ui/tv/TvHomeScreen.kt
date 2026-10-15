@@ -566,7 +566,8 @@ private fun HomeTile(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
+                        // The tally: red is what is on air, amber only where the remote is.
+                        .background(StudioTheme.colors.tally),
                 )
             }
             Text(

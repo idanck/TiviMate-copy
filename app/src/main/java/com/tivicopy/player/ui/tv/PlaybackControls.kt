@@ -63,6 +63,7 @@ import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.common.nowPlayingLabels
 import com.tivicopy.player.ui.common.qualitySummary
 import com.tivicopy.player.ui.common.rememberAspectCycler
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
  * The controls the ten-foot shell never had.
@@ -432,7 +433,8 @@ private fun MenuEntry(
                 Text(
                     text = "✓",
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
+                    // `ListRow`'s check trail is ink: what is on is a fact, not focus.
+                    color = StudioTheme.colors.ink,
                 )
             }
         }

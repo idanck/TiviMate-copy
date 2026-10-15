@@ -465,11 +465,8 @@ private fun ChannelRow(
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
-                tint = if (channel.favourite) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                // A favourite is a full star in white (`star-on`), never the cue: amber marks focus.
+                tint = if (channel.favourite) StudioTheme.colors.ink else StudioTheme.colors.ink2,
             )
         }
     }
