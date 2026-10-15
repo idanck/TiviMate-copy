@@ -24,6 +24,9 @@
     <string name="action_edit">Edit</string>
     <string name="action_refresh">Refresh</string>
     <string name="action_search">Search</string>
+    <string name="search_scope_title">Where we search</string>
+    <string name="search_scope_body">Channel names, programmes in the guide, and on demand where the source offers it.</string>
+    <string name="search_scope_keyboard">The device\'s keyboard opens over the lower half of the screen while you type.</string>
     <string name="action_watch">Watch</string>
     <string name="action_record">Record</string>
     <string name="action_favourite">Favourite</string>

@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
@@ -40,6 +41,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -483,29 +487,40 @@ private fun GuideRow(
             }
         }
 
+        // What falls inside the hours on screen. A channel whose programmes are all outside them
+        // has as little to show here as one with none at all, and says so the same way.
+        val visible = programmes.filter { it.endUtc > windowStart && it.startUtc < windowEnd }
         Box(modifier = Modifier.horizontalScroll(scrollState)) {
-            if (programmes.isEmpty()) {
-                // FR-EPG-16: say so, rather than leaving an unexplained empty lane.
+            if (visible.isEmpty()) {
+                // FR-EPG-16: say so, rather than leaving an unexplained empty lane. Studio's
+                // diagonal stripes (`TvGuideNoData`, ADR-034), so the row reads as "nothing known"
+                // rather than as a programme that has ended, and keeps its place in the order.
+                val shape = RoundedCornerShape(metrics.rowCorner)
                 Box(
                     modifier = Modifier
                         .width(metrics.guideHourWidth * WINDOW_HOURS)
                         .height(metrics.guideRowHeight)
                         .padding(2.dp)
-                        .clip(RoundedCornerShape(metrics.rowCorner))
-                        .background(studio.past),
+                        .clip(shape)
+                        .noDataStripes(
+                            stripe = studio.past,
+                            ground = studio.surface,
+                            band = if (StudioTheme.television) 7.dp else 10.dp,
+                        )
+                        .border(1.dp, studio.hairlineSoft, shape),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
                         text = stringResource(R.string.no_guide_data),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = StudioTheme.type.meta,
+                        color = studio.ink3,
                         modifier = Modifier.padding(horizontal = 10.dp),
                     )
                 }
             } else {
                 Row {
                     var cursor = windowStart
-                    programmes.filter { it.endUtc > windowStart && it.startUtc < windowEnd }
+                    visible
                         .forEach { programme ->
                             val start = programme.startUtc.coerceAtLeast(windowStart)
                             if (start > cursor) {
@@ -538,6 +553,29 @@ private fun GuideRow(
         }
     }
 }
+
+/**
+ * The canvas's `repeating-linear-gradient(-45deg, past 0 band, surface band 2·band)`: [ground]
+ * under diagonal bands of [stripe], each [band] wide, rising towards the end of the row.
+ */
+private fun Modifier.noDataStripes(stripe: Color, ground: Color, band: Dp): Modifier = drawBehind {
+    drawRect(ground)
+    val width = band.toPx()
+    // At 45° a band [width] across is `width·√2` along the row, and the pattern repeats at twice that.
+    val period = width * SQRT_2 * 2
+    var x = -size.height
+    while (x < size.width + size.height) {
+        drawLine(
+            color = stripe,
+            start = Offset(x, size.height),
+            end = Offset(x + size.height, 0f),
+            strokeWidth = width,
+        )
+        x += period
+    }
+}
+
+private const val SQRT_2 = 1.4142135f
 
 /** Blank space for a stretch of time the guide has no entry for. */
 @Composable
