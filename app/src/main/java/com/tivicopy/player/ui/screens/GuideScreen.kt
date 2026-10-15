@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -44,6 +47,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -185,6 +189,7 @@ fun GuideScreen(
                         windowStart = windowStart,
                         windowEnd = windowEnd,
                         scrollState = timeScroll,
+                        onScreen = channel.id == state.currentChannel?.id,
                         onChannelClick = { onPlay(channel) },
                         onProgrammeClick = { onOpenProgramme(channel, it) },
                     )
@@ -237,9 +242,10 @@ private fun BoxScope.NowMarker(
         modifier = Modifier
             .align(Alignment.TopStart)
             .offset(x = x)
-            .width(2.dp)
+            // The tally: "now" is what is on air (`canvas/Guide.dc.html`).
+            .width(1.5.dp)
             .fillMaxHeight()
-            .background(MaterialTheme.colorScheme.primary),
+            .background(StudioTheme.colors.tally),
     )
 }
 
@@ -369,15 +375,19 @@ private fun TimeAxis(windowStart: Long, scrollState: androidx.compose.foundation
         Row(modifier = Modifier.horizontalScroll(scrollState)) {
             repeat(WINDOW_HOURS) { hour ->
                 val at = windowStart + hour * 60 * 60_000L
-                Box(
+                // Each hour is marked by a tick on its edge, as the canvas draws it.
+                Row(
                     modifier = Modifier
                         .width(metrics.guideHourWidth)
-                        .padding(start = 6.dp, top = 6.dp, bottom = 6.dp),
+                        .padding(top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
+                    Box(modifier = Modifier.width(1.dp).height(14.dp).background(StudioTheme.colors.track))
                     Text(
                         text = TimeModel.formatClock(at),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
+                        color = StudioTheme.colors.ink2,
                     )
                 }
             }
@@ -394,14 +404,23 @@ private fun GuideRow(
     windowStart: Long,
     windowEnd: Long,
     scrollState: androidx.compose.foundation.ScrollState,
+    /** Whether this is the channel on screen, which the tally marks. */
+    onScreen: Boolean,
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
 ) {
     val metrics = LocalTvMetrics.current
+    val studio = StudioTheme.colors
     Row(modifier = Modifier.fillMaxWidth().height(metrics.guideRowHeight)) {
+        // Studio's channel cell: a `surface` card with the number, the name, and the tally when
+        // this is the channel on screen.
         Row(
             modifier = Modifier
                 .width(metrics.guideChannelColumnWidth)
+                .fillMaxHeight()
+                .padding(2.dp)
+                .clip(RoundedCornerShape(metrics.rowCorner))
+                .background(studio.surface)
                 // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
                 // so the pair produced two focus targets and cost a remote an invisible extra
                 // press to cross each row.
@@ -410,14 +429,27 @@ private fun GuideRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
+            if (channel.number > 0) {
+                Text(
+                    text = channel.number.toString(),
+                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink3,
+                    modifier = Modifier.widthIn(min = GUIDE_NUMBER_WIDTH),
+                )
+            } else {
+                ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
+            }
             Text(
                 text = channel.displayName,
-                style = MaterialTheme.typography.bodyMedium,
+                style = StudioTheme.type.rowLabel,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = studio.ink,
+                modifier = Modifier.weight(1f, fill = false),
             )
+            if (onScreen) {
+                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(studio.tally))
+            }
         }
 
         Box(modifier = Modifier.horizontalScroll(scrollState)) {
@@ -428,8 +460,8 @@ private fun GuideRow(
                         .width(metrics.guideHourWidth * WINDOW_HOURS)
                         .height(metrics.guideRowHeight)
                         .padding(2.dp)
-                        .clip(MaterialTheme.shapes.extraSmall)
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                        .clip(RoundedCornerShape(metrics.rowCorner))
+                        .background(studio.past),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Text(
@@ -462,6 +494,7 @@ private fun GuideRow(
                                     archived = channel.hasCatchup &&
                                         programme.endUtc < System.currentTimeMillis(),
                                     recordingState = recordings.stateFor(programme),
+                                    onScreen = onScreen,
                                     onClick = { onProgrammeClick(programme) },
                                 )
                             }
@@ -510,6 +543,8 @@ private fun ProgrammeCell(
     widthMillis: Long,
     archived: Boolean,
     recordingState: RecordingState?,
+    /** Whether this cell's channel is the one on screen; its airing cell then carries the tally. */
+    onScreen: Boolean,
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -554,25 +589,36 @@ private fun ProgrammeCell(
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(
-            text = programme.title,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
+        val past = programme.endUtc <= now
+        val cellTitle = StudioTheme.type.body.copy(
+            fontSize = StudioTheme.type.body.fontSize * CELL_TITLE_SCALE,
+            fontWeight = FontWeight.SemiBold,
         )
+        val cellTime = StudioTheme.type.body.copy(fontSize = StudioTheme.type.body.fontSize * CELL_TIME_SCALE)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (live && onScreen) {
+                Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(studio.tally))
+            }
+            Text(
+                text = programme.title,
+                style = cellTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (past) studio.ink2 else studio.ink,
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = TimeModel.formatClock(programme.startUtc),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = cellTime,
+                color = if (past) studio.ink3 else studio.ink2,
             )
             // FR-UI-10: archive availability is badged in the grid itself.
             if (archived) {
                 Text(
                     text = stringResource(R.string.catchup_available),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    style = cellTime,
+                    color = studio.next,
                 )
             }
             // The other half of FR-UI-10, which was never drawn: a programme you had scheduled
@@ -580,16 +626,24 @@ private fun ProgrammeCell(
             recordingState?.let { state ->
                 Text(
                     text = stringResource(state.label()),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = cellTime,
                     color = when (state) {
-                        RecordingState.RECORDING -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        RecordingState.RECORDING -> studio.tally
+                        else -> studio.ink2
                     },
                 )
             }
         }
     }
 }
+
+/*
+ * The guide's measurements from `canvas/Guide.dc.html` and `GuideCell.dc.html`, against the body
+ * step: a cell's title is 21px and its time 17px where the body is 24.
+ */
+private const val CELL_TITLE_SCALE = 21f / 24f
+private const val CELL_TIME_SCALE = 17f / 24f
+private val GUIDE_NUMBER_WIDTH = 15.dp
 
 private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
 
