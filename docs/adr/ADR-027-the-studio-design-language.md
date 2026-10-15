@@ -144,3 +144,7 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   Karantina, time and status, synopsis, and watch / from the start / replay / record), the tally
   along the top of the live picture with "on screen" over it, and Studio's top bar heading the
   guide, recordings and settings.
+  Its second part is the television's two-pane settings and recordings: the sections in a panel
+  at the start with the open one beside them, and the recordings list with the one the remote is on
+  described at the end (state, title in Karantina, channel, time and length, watch / delete or
+  cancel). Section rows carry their glyphs on both shells.
