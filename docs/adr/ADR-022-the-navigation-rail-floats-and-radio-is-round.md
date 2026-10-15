@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted.
+Accepted. The floating capsule is superseded by ADR-027's side menu and closed strip.
 
 ## Context
 
