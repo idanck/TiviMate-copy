@@ -434,8 +434,8 @@
     <string name="settings_featured_url">Featured feed address</string>
     <string name="settings_featured_url_sub">A JSON feed for the home screen’s Featured row. Empty means no row.</string>
     <string name="settings_featured_refresh">Refresh the featured feed now</string>
-    <string name="settings_hide_home_apps">Hide installed apps on the home screen</string>
-    <string name="settings_hide_home_apps_sub">Leaves out the row of apps installed on this device</string>
+    <string name="settings_show_home_apps">Show installed apps on the home screen</string>
+    <string name="settings_show_home_apps_sub">A row of the apps installed on this device</string>
     <string name="settings_watch_next">Publish to Continue watching</string>
     <string name="settings_watch_next_sub">Offers recently watched channels on the Google TV home screen</string>
     <string name="settings_screensaver">Screensaver</string>
