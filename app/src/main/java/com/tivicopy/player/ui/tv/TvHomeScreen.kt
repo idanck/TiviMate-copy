@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -67,21 +70,21 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
-import com.tivicopy.player.ui.common.ChannelLogo
-import com.tivicopy.player.ui.common.FocusFill
+import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
-import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
-import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.monogram
 import com.tivicopy.player.ui.common.monogramColour
 import com.tivicopy.player.ui.home.HomeCard
 import com.tivicopy.player.ui.home.HomeRail
 import com.tivicopy.player.ui.home.HomeRailId
 import com.tivicopy.player.ui.home.HomeRails
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -228,6 +231,7 @@ fun TvHomeScreen(
                     channel = state.currentChannel,
                     now = state.now,
                     next = state.next,
+                    live = state.nowPlaying.isLive(),
                     height = metrics.homeHeroHeight,
                     showIdentity = !audioOnlyBackdrop,
                     backdrop = backdrop,
@@ -235,6 +239,8 @@ fun TvHomeScreen(
                     startInset = railGutter,
                     watchFocus = heroFocus.takeIf { heroIsFocusable },
                     onFullscreen = onFullscreen,
+                    onGuide = { onOpen(TvOverlay.GUIDE) },
+                    onFavourite = { vm.setFavourite(it, !it.favourite) },
                 )
             }
 
@@ -286,13 +292,16 @@ fun TvHomeScreen(
 }
 
 /**
- * The banner: the live picture, the channel it belongs to, and what is on it.
+ * The banner: the live picture, the channel it belongs to, and what is on it — Studio's hero
+ * (`docs/design/studio/canvas/Main.dc.html`).
  *
  * The picture itself is not drawn here and never was — `TvRoot` owns the one `PlayerSurface` in
  * the app and, on this screen, leaves it filling the panel. What this composable adds is the
- * gradient that makes words legible over it (the benchmark's own device, and the reason its hero
- * text is readable over any frame), the channel's identity in the leading corner, the clock in
- * the trailing one, and the button that fills the screen with the picture.
+ * gradient that makes words legible over it, and over that, from the top: the live badge with the
+ * channel's name and number, the programme's title as a broadcast would set it (Karantina), its
+ * time with a progress bar and the minutes left, and a row of actions — watch full screen, the
+ * guide, and the channel as a favourite — with what comes next beside them, in Studio's "next"
+ * blue.
  *
  * The caption reads the *playing* channel rather than the focused card, so the picture and the
  * words are never about two different channels.
@@ -302,6 +311,8 @@ private fun HomeBanner(
     channel: Channel?,
     now: Programme?,
     next: Programme?,
+    /** Whether the stream is arriving live (rather than catch-up or a recording). */
+    live: Boolean,
     height: Dp,
     /** False while the radio backdrop behind is already saying which station this is. */
     showIdentity: Boolean,
@@ -312,7 +323,10 @@ private fun HomeBanner(
     /** Null when nothing is playing: there is no button to focus, so nothing asks for it. */
     watchFocus: FocusRequester?,
     onFullscreen: () -> Unit,
+    onGuide: () -> Unit,
+    onFavourite: (Channel) -> Unit,
 ) {
+    val studio = StudioTheme.colors
     Box(modifier = Modifier.fillMaxWidth().height(height)) {
         Box(
             modifier = Modifier
@@ -326,121 +340,122 @@ private fun HomeBanner(
                 ),
         )
 
-        if (showIdentity) {
-            Row(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .fillMaxWidth()
-                    // Under the top bar, which now carries the clock this row used to end with.
-                    .padding(start = startInset, end = TV_CONTENT_INSET, top = BANNER_IDENTITY_TOP, bottom = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (channel != null) {
-                    ChannelLogo(channel = channel, sizeDp = 44)
-                    Text(
-                        text = channel.displayName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                }
-            }
-        }
-
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(start = startInset, end = TV_CONTENT_INSET, top = 12.dp, bottom = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(start = startInset, end = TV_CONTENT_INSET, top = BANNER_IDENTITY_TOP, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
+            if (showIdentity && channel != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp),
+                ) {
+                    if (live) LiveBadge()
+                    Text(
+                        text = channel.displayName,
+                        style = StudioTheme.type.action.copy(fontWeight = FontWeight.SemiBold),
+                        color = studio.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (channel.number > 0) {
+                        Text(
+                            text = TimeModel.ltr(channel.number.toString()),
+                            style = StudioTheme.type.body,
+                            color = studio.ink2,
+                        )
+                    }
+                }
+            }
             // Crossed, not cut: the banner's title changes on its own when a programme ends or
             // the viewer zaps, and a caption that swaps instantly under a picture that dissolved
-            // reads as two different screens. Only the title — the button below keeps focus, and
+            // reads as two different screens. Only the title — the buttons below keep focus, and
             // animating a focused control out from under the remote is how focus gets lost.
             Crossfade(
                 targetState = now?.title ?: channel?.displayName ?: stringResource(R.string.no_guide_data),
-                animationSpec = tween(Motion.STANDARD),
+                animationSpec = tween(Motion.STANDARD, easing = Motion.Ease),
                 label = "bannerTitle",
             ) { title ->
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = StudioTheme.type.hero,
+                    color = studio.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                now?.let {
+            now?.let {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val meta = StudioTheme.type.body.copy(fontSize = StudioTheme.type.body.fontSize * BANNER_META_SCALE)
                     Text(
                         text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = meta,
+                        color = studio.ink2,
                     )
-                }
-                next?.let {
-                    Text(
-                        // A bare clock beside Hebrew is isolated, or the layout reorders it.
-                        text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                    ProgrammeProgress(
+                        startUtc = it.startUtc,
+                        endUtc = it.endUtc,
+                        modifier = Modifier.width(BANNER_PROGRESS_WIDTH),
                     )
+                    val left = ((it.endUtc - System.currentTimeMillis()) / 60_000L).toInt()
+                    if (left > 0) {
+                        Text(
+                            text = stringResource(R.string.home_minutes_left, left),
+                            style = meta,
+                            color = studio.ink2,
+                        )
+                    }
                 }
-            }
-            now?.let {
-                ProgrammeProgress(
-                    startUtc = it.startUtc,
-                    endUtc = it.endUtc,
-                    modifier = Modifier.fillMaxWidth(BANNER_PROGRESS_FRACTION),
-                )
             }
             if (channel != null) {
-                WatchFullscreenButton(focusRequester = watchFocus, onClick = onFullscreen)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 7.dp),
+                ) {
+                    StudioButton(
+                        label = stringResource(R.string.home_watch_fullscreen),
+                        icon = Icons.Filled.Fullscreen,
+                        onClick = onFullscreen,
+                        focusRequester = watchFocus,
+                    )
+                    StudioButton(
+                        label = stringResource(R.string.nav_guide),
+                        icon = Icons.Filled.DateRange,
+                        onClick = onGuide,
+                    )
+                    StudioButton(
+                        label = stringResource(
+                            if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                        ),
+                        icon = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        iconOnly = true,
+                        onClick = { onFavourite(channel) },
+                    )
+                    next?.let {
+                        Text(
+                            // A bare clock beside Hebrew is isolated, or the layout reorders it.
+                            text = stringResource(
+                                R.string.home_next_at,
+                                TimeModel.ltr(TimeModel.formatClock(it.startUtc)),
+                                it.title,
+                            ),
+                            style = StudioTheme.type.body,
+                            color = studio.next,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
+                }
             }
         }
-    }
-}
-
-/** The banner's one action, and the first thing the remote lands on. */
-@Composable
-private fun WatchFullscreenButton(focusRequester: FocusRequester?, onClick: () -> Unit) {
-    var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(LocalTvMetrics.current.controlCorner)
-    val label = stringResource(R.string.home_watch_fullscreen)
-    Row(
-        modifier = Modifier
-            .focusLift(focused, shape = shape)
-            // Studio's button (`canvas/Button.dc.html`): a translucent control with a hairline
-            // edge at rest, because it sits over live video where a plate with no edge bleeds into
-            // a bright frame, and the cue when focused.
-            .focusSurface(focused = focused, shape = shape, fill = FocusFill.FILLED)
-            .onFocusChanged { focused = it.isFocused }
-            .then(
-                if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier,
-            )
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = label }
-            .padding(horizontal = 18.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        val tint = filledContentColour(focused)
-        Icon(
-            imageVector = Icons.Filled.Fullscreen,
-            contentDescription = null,
-            modifier = Modifier.size(20.dp),
-            tint = tint,
-        )
-        Text(text = label, style = MaterialTheme.typography.titleSmall, color = tint)
     }
 }
 
@@ -658,5 +673,8 @@ private val BANNER_IDENTITY_TOP = 72.dp
  */
 internal val SECTION_HEADER_OWN_INSET = 12.dp
 
-/** How much of the banner's width the progress bar takes. Long enough to read, short of a rule. */
-private const val BANNER_PROGRESS_FRACTION = 0.45f
+/** The banner's progress bar: 520px at 1080p. */
+private val BANNER_PROGRESS_WIDTH = 260.dp
+
+/** The banner's time line is 26px at 1080p, against the body's 24. */
+private const val BANNER_META_SCALE = 26f / 24f

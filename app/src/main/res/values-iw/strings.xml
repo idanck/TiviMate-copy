@@ -398,4 +398,7 @@
     <string name="settings_task_url_sub">רשימת משימות ב־Markdown ‏(- [ ] …) או ב־JSON. ריק פירושו שאין משימות.</string>
     <string name="settings_task_refresh">רענון רשימת המשימות עכשיו</string>
     <string name="screensaver_task_due">עד %1$s</string>
+    <string name="home_minutes_left">נותרו %1$d דק׳</string>
+    <string name="home_next_at">הבא ב־%1$s · %2$s</string>
+    <string name="info_next">הבא</string>
 </resources>

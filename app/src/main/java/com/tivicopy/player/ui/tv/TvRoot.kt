@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui.tv
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,9 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -68,6 +74,7 @@ import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import com.tivicopy.player.ui.common.UpdatePrompt
+import com.tivicopy.player.ui.theme.StudioTheme
 
 /** Which overlay, if any, sits on top of the video. Nothing here ever stops playback. */
 enum class TvOverlay {
@@ -651,19 +658,18 @@ fun ChannelInfoCard(
     modifier: Modifier = Modifier,
 ) {
     if (channel == null) return
-    val backdrop = MaterialTheme.colorScheme.background
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val backdrop = studio.ground
     // The setting, with a floor under it. This card is the most-seen surface in the app — it is
-    // what every channel change puts on screen — and it is four lines of small text, two of them
-    // in the variant tone. At the setting's own minimum of 0.3 the gradient under them is barely
-    // there, and "turn overlays down" is not a request to make the zapping readout unreadable.
+    // what every channel change puts on screen — and "turn overlays down" is not a request to make
+    // the zapping readout unreadable.
     val floor = opacity.coerceAtLeast(INFO_MIN_OPACITY)
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            // The transparent lead-in is short and the ramp is steep. A long, gentle fade looks
-            // better on a still and fails on a real one: the top line of a lower third sits where
-            // a lazy gradient is still nearly clear, and grey text over a bright frame is not
-            // text. Everything from the identity row down is inside the dense part of the ramp.
+            // The transparent lead-in is short and the ramp is steep: everything from the number
+            // tile down is inside the dense part of it (`.st-scrim-bottom`).
             .background(
                 Brush.verticalGradient(
                     0f to Color.Transparent,
@@ -671,70 +677,131 @@ fun ChannelInfoCard(
                     1f to backdrop.copy(alpha = floor),
                 ),
             )
-            .padding(
-                start = TV_CONTENT_INSET,
-                end = TV_CONTENT_INSET,
-                top = 72.dp,
-                bottom = TV_CONTENT_INSET,
-            ),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(start = INFO_SAFE_X, end = INFO_SAFE_X, top = 72.dp, bottom = TV_CONTENT_INSET),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        if (showIdentity) Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            ChannelLogo(channel = channel, sizeDp = 48, circular = circularLogo)
-            Text(
-                // The number is isolated: a bare Latin numeral beside a Hebrew name reorders
-                // otherwise (FR-UI-22).
-                text = channel.number.takeIf { it > 0 }
-                    ?.let { "${TimeModel.ltr(it.toString())} · ${channel.displayName}" }
-                    ?: channel.displayName,
-                style = MaterialTheme.typography.titleMedium,
-                // Full-strength, not the variant tone the rest of this card's secondary lines
-                // use: this is the highest line on the card and so the one with the least scrim
-                // under it.
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false),
-            )
-            if (live) LiveBadge()
-        }
-
-        Text(
-            text = now?.title ?: stringResource(R.string.no_guide_data),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        now?.let {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+        // The channel's number as a broadcast sets it: a tile with the tally across its top.
+        if (showIdentity) {
+            val tileShape = RoundedCornerShape(LocalTvMetrics.current.controlCorner)
+            Box(
+                modifier = Modifier
+                    .size(INFO_TILE)
+                    .clip(tileShape)
+                    .background(studio.scrim)
+                    .border(1.dp, studio.hairline, tileShape),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(studio.tally),
                 )
-                ProgrammeProgress(
-                    it.startUtc,
-                    it.endUtc,
-                    modifier = Modifier.fillMaxWidth(INFO_PROGRESS_FRACTION),
-                )
+                if (channel.number > 0) {
+                    Text(
+                        text = channel.number.toString(),
+                        style = type.hero.copy(fontSize = type.hero.fontSize * INFO_NUMBER_SCALE),
+                        color = studio.ink,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 9.dp),
+                    )
+                } else {
+                    ChannelLogo(channel = channel, sizeDp = 56, circular = circularLogo)
+                }
             }
         }
-        next?.let {
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            if (showIdentity) Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(9.dp),
+            ) {
+                Text(
+                    text = channel.displayName,
+                    style = type.action.copy(
+                        fontSize = type.action.fontSize * INFO_CHANNEL_SCALE,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    color = studio.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (live) LiveBadge()
+            }
+
+            // The programme title carries the weight, set the way a channel sets it on air.
             Text(
-                text = "${TimeModel.ltr(TimeModel.formatClock(it.startUtc))} · ${it.title}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = now?.title ?: stringResource(R.string.no_guide_data),
+                style = type.title.copy(fontSize = type.title.fontSize * INFO_TITLE_SCALE),
+                color = studio.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+
+            now?.let {
+                val meta = type.body.copy(fontSize = type.body.fontSize * INFO_META_SCALE)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
+                        style = meta,
+                        color = studio.ink2,
+                    )
+                    ProgrammeProgress(
+                        it.startUtc,
+                        it.endUtc,
+                        modifier = Modifier.width(INFO_PROGRESS_WIDTH),
+                    )
+                    val left = ((it.endUtc - System.currentTimeMillis()) / 60_000L).toInt()
+                    if (left > 0) {
+                        Text(
+                            text = stringResource(R.string.home_minutes_left, left),
+                            style = meta,
+                            color = studio.ink2,
+                        )
+                    }
+                }
+            }
+        }
+
+        // What comes next, on a panel of its own, in Studio's "next" blue.
+        next?.let {
+            val panelShape = RoundedCornerShape(LocalTvMetrics.current.panelCorner)
+            Column(
+                modifier = Modifier
+                    .width(INFO_NEXT_WIDTH)
+                    .clip(panelShape)
+                    .background(studio.panel)
+                    .border(1.dp, studio.hairline, panelShape)
+                    .padding(horizontal = 15.dp, vertical = 13.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.info_next),
+                    style = type.meta.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.next,
+                )
+                Text(
+                    text = it.title,
+                    style = type.h1.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
+                    style = type.meta,
+                    color = studio.ink2,
+                )
+            }
         }
     }
 }
@@ -752,8 +819,21 @@ private const val INFO_GRADIENT_KNEE_ALPHA = 0.82f
 /** The least dense the info card's gradient is drawn, whatever the opacity setting says. */
 private const val INFO_MIN_OPACITY = 0.8f
 
-/** How much of the width the progress bar takes. Long enough to read, short of a rule. */
-private const val INFO_PROGRESS_FRACTION = 0.35f
+/*
+ * The lower third's measurements, from `canvas/LowerThird.dc.html` (1080p pixels halved).
+ */
+private val INFO_SAFE_X = 48.dp
+private val INFO_TILE = 88.dp
+private val INFO_PROGRESS_WIDTH = 280.dp
+private val INFO_NEXT_WIDTH = 220.dp
+
+/** The number is 150px against the hero's 140; the title 124px against the title step's 108. */
+private const val INFO_NUMBER_SCALE = 150f / 140f
+private const val INFO_TITLE_SCALE = 124f / 108f
+
+/** The channel name is 32px against the action step's 30; the time line 26px against the body's 24. */
+private const val INFO_CHANNEL_SCALE = 32f / 30f
+private const val INFO_META_SCALE = 26f / 24f
 
 @Composable
 private fun PlaybackErrorBanner(error: com.tivicopy.player.core.AppError, modifier: Modifier = Modifier) {

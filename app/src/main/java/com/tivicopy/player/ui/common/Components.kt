@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -9,11 +10,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -110,52 +111,43 @@ fun ChannelLogo(
 }
 
 /**
- * "Live", with a dot, on a plate dark enough to hold it over anything.
+ * "Live", with the tally light, on a dark plate (Studio's `LiveBadge`, `canvas/LiveBadge.dc.html`).
  *
- * Shared rather than owned by one screen: the station backdrop, the zapping info card and the
- * transport bar all have to say the same word about the same stream, and three of them drawn
- * three ways is how a shell stops looking like one app.
+ * Shared rather than owned by one screen: the station backdrop, the zapping info card, the home
+ * banner and the transport bar all have to say the same word about the same stream.
  *
- * Dark plate, white text, in fixed colours rather than scheme ones. It has to read on three
- * different things — live video, a backdrop built from a station's own hue, and a themed panel —
- * and a plate taken from the scheme would fight the first two while a light one would lose to
- * bright video. The alpha is what makes it work on the third: at the 45% it started at, over a
- * light theme's own `surface`, the plate composites to a mid grey and white text on it falls
- * under 3:1. Dark enough to stay a dark plate over white is the whole requirement.
- *
- * The dot is the scheme's error red, the one colour in the ramp that already means "on air".
+ * The plate is Studio's scrim with a hairline edge, so it reads over live video, over a station's
+ * backdrop and over a panel alike; the dot is the tally, which is what "on air" means everywhere
+ * in this language.
  */
 @Composable
 fun LiveBadge(modifier: Modifier = Modifier) {
+    val studio = com.tivicopy.player.ui.theme.StudioTheme.colors
+    val shape = MaterialTheme.shapes.extraSmall
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(LIVE_BADGE_CORNER))
-            .background(Color.Black.copy(alpha = LIVE_BADGE_PLATE_ALPHA))
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .clip(shape)
+            .background(studio.scrim)
+            .border(1.dp, studio.hairline, shape)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(6.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.error),
+                .background(studio.tally),
         )
         Text(
             text = stringResource(R.string.playback_live_badge),
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            style = com.tivicopy.player.ui.theme.StudioTheme.type.meta.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            ),
+            color = studio.ink,
         )
     }
 }
-
-/**
- * Dark enough to hold white text over anything, including a light theme's own surface, and short
- * of the solid black box that would read as a hole punched in the picture.
- */
-private const val LIVE_BADGE_PLATE_ALPHA = 0.72f
-
-private val LIVE_BADGE_CORNER = 16.dp
 
 /**
  * How far a logo is held back from the edge of a round plate, as a fraction of its width.
@@ -307,10 +299,31 @@ fun ProgrammeProgress(startUtc: Long, endUtc: Long, modifier: Modifier = Modifie
     val now = System.currentTimeMillis()
     val span = (endUtc - startUtc).coerceAtLeast(1)
     val fraction = ((now - startUtc).toFloat() / span).coerceIn(0f, 1f)
-    LinearProgressIndicator(
-        progress = { fraction },
-        modifier = modifier.fillMaxWidth(),
-    )
+    StudioProgress(fraction = fraction, modifier = modifier.fillMaxWidth())
+}
+
+/**
+ * Studio's progress bar (`canvas/Progress.dc.html`): ink on a faint track, rounded, 4dp. Ink rather
+ * than the cue, because the cue means focus and a progress bar is never where the remote is.
+ */
+@Composable
+fun StudioProgress(fraction: Float, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 4.dp) {
+    val studio = com.tivicopy.player.ui.theme.StudioTheme.colors
+    val shape = RoundedCornerShape(height / 2)
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(shape)
+            .background(studio.track),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .height(height)
+                .clip(shape)
+                .background(studio.ink),
+        )
+    }
 }
 
 @Composable
