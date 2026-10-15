@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -37,14 +40,16 @@ import com.tivicopy.player.data.model.OutputFormat
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.NoticeTone
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioChip
+import com.tivicopy.player.ui.common.panelSurface
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.common.StudioButtonVariant
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
-import com.tivicopy.player.ui.settings.SettingsChoice
-import com.tivicopy.player.ui.settings.SettingsSectionTitle
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -96,172 +101,236 @@ fun AddSourceScreen(
         }
     }
 
-    Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SettingsSectionTitle(stringResource(R.string.setup_title))
-        Text(
-            text = stringResource(R.string.setup_intro),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    val tv = StudioTheme.television
+    val studio = StudioTheme.colors
+    val plainHttp = url.startsWith("http://", ignoreCase = true)
 
-        SettingsChoice(
-            title = stringResource(R.string.setup_title),
-            options = listOf(
-                SourceType.XTREAM to stringResource(R.string.setup_type_xtream),
-                SourceType.M3U_URL to stringResource(R.string.setup_type_m3u),
-                SourceType.M3U_FILE to stringResource(R.string.setup_type_m3u_file),
-            ),
-            selected = type,
-            onSelect = { type = it },
-        )
-
-        StudioField(
-            value = name,
-            onValueChange = { name = it },
-            label = stringResource(R.string.setup_name),
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        when (type) {
-            SourceType.XTREAM -> {
-                StudioField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = stringResource(R.string.setup_server),
-                    placeholder = "http://example.com:8080",
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                StudioField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = stringResource(R.string.setup_username),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                StudioField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = stringResource(R.string.setup_password),
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                SettingsChoice(
-                    title = stringResource(R.string.setup_output_format),
-                    options = listOf(
-                        OutputFormat.TS to stringResource(R.string.setup_format_ts),
-                        OutputFormat.HLS to stringResource(R.string.setup_format_hls),
-                    ),
-                    selected = format,
-                    onSelect = { format = it },
-                )
-            }
-
-            SourceType.M3U_URL -> {
-                StudioField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = stringResource(R.string.setup_url),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                StudioField(
-                    value = epgUrl,
-                    onValueChange = { epgUrl = it },
-                    label = stringResource(R.string.setup_epg_url),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-
-            SourceType.M3U_FILE -> {
-                Text(url.ifBlank { "—" }, style = MaterialTheme.typography.bodySmall)
-                StudioButton(
-                    label = stringResource(R.string.setup_pick_file),
-                    onClick = { filePicker.launch(arrayOf("audio/x-mpegurl", "application/x-mpegurl", "text/plain", "*/*")) },
-                    variant = StudioButtonVariant.GHOST,
-                    size = StudioButtonSize.MEDIUM,
-                )
-                StudioField(
-                    value = epgUrl,
-                    onValueChange = { epgUrl = it },
-                    label = stringResource(R.string.setup_epg_url),
-                    modifier = Modifier.fillMaxWidth(),
+    // `TvAddSource`'s side panel: how an Xtream account's streams are delivered, and the plain-HTTP
+    // warning. Beside the form on a television; under it on a phone (`PAddSource`).
+    val aside: @Composable () -> Unit = {
+        if (type == SourceType.XTREAM) {
+            Text(
+                text = stringResource(R.string.setup_output_format),
+                style = StudioTheme.type.rowLabel,
+                color = studio.ink,
+                modifier = Modifier.padding(horizontal = 12.dp),
+            )
+            listOf(
+                OutputFormat.TS to stringResource(R.string.setup_format_ts),
+                OutputFormat.HLS to stringResource(R.string.setup_format_hls),
+            ).forEach { (value, label) ->
+                ListRow(
+                    label = label,
+                    onClick = { format = value },
+                    selected = format == value,
+                    trail = if (format == value) RowTrail.CHECK else RowTrail.NONE,
                 )
             }
         }
-
         // NFR-SEC-06: plain HTTP is allowed, because most providers only offer it, but the risk
         // is stated rather than hidden.
-        if (url.startsWith("http://", ignoreCase = true)) {
-            Text(
-                text = stringResource(R.string.setup_http_warning),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
+        if (plainHttp) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Icon(
+                    imageVector = StudioIcons.Alert,
+                    contentDescription = null,
+                    tint = studio.error,
+                    modifier = Modifier.padding(top = 1.dp).size(if (tv) 11.dp else 16.dp),
+                )
+                Text(
+                    text = stringResource(R.string.setup_http_warning),
+                    style = StudioTheme.type.caption,
+                    color = studio.ink2,
+                )
+            }
         }
+    }
 
-        status?.let { TestResult(text = it, detail = statusDetail, tone = statusTone) }
+    Row(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = if (tv) 48.dp else 16.dp, vertical = if (tv) 27.dp else 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Column(
+            modifier = Modifier.weight(1f).widthIn(max = 500.dp),
+            verticalArrangement = Arrangement.spacedBy(if (tv) 9.dp else 12.dp),
+        ) {
+            // `TvAddSource`: a Karantina title, the sentence that says what the app is, and the three
+            // kinds of source as chips.
+            Text(
+                text = stringResource(R.string.setup_title),
+                style = if (tv) StudioTheme.type.title else StudioTheme.type.titleSmall,
+                color = studio.ink,
+            )
+            Text(
+                text = stringResource(R.string.setup_intro),
+                style = if (tv) StudioTheme.type.body else StudioTheme.type.meta,
+                color = studio.ink2,
+            )
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 3.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                listOf(
+                    SourceType.XTREAM to stringResource(R.string.setup_type_xtream),
+                    SourceType.M3U_URL to stringResource(R.string.setup_type_m3u),
+                    SourceType.M3U_FILE to stringResource(R.string.setup_type_m3u_file),
+                ).forEach { (value, label) ->
+                    StudioChip(label = label, selected = type == value, onClick = { type = value })
+                }
+            }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (type == SourceType.XTREAM) {
+            StudioField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.setup_name),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            when (type) {
+                SourceType.XTREAM -> {
+                    StudioField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = stringResource(R.string.setup_server),
+                        placeholder = "http://example.com:8080",
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    StudioField(
+                        value = username,
+                        onValueChange = { username = it },
+                        label = stringResource(R.string.setup_username),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    StudioField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = stringResource(R.string.setup_password),
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                SourceType.M3U_URL -> {
+                    StudioField(
+                        value = url,
+                        onValueChange = { url = it },
+                        label = stringResource(R.string.setup_url),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    StudioField(
+                        value = epgUrl,
+                        onValueChange = { epgUrl = it },
+                        label = stringResource(R.string.setup_epg_url),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                SourceType.M3U_FILE -> {
+                    Text(url.ifBlank { "—" }, style = StudioTheme.type.meta, color = studio.ink2)
+                    StudioButton(
+                        label = stringResource(R.string.setup_pick_file),
+                        onClick = { filePicker.launch(arrayOf("audio/x-mpegurl", "application/x-mpegurl", "text/plain", "*/*")) },
+                        variant = StudioButtonVariant.GHOST,
+                        size = StudioButtonSize.MEDIUM,
+                    )
+                    StudioField(
+                        value = epgUrl,
+                        onValueChange = { epgUrl = it },
+                        label = stringResource(R.string.setup_epg_url),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+
+            if (!tv) aside()
+
+            Row(
+                modifier = Modifier.padding(top = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (type == SourceType.XTREAM) {
+                    StudioButton(
+                        label = stringResource(R.string.setup_test),
+                        icon = StudioIcons.Network,
+                        size = StudioButtonSize.MEDIUM,
+                        variant = StudioButtonVariant.SECONDARY,
+                        enabled = !busy && url.isNotBlank(),
+                        onClick = {
+                            busy = true
+                            status = context.getString(R.string.setup_testing)
+                            statusTone = NoticeTone.DEFAULT
+                            statusDetail = null
+                            scope.launch {
+                                val result = ServiceLocator.sources.probeXtream(url, username, password, format)
+                                when (result) {
+                                    is Outcome.Ok -> {
+                                        val account = result.value
+                                        status = context.getString(R.string.setup_ok)
+                                        statusTone = NoticeTone.OK
+                                        statusDetail = listOfNotNull(
+                                            account.status,
+                                            account.maxConnections?.let { context.getString(R.string.setup_max_connections, it) },
+                                        ).joinToString(" · ").ifEmpty { null }
+                                    }
+                                    is Outcome.Err -> {
+                                        status = result.error.describe(context)
+                                        statusTone = NoticeTone.ERROR
+                                    }
+                                }
+                                busy = false
+                            }
+                        },
+                    )
+                }
+
                 StudioButton(
-                    label = stringResource(R.string.setup_test),
-                    variant = StudioButtonVariant.GHOST,
+                    label = stringResource(R.string.action_save),
+                    icon = StudioIcons.Check,
+                    size = StudioButtonSize.MEDIUM,
+                    variant = StudioButtonVariant.PRIMARY,
                     enabled = !busy && url.isNotBlank(),
                     onClick = {
                         busy = true
-                        status = context.getString(R.string.setup_testing)
-                        statusTone = NoticeTone.DEFAULT
-                        statusDetail = null
                         scope.launch {
-                            val result = ServiceLocator.sources.probeXtream(url, username, password, format)
-                            when (result) {
-                                is Outcome.Ok -> {
-                                    val account = result.value
-                                    status = context.getString(R.string.setup_ok)
-                                    statusTone = NoticeTone.OK
-                                    statusDetail = listOfNotNull(
-                                        account.status,
-                                        account.maxConnections?.let { context.getString(R.string.setup_max_connections, it) },
-                                    ).joinToString(" · ").ifEmpty { null }
-                                }
-                                is Outcome.Err -> {
-                                    status = result.error.describe(context)
-                                    statusTone = NoticeTone.ERROR
-                                }
-                            }
+                            val playlist = Playlist(
+                                name = name.ifBlank { defaultName(context, type) },
+                                type = type,
+                                url = url.trim(),
+                                username = username.takeIf { it.isNotBlank() },
+                                password = password.takeIf { it.isNotBlank() },
+                                outputFormat = format,
+                                epgUrl = epgUrl.takeIf { it.isNotBlank() },
+                            )
+                            val id = withContext(Dispatchers.IO) { ServiceLocator.sources.savePlaylist(playlist) }
+                            ServiceLocator.settings.setActivePlaylist(id)
+                            vm.reload()
+                            vm.refreshPlaylist(id)
                             busy = false
+                            onDone()
                         }
                     },
                 )
             }
-
-            StudioButton(
-                label = stringResource(R.string.action_save),
-                variant = StudioButtonVariant.PRIMARY,
-                enabled = !busy && url.isNotBlank(),
-                onClick = {
-                    busy = true
-                    scope.launch {
-                        val playlist = Playlist(
-                            name = name.ifBlank { defaultName(context, type) },
-                            type = type,
-                            url = url.trim(),
-                            username = username.takeIf { it.isNotBlank() },
-                            password = password.takeIf { it.isNotBlank() },
-                            outputFormat = format,
-                            epgUrl = epgUrl.takeIf { it.isNotBlank() },
-                        )
-                        val id = withContext(Dispatchers.IO) { ServiceLocator.sources.savePlaylist(playlist) }
-                        ServiceLocator.settings.setActivePlaylist(id)
-                        vm.reload()
-                        vm.refreshPlaylist(id)
-                        busy = false
-                        onDone()
-                    }
-                },
-            )
+            status?.let { TestResult(text = it, detail = statusDetail, tone = statusTone) }
+        }
+        if (tv) {
+            Column(
+                modifier = Modifier
+                    .width(290.dp)
+                    .panelSurface(opacity = 1f)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                aside()
+            }
         }
     }
 }

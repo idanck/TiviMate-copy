@@ -17,30 +17,36 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.tivicopy.player.ui.common.FocusableRow
-import com.tivicopy.player.ui.common.SectionHeader
-import com.tivicopy.player.ui.common.StudioToggle
+import com.tivicopy.player.ui.common.ListRow
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
 /**
- * A thin wrapper over the shared [SectionHeader] with Settings' own, more prominent look (it
- * doubles as each section's page title, not just a mid-list group label) — a single header
- * implementation, so it draws the same top divider between categories as every other menu.
- * [topDivider] should be `false` only for the header that opens a whole Settings screen, where a
- * rule above it would imply content that is not there.
+ * A heading in a settings section, as the canvas draws the two (`TvSettingsSources`).
+ *
+ * The one that opens a section ([topDivider] false) is its page title: the h1 step in ink. One
+ * between groups of options inside it ([topDivider] true) is a quiet label — the meta step,
+ * semibold, in the secondary ink, with space above it rather than a rule: each row is its own card
+ * when focused, and a line across the panel would cut through it.
  */
 @Composable
 fun SettingsSectionTitle(text: String, topDivider: Boolean = true) {
-    SectionHeader(
-        text = text,
-        modifier = if (topDivider) Modifier else Modifier.padding(top = 12.dp),
-        // Studio's section heading (`canvas/Settings.dc.html`): the h1 step in ink. It used to be
-        // `primary`, which is now the cue — the focus colour — and a heading is never focus.
-        style = StudioTheme.type.h1,
-        color = StudioTheme.colors.ink,
-        topDivider = topDivider,
-    )
+    if (topDivider) {
+        Text(
+            text = text,
+            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+            color = StudioTheme.colors.ink2,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 14.dp, bottom = 2.dp),
+        )
+    } else {
+        Text(
+            text = text,
+            style = StudioTheme.type.h1,
+            color = StudioTheme.colors.ink,
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 8.dp),
+        )
+    }
 }
 
 /**
@@ -54,55 +60,64 @@ private fun RowDivider() {
 }
 
 /**
+ * One setting: Studio's [ListRow] with a settings section's habits — a description under the
+ * label, a value or a chevron at the end, and the gap after it.
+ *
  * `onClick` is the last parameter on purpose: a trailing lambda at a call site must be the
  * click action, not composable content that would then run during composition.
+ *
+ * @param value the setting's current value, shown at the end in the secondary ink
+ * @param chevron that the row opens something further in rather than acting in place
+ * @param danger a destructive action: the label in the error colour
  */
 @Composable
 fun SettingsRow(
     title: String,
     subtitle: String? = null,
-    trailing: @Composable () -> Unit = {},
     /** Studio's `ListRow` glyph at the start; the section rows carry one (`canvas/Settings`). */
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    value: String? = null,
+    chevron: Boolean = false,
+    danger: Boolean = false,
     /** The section shown beside the list in the two-pane layout. */
     selected: Boolean = false,
     onClick: () -> Unit = {},
 ) {
-    FocusableRow(onClick = onClick, contentDescription = title, selected = selected) {
-        if (icon != null) {
-            androidx.compose.material3.Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = StudioTheme.colors.ink2,
-                modifier = Modifier.size(SETTINGS_ICON),
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = StudioTheme.type.rowLabel, color = StudioTheme.colors.ink)
-            if (!subtitle.isNullOrBlank()) {
-                Text(
-                    subtitle,
-                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.Normal),
-                    color = StudioTheme.colors.ink2,
-                )
-            }
-        }
-        trailing()
-    }
+    ListRow(
+        label = title,
+        onClick = onClick,
+        sub = subtitle?.takeIf { it.isNotBlank() },
+        icon = icon,
+        trail = when {
+            value != null -> RowTrail.VALUE
+            chevron -> RowTrail.CHEVRON
+            else -> RowTrail.NONE
+        },
+        value = value,
+        danger = danger,
+        selected = selected,
+    )
     RowDivider()
 }
 
 @Composable
 fun SettingsSwitch(title: String, subtitle: String? = null, checked: Boolean, onChange: (Boolean) -> Unit) {
-    SettingsRow(
-        title = title,
-        subtitle = subtitle,
-        trailing = { StudioToggle(checked = checked) },
+    ListRow(
+        label = title,
         onClick = { onChange(!checked) },
+        sub = subtitle?.takeIf { it.isNotBlank() },
+        trail = RowTrail.TOGGLE,
+        toggled = checked,
     )
+    RowDivider()
 }
 
-/** A radio list; used for every enum-valued setting so the pattern is identical throughout. */
+/**
+ * A radio list; used for every enum-valued setting so the pattern is identical throughout.
+ *
+ * Studio's choice is a row with a check at its end (`ListRow`'s `check` trail), not a form's
+ * radio button: this is a list of what is on.
+ */
 @Composable
 fun <T> SettingsChoice(
     title: String,
@@ -113,29 +128,17 @@ fun <T> SettingsChoice(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             title,
-            style = StudioTheme.type.rowLabel,
+            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
             color = StudioTheme.colors.ink2,
-            modifier = Modifier.padding(start = 12.dp, top = 8.dp),
+            modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 2.dp),
         )
-        // Studio's choice is a row with a check at its end (`ListRow`'s `check` trail), not a
-        // form's radio button: this is a list of what is on.
         options.forEach { (value, label) ->
-            FocusableRow(onClick = { onSelect(value) }, selected = value == selected, contentDescription = label) {
-                Text(
-                    label,
-                    style = StudioTheme.type.body,
-                    color = StudioTheme.colors.ink,
-                    modifier = Modifier.weight(1f),
-                )
-                if (value == selected) {
-                    Icon(
-                        imageVector = StudioIcons.Check,
-                        contentDescription = null,
-                        tint = StudioTheme.colors.ink,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
+            ListRow(
+                label = label,
+                onClick = { onSelect(value) },
+                selected = value == selected,
+                trail = if (value == selected) RowTrail.CHECK else RowTrail.NONE,
+            )
         }
     }
     RowDivider()
@@ -177,6 +180,3 @@ fun SettingsSlider(
     }
     RowDivider()
 }
-
-/** The glyph on a section row. */
-private val SETTINGS_ICON = 20.dp

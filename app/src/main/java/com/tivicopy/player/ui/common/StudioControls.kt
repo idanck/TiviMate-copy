@@ -530,3 +530,53 @@ private val PHONE_RING = 2.dp
 
 /** One turn of the loader (`st-spin`). */
 private const val LOADER_TURN_MS = 900
+
+/**
+ * `Chip` and `PChip`: one of a short row of choices — a day, a group, a kind of source. A quiet
+ * surface at rest, ink when it is the chosen one, and on a television the cue with a lift when
+ * focus is on it.
+ */
+@Composable
+fun StudioChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val studio = StudioTheme.colors
+    val tv = StudioTheme.television
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(if (tv) 6.dp else 18.dp)
+    val fill = animatedColour(
+        when {
+            focused && tv -> studio.cue
+            selected -> studio.ink
+            else -> studio.surface
+        },
+    )
+    val content = animatedColour(
+        when {
+            focused && tv -> studio.onCue
+            selected -> studio.ground
+            else -> studio.ink2
+        },
+    )
+    Box(
+        modifier = modifier
+            .height(if (tv) 26.dp else 36.dp)
+            .focusLift(focused, shape = shape)
+            .clip(shape)
+            .background(fill)
+            .onFocusChanged { focused = it.isFocused }
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            .padding(horizontal = if (tv) 12.dp else 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+            color = content,
+            maxLines = 1,
+        )
+    }
+}

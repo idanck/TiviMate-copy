@@ -2,6 +2,7 @@ package com.tivicopy.player.ui.screens
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,6 +56,7 @@ import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioChip
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.focusSurface
@@ -189,17 +190,25 @@ private fun VodGrid(
     val open: (VodItem) -> Unit = { if (it.isSeriesContainer) onOpenSeries(it) else onPlay(it) }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // `TvVod`: a Karantina title with the filters as chips beside it, then the posters.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = stringResource(R.string.nav_vod),
+                style = StudioTheme.type.titleSmall,
+                color = StudioTheme.colors.ink,
+            )
+            StudioChip(
+                label = stringResource(R.string.favourites),
+                selected = state.favouritesOnly,
+                onClick = { state.favouritesOnly = !state.favouritesOnly },
+            )
+        }
         StudioField(
             value = state.query,
             onValueChange = { state.query = it },
-            label = stringResource(R.string.action_search),
+            placeholder = stringResource(R.string.action_search),
             icon = StudioIcons.Search,
             modifier = Modifier.fillMaxWidth(),
-        )
-        FilterChip(
-            selected = state.favouritesOnly,
-            onClick = { state.favouritesOnly = !state.favouritesOnly },
-            label = { Text(stringResource(R.string.favourites)) },
         )
 
         // Continue-watching is not filtered by the database query, so it is dropped by hand while
@@ -436,14 +445,16 @@ private fun VodTile(
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+                // `TvVod`'s poster: the card colour inside a faint hairline until the art loads.
+                .background(StudioTheme.colors.card)
+                .border(1.dp, StudioTheme.colors.hairlineSoft, shape),
             contentAlignment = Alignment.Center,
         ) {
             if (item.posterUrl.isNullOrBlank()) {
                 Text(
                     text = item.name.take(2).uppercase(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = StudioTheme.type.h1,
+                    color = StudioTheme.colors.ink3,
                     textAlign = TextAlign.Center,
                 )
             } else {
@@ -471,11 +482,11 @@ private fun VodTile(
         }
         Text(
             text = item.name,
-            style = MaterialTheme.typography.bodySmall,
+            style = StudioTheme.type.meta.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(top = 4.dp),
+            color = StudioTheme.colors.ink,
+            modifier = Modifier.padding(top = 5.dp),
         )
     }
 }
