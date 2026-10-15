@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.prefs.AspectMode
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.AppViewModel
@@ -149,7 +150,37 @@ fun PlayerScreen(
     BackHandler(onBack = onClose)
     BackHandler(enabled = landscape && channelSheet) { channelSheet = false }
 
+    // A station of the bundled radio, live or catch-up: in portrait that is Studio's whole radio
+    // screen (`PhoneRadio`), not a box under a picture that will never come.
+    val radioPlaylistId = state.playlists.firstOrNull { it.url == IsraelRadioStations.M3U_URL }?.id
+    val radioChannel = state.nowPlaying.audioOnlyChannel()
+        ?.takeIf { radioPlaylistId != null && it.playlistId == radioPlaylistId }
+        // Re-read from the lists so the star follows an edit made after playback started.
+        ?.let { playing ->
+            state.list.channels.firstOrNull { it.id == playing.id }
+                ?: state.radioAllChannels.firstOrNull { it.id == playing.id }
+                ?: playing
+        }
+
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.background) {
+        if (!landscape && radioChannel != null) {
+            PhoneRadio(
+                state = state,
+                channel = radioChannel,
+                song = playback.streamTitle,
+                playWhenReady = playback.playWhenReady,
+                live = state.nowPlaying.isLive(),
+                onCollapse = onClose,
+                onTogglePlay = { ServiceLocator.player.togglePlayPause() },
+                onPrevious = { vm.zap(-1) },
+                onNext = { vm.zap(1) },
+                onFavourite = { vm.setFavourite(radioChannel, !radioChannel.favourite) },
+                onOpenGuide = onOpenGuide,
+                onPlay = { station -> vm.play(station) },
+                modifier = Modifier.fillMaxSize(),
+            )
+            return@Surface
+        }
         Box(modifier = Modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
                 val videoModifier = if (landscape) {
