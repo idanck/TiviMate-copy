@@ -434,6 +434,8 @@
     <string name="home_next_at">Next at %1$s · %2$s</string>
     <string name="info_next">Next</string>
     <string name="rec_summary">%1$d scheduled · %2$d completed</string>
+    <string name="player_favourite">Favourite</string>
+    <string name="player_view">View</string>
     <string name="radio_label">Israeli radio</string>
     <string name="radio_now_playing_on">Now playing · %1$s</string>
     <string name="radio_equalizer">Equalizer</string>

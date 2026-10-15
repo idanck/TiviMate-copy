@@ -109,6 +109,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   Karantina, search), `PNavBar` (five tabs, the current one in a cue pill, recordings in
   on-demand's place: ADR-032) and `PMiniPlayer` (a card with the channel under a tally dot, the
   title, play/pause and a 2dp progress line), in `ui/mobile/PhoneChrome.kt`.
+  Its second part is the player's details in portrait (`PNowPlaying`): a tally along the top of
+  a live picture, the collapse button on a scrim, the live badge and channel, the programme title
+  in Karantina, time with progress and minutes left, zapping around a cue play/pause, favourite /
+  guide / view as `PButton`s, and the next programme in a panel.
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,
