@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The bundled typeface is the four weights it claims to be (FR-UI-27, ADR-019).
+ * The bundled typefaces are the weights they claim to be (FR-UI-27, ADR-027).
  *
  * `ui/theme/Type.kt` maps each `FontWeight` to one file in `res/font/`, and nothing on the build
  * side checks that the file behind a name is actually that weight — a wrong drop, or a
@@ -52,35 +52,38 @@ class TypefaceAssetsTest {
     @Test
     fun `each bundled weight is the weight its filename promises`() {
         val expected = mapOf(
-            "rubik_regular.ttf" to 400,
-            "rubik_medium.ttf" to 500,
-            "rubik_semibold.ttf" to 600,
-            "rubik_bold.ttf" to 700,
+            "ibm_plex_sans_hebrew_regular.ttf" to 400,
+            "ibm_plex_sans_hebrew_medium.ttf" to 500,
+            "ibm_plex_sans_hebrew_semibold.ttf" to 600,
+            "ibm_plex_sans_hebrew_bold.ttf" to 700,
+            "karantina_bold.ttf" to 700,
         )
         val dir = fontDir()
         expected.forEach { (name, weight) ->
             val file = File(dir, name)
             assertTrue("$name is missing from res/font", file.isFile)
             // A stray Git LFS pointer or a truncated download is a plausible way for this to go
-            // wrong; a real subset weight of Rubik is around 90 KB.
+            // wrong; a real weight of Plex Sans Hebrew is around 96 KB, and Karantina about 48 KB.
             assertTrue("$name is too small to be a font (${file.length()} bytes)", file.length() > 20_000)
             assertEquals("$name declares the wrong usWeightClass", weight.toLong(), weightClassOf(file).toLong())
         }
     }
 
     /**
-     * The SIL Open Font License asks that its text travel with the font, so it is packaged as an
-     * asset rather than only living in `docs/`. Nothing reads this file at runtime, which is
-     * exactly why it is easy to delete by accident.
+     * The SIL Open Font License asks that its text travel with the font, so each family's licence
+     * is packaged as an asset rather than only living in `docs/`. Nothing reads these files at
+     * runtime, which is exactly why they are easy to delete by accident.
      */
     @Test
-    fun `the font licence ships with the app`() {
-        val candidates = listOf(
-            File("src/main/assets/licenses/rubik-ofl.txt"),
-            File("app/src/main/assets/licenses/rubik-ofl.txt"),
-        )
-        val licence = candidates.firstOrNull { it.isFile }
-            ?: error("the bundled font's licence is not in assets/licenses/")
-        assertTrue(licence.readText().contains("SIL OPEN FONT LICENSE"))
+    fun `each font licence ships with the app`() {
+        listOf("ibm-plex-sans-hebrew-ofl.txt", "karantina-ofl.txt").forEach { name ->
+            val candidates = listOf(
+                File("src/main/assets/licenses/$name"),
+                File("app/src/main/assets/licenses/$name"),
+            )
+            val licence = candidates.firstOrNull { it.isFile }
+                ?: error("$name is not in assets/licenses/")
+            assertTrue("$name is not the OFL", licence.readText().contains("SIL OPEN FONT LICENSE"))
+        }
     }
 }

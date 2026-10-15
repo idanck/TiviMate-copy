@@ -273,8 +273,6 @@ fun SettingsScreen(
                 SettingsChoice(
                     title = stringResource(R.string.settings_theme),
                     options = listOf(
-                        ThemeMode.SYSTEM to stringResource(R.string.theme_system),
-                        ThemeMode.LIGHT to stringResource(R.string.theme_light),
                         ThemeMode.DARK to stringResource(R.string.theme_dark),
                         ThemeMode.AMOLED to stringResource(R.string.theme_amoled),
                     ),
@@ -443,9 +441,9 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp),
                 )
-                // The bundled typeface is under the SIL OFL (ADR-019), which asks for the
-                // copyright notice to travel with the font. The licence itself ships beside it
-                // at `assets/licenses/rubik-ofl.txt`; this is the credit a reader can see.
+                // The bundled typefaces are under the SIL OFL (ADR-027), which asks for the
+                // copyright notice to travel with the font. The licences themselves ship beside
+                // them in `assets/licenses/`; this is the credit a reader can see.
                 Text(
                     text = stringResource(R.string.about_typeface),
                     style = MaterialTheme.typography.bodySmall,
