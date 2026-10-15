@@ -23,7 +23,7 @@ class TvMetricsTest {
     /** `TV_CONTENT_INSET` applied on both sides by the shell's overlay scaffold. */
     private val CONTENT_INSET = 48f
 
-    /** `NAV_RAIL_MARGIN`: how far the home screen's navigation capsule floats from the edge. */
+    /** Half of `SIDE_MENU_GAP`: the room the home screen keeps beside the side menu's strip. */
     private val NAV_RAIL_MARGIN = 12f
 
     @Test
@@ -63,9 +63,9 @@ class TvMetricsTest {
         panels.forEach { (w, h) ->
             val metrics = tvMetricsFor(w, h)
             // What the rails actually get: the panel, less the gutter every row keeps clear at
-            // its leading edge for the floating navigation capsule — the collapsed rail plus the
-            // margin it floats on, on both sides of it — less the inset the rails apply at the
-            // trailing edge. See `railGutter` in `ui/tv/TvHomeScreen.kt`.
+            // its leading edge for the side menu's closed strip and the gap beside it, less the
+            // inset the rails apply at the trailing edge. See `sideMenuInset` in
+            // `ui/tv/SideMenu.kt`.
             val gutter = metrics.homeNavRailCollapsedWidth.value + NAV_RAIL_MARGIN * 2
             val forCards = w - CONTENT_INSET - gutter
             assertTrue(

@@ -39,6 +39,7 @@ object TimeModel {
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH-mm", Locale.ROOT)
     private const val FULL_DATE_PATTERN = "EEEE, d MMMM"
     private const val WEEKDAY_PATTERN = "EEEE"
+    private const val SHORT_DATE_PATTERN = "EEEE dd.MM"
 
     fun formatClock(utcMillis: Long, zone: ZoneId = zone()): String =
         local(utcMillis, zone).format(hhmm)
@@ -92,6 +93,16 @@ object TimeModel {
         locale: Locale = Locale.getDefault(),
         zone: ZoneId = zone(),
     ): String = local(utcMillis, zone).format(DateTimeFormatter.ofPattern(WEEKDAY_PATTERN, locale))
+
+    /**
+     * `Thursday 15.10` in [locale] — the date under the clock in the television's top bar
+     * (ADR-027). Locale from the caller, for the reason [formatFullDate] gives.
+     */
+    fun formatShortDate(
+        utcMillis: Long,
+        locale: Locale = Locale.getDefault(),
+        zone: ZoneId = zone(),
+    ): String = local(utcMillis, zone).format(DateTimeFormatter.ofPattern(SHORT_DATE_PATTERN, locale))
 
     /** `dd/MM HH:mm`, isolated for the same reason as [formatClockRange]. */
     fun formatDayTime(utcMillis: Long, zone: ZoneId = zone()): String =

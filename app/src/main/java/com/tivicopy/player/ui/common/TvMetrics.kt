@@ -31,15 +31,14 @@ data class TvMetrics(
     val nowNextPaneWidth: Dp,
     /** Edge length of a channel logo in a list row. */
     val rowLogoSize: Int,
-    /** Width of the home screen's navigation rail while it is showing labels. */
+    /** Width of the home screen's side menu while it is open (Studio `--st-w-drawer`). */
     val homeNavRailWidth: Dp,
     /**
-     * Width of the same rail collapsed to icons, which is what it shows until focus enters it
-     * (ADR-020). Every row on the home screen keeps this much clear at its leading edge, and
-     * never the expanded width: the rail expands *over* the screen rather than pushing it, so
-     * nothing reflows as focus crosses into it. The room is kept by each row's own content
-     * padding rather than by insetting the list, so the rails stay full-bleed and the rail — now
-     * a capsule wrapped to its own height — has an unbroken backdrop to float on.
+     * Width of the side menu's closed strip of icons, which is what it shows until focus enters
+     * it (Studio `--st-w-rail`, ADR-027). Every row on the home screen keeps this much clear at its
+     * leading edge, and never the open width: the menu opens *over* the screen rather than
+     * pushing it, so nothing reflows as focus crosses into it. The room is kept by each row's own
+     * content padding rather than by insetting the list, so the rails stay full-bleed under it.
      */
     val homeNavRailCollapsedWidth: Dp,
     /**
@@ -90,8 +89,8 @@ data class TvMetrics(
             groupColumnWidth = 220.dp,
             nowNextPaneWidth = 280.dp,
             rowLogoSize = 36,
-            homeNavRailWidth = 168.dp,
-            homeNavRailCollapsedWidth = 64.dp,
+            homeNavRailWidth = 240.dp,
+            homeNavRailCollapsedWidth = 56.dp,
             homeHeroHeight = 320.dp,
             homeCardWidth = 180.dp,
             rowCorner = 10.dp,
@@ -146,7 +145,8 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         nowNextPaneWidth = base.nowNextPaneWidth * scale,
         rowLogoSize = (base.rowLogoSize * scale).toInt(),
         homeNavRailWidth = base.homeNavRailWidth * scale,
-        homeNavRailCollapsedWidth = base.homeNavRailCollapsedWidth * scale,
+        // Never narrower than Studio's 56dp strip: below that a focused icon's ring is cropped.
+        homeNavRailCollapsedWidth = (base.homeNavRailCollapsedWidth * scale).coerceAtLeast(base.homeNavRailCollapsedWidth),
         homeHeroHeight = heroHeightFor(heightDp).dp,
         homeCardWidth = base.homeCardWidth * scale,
         // Flat, not scaled. These are about how a shape reads at a viewing distance, and a
