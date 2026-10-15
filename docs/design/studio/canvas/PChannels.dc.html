@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — ערוצים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="ערוצים" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div role="group" aria-label="קבוצה" style="position: absolute; top: 88px; right: var(--st-safe-x); left: 0; display: flex; gap: 8px; overflow: hidden">
+<dc-import name="PChip" label="הכל" state="selected" hint-size="60px,36px"></dc-import>
+<dc-import name="PChip" label="מועדפים" hint-size="90px,36px"></dc-import>
+<dc-import name="PChip" label="ערוצים פתוחים בישראל" hint-size="180px,36px"></dc-import>
+</div>
+<div style="position: absolute; top: 138px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: var(--st-gap-row)">
+<sc-for list="{{channels}}" as="ch" hint-placeholder-count="7">
+<dc-import name="PChannelRow" item="{{ch}}" state="{{ch.state}}" width="358" hint-size="358px,72px"></dc-import>
+</sc-for>
+</div>
+<div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="channels" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      channels: [
+        { label: 'כאן 11', num: '11', now: 'סרט תעודה', time: '20:15–21:45', pct: 45, state: 'rest' },
+        { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62, state: 'onscreen' },
+        { label: 'ערוץ 13', num: '13', now: 'תוכנית אירוח', time: '20:00–21:00', pct: 93, state: 'rest' },
+        { label: 'ערוץ 14', num: '14', now: 'פאנל ערב', time: '20:30–22:00', pct: 29, state: 'rest' },
+        { label: 'כאן חינוכית', num: '23', now: 'סדרת נוער', time: '20:30–21:00', pct: 87, state: 'rest' },
+        { label: 'מכאן 33', num: '33', now: 'מהדורה בערבית', time: '20:45–21:30', pct: 24, state: 'rest' },
+        { label: 'ערוץ הכנסת', num: '99', now: 'דיון במליאה', time: '19:00–23:00', pct: 48, state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

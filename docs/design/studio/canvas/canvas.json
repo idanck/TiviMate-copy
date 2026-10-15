@@ -1,0 +1,427 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-15T12:00:00Z"
+ },
+ "title": "שידור · עיצוב חדש לטלוויזיה",
+ "launch": {
+  "view": "canvas",
+  "page": "screens"
+ },
+ "pages": [
+  {
+   "id": "screens",
+   "name": "טלוויזיה · מסכים"
+  },
+  {
+   "id": "components",
+   "name": "טלוויזיה · רכיבים"
+  },
+  {
+   "id": "foundations",
+   "name": "טלוויזיה · יסודות"
+  },
+  {
+   "id": "phone-screens",
+   "name": "טלפון · מסכים"
+  },
+  {
+   "id": "phone-components",
+   "name": "טלפון · רכיבים"
+  },
+  {
+   "id": "phone-foundations",
+   "name": "טלפון · יסודות"
+  }
+ ],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "בית",
+   "page": "screens"
+  },
+  "Live.dc.html": {
+   "x": 2000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "ערוץ חי — החלפת ערוץ",
+   "page": "screens"
+  },
+  "Guide.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מדריך שידורים",
+   "is_interactive": true,
+   "page": "screens"
+  },
+  "Radio.dc.html": {
+   "x": 2000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "רדיו — מתנגן עכשיו",
+   "page": "screens",
+   "is_interactive": true
+  },
+  "Gallery.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 2520,
+   "title": "גלריית רכיבים — כל המצבים",
+   "page": "components"
+  },
+  "LowerThird.dc.html": {
+   "x": 2000,
+   "y": 248,
+   "w": 1728,
+   "h": 200,
+   "title": "שליש תחתון · LowerThird",
+   "page": "components"
+  },
+  "Picture.dc.html": {
+   "x": 2000,
+   "y": 568,
+   "w": 640,
+   "h": 360,
+   "title": "תמונת שידור · Picture",
+   "page": "components"
+  },
+  "ChannelCard.dc.html": {
+   "x": 2720,
+   "y": 568,
+   "w": 320,
+   "h": 262,
+   "title": "כרטיס ערוץ · ChannelCard",
+   "page": "components"
+  },
+  "StationDisc.dc.html": {
+   "x": 3120,
+   "y": 568,
+   "w": 180,
+   "h": 210,
+   "title": "דיסק תחנה · StationDisc",
+   "page": "components"
+  },
+  "ListRow.dc.html": {
+   "x": 3380,
+   "y": 568,
+   "w": 760,
+   "h": 92,
+   "title": "שורת רשימה · ListRow",
+   "page": "components"
+  },
+  "Button.dc.html": {
+   "x": 2000,
+   "y": 1048,
+   "w": 420,
+   "h": 84,
+   "title": "כפתור · Button",
+   "page": "components"
+  },
+  "Chip.dc.html": {
+   "x": 2500,
+   "y": 1048,
+   "w": 160,
+   "h": 52,
+   "title": "צ׳יפ · Chip",
+   "page": "components"
+  },
+  "LiveBadge.dc.html": {
+   "x": 2740,
+   "y": 1048,
+   "w": 200,
+   "h": 44,
+   "title": "תג · LiveBadge",
+   "page": "components"
+  },
+  "Progress.dc.html": {
+   "x": 3020,
+   "y": 1048,
+   "w": 520,
+   "h": 8,
+   "title": "התקדמות · Progress",
+   "page": "components"
+  },
+  "Icon.dc.html": {
+   "x": 3620,
+   "y": 1048,
+   "w": 48,
+   "h": 48,
+   "title": "אייקון · Icon",
+   "page": "components"
+  },
+  "GuideCell.dc.html": {
+   "x": 2000,
+   "y": 1252,
+   "w": 300,
+   "h": 58,
+   "title": "משבצת מדריך · GuideCell",
+   "page": "components"
+  },
+  "Field.dc.html": {
+   "x": 2380,
+   "y": 1252,
+   "w": 760,
+   "h": 110,
+   "title": "שדה · Field",
+   "page": "components"
+  },
+  "Style.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "יסודות — צבע, טיפוגרפיה, צורה, מרווח, תנועה",
+   "page": "foundations"
+  },
+  "MainMenu.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "בית — תפריט צד פתוח",
+   "page": "screens"
+  },
+  "SideMenu.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 480,
+   "h": 1080,
+   "title": "תפריט צד · SideMenu",
+   "page": "components"
+  },
+  "TopBar.dc.html": {
+   "x": 2000,
+   "y": 1480,
+   "w": 1920,
+   "h": 128,
+   "title": "שורה עליונה · TopBar",
+   "page": "components"
+  },
+  "Equalizer.dc.html": {
+   "x": 2380,
+   "y": 1728,
+   "w": 1000,
+   "h": 96,
+   "title": "אקולייזר · Equalizer",
+   "page": "components",
+   "is_interactive": true
+  },
+  "Settings.dc.html": {
+   "x": 4000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — מראה",
+   "page": "screens"
+  },
+  "Recordings.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "הקלטות",
+   "page": "screens"
+  },
+  "MainRail.dc.html": {
+   "x": 6000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "בית — תפריט צד סגור",
+   "page": "screens"
+  },
+  "PChannels.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "ערוצים",
+   "page": "phone-screens"
+  },
+  "PNowPlaying.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מתנגן עכשיו",
+   "page": "phone-screens"
+  },
+  "PGuide.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מדריך",
+   "page": "phone-screens",
+   "is_interactive": true
+  },
+  "PRadio.dc.html": {
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "רדיו — מתנגן עכשיו",
+   "page": "phone-screens",
+   "is_interactive": true
+  },
+  "PSettings.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות",
+   "page": "phone-screens"
+  },
+  "PSettingsAppearance.dc.html": {
+   "x": 2350,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — מראה",
+   "page": "phone-screens"
+  },
+  "PRecordings.dc.html": {
+   "x": 2820,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "הקלטות",
+   "page": "phone-screens"
+  },
+  "PGallery.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1280,
+   "h": 1140,
+   "title": "גלריית רכיבים — טלפון",
+   "page": "phone-components"
+  },
+  "PTopBar.dc.html": {
+   "x": 1400,
+   "y": 0,
+   "w": 390,
+   "h": 56,
+   "title": "שורה עליונה · PTopBar",
+   "page": "phone-components"
+  },
+  "PNavBar.dc.html": {
+   "x": 1400,
+   "y": 176,
+   "w": 390,
+   "h": 72,
+   "title": "ניווט תחתון · PNavBar",
+   "page": "phone-components"
+  },
+  "PMiniPlayer.dc.html": {
+   "x": 1400,
+   "y": 368,
+   "w": 390,
+   "h": 64,
+   "title": "נגן מוקטן · PMiniPlayer",
+   "page": "phone-components"
+  },
+  "PChannelRow.dc.html": {
+   "x": 1400,
+   "y": 552,
+   "w": 358,
+   "h": 72,
+   "title": "שורת ערוץ · PChannelRow",
+   "page": "phone-components"
+  },
+  "PListRow.dc.html": {
+   "x": 1400,
+   "y": 744,
+   "w": 358,
+   "h": 64,
+   "title": "שורת רשימה · PListRow",
+   "page": "phone-components"
+  },
+  "PButton.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 200,
+   "h": 48,
+   "title": "כפתור · PButton",
+   "page": "phone-components"
+  },
+  "PChip.dc.html": {
+   "x": 1880,
+   "y": 168,
+   "w": 90,
+   "h": 36,
+   "title": "צ׳יפ · PChip",
+   "page": "phone-components"
+  },
+  "PGuideCell.dc.html": {
+   "x": 1880,
+   "y": 324,
+   "w": 160,
+   "h": 52,
+   "title": "משבצת מדריך · PGuideCell",
+   "page": "phone-components"
+  },
+  "PStyle.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1280,
+   "h": 760,
+   "title": "יסודות — טלפון",
+   "page": "phone-foundations"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "MainMenu.dc.html",
+  "MainRail.dc.html",
+  "Live.dc.html",
+  "Guide.dc.html",
+  "Radio.dc.html",
+  "Settings.dc.html",
+  "Recordings.dc.html",
+  "Gallery.dc.html",
+  "TopBar.dc.html",
+  "SideMenu.dc.html",
+  "LowerThird.dc.html",
+  "Picture.dc.html",
+  "ChannelCard.dc.html",
+  "StationDisc.dc.html",
+  "ListRow.dc.html",
+  "Button.dc.html",
+  "Chip.dc.html",
+  "LiveBadge.dc.html",
+  "Progress.dc.html",
+  "Icon.dc.html",
+  "GuideCell.dc.html",
+  "Field.dc.html",
+  "Style.dc.html",
+  "Equalizer.dc.html",
+  "PChannels.dc.html",
+  "PNowPlaying.dc.html",
+  "PGuide.dc.html",
+  "PRadio.dc.html",
+  "PSettings.dc.html",
+  "PSettingsAppearance.dc.html",
+  "PRecordings.dc.html",
+  "PGallery.dc.html",
+  "PTopBar.dc.html",
+  "PNavBar.dc.html",
+  "PMiniPlayer.dc.html",
+  "PChannelRow.dc.html",
+  "PListRow.dc.html",
+  "PButton.dc.html",
+  "PChip.dc.html",
+  "PGuideCell.dc.html",
+  "PStyle.dc.html"
+ ],
+ "notes": {},
+ "designSystems": []
+}

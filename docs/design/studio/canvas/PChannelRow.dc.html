@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — שורת ערוץ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button class="st-anim" style="width: {{w}}; height: 72px; box-sizing: border-box; padding: 0 12px; border: 0; border-radius: var(--st-r-card); background: {{bg}}; box-shadow: {{shadow}}; display: flex; align-items: center; gap: 12px; text-align: right; font-family: var(--st-font-ui); color: var(--st-ink); cursor: pointer; overflow: hidden">
+<sc-if value="{{disc}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 48px; width: 48px; height: 48px; border-radius: 50%; background: var(--st-card); box-shadow: inset 0 0 0 1px var(--st-hairline); color: var(--st-ink-2); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="radio" size="22" hint-size="22px,22px"></dc-import></span></sc-if>
+<sc-if value="{{tile}}" hint-placeholder-val="{{true}}"><span class="st-num" style="flex: 0 0 64px; width: 64px; height: 44px; border-radius: 8px; background: {{tileBg}}; box-shadow: inset 0 0 0 1px var(--st-hairline-soft); display: flex; align-items: center; justify-content: center; font-family: var(--st-font-display); font-size: 34px; font-weight: 700; line-height: 1; padding-top: 4px; box-sizing: border-box">{{it.num}}</span></sc-if>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span style="display: flex; align-items: center; gap: 8px; white-space: nowrap"><span style="font-size: 16px; font-weight: 600">{{it.label}}</span><sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--st-tally)"></span>על המסך</span></sc-if></span>
+<span style="display: flex; gap: 8px; font-size: 14px; color: var(--st-ink-2); white-space: nowrap; overflow: hidden"><span style="overflow: hidden; text-overflow: ellipsis">{{it.now}}</span><span class="st-num" style="flex: 0 0 auto; color: var(--st-ink-3)">{{it.time}}</span></span>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="display: block; height: 3px; margin-top: 3px; border-radius: 2px; background: var(--st-track); overflow: hidden"><span style="display: block; height: 3px; width: {{pct}}; background: var(--st-ink)"></span></span></sc-if>
+</span>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","onscreen"],"default":"rest"},"disc":{"editor":"boolean","default":false},"width":{"editor":"int","default":358,"min":240,"max":420},"$preview":{"width":358,"height":72}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const it = this.props.item || { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62 };
+    const on = (this.props.state || 'rest') === 'onscreen';
+    const disc = this.props.disc === true || this.props.disc === 'true';
+    const hasPct = it.pct !== undefined && it.pct !== null && it.pct !== '';
+    return {
+      it: it, onScreen: on, disc: disc, tile: !disc,
+      w: (Number(this.props.width) || 358) + 'px',
+      hasPct: hasPct, pct: hasPct ? Number(it.pct) + '%' : '0%',
+      bg: on ? 'var(--st-onscreen)' : 'transparent',
+      tileBg: on ? 'rgba(255,90,95,0.14)' : 'var(--st-card)',
+      shadow: on ? '0 0 0 1.5px var(--st-tally), 0 0 22px var(--st-tally-glow)' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

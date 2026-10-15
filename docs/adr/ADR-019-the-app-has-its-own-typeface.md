@@ -1,6 +1,7 @@
 # ADR-019 — The app has its own typeface (and keeps its own background)
 
-**Status:** accepted
+**Status:** superseded by ADR-027. The app still carries its own typeface, but it is no longer
+Rubik, and the blue-grey palette of decision 2 is replaced by Studio's night blue.
 
 ## Context
 

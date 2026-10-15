@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הקלטות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+
+<div style="position: absolute; top: 160px; right: var(--st-safe-x); display: flex; align-items: baseline; gap: 20px">
+<h1 class="st-t-title-s">הקלטות</h1>
+<span class="st-t-meta">3 מתוזמנות · 3 הושלמו</span>
+</div>
+
+<section aria-label="רשימת הקלטות" style="position: absolute; top: 262px; right: var(--st-safe-x); width: 1040px; display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">מתוזמנות</h2>
+<sc-for list="{{scheduled}}" as="r" hint-placeholder-count="3">
+<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="1040" hint-size="1040px,92px"></dc-import>
+</sc-for>
+<h2 style="margin: 24px 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">הושלמו</h2>
+<sc-for list="{{finished}}" as="r" hint-placeholder-count="3">
+<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="1040" hint-size="1040px,92px"></dc-import>
+</sc-for>
+</section>
+
+<section aria-label="ההקלטה המסומנת" style="position: absolute; top: 160px; left: var(--st-safe-x); width: 640px; display: flex; flex-direction: column; gap: 14px">
+<div style="width: 640px; height: 360px; border-radius: var(--st-r-control); overflow: hidden; box-shadow: inset 0 0 0 1px var(--st-hairline)"><dc-import name="Picture" scene="studio" width="640" height="360" label="[תמונה מתוך ההקלטה]" hint-size="640px,360px"></dc-import></div>
+<span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; margin-top: 4px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-size: 20px; font-weight: 600"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-ok)"></span>הושלמה</span>
+<h2 class="st-t-title-s" style="font-size: 88px; line-height: 0.9">מגזין ערב</h2>
+<span class="st-t-meta st-num">קשת 12 · אתמול 21:30–23:00 · 90 דק׳</span>
+<span class="st-t-caption">[תקציר התוכנית מתוך לוח השידורים]</span>
+<div style="display: flex; gap: 16px; margin-top: 10px">
+<dc-import name="Button" label="צפייה" glyph="play" size="m" hint-size="180px,64px"></dc-import>
+<dc-import name="Button" label="מחיקה" glyph="trash" size="m" hint-size="180px,64px"></dc-import>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rec = (title, sub, status, tone, state) => ({ title: title, sub: sub, status: status, tone: tone, state: state || 'rest' });
+    return {
+      scheduled: [
+        rec('מהדורת החדשות המרכזית', 'קשת 12 · היום 20:00–21:30', 'מקליט', 'tally'),
+        rec('סרט עלילתי', 'כאן 11 · היום 21:45–23:30', 'מתוזמנת', 'muted'),
+        rec('תחקיר', 'ערוץ 13 · מחר 21:00–22:15', 'מתוזמנת', 'muted')
+      ],
+      finished: [
+        rec('מגזין ערב', 'קשת 12 · אתמול 21:30–23:00', 'הושלמה', 'ok', 'focus'),
+        rec('סרט תיעודי', 'כאן חינוכית · אתמול 22:00–23:00', 'חלקית', 'muted'),
+        rec('דיון במליאה', 'ערוץ הכנסת · שלישי 13.10 19:00–23:00', 'נכשלה', 'error')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

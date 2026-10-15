@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הגדרות, מראה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="מראה" search="false" back="true" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<dc-import name="PListRow" label="{{r.label}}" sub="{{r.sub}}" trail="{{r.trail}}" width="358" hint-size="358px,64px"></dc-import>
+</sc-for>
+</div>
+<span class="st-t-caption" style="position: absolute; top: 560px; right: 30px; width: 330px">בחירה בעברית גם הופכת את פריסת המסך מימין לשמאל.</span>
+<div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="settings" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const r = (label, sub, trail) => ({ label: label, sub: sub || '', trail: trail || 'chevron' });
+    return {
+      rows: [
+        r('שפה', 'עברית'), r('ערכת נושא', 'כהה'), r('גודל טקסט', '100%'),
+        r('סדר הערוצים', 'כפי שרשימת ההשמעה שולחת'), r('הצג קבוצות שהספק יוסיף בהמשך', '', 'on'),
+        r('הסתר שכבות אחרי', '5 שנ׳'), r('אטימות שכבות', '85%')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

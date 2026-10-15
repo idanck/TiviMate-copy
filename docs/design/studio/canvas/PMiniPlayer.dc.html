@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — נגן מוקטן</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; box-sizing: border-box; padding: 0 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div style="position: relative; height: var(--st-h-mini); box-sizing: border-box; padding: 0 10px 0 4px; border-radius: var(--st-r-control); background: var(--st-card); box-shadow: inset 0 0 0 1px var(--st-hairline-soft), var(--st-lift); display: flex; align-items: center; gap: 12px; overflow: hidden">
+<sc-if value="{{disc}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); color: var(--st-ink-2); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="radio" size="22" hint-size="22px,22px"></dc-import></span></sc-if>
+<sc-if value="{{video}}" hint-placeholder-val="{{true}}"><span style="flex: 0 0 72px; width: 72px; height: 40px; border-radius: 6px; overflow: hidden"><dc-import name="Picture" scene="studio" width="72" height="40" label="" hint-size="72px,40px"></dc-import></span></sc-if>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--st-ink-2)"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--st-tally)"></span>{{channel}}</span>
+<span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</span>
+</span>
+<button aria-label="{{aria}}" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{glyph}}" size="26" hint-size="26px,26px"></dc-import></button>
+<span aria-hidden="true" style="position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--st-track)"><span style="display: block; height: 2px; width: {{pct}}; background: var(--st-ink)"></span></span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"channel":{"editor":"text","default":"קשת 12"},"title":{"editor":"text","default":"מהדורת החדשות המרכזית"},"pct":{"editor":"range","default":62,"min":0,"max":100,"step":1},"playing":{"editor":"boolean","default":true},"disc":{"editor":"boolean","default":false},"$preview":{"width":390,"height":64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    const playing = this.props.playing === undefined ? true : yes(this.props.playing);
+    const disc = yes(this.props.disc);
+    return {
+      channel: this.props.channel ?? 'קשת 12', title: this.props.title ?? 'מהדורת החדשות המרכזית',
+      pct: Math.max(0, Math.min(100, Number(this.props.pct ?? 62))) + '%',
+      disc: disc, video: !disc,
+      glyph: playing ? 'pause' : 'play', aria: playing ? 'השהיה' : 'ניגון'
+    };
+  }
+}
+</script>
+</body>
+</html>

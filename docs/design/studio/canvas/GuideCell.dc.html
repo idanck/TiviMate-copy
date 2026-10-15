@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — משבצת מדריך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button onClick="{{pick}}" class="st-anim" style="position: relative; z-index: {{z}}; width: {{w}}; height: 58px; box-sizing: border-box; padding: 0 16px; border: 0; border-radius: var(--st-r-card); background: {{bg}}; box-shadow: {{shadow}}; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; text-align: right; overflow: hidden; font-family: var(--st-font-ui); cursor: pointer">
+<span style="max-width: 100%; display: flex; align-items: center; gap: 8px; font-size: 21px; font-weight: 600; color: {{c}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="flex: 0 0 10px; width: 10px; height: 10px; border-radius: 50%; background: var(--st-tally)"></span></sc-if>{{title}}</span>
+<span class="st-num" style="font-size: 17px; color: {{tc}}; white-space: nowrap">{{time}}</span>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["past","airing","future","focus"],"default":"future"},"width":{"editor":"int","default":300,"min":60,"max":1500},"onPick":{"editor":null},"$preview":{"width":300,"height":58}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const it = this.props.item || { title: 'סרט עלילתי', time: '21:45–23:30' };
+    const s = this.props.state || 'future';
+    const S = {
+      past: { bg: 'var(--st-past)', c: 'var(--st-ink-2)', tc: 'var(--st-ink-3)', shadow: 'inset 0 0 0 1px var(--st-hairline-soft)', z: '1' },
+      airing: { bg: 'var(--st-airing)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: 'inset 0 0 0 1px var(--st-hairline-soft)', z: '1' },
+      future: { bg: 'var(--st-future)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: 'inset 0 0 0 1px var(--st-hairline-soft)', z: '1' },
+      focus: { bg: 'var(--st-card-focus)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)', z: '2' }
+    }[s] || {};
+    return Object.assign({
+      title: it.title, time: it.time, onScreen: !!it.onScreen,
+      w: (Number(this.props.width) || 300) + 'px',
+      pick: this.props.onPick || (() => {})
+    }, S);
+  }
+}
+</script>
+</body>
+</html>

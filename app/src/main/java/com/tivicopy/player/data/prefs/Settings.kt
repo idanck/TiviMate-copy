@@ -27,7 +27,11 @@ enum class BufferPreset(val minMs: Int, val maxMs: Int, val playbackMs: Int, val
 
 enum class AspectMode { FIT, FILL, ZOOM, STRETCH, RATIO_16_9, RATIO_4_3, ORIGINAL }
 
-enum class ThemeMode { SYSTEM, LIGHT, DARK, AMOLED }
+/**
+ * Studio is drawn dark only (ADR-028). A stored `SYSTEM` or `LIGHT` from an earlier version no longer
+ * parses and falls back to [DARK], which is where both of them now land anyway.
+ */
+enum class ThemeMode { DARK, AMOLED }
 
 /**
  * The interface language (FR-UI-23).

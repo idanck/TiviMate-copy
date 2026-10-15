@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — משבצת מדריך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button onClick="{{pick}}" class="st-anim" style="position: relative; z-index: {{z}}; width: {{w}}; height: 52px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: {{bg}}; box-shadow: {{shadow}}; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; text-align: right; overflow: hidden; font-family: var(--st-font-ui); cursor: pointer">
+<span style="max-width: 100%; display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; color: {{c}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--st-tally)"></span></sc-if>{{title}}</span>
+<span class="st-num" style="font-size: 11px; color: {{tc}}; white-space: nowrap">{{time}}</span>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["past","airing","future","selected"],"default":"future"},"width":{"editor":"int","default":160,"min":30,"max":300},"onPick":{"editor":null},"$preview":{"width":160,"height":52}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const it = this.props.item || { title: 'תחקיר', time: '21:00–22:15' };
+    const s = this.props.state || 'future';
+    const soft = 'inset 0 0 0 1px var(--st-hairline-soft)';
+    const S = {
+      past: { bg: 'var(--st-past)', c: 'var(--st-ink-2)', tc: 'var(--st-ink-3)', shadow: soft, z: '1' },
+      airing: { bg: 'var(--st-airing)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: soft, z: '1' },
+      future: { bg: 'var(--st-future)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: soft, z: '1' },
+      selected: { bg: 'var(--st-card-focus)', c: 'var(--st-ink)', tc: 'var(--st-ink-2)', shadow: '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)', z: '2' }
+    }[s] || {};
+    return Object.assign({ title: it.title, time: it.time, onScreen: !!it.onScreen,
+      w: (Number(this.props.width) || 160) + 'px', pick: this.props.onPick || (() => {}) }, S);
+  }
+}
+</script>
+</body>
+</html>

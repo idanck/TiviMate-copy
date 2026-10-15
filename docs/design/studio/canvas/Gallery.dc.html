@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — גלריית רכיבים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div dir="rtl" style="width: 1920px; height: 2520px; box-sizing: border-box; padding: 72px var(--st-safe-x); background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); display: flex; flex-direction: column; gap: 52px; overflow: hidden">
+
+<div style="display: flex; align-items: baseline; gap: 28px">
+<h1 class="st-t-title">אולפן · רכיבים</h1>
+<span class="st-t-meta" style="font-size: 26px">כל מסך בקנבס מורכב מהרכיבים האלה · כל רכיב הוא לוח בעמוד הזה</span>
+</div>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">כפתור <span class="st-t-caption">Button</span></h2>
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 36px 44px">
+<sc-for list="{{buttons}}" as="b" hint-placeholder-count="8">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 12px">
+<dc-import name="Button" label="{{b.label}}" variant="{{b.variant}}" glyph="{{b.glyph}}" focused="{{b.focused}}" icon-only="{{b.iconOnly}}" size="{{b.size}}" hint-size="300px,84px"></dc-import>
+<span class="st-t-caption">{{b.cap}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">תג, צ׳יפ, התקדמות <span class="st-t-caption">LiveBadge · Chip · Progress</span></h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 36px">
+<dc-import name="LiveBadge" hint-size="160px,44px"></dc-import>
+<dc-import name="LiveBadge" label="על המסך · קשת 12" size="s" hint-size="220px,32px"></dc-import>
+<dc-import name="Chip" label="מחר" state="rest" hint-size="100px,52px"></dc-import>
+<dc-import name="Chip" label="היום" state="selected" hint-size="100px,52px"></dc-import>
+<dc-import name="Chip" label="שבת 17.10" state="focus" hint-size="140px,52px"></dc-import>
+<dc-import name="Progress" pct="62" width="320" hint-size="320px,8px"></dc-import>
+<dc-import name="Progress" pct="35" width="240" size="s" tone="cue" hint-size="240px,5px"></dc-import>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">כרטיס ערוץ <span class="st-t-caption">ChannelCard · רגיל · על המסך · בפוקוס · תחנה</span></h2>
+<div style="display: flex; align-items: flex-start; gap: 48px">
+<dc-import name="ChannelCard" item="{{card1}}" state="rest" hint-size="320px,262px"></dc-import>
+<dc-import name="ChannelCard" item="{{card2}}" state="onscreen" hint-size="320px,262px"></dc-import>
+<dc-import name="ChannelCard" item="{{card3}}" state="focus" hint-size="320px,262px"></dc-import>
+<dc-import name="ChannelCard" item="{{card4}}" state="rest" disc="true" hint-size="320px,262px"></dc-import>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">דיסק תחנה <span class="st-t-caption">StationDisc · רגיל · על המסך · בפוקוס</span></h2>
+<div style="display: flex; align-items: flex-start; gap: 56px">
+<dc-import name="StationDisc" label="כאן ב" state="rest" hint-size="150px,200px"></dc-import>
+<dc-import name="StationDisc" label="גלגלצ" state="onscreen" hint-size="150px,200px"></dc-import>
+<dc-import name="StationDisc" label="כאן 88" state="focus" hint-size="150px,200px"></dc-import>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">משבצת מדריך <span class="st-t-caption">GuideCell · שודר · משודר · עתידי · בפוקוס</span></h2>
+<div style="display: flex; align-items: center; gap: 24px">
+<dc-import name="GuideCell" item="{{cellPast}}" state="past" width="300" hint-size="300px,58px"></dc-import>
+<dc-import name="GuideCell" item="{{cellAir}}" state="airing" width="340" hint-size="340px,58px"></dc-import>
+<dc-import name="GuideCell" item="{{cellFut}}" state="future" width="300" hint-size="300px,58px"></dc-import>
+<dc-import name="GuideCell" item="{{cellFoc}}" state="focus" width="300" hint-size="300px,58px"></dc-import>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">שורת רשימה <span class="st-t-caption">ListRow · ערוצים, הגדרות ותפריטים</span></h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 64px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+<dc-import name="ListRow" label="{{r.label}}" sub="{{r.sub}}" num="{{r.num}}" glyph="{{r.glyph}}" trail="{{r.trail}}" value="{{r.value}}" state="{{r.state}}" width="800" hint-size="800px,92px"></dc-import>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">שדה <span class="st-t-caption">Field · רגיל · בפוקוס</span></h2>
+<div style="display: flex; align-items: flex-start; gap: 64px">
+<dc-import name="Field" label="כתובת הרשימה (M3U)" placeholder="https://" ltr="true" state="rest" width="800" hint-size="800px,110px"></dc-import>
+<dc-import name="Field" label="חיפוש" value="חדשות" glyph="search" state="focus" width="800" hint-size="800px,110px"></dc-import>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">אייקונים <span class="st-t-caption">Icon</span></h2>
+<div style="display: flex; flex-wrap: wrap; gap: 20px 28px">
+<sc-for list="{{glyphs}}" as="g" hint-placeholder-count="29">
+<div style="width: 100px; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--st-ink)">
+<dc-import name="Icon" glyph="{{g}}" size="32" hint-size="32px,32px"></dc-import>
+<span dir="ltr" class="st-t-caption" style="font-size: 15px">{{g}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":2520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      buttons: [
+        { label: 'צפייה במסך מלא', variant: 'primary', glyph: 'play', focused: false, iconOnly: false, size: 'l', cap: 'ראשי' },
+        { label: 'צפייה במסך מלא', variant: 'primary', glyph: 'play', focused: true, iconOnly: false, size: 'l', cap: 'בפוקוס' },
+        { label: 'לוח שידורים', variant: 'secondary', glyph: 'guide', focused: false, iconOnly: false, size: 'l', cap: 'משני' },
+        { label: 'מועדפים', variant: 'secondary', glyph: 'star', focused: false, iconOnly: true, size: 'l', cap: 'אייקון' },
+        { label: 'מועדפים', variant: 'secondary', glyph: 'star', focused: true, iconOnly: true, size: 'l', cap: 'אייקון בפוקוס' },
+        { label: 'תזכורת', variant: 'secondary', glyph: 'bell', focused: false, iconOnly: false, size: 'm', cap: 'בינוני' },
+        { label: 'הקלטה', variant: 'secondary', glyph: 'record', focused: true, iconOnly: false, size: 'm', cap: 'בינוני בפוקוס' },
+        { label: 'ביטול', variant: 'secondary', glyph: '', focused: false, iconOnly: false, size: 'm', cap: 'בלי אייקון' }
+      ],
+      card1: { label: 'כאן 11', num: '11', now: 'סרט תעודה', time: '20:15–21:45', pct: 45 },
+      card2: { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62 },
+      card3: { label: 'ערוץ 13', num: '13', now: 'תוכנית אירוח', time: '20:00–21:00', pct: 93 },
+      card4: { label: 'גלגלצ', num: '', now: 'מתנגן עכשיו', time: 'רדיו · ארצי' },
+      cellPast: { title: 'פינת תרבות', time: '20:30–20:45' },
+      cellAir: { title: 'מהדורת החדשות המרכזית', time: '20:00–21:30', onScreen: true },
+      cellFut: { title: 'מגזין ערב', time: '21:30–23:00' },
+      cellFoc: { title: 'סרט עלילתי', time: '21:45–23:30' },
+      rows: [
+        { label: 'ערוץ 13', sub: 'תוכנית אירוח · 20:00–21:00', num: '13', glyph: '', trail: 'none', value: '', state: 'rest' },
+        { label: 'רשימות ולוח שידורים', sub: '', num: '', glyph: 'tv', trail: 'chevron', value: '', state: 'rest' },
+        { label: 'קשת 12', sub: 'מהדורת החדשות המרכזית · 20:00–21:30', num: '12', glyph: '', trail: 'none', value: '', state: 'onscreen' },
+        { label: 'שפה', sub: '', num: '', glyph: '', trail: 'value', value: 'עברית', state: 'rest' },
+        { label: 'ערוץ 14', sub: 'פאנל ערב · 20:30–22:00', num: '14', glyph: '', trail: 'none', value: '', state: 'focus' },
+        { label: 'הצג כתוביות', sub: '', num: '', glyph: 'subtitles', trail: 'on', value: '', state: 'focus' },
+        { label: 'ערוץ הכנסת', sub: 'מוסתר מהרשימה', num: '99', glyph: '', trail: 'none', value: '', state: 'disabled' },
+        { label: 'אמון בתעודות לא תקפות', sub: '', num: '', glyph: 'lock', trail: 'off', value: '', state: 'rest' },
+        { label: 'עברית', sub: '', num: '', glyph: '', trail: 'check', value: '', state: 'selected' },
+        { label: 'צפייה מההתחלה', sub: 'אין שידור חוזר לערוץ הזה', num: '', glyph: 'restart', trail: 'none', value: '', state: 'disabled' }
+      ],
+      glyphs: ['play', 'pause', 'rewind', 'forward', 'restart', 'record', 'guide', 'star', 'bell', 'search', 'settings', 'tv', 'radio', 'subtitles', 'audio', 'aspect', 'lock', 'hide', 'move', 'trash', 'plus', 'check', 'info', 'alert', 'update', 'chevron-left', 'chevron-up', 'chevron-down', 'back']
+    };
+  }
+}
+</script>
+</body>
+</html>

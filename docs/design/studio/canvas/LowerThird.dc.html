@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — שליש תחתון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<section aria-label="{{channel}}" style="width: 1728px; display: flex; align-items: flex-end; gap: 40px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div style="position: relative; flex: 0 0 176px; height: 176px; border-radius: var(--st-r-control); background: var(--st-scrim); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center; overflow: hidden">
+<span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 8px; background: var(--st-tally)"></span>
+<span class="st-num" style="font-family: var(--st-font-display); font-weight: 700; font-size: 150px; line-height: 1; margin-top: 18px">{{num}}</span>
+</div>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 18px">
+<span style="font-size: 32px; font-weight: 600">{{channel}}</span>
+<dc-import name="LiveBadge" size="m" hint-size="160px,44px"></dc-import>
+</div>
+<h2 class="st-t-title" style="font-size: 124px; line-height: 0.88; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</h2>
+<div class="st-num" style="display: flex; align-items: center; gap: 24px; font-size: 26px; color: var(--st-ink-2)">
+<span>{{time}}</span>
+<dc-import name="Progress" pct="{{pct}}" width="560" hint-size="560px,8px"></dc-import>
+<span>{{left}}</span>
+</div>
+</div>
+<div class="st-panel" style="flex: 0 0 440px; box-sizing: border-box; padding: 26px 30px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 22px; font-weight: 600; color: var(--st-next)">הבא</span>
+<span style="font-size: 36px; font-weight: 600">{{nextTitle}}</span>
+<span class="st-num" style="font-size: 22px; color: var(--st-ink-2)">{{nextTime}}</span>
+</div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"num":{"editor":"text","default":"13"},"channel":{"editor":"text","default":"ערוץ 13"},"title":{"editor":"text","default":"תוכנית אירוח"},"time":{"editor":"text","default":"20:00–21:00"},"pct":{"editor":"range","default":93,"min":0,"max":100,"step":1},"left":{"editor":"text","default":"נותרו 4 דק׳"},"nextTitle":{"editor":"text","default":"תחקיר"},"nextTime":{"editor":"text","default":"21:00–22:15"},"$preview":{"width":1728,"height":200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    return {
+      num: p.num ?? '13', channel: p.channel ?? 'ערוץ 13', title: p.title ?? 'תוכנית אירוח',
+      time: p.time ?? '20:00–21:00', pct: p.pct ?? 93, left: p.left ?? 'נותרו 4 דק׳',
+      nextTitle: p.nextTitle ?? 'תחקיר', nextTime: p.nextTime ?? '21:00–22:15'
+    };
+  }
+}
+</script>
+</body>
+</html>

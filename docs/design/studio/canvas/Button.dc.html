@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — כפתור</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button aria-label="{{aria}}" class="st-anim" style="height: {{h}}; min-width: {{minw}}; padding: {{pad}}; box-sizing: border-box; border: 0; border-radius: var(--st-r-control); background: {{bg}}; color: {{fg}}; box-shadow: {{shadow}}; transform: {{tf}}; font-family: var(--st-font-ui); font-size: {{fs}}; font-weight: {{fw}}; display: inline-flex; align-items: center; justify-content: center; gap: 14px; white-space: nowrap; cursor: pointer">
+<sc-if value="{{hasIcon}}" hint-placeholder-val="{{true}}"><dc-import name="Icon" glyph="{{glyph}}" size="{{isz}}" hint-size="30px,30px"></dc-import></sc-if>
+<sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}"><span>{{label}}</span></sc-if>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה במסך מלא"},"variant":{"editor":"enum","options":["primary","secondary"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"focused":{"editor":"boolean","default":false},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["l","m"],"default":"l"},"$preview":{"width":420,"height":84}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    const label = this.props.label ?? 'צפייה במסך מלא';
+    const glyph = this.props.glyph ?? 'play';
+    const variant = this.props.variant || 'secondary';
+    const focused = yes(this.props.focused);
+    const iconOnly = yes(this.props.iconOnly);
+    const L = (this.props.size || 'l') === 'l';
+    const h = L ? 84 : 64;
+    let bg = 'var(--st-control)', fg = 'var(--st-ink)', shadow = 'inset 0 0 0 1px var(--st-hairline)';
+    if (focused) { bg = 'var(--st-cue)'; fg = 'var(--st-on-cue)'; shadow = 'var(--st-lift)'; }
+    else if (variant === 'primary') { bg = 'var(--st-ink)'; fg = 'var(--st-ground)'; shadow = 'none'; }
+    return {
+      label: label, glyph: glyph,
+      aria: iconOnly ? label : undefined,
+      hasIcon: !!glyph, showLabel: !iconOnly,
+      h: h + 'px', minw: iconOnly ? h + 'px' : '0px',
+      pad: iconOnly ? '0px' : (L ? '0 38px' : '0 28px'),
+      bg: bg, fg: fg, shadow: shadow,
+      tf: focused ? 'scale(var(--st-focus-scale))' : 'none',
+      fs: L ? '30px' : '24px',
+      fw: focused || variant === 'primary' ? '700' : '500',
+      isz: L ? 30 : 26
+    };
+  }
+}
+</script>
+</body>
+</html>

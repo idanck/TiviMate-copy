@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — שורת רשימה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button class="st-anim" style="width: {{w}}; min-height: {{h}}; box-sizing: border-box; padding: 0 24px; border: 0; border-radius: var(--st-r-card); background: {{bg}}; box-shadow: {{shadow}}; transform: {{tf}}; color: {{fg}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); cursor: pointer">
+<sc-if value="{{hasNum}}" hint-placeholder-val="{{false}}"><span class="st-num" style="flex: 0 0 44px; font-size: 22px; font-weight: 600; color: {{subc}}">{{num}}</span></sc-if>
+<sc-if value="{{hasIcon}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="{{glyph}}" size="28" hint-size="28px,28px"></dc-import></sc-if>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: 600; white-space: nowrap; overflow: hidden"><span style="overflow: hidden; text-overflow: ellipsis">{{label}}</span><sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="על המסך" style="flex: 0 0 12px; width: 12px; height: 12px; border-radius: 50%; background: var(--st-tally)"></span></sc-if></span>
+<sc-if value="{{hasSub}}" hint-placeholder-val="{{false}}"><span style="font-size: 20px; font-weight: 400; color: {{subc}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sub}}</span></sc-if>
+</span>
+<sc-if value="{{tValue}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 auto; font-size: 22px; color: {{subc}}">{{value}}</span></sc-if>
+<sc-if value="{{tChevron}}" hint-placeholder-val="{{true}}"><span style="color: {{subc}}"><dc-import name="Icon" glyph="chevron-left" size="26" hint-size="26px,26px"></dc-import></span></sc-if>
+<sc-if value="{{tCheck}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="check" size="28" hint-size="28px,28px"></dc-import></sc-if>
+<sc-if value="{{tStatus}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); color: {{stFg}}; font-size: 20px; font-weight: 600; white-space: nowrap"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: {{stDot}}"></span>{{value}}</span></sc-if>
+<sc-if value="{{tToggle}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: relative; flex: 0 0 64px; width: 64px; height: 36px; border-radius: 18px; background: {{tgBg}}"><span style="position: absolute; top: 4px; right: {{tgPos}}; width: 28px; height: 28px; border-radius: 50%; background: {{tgKnob}}"></span></span></sc-if>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"רשימות ולוח שידורים"},"sub":{"editor":"text","default":""},"num":{"editor":"text","default":""},"glyph":{"editor":"text","default":""},"trail":{"editor":"enum","options":["chevron","on","off","check","value","status","none"],"default":"chevron"},"tone":{"editor":"enum","options":["muted","tally","ok","error","cue"],"default":"muted"},"value":{"editor":"text","default":""},"state":{"editor":"enum","options":["rest","focus","selected","onscreen","disabled"],"default":"rest"},"width":{"editor":"int","default":760,"min":240,"max":1728},"$preview":{"width":760,"height":92}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const st = p.state || 'rest';
+    const trail = p.trail || 'chevron';
+    const sub = p.sub || '';
+    const focus = st === 'focus';
+    let bg = 'transparent', shadow = 'none', fg = 'var(--st-ink)', subc = 'var(--st-ink-2)';
+    if (focus) { bg = 'var(--st-card-focus)'; shadow = '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)'; }
+    else if (st === 'selected') { bg = 'var(--st-card)'; }
+    else if (st === 'disabled') { fg = 'var(--st-ink-3)'; subc = 'var(--st-ink-3)'; }
+    const on = trail === 'on';
+    return {
+      label: p.label ?? 'רשימות ולוח שידורים', sub: sub, num: p.num || '', glyph: p.glyph || '', value: p.value || '',
+      hasSub: sub !== '', hasNum: !!p.num, hasIcon: !!p.glyph, onScreen: st === 'onscreen',
+      w: (Number(p.width) || 760) + 'px', h: sub ? '92px' : 'var(--st-h-row)',
+      bg: bg, shadow: shadow, fg: fg, subc: subc,
+      tf: focus ? 'scale(var(--st-focus-scale-row))' : 'none',
+      tValue: trail === 'value', tChevron: trail === 'chevron', tCheck: trail === 'check',
+      tToggle: trail === 'on' || trail === 'off',
+      tStatus: trail === 'status',
+      stDot: { tally: 'var(--st-tally)', error: 'var(--st-error)', ok: 'var(--st-ok)', muted: 'var(--st-ink-3)', cue: 'var(--st-cue)' }[p.tone || 'muted'] || 'var(--st-ink-3)',
+      stFg: p.tone === 'error' ? 'var(--st-error)' : (p.tone === 'muted' || !p.tone ? 'var(--st-ink-2)' : 'var(--st-ink)'),
+      tgBg: on ? 'var(--st-ink)' : 'var(--st-track)',
+      tgKnob: on ? 'var(--st-ground)' : 'var(--st-ink-2)',
+      tgPos: on ? '32px' : '4px'
+    };
+  }
+}
+</script>
+</body>
+</html>

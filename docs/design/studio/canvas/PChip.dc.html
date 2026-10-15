@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — צ'יפ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button aria-pressed="{{pressed}}" class="st-anim" style="height: var(--st-h-chip); padding: 0 16px; box-sizing: border-box; border: 0; border-radius: var(--st-r-chip); background: {{bg}}; color: {{fg}}; font-family: var(--st-font-ui); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer">{{label}}</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"היום"},"state":{"editor":"enum","options":["rest","selected"],"default":"rest"},"$preview":{"width":90,"height":36}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sel = this.props.state === 'selected';
+    return { label: this.props.label ?? 'היום', pressed: sel ? 'true' : 'false',
+      bg: sel ? 'var(--st-ink)' : 'var(--st-surface)', fg: sel ? 'var(--st-ground)' : 'var(--st-ink-2)' };
+  }
+}
+</script>
+</body>
+</html>

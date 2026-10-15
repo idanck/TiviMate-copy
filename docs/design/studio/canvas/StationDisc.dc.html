@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — דיסק תחנה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display: inline-flex; flex-direction: column; align-items: center; gap: {{cgap}}; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div class="st-anim" style="width: {{s}}; height: {{s}}; box-sizing: border-box; padding: 0 14px; border-radius: 50%; background: var(--st-card); box-shadow: {{ring}}; transform: {{tf}}; display: flex; align-items: center; justify-content: center; text-align: center">
+<span style="font-size: {{fs}}; font-weight: 700; line-height: 1.1">{{label}}</span>
+</div>
+<sc-if value="{{caption}}" hint-placeholder-val="{{true}}"><span style="display: flex; align-items: center; gap: 8px; font-size: {{cfs}}; font-weight: {{cw}}; color: {{cc}}; white-space: nowrap"><sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="על המסך" style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-tally)"></span></sc-if>{{label}}</span></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"גלגלצ"},"size":{"editor":"int","default":150,"min":80,"max":520},"state":{"editor":"enum","options":["rest","onscreen","focus"],"default":"rest"},"caption":{"editor":"boolean","default":true},"halo":{"editor":"boolean","default":false},"captionSize":{"editor":"int","default":21,"min":10,"max":32},"$preview":{"width":180,"height":210}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    const size = Number(this.props.size) || 150;
+    const st = this.props.state || 'rest';
+    const halo = yes(this.props.halo);
+    const caption = this.props.caption === undefined ? true : yes(this.props.caption);
+    let ring = 'inset 0 0 0 1px var(--st-hairline)';
+    if (st === 'focus') ring = '0 0 0 5px var(--st-cue), var(--st-lift)';
+    else if (st === 'onscreen') ring = '0 0 0 4px var(--st-tally)';
+    if (halo) ring = ring + ', 0 0 0 18px var(--st-halo), 0 30px 80px rgba(0,0,0,0.5)';
+    const strong = st !== 'rest';
+    return {
+      label: this.props.label ?? 'גלגלצ',
+      s: size + 'px', fs: Math.round(size * 0.19) + 'px',
+      ring: ring, tf: st === 'focus' ? 'scale(1.08)' : 'none',
+      caption: caption, onScreen: st === 'onscreen',
+      cgap: (Number(this.props.captionSize) || 21) < 16 ? '8px' : '16px',
+      cfs: (Number(this.props.captionSize) || 21) + 'px',
+      cw: strong ? '600' : '500', cc: strong ? 'var(--st-ink)' : 'var(--st-ink-2)'
+    };
+  }
+}
+</script>
+</body>
+</html>

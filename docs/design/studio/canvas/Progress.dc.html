@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — פס התקדמות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0}</style>
+</helmet>
+<div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{pct}}" style="width: {{w}}; height: {{h}}; border-radius: {{r}}; background: var(--st-track); overflow: hidden"><div style="width: {{fill}}; height: 100%; border-radius: {{r}}; background: {{tone}}"></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"pct":{"editor":"range","default":62,"min":0,"max":100,"step":1},"width":{"editor":"int","default":520,"min":40,"max":1800},"size":{"editor":"enum","options":["m","s"],"default":"m"},"tone":{"editor":"enum","options":["ink","cue"],"default":"ink"},"$preview":{"width":520,"height":8}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const pct = Math.max(0, Math.min(100, Number(this.props.pct ?? 62)));
+    const m = (this.props.size || 'm') === 'm';
+    return {
+      pct: pct, fill: pct + '%',
+      w: (Number(this.props.width) || 520) + 'px',
+      h: m ? '8px' : '5px', r: m ? '4px' : '3px',
+      tone: this.props.tone === 'cue' ? 'var(--st-cue)' : 'var(--st-ink)'
+    };
+  }
+}
+</script>
+</body>
+</html>

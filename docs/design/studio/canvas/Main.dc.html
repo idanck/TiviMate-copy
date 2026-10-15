@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — מסך הבית</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="[תמונת השידור החי — ממשיכה לרוץ מאחור]" hint-size="1920px,1080px"></dc-import></div>
+<div class="st-scrim-bottom"></div>
+<div class="st-scrim-top"></div>
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 232px; right: var(--st-inset-start); width: 1180px; display: flex; flex-direction: column; gap: 22px">
+<div style="display: flex; align-items: center; gap: 18px">
+<dc-import name="LiveBadge" hint-size="160px,44px"></dc-import>
+<span style="font-size: 30px; font-weight: 600">קשת 12</span>
+<span class="st-num" style="font-size: 24px; color: var(--st-ink-2)">ערוץ 12</span>
+</div>
+<h1 class="st-t-hero">מהדורת החדשות המרכזית</h1>
+<div class="st-num" style="display: flex; align-items: center; gap: 24px; font-size: 26px; color: var(--st-ink-2)">
+<span>20:00–21:30</span>
+<dc-import name="Progress" pct="62" width="520" hint-size="520px,8px"></dc-import>
+<span>נותרו 34 דק׳</span>
+</div>
+<div style="display: flex; align-items: center; gap: 20px; margin-top: 14px">
+<dc-import name="Button" label="צפייה במסך מלא" glyph="play" focused="{{heroFocus}}" hint-size="400px,84px"></dc-import>
+<dc-import name="Button" label="לוח שידורים" glyph="guide" hint-size="300px,84px"></dc-import>
+<dc-import name="Button" label="הוספה למועדפים" glyph="star" icon-only="true" hint-size="84px,84px"></dc-import>
+<span style="font-size: 24px; color: var(--st-next); margin-right: 24px">הבא ב־21:30 · מגזין ערב</span>
+</div>
+</section>
+
+<section aria-label="ערוצים" style="position: absolute; top: 724px; left: 0; right: 0">
+<div style="padding: 0 var(--st-inset-start) 0 var(--st-safe-x); display: flex; align-items: baseline; gap: 18px; margin-bottom: 22px">
+<h2 class="st-t-h1">ערוצים</h2>
+<span class="st-t-caption">ערוצים פתוחים בישראל</span>
+</div>
+<div style="display: flex; gap: var(--st-gap-rail); padding: 28px var(--st-inset-start) 28px var(--st-safe-x); margin-top: -28px; overflow: hidden">
+<sc-for list="{{channels}}" as="ch" hint-placeholder-count="7">
+<div style="flex: 0 0 320px"><dc-import name="ChannelCard" item="{{ch}}" state="{{ch.state}}" hint-size="320px,262px"></dc-import></div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"heroFocus":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const hf = this.props.heroFocus;
+    return {
+      heroFocus: !(hf === false || hf === 'false'),
+      channels: [
+        { label: 'כאן 11', num: '11', now: 'סרט תעודה', time: '20:15–21:45', pct: 45, state: 'rest' },
+        { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62, state: 'onscreen' },
+        { label: 'ערוץ 13', num: '13', now: 'תוכנית אירוח', time: '20:00–21:00', pct: 93, state: 'rest' },
+        { label: 'ערוץ 14', num: '14', now: 'פאנל ערב', time: '20:30–22:00', pct: 29, state: 'rest' },
+        { label: 'כאן חינוכית', num: '23', now: 'סדרת נוער', time: '20:30–21:00', pct: 87, state: 'rest' },
+        { label: 'מכאן 33', num: '33', now: 'מהדורה בערבית', time: '20:45–21:30', pct: 24, state: 'rest' },
+        { label: 'ערוץ הכנסת', num: '99', now: 'דיון במליאה', time: '19:00–23:00', pct: 48, state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

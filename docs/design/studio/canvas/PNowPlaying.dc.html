@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — מתנגן עכשיו</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0; width: 390px; height: 219px; overflow: hidden">
+<dc-import name="Picture" scene="studio" width="390" height="219" label="[תמונת השידור]" hint-size="390px,219px"></dc-import>
+<span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--st-tally)"></span>
+<button aria-label="כיווץ הנגן" style="position: absolute; top: 10px; right: 10px; width: var(--st-touch); height: var(--st-touch); border: 0; border-radius: 50%; background: var(--st-scrim); color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="chevron-down" size="24" hint-size="24px,24px"></dc-import></button>
+</div>
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 259px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: center; gap: 8px">
+<dc-import name="LiveBadge" size="xs" hint-size="90px,24px"></dc-import>
+<span style="font-size: 14px; font-weight: 600">קשת 12</span>
+<span class="st-num st-t-caption">ערוץ 12</span>
+</div>
+<h1 class="st-t-hero" style="font-size: 44px; line-height: 0.95">מהדורת החדשות המרכזית</h1>
+<div class="st-num" style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--st-ink-2)">
+<span>20:00–21:30</span>
+<dc-import name="Progress" pct="62" width="170" size="s" hint-size="170px,5px"></dc-import>
+<span>נותרו 34 דק׳</span>
+</div>
+</section>
+<div style="position: absolute; top: 410px; right: 0; width: 390px; display: flex; align-items: center; justify-content: center; gap: 28px">
+<dc-import name="PButton" label="ערוץ קודם" glyph="chevron-up" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+<dc-import name="PButton" label="השהיה" glyph="pause" variant="primary" icon-only="true" size="xl" hint-size="64px,64px"></dc-import>
+<dc-import name="PButton" label="ערוץ הבא" glyph="chevron-down" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+</div>
+<div style="position: absolute; top: 498px; right: var(--st-safe-x); width: 358px; display: flex; gap: 8px; justify-content: space-between">
+<dc-import name="PButton" label="מועדף" glyph="star" size="m" hint-size="110px,40px"></dc-import>
+<dc-import name="PButton" label="מדריך" glyph="guide" size="m" hint-size="110px,40px"></dc-import>
+<dc-import name="PButton" label="תצוגה" glyph="aspect" size="m" hint-size="110px,40px"></dc-import>
+</div>
+<div class="st-panel" style="position: absolute; top: 558px; right: var(--st-safe-x); width: 358px; box-sizing: border-box; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px">
+<span class="st-num" style="font-size: 13px; font-weight: 600; color: var(--st-next)">הבא · 21:30</span>
+<span style="font-size: 18px; font-weight: 600">מגזין ערב</span>
+<span class="st-num st-t-meta" style="font-size: 13px">21:30–23:00</span>
+</div>
+<h2 class="st-t-h1" style="position: absolute; top: 676px; right: 32px; font-size: 16px">ערוצים נוספים</h2>
+<div style="position: absolute; top: 704px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: var(--st-gap-row)">
+<dc-import name="PChannelRow" item="{{a}}" width="358" hint-size="358px,72px"></dc-import>
+<dc-import name="PChannelRow" item="{{b}}" width="358" hint-size="358px,72px"></dc-import>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      a: { label: 'ערוץ 13', num: '13', now: 'תוכנית אירוח', time: '20:00–21:00', pct: 93 },
+      b: { label: 'ערוץ 14', num: '14', now: 'פאנל ערב', time: '20:30–22:00', pct: 29 }
+    };
+  }
+}
+</script>
+</body>
+</html>

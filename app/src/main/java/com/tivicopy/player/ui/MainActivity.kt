@@ -353,7 +353,11 @@ class MainActivity : ComponentActivity() {
                 emptyList()
             }
 
-            TiviCopyTheme(mode = prefs.theme, fontScale = prefs.fontScale) {
+            TiviCopyTheme(
+                mode = prefs.theme,
+                fontScale = prefs.fontScale,
+                television = isTelevision,
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     // The screensaver is a sibling of the shell rather than something inside
                     // it: it covers both shells, the snackbar and every overlay, and neither

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — שורה עליונה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<header style="width: 390px; height: var(--st-h-topbar); box-sizing: border-box; padding: 0 6px; display: flex; align-items: center; gap: 2px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<sc-if value="{{back}}" hint-placeholder-val="{{false}}"><button aria-label="חזרה" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="back" size="24" hint-size="24px,24px"></dc-import></button></sc-if>
+<h1 class="st-t-title-s" style="flex: 1 1 auto; min-width: 0; padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</h1>
+<sc-if value="{{search}}" hint-placeholder-val="{{true}}"><button aria-label="חיפוש" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="search" size="24" hint-size="24px,24px"></dc-import></button></sc-if>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"ערוצים"},"back":{"editor":"boolean","default":false},"search":{"editor":"boolean","default":true},"$preview":{"width":390,"height":56}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    return { title: this.props.title ?? 'ערוצים', back: yes(this.props.back), search: this.props.search === undefined ? true : yes(this.props.search) };
+  }
+}
+</script>
+</body>
+</html>

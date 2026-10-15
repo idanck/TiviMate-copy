@@ -3,6 +3,7 @@
 **Status:** accepted. Supersedes the *shape* of the home screen ADR-016 built; everything else in
 ADR-016 — that the television's root is a home screen at all, what the rails are, and that video
 never stops — still stands.
+The collapsing rail is in turn superseded by ADR-027's side menu and closed strip.
 
 ## Context
 

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — מדריך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="מדריך" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div role="group" aria-label="יום" style="position: absolute; top: 88px; right: var(--st-safe-x); left: 0; display: flex; gap: 8px; overflow: hidden">
+<sc-for list="{{days}}" as="d" hint-placeholder-count="5">
+<dc-import name="PChip" label="{{d.label}}" state="{{d.state}}" hint-size="80px,36px"></dc-import>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position: absolute; top: 138px; right: 88px; width: 286px; height: 22px">
+<sc-for list="{{hours}}" as="h" hint-placeholder-count="3">
+<span class="st-num" style="position: absolute; top: 0; right: {{h.right}}; height: 20px; line-height: 20px; padding-right: 6px; border-right: 2px solid var(--st-track); font-size: 12px; font-weight: 600; color: var(--st-ink-2)">{{h.t}}</span>
+</sc-for>
+</div>
+<div style="position: absolute; top: 166px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div style="display: flex; gap: 8px; height: 52px">
+<div style="flex: 0 0 64px; height: 52px; box-sizing: border-box; padding: 0 8px; border-radius: 8px; background: var(--st-surface); display: flex; flex-direction: column; justify-content: center; gap: 2px">
+<span class="st-num" style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: var(--st-ink-3)">{{r.num}}<sc-if value="{{r.onScreen}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="על המסך" style="width: 7px; height: 7px; border-radius: 50%; background: var(--st-tally)"></span></sc-if></span>
+<span style="font-size: 12px; font-weight: 600; line-height: 1.15">{{r.name}}</span>
+</div>
+<div style="position: relative; flex: 0 0 286px; height: 52px">
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="2">
+<div style="position: absolute; top: 0; right: {{c.right}}; z-index: {{c.z}}"><dc-import name="PGuideCell" item="{{c}}" state="{{c.state}}" width="{{c.width}}" on-pick="{{c.pick}}" hint-size="120px,52px"></dc-import></div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position: absolute; top: 160px; right: {{nowRight}}; width: 2px; height: 342px; background: var(--st-tally); z-index: 3; pointer-events: none"></div>
+<section aria-label="התוכנית שנבחרה" class="st-panel" style="position: absolute; top: 514px; right: 0; width: 390px; height: 176px; box-sizing: border-box; padding: 16px; border-radius: var(--st-r-sheet) var(--st-r-sheet) 0 0; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: var(--st-ink-2)">{{sel.ch}} · <span class="st-num">{{sel.time}}</span> · {{sel.kind}}</span>
+<h2 class="st-t-title-s" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{sel.title}}</h2>
+<span style="font-size: 14px; font-weight: 500">{{sel.status}}</span>
+<div style="display: flex; gap: 8px; margin-top: 6px">
+<sc-if value="{{isFuture}}" hint-placeholder-val="{{true}}">
+<dc-import name="PButton" label="תזכורת" glyph="bell" size="m" hint-size="110px,40px"></dc-import>
+<dc-import name="PButton" label="הקלטה" glyph="record" size="m" hint-size="110px,40px"></dc-import>
+</sc-if>
+<sc-if value="{{isAiring}}" hint-placeholder-val="{{false}}">
+<dc-import name="PButton" label="צפייה" glyph="play" variant="primary" size="m" hint-size="100px,40px"></dc-import>
+<dc-import name="PButton" label="מההתחלה" glyph="restart" size="m" hint-size="120px,40px"></dc-import>
+</sc-if>
+<sc-if value="{{isPast}}" hint-placeholder-val="{{false}}">
+<dc-import name="PButton" label="צפייה בשידור החוזר" glyph="restart" size="m" hint-size="190px,40px"></dc-import>
+</sc-if>
+</div>
+</section>
+<div style="position: absolute; top: 700px; right: 0"><dc-import name="PMiniPlayer" channel="קשת 12" title="מהדורת החדשות המרכזית" pct="62" hint-size="390px,64px"></dc-import></div><div style="position: absolute; bottom: 0; right: 0"><dc-import name="PNavBar" current="guide" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const NOW = 20 * 60 + 56, W0 = 20 * 60 + 30, W1 = 22 * 60, TW = 286, PX = TW / (W1 - W0);
+    const m = (t) => { const p = t.split(':'); return Number(p[0]) * 60 + Number(p[1]); };
+    const focus = (this.state && this.state.focus) || 'c13b';
+    const data = [
+      { name: 'כאן 11', num: '11', progs: [
+        { id: 'k11a', t: 'סרט תעודה', s: '20:15', e: '21:45', kind: 'תעודה' },
+        { id: 'k11b', t: 'סרט עלילתי', s: '21:45', e: '23:30', kind: 'סרט' } ] },
+      { name: 'קשת 12', num: '12', onScreen: true, progs: [
+        { id: 'k12a', t: 'מהדורת החדשות המרכזית', s: '20:00', e: '21:30', kind: 'חדשות', onScreen: true },
+        { id: 'k12b', t: 'מגזין ערב', s: '21:30', e: '23:00', kind: 'מגזין' } ] },
+      { name: 'ערוץ 13', num: '13', progs: [
+        { id: 'c13a', t: 'תוכנית אירוח', s: '20:00', e: '21:00', kind: 'אירוח' },
+        { id: 'c13b', t: 'תחקיר', s: '21:00', e: '22:15', kind: 'תחקיר' } ] },
+      { name: 'ערוץ 14', num: '14', progs: [
+        { id: 'c14a', t: 'פאנל ערב', s: '20:30', e: '22:00', kind: 'אקטואליה' } ] },
+      { name: 'כאן חינוכית', num: '23', progs: [
+        { id: 'k23a', t: 'סדרת נוער', s: '20:30', e: '21:00', kind: 'נוער' },
+        { id: 'k23b', t: 'סדרת דרמה', s: '21:00', e: '22:00', kind: 'דרמה' } ] },
+      { name: 'מכאן 33', num: '33', progs: [
+        { id: 'm33a', t: 'פינת תרבות', s: '20:30', e: '20:45', kind: 'תרבות' },
+        { id: 'm33b', t: 'מהדורה בערבית', s: '20:45', e: '21:30', kind: 'חדשות' },
+        { id: 'm33c', t: 'סדרה', s: '21:30', e: '23:00', kind: 'סדרה' } ] }
+    ];
+    let sel = null;
+    const rows = data.map((r) => ({
+      name: r.name, num: r.num, onScreen: !!r.onScreen,
+      cells: r.progs.map((p) => {
+        const s = m(p.s), e = m(p.e), a = Math.max(s, W0), b = Math.min(e, W1);
+        const isF = p.id === focus, past = e <= NOW, airing = s <= NOW && NOW < e;
+        if (isF) sel = { title: p.t, kind: p.kind, ch: r.name, time: p.s + '–' + p.e, past: past, airing: airing, s: s, e: e, sStr: p.s };
+        return {
+          title: p.t, time: p.s + '–' + p.e, onScreen: !!p.onScreen,
+          right: Math.round((a - W0) * PX) + 'px', width: Math.max(24, Math.round((b - a) * PX) - 4),
+          state: isF ? 'selected' : (past ? 'past' : (airing ? 'airing' : 'future')), z: isF ? '2' : '1',
+          pick: () => this.setState({ focus: p.id })
+        };
+      })
+    }));
+    const until = sel.s - NOW;
+    sel.status = sel.airing ? 'בשידור עכשיו · נותרו ' + (sel.e - NOW) + ' דק׳' : sel.past ? 'שודר היום'
+      : (until < 60 ? 'מתחיל בעוד ' + until + ' דק׳' : 'מתחיל ב־' + sel.sStr);
+    return {
+      rows: rows, sel: sel,
+      days: ['אתמול', 'היום', 'מחר', 'שבת 17.10', 'ראשון 18.10'].map((l, i) => ({ label: l, state: i === 1 ? 'selected' : 'rest' })),
+      hours: ['20:30', '21:00', '21:30'].map((t, i) => ({ t: t, right: Math.round(i * 30 * PX) + 'px' })),
+      nowRight: Math.round(88 + (NOW - W0) * PX) + 'px',
+      isAiring: sel.airing, isPast: sel.past, isFuture: !sel.airing && !sel.past
+    };
+  }
+}
+</script>
+</body>
+</html>

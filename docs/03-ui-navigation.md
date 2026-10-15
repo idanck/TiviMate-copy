@@ -6,7 +6,7 @@
 |---|---|---|
 | Input | D-pad, OK, Back, colour keys, numerics | Tap, swipe, long-press, pinch |
 | Distance | 10-foot | 1-foot |
-| Type scale | Large, high contrast, no text smaller than 12sp effective | Standard Material scale |
+| Type scale | The Studio ten-foot ramp: high contrast, smallest step 10sp (ADR-029) | The Studio touch ramp, smallest step 13sp |
 | Focus | Explicit focus state on every element, no hover-only affordances | Ripple/press states |
 | Overscan | Edge-to-edge surfaces; content padding only | Edge-to-edge, insets-aware |
 
@@ -171,7 +171,7 @@ This is our differentiator and must not be an afterthought.
 
 ## 3.6 Appearance
 
-- Themes: system / light / dark / AMOLED black, plus an accent colour.
+- Themes: dark / AMOLED black (ADR-028), plus an accent colour.
 - Adjustable overlay opacity and auto-hide timeout.
 - Font scale (small → extra large) that actually reflows the guide.
 - Motion: a focused item lifts and its colours cross rather than snapping, the navigation rail
@@ -180,10 +180,11 @@ This is our differentiator and must not be an afterthought.
   `docs/adr/ADR-021`, which also records why the interface was not smooth before it: none of this
   app's own code was in the baseline profile, so on a freshly updated install every screen ran
   interpreted.
-- The interface is set in a typeface the app ships itself — Rubik, covering Hebrew and Latin in
-  one family — rather than the device default, which pairs Roboto with whatever Hebrew fallback
-  the box happens to carry. Four weights, no lighter than Regular. The dark theme keeps its
-  blue-grey background rather than the near-black the benchmark uses. See `docs/adr/ADR-019`.
+- The interface is drawn in the Studio language (`docs/design/studio/`, ADR-027): a night-blue
+  ground, a red *tally* for what is on screen and an amber *cue* that is the only focus colour.
+  It is set in typefaces the app ships itself rather than the device default — Karantina for
+  programme titles and the app's name, IBM Plex Sans Hebrew for everything else, both covering
+  Hebrew and Latin. No weight lighter than Regular.
 - Configurable bottom playback menu: which actions appear and in what order.
 - Optional channel-logo-only vs logo+name list modes.
 - Interface language: follow the device, English or Hebrew, chosen in the app rather than by

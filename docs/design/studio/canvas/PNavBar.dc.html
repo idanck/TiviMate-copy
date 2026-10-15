@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — ניווט תחתון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<nav aria-label="ניווט ראשי" style="width: 390px; height: var(--st-h-navbar); box-sizing: border-box; padding: 6px 4px 8px; background: var(--st-surface); box-shadow: inset 0 1px 0 var(--st-hairline-soft); display: flex; font-family: var(--st-font-ui)">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
+<button aria-current="{{it.aria}}" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; color: {{it.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer">
+<span class="st-anim" style="width: 56px; height: 30px; border-radius: 15px; background: {{it.pill}}; color: {{it.ic}}; display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="{{it.glyph}}" size="22" hint-size="22px,22px"></dc-import></span>
+<span class="st-t-nav" style="white-space: nowrap; font-weight: {{it.fw}}">{{it.label}}</span>
+</button>
+</sc-for>
+</nav>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["channels","guide","radio","recordings","settings"],"default":"channels"},"$preview":{"width":390,"height":72}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cur = this.props.current || 'channels';
+    const nav = [['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['recordings', 'הקלטות', 'record'], ['settings', 'הגדרות', 'settings']];
+    return {
+      items: nav.map((n) => {
+        const a = n[0] === cur;
+        return { label: n[1], glyph: n[2], aria: a ? 'page' : undefined,
+          pill: a ? 'var(--st-cue)' : 'transparent', ic: a ? 'var(--st-on-cue)' : 'var(--st-ink-2)',
+          fg: a ? 'var(--st-ink)' : 'var(--st-ink-2)', fw: a ? '700' : '600' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>
