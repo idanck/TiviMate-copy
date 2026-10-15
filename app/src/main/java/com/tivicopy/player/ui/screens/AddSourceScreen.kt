@@ -10,11 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +31,10 @@ import com.tivicopy.player.data.model.OutputFormat
 import com.tivicopy.player.data.model.Playlist
 import com.tivicopy.player.data.model.SourceType
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
+import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.settings.SettingsChoice
 import com.tivicopy.player.ui.settings.SettingsSectionTitle
@@ -103,36 +104,32 @@ fun AddSourceScreen(
             onSelect = { type = it },
         )
 
-        OutlinedTextField(
+        StudioField(
             value = name,
             onValueChange = { name = it },
-            label = { Text(stringResource(R.string.setup_name)) },
-            singleLine = true,
+            label = stringResource(R.string.setup_name),
             modifier = Modifier.fillMaxWidth(),
         )
 
         when (type) {
             SourceType.XTREAM -> {
-                OutlinedTextField(
+                StudioField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text(stringResource(R.string.setup_server)) },
-                    placeholder = { Text("http://example.com:8080") },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_server),
+                    placeholder = "http://example.com:8080",
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                StudioField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text(stringResource(R.string.setup_username)) },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_username),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                StudioField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text(stringResource(R.string.setup_password)) },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_password),
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(),
@@ -149,32 +146,32 @@ fun AddSourceScreen(
             }
 
             SourceType.M3U_URL -> {
-                OutlinedTextField(
+                StudioField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text(stringResource(R.string.setup_url)) },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_url),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                OutlinedTextField(
+                StudioField(
                     value = epgUrl,
                     onValueChange = { epgUrl = it },
-                    label = { Text(stringResource(R.string.setup_epg_url)) },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_epg_url),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
 
             SourceType.M3U_FILE -> {
                 Text(url.ifBlank { "—" }, style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { filePicker.launch(arrayOf("audio/x-mpegurl", "application/x-mpegurl", "text/plain", "*/*")) }) {
-                    Text(stringResource(R.string.setup_pick_file))
-                }
-                OutlinedTextField(
+                StudioButton(
+                    label = stringResource(R.string.setup_pick_file),
+                    onClick = { filePicker.launch(arrayOf("audio/x-mpegurl", "application/x-mpegurl", "text/plain", "*/*")) },
+                    variant = StudioButtonVariant.GHOST,
+                    size = StudioButtonSize.MEDIUM,
+                )
+                StudioField(
                     value = epgUrl,
                     onValueChange = { epgUrl = it },
-                    label = { Text(stringResource(R.string.setup_epg_url)) },
-                    singleLine = true,
+                    label = stringResource(R.string.setup_epg_url),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -196,7 +193,9 @@ fun AddSourceScreen(
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (type == SourceType.XTREAM) {
-                TextButton(
+                StudioButton(
+                    label = stringResource(R.string.setup_test),
+                    variant = StudioButtonVariant.GHOST,
                     enabled = !busy && url.isNotBlank(),
                     onClick = {
                         busy = true
@@ -215,10 +214,12 @@ fun AddSourceScreen(
                             busy = false
                         }
                     },
-                ) { Text(stringResource(R.string.setup_test)) }
+                )
             }
 
-            Button(
+            StudioButton(
+                label = stringResource(R.string.action_save),
+                variant = StudioButtonVariant.PRIMARY,
                 enabled = !busy && url.isNotBlank(),
                 onClick = {
                     busy = true
@@ -240,7 +241,7 @@ fun AddSourceScreen(
                         onDone()
                     }
                 },
-            ) { Text(stringResource(R.string.action_save)) }
+            )
         }
     }
 }

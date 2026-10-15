@@ -7,11 +7,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
@@ -27,10 +27,15 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.ChannelGroup
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.model.EpgChannel
-import com.tivicopy.player.ui.common.AppDialog
+import com.tivicopy.player.ui.common.DialogButton
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioDialog
+import com.tivicopy.player.ui.common.StudioField
+import com.tivicopy.player.ui.common.StudioSegmented
 import com.tivicopy.player.ui.settings.OffsetRow
 import com.tivicopy.player.ui.settings.SettingsChoice
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -58,48 +63,44 @@ fun ChannelMenuDialog(
     onAdvanced: () -> Unit,
     onMove: (Int) -> Unit,
 ) {
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(channel.displayName, style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                MenuRow(stringResource(R.string.action_watch)) { onPlay(); onDismiss() }
-                MenuRow(
-                    stringResource(
-                        if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
-                    ),
-                ) { onToggleFavourite(); onDismiss() }
-                MenuRow(stringResource(R.string.channel_edit)) { onEdit() }
-                MenuRow(stringResource(R.string.channel_advanced)) { onAdvanced() }
-                MenuRow(
-                    stringResource(if (channel.hidden) R.string.action_show else R.string.action_hide),
-                ) { onToggleHidden(); onDismiss() }
-                MenuRow(
-                    stringResource(if (channel.locked) R.string.channel_unlock else R.string.channel_lock),
-                ) { onToggleLocked(); onDismiss() }
+        title = channel.displayName,
+        buttons = { DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss) },
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            MenuRow(stringResource(R.string.action_watch)) { onPlay(); onDismiss() }
+            MenuRow(
+                stringResource(
+                    if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
+                ),
+            ) { onToggleFavourite(); onDismiss() }
+            MenuRow(stringResource(R.string.channel_edit)) { onEdit() }
+            MenuRow(stringResource(R.string.channel_advanced)) { onAdvanced() }
+            MenuRow(
+                stringResource(if (channel.hidden) R.string.action_show else R.string.action_hide),
+            ) { onToggleHidden(); onDismiss() }
+            MenuRow(
+                stringResource(if (channel.locked) R.string.channel_unlock else R.string.channel_lock),
+            ) { onToggleLocked(); onDismiss() }
 
-                if (canReorder) {
-                    MenuRow(stringResource(R.string.channel_move_up)) { onMove(-1) }
-                    MenuRow(stringResource(R.string.channel_move_down)) { onMove(1) }
-                } else {
-                    // Saying why beats a greyed-out row with no explanation at ten feet.
-                    Text(
-                        text = stringResource(R.string.channel_move_unavailable),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                }
+            if (canReorder) {
+                MenuRow(stringResource(R.string.channel_move_up)) { onMove(-1) }
+                MenuRow(stringResource(R.string.channel_move_down)) { onMove(1) }
+            } else {
+                // Saying why beats a greyed-out row with no explanation at ten feet.
+                Text(
+                    text = stringResource(R.string.channel_move_unavailable),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+        }
+    }
 }
 
 /**
@@ -121,53 +122,66 @@ fun ChannelAdvancedDialog(
 ) {
     var offset by remember(channel.id) { mutableStateOf(channel.epgOffsetMinutes) }
 
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(channel.displayName, style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                OffsetRow(
-                    title = stringResource(R.string.settings_epg_offset_channel),
-                    minutes = offset ?: 0,
-                ) { minutes ->
-                    // Zero means "no override", so the channel falls back to the global offset
-                    // rather than pinning itself to the same value for ever.
-                    offset = minutes.takeIf { it != 0 }
-                    onOffset(offset)
-                }
-
-                Text(
-                    text = stringResource(R.string.decoder_for_channel),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                )
-                SettingsChoice(
-                    title = stringResource(R.string.decoder_video),
-                    options = decoderOptions(),
-                    selected = channel.videoDecoder,
-                ) { onDecoders(it, channel.audioDecoder) }
-                SettingsChoice(
-                    title = stringResource(R.string.decoder_audio),
-                    options = decoderOptions(),
-                    selected = channel.audioDecoder,
-                ) { onDecoders(channel.videoDecoder, it) }
-
-                MenuRow(
-                    channel.resolvedEpgId
-                        ?.let { stringResource(R.string.guide_mapped, it) }
-                        ?: stringResource(R.string.action_map_guide),
-                ) { onBindGuide() }
+        title = channel.displayName,
+        buttons = { DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss) },
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            OffsetRow(
+                title = stringResource(R.string.settings_epg_offset_channel),
+                minutes = offset ?: 0,
+            ) { minutes ->
+                // Zero means "no override", so the channel falls back to the global offset
+                // rather than pinning itself to the same value for ever.
+                offset = minutes.takeIf { it != 0 }
+                onOffset(offset)
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+
+            Text(
+                text = stringResource(R.string.decoder_for_channel),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            )
+            DecoderChoice(
+                title = stringResource(R.string.decoder_video),
+                selected = channel.videoDecoder,
+            ) { onDecoders(it, channel.audioDecoder) }
+            DecoderChoice(
+                title = stringResource(R.string.decoder_audio),
+                selected = channel.audioDecoder,
+            ) { onDecoders(channel.videoDecoder, it) }
+
+            MenuRow(
+                channel.resolvedEpgId
+                    ?.let { stringResource(R.string.guide_mapped, it) }
+                    ?: stringResource(R.string.action_map_guide),
+            ) { onBindGuide() }
+        }
+    }
+}
+
+/**
+ * One decoder, as the canvas draws it (`TvChannelAdvanced`, `PChannelAdvanced`): a label over a
+ * `Segmented` of three. Three short, exclusive options are a choice to see at once, not a list.
+ */
+@Composable
+private fun DecoderChoice(title: String, selected: DecoderMode, onSelect: (DecoderMode) -> Unit) {
+    Column(
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            text = title,
+            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+            color = StudioTheme.colors.ink2,
+        )
+        StudioSegmented(options = decoderOptions(), selected = selected, onSelect = onSelect)
+    }
 }
 
 @Composable
@@ -196,50 +210,43 @@ fun GuideBindingDialog(
         entries = if (query.isBlank()) emptyList() else onSearch(query)
     }
 
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                stringResource(R.string.guide_map_channel, channel.displayName),
-                style = MaterialTheme.typography.titleMedium,
+        title = stringResource(R.string.guide_map_channel, channel.displayName),
+        buttons = { DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss) },
+    ) {
+
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            StudioField(
+                value = query,
+                onValueChange = { query = it },
+                label = stringResource(R.string.action_search),
+                icon = Icons.Filled.Search,
+                modifier = Modifier.fillMaxWidth(),
             )
-        },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
-                    label = { Text(stringResource(R.string.action_search)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                if (channel.manualEpgId != null) {
-                    MenuRow(stringResource(R.string.guide_unmap)) { onBind(null); onDismiss() }
-                }
-                entries.forEach { entry ->
-                    MenuRow(entry.displayNames.firstOrNull()?.takeIf { it.isNotBlank() } ?: entry.id) {
-                        onBind(entry.id)
-                        onDismiss()
-                    }
-                }
-                if (query.isNotBlank() && entries.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.empty_no_results),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
+            if (channel.manualEpgId != null) {
+                MenuRow(stringResource(R.string.guide_unmap)) { onBind(null); onDismiss() }
+            }
+            entries.forEach { entry ->
+                MenuRow(entry.displayNames.firstOrNull()?.takeIf { it.isNotBlank() } ?: entry.id) {
+                    onBind(entry.id)
+                    onDismiss()
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+            if (query.isNotBlank() && entries.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.empty_no_results),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+        }
+    
+    }
 }
 
 /**
@@ -258,35 +265,31 @@ fun GroupMenuDialog(
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(group.name, style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                MenuRow(
-                    stringResource(if (group.hidden) R.string.action_show else R.string.action_hide),
-                ) { onToggleHidden(); onDismiss() }
-                if (group.custom) {
-                    MenuRow(stringResource(R.string.action_edit)) { onRename() }
-                    MenuRow(stringResource(R.string.group_delete)) { onDelete(); onDismiss() }
-                } else {
-                    Text(
-                        text = stringResource(R.string.group_rename_provider),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                }
+        title = group.name,
+        buttons = { DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss) },
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            MenuRow(
+                stringResource(if (group.hidden) R.string.action_show else R.string.action_hide),
+            ) { onToggleHidden(); onDismiss() }
+            if (group.custom) {
+                MenuRow(stringResource(R.string.action_edit)) { onRename() }
+                MenuRow(stringResource(R.string.group_delete)) { onDelete(); onDismiss() }
+            } else {
+                Text(
+                    text = stringResource(R.string.group_rename_provider),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+        }
+    }
 }
 
 /**
@@ -304,40 +307,36 @@ fun GroupManagerDialog(
     onNewGroup: () -> Unit,
     onGroupOptions: (ChannelGroup) -> Unit,
 ) {
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.group_manage), style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                MenuRow(stringResource(R.string.group_new)) { onNewGroup() }
-                groups.forEach { group ->
-                    FocusableRow(
-                        onClick = { onGroupOptions(group) },
-                        contentDescription = group.name,
-                    ) {
-                        Text(
-                            text = group.name,
-                            style = MaterialTheme.typography.titleSmall,
-                            // Same dimming as the group column, so a hidden group reads the same
-                            // way wherever it is listed.
-                            color = if (group.hidden) {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                    }
+        title = stringResource(R.string.group_manage),
+        buttons = { DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss) },
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            MenuRow(stringResource(R.string.group_new)) { onNewGroup() }
+            groups.forEach { group ->
+                FocusableRow(
+                    onClick = { onGroupOptions(group) },
+                    contentDescription = group.name,
+                ) {
+                    Text(
+                        text = group.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        // Same dimming as the group column, so a hidden group reads the same
+                        // way wherever it is listed.
+                        color = if (group.hidden) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                    )
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+        }
+    }
 }
 
 /** A single-field dialog, used for naming a new group and for renaming a custom one. */
@@ -350,29 +349,26 @@ fun TextEntryDialog(
     onConfirm: (String) -> Unit,
 ) {
     var value by remember { mutableStateOf(initial) }
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title, style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            OutlinedTextField(
-                value = value,
-                onValueChange = { value = it },
-                label = { Text(label) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        },
-        confirmButton = {
-            Button(
-                enabled = value.isNotBlank(),
+        title = title,
+        buttons = {
+            DialogButton(
+                label = stringResource(R.string.action_save),
                 onClick = { onConfirm(value.trim()); onDismiss() },
-            ) { Text(stringResource(R.string.action_save)) }
+                variant = StudioButtonVariant.PRIMARY,
+                enabled = value.isNotBlank(),
+            )
+            DialogButton(label = stringResource(R.string.action_cancel), onClick = onDismiss)
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+    ) {
+        StudioField(
+            value = value,
+            onValueChange = { value = it },
+            label = label,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 }
 
 @Composable
@@ -403,57 +399,12 @@ fun ChannelEditDialog(
     var number by remember(channel.id) { mutableStateOf(channel.number.takeIf { it > 0 }?.toString().orEmpty()) }
     var groupId by remember(channel.id) { mutableStateOf(channel.groupId) }
 
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.channel_edit), style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.channel_custom_name)) },
-                    placeholder = { Text(channel.name) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = logo,
-                    onValueChange = { logo = it },
-                    label = { Text(stringResource(R.string.channel_custom_logo)) },
-                    placeholder = { Text(channel.logoUrl.orEmpty()) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = number,
-                    onValueChange = { entered -> number = entered.filter(Char::isDigit).take(4) },
-                    label = { Text(stringResource(R.string.channel_number)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                val ungrouped: List<Pair<Long?, String>> =
-                    listOf(null to stringResource(R.string.channel_group_none))
-                SettingsChoice(
-                    title = stringResource(R.string.channel_group),
-                    options = ungrouped + groups.map { it.id to it.name },
-                    selected = groupId,
-                    onSelect = { groupId = it },
-                )
-                FocusableRow(onClick = { onReset(); onDismiss() }, contentDescription = stringResource(R.string.channel_reset)) {
-                    Text(
-                        text = stringResource(R.string.channel_reset),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            Button(
+        title = stringResource(R.string.channel_edit),
+        buttons = {
+            DialogButton(
+                label = stringResource(R.string.action_save),
                 onClick = {
                     onSave(
                         name.trim().takeIf { it.isNotBlank() },
@@ -463,11 +414,53 @@ fun ChannelEditDialog(
                     )
                     onDismiss()
                 },
-            ) { Text(stringResource(R.string.action_save)) }
+                variant = StudioButtonVariant.PRIMARY,
+            )
+            DialogButton(label = stringResource(R.string.action_cancel), onClick = onDismiss)
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+    ) {
+
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StudioField(
+                value = name,
+                onValueChange = { name = it },
+                label = stringResource(R.string.channel_custom_name),
+                placeholder = channel.name,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            StudioField(
+                value = logo,
+                onValueChange = { logo = it },
+                label = stringResource(R.string.channel_custom_logo),
+                placeholder = channel.logoUrl.orEmpty(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            StudioField(
+                value = number,
+                onValueChange = { entered -> number = entered.filter(Char::isDigit).take(4) },
+                label = stringResource(R.string.channel_number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            val ungrouped: List<Pair<Long?, String>> =
+                listOf(null to stringResource(R.string.channel_group_none))
+            SettingsChoice(
+                title = stringResource(R.string.channel_group),
+                options = ungrouped + groups.map { it.id to it.name },
+                selected = groupId,
+                onSelect = { groupId = it },
+            )
+            FocusableRow(onClick = { onReset(); onDismiss() }, contentDescription = stringResource(R.string.channel_reset)) {
+                Text(
+                    text = stringResource(R.string.channel_reset),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+    
+    }
 }

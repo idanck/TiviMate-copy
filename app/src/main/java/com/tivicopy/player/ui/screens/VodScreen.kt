@@ -21,14 +21,14 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +62,8 @@ import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.SectionHeader
+import com.tivicopy.player.ui.common.StudioField
+import com.tivicopy.player.ui.common.StudioProgress
 import com.tivicopy.player.ui.common.focusSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -191,11 +193,11 @@ private fun VodGrid(
     val open: (VodItem) -> Unit = { if (it.isSeriesContainer) onOpenSeries(it) else onPlay(it) }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
+        StudioField(
             value = state.query,
             onValueChange = { state.query = it },
-            label = { Text(stringResource(R.string.action_search)) },
-            singleLine = true,
+            label = stringResource(R.string.action_search),
+            icon = Icons.Filled.Search,
             modifier = Modifier.fillMaxWidth(),
         )
         FilterChip(
@@ -208,7 +210,7 @@ private fun VodGrid(
         // the favourites filter is on — otherwise the grid answers a question nobody asked.
         val resumeRow = if (state.favouritesOnly) emptyList() else continueWatching
         if (items.isEmpty() && resumeRow.isEmpty()) {
-            EmptyState(stringResource(R.string.empty_no_results))
+            EmptyState(stringResource(R.string.empty_no_results), icon = Icons.Filled.Search)
             return@Column
         }
 
@@ -326,10 +328,10 @@ private fun SeriesEpisodes(
             )
         }
 
-        if (loading) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        if (loading) StudioProgress(fraction = 0f, indeterminate = true, modifier = Modifier.fillMaxWidth())
 
         if (!loading && episodes.isEmpty()) {
-            EmptyState(stringResource(R.string.vod_no_episodes))
+            EmptyState(stringResource(R.string.vod_no_episodes), icon = Icons.Filled.Movie)
             return@Column
         }
 

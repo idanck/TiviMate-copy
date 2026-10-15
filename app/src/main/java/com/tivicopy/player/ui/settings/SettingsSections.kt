@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +36,7 @@ import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.PinEntry
+import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.keyProbe
 import kotlinx.coroutines.Dispatchers
@@ -51,12 +51,11 @@ fun TextSetting(
     onChange: (String) -> Unit,
 ) {
     var draft by remember(value) { mutableStateOf(value) }
-    OutlinedTextField(
+    StudioField(
         value = draft,
         onValueChange = { draft = it; onChange(it) },
-        label = { Text(title) },
-        placeholder = { Text(placeholder, maxLines = 1) },
-        singleLine = true,
+        label = title,
+        placeholder = placeholder,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     )
 }
@@ -316,12 +315,11 @@ private fun ParentalPinSetup(
     hasPin: Boolean,
     onSave: () -> Unit,
 ) {
-    OutlinedTextField(
+    StudioField(
         value = pin,
         onValueChange = { onPin(it.filter(Char::isDigit).take(6)) },
-        label = { Text(if (!hasPin) stringResource(R.string.pin_set) else stringResource(R.string.pin_change)) },
-        placeholder = { Text(stringResource(R.string.pin_hint)) },
-        singleLine = true,
+        label = if (!hasPin) stringResource(R.string.pin_set) else stringResource(R.string.pin_change),
+        placeholder = stringResource(R.string.pin_hint),
         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,

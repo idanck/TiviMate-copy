@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
@@ -50,8 +49,11 @@ import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.IdleScene
+import com.tivicopy.player.ui.common.NoticeTone
+import com.tivicopy.player.ui.common.NoticeVisuals
 import com.tivicopy.player.ui.common.PinRequestDialog
 import com.tivicopy.player.ui.common.Screensaver
+import com.tivicopy.player.ui.common.StudioNoticeHost
 import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.idleScene
@@ -283,7 +285,11 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(state.message?.id) {
                 val message = state.message ?: return@LaunchedEffect
                 val text = message.text ?: message.error?.describe(context)
-                if (!text.isNullOrBlank()) snackbar.showSnackbar(text)
+                if (!text.isNullOrBlank()) {
+                    snackbar.showSnackbar(
+                        NoticeVisuals(text, if (message.error != null) NoticeTone.ERROR else NoticeTone.DEFAULT),
+                    )
+                }
                 vm.consumeMessage()
             }
 
@@ -383,7 +389,7 @@ class MainActivity : ComponentActivity() {
                     // shell should have to know it exists (FR-UI-31).
                     Box(modifier = Modifier.fillMaxSize()) {
                         Scaffold(
-                            snackbarHost = { SnackbarHost(snackbar) },
+                            snackbarHost = { StudioNoticeHost(snackbar) },
                             // This Scaffold exists only to host the snackbar; its content padding was
                             // already discarded below. Saying so explicitly keeps it from insetting
                             // anything now that the window is edge to edge — each shell handles its

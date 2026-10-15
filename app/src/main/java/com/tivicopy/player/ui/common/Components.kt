@@ -1,5 +1,9 @@
 package com.tivicopy.player.ui.common
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -36,11 +40,16 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
@@ -281,18 +290,6 @@ fun SectionHeader(
     }
 }
 
-@Composable
-fun EmptyState(text: String, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-    }
-}
-
 /** Now/next progress for the info card and the channel rows. */
 @Composable
 fun ProgrammeProgress(startUtc: Long, endUtc: Long, modifier: Modifier = Modifier) {
@@ -305,26 +302,71 @@ fun ProgrammeProgress(startUtc: Long, endUtc: Long, modifier: Modifier = Modifie
 /**
  * Studio's progress bar (`canvas/Progress.dc.html`): ink on a faint track, rounded, 4dp. Ink rather
  * than the cue, because the cue means focus and a progress bar is never where the remote is.
+ *
+ * @param indeterminate for work whose length is not known yet — a search, a download before its
+ *   size is in: a third of the bar travels from the start to the end and round again (`st-indet`),
+ *   following the reading direction. [fraction] is ignored.
  */
 @Composable
-fun StudioProgress(fraction: Float, modifier: Modifier = Modifier, height: androidx.compose.ui.unit.Dp = 4.dp) {
+fun StudioProgress(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 4.dp,
+    indeterminate: Boolean = false,
+) {
     val studio = com.tivicopy.player.ui.theme.StudioTheme.colors
     val shape = RoundedCornerShape(height / 2)
     Box(
         modifier = modifier
             .height(height)
             .clip(shape)
-            .background(studio.track),
+            .background(studio.track)
+            .semantics {
+                progressBarRangeInfo = if (indeterminate) {
+                    ProgressBarRangeInfo.Indeterminate
+                } else {
+                    ProgressBarRangeInfo(fraction.coerceIn(0f, 1f), 0f..1f)
+                }
+            },
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .height(height)
-                .clip(shape)
-                .background(studio.ink),
-        )
+        if (indeterminate) {
+            val travel = rememberInfiniteTransition(label = "indeterminate")
+            val position = travel.animateFloat(
+                initialValue = 0f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(tween(INDETERMINATE_MS, easing = Motion.Ease)),
+                label = "indeterminatePosition",
+            )
+            val layoutDirection = LocalLayoutDirection.current
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(INDETERMINATE_SEGMENT)
+                    .height(height)
+                    // Read in the draw phase, so the travelling costs no recomposition. From just
+                    // before the start to just past the end, mirrored for a right-to-left screen.
+                    .graphicsLayer {
+                        val track = size.width / INDETERMINATE_SEGMENT
+                        val x = -size.width + position.value * (track + size.width)
+                        translationX = if (layoutDirection == LayoutDirection.Rtl) -x else x
+                    }
+                    .clip(shape)
+                    .background(studio.ink),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                    .height(height)
+                    .clip(shape)
+                    .background(studio.ink),
+            )
+        }
     }
 }
+
+/** The travelling segment's share of the bar, and one crossing (`st-indet`). */
+private const val INDETERMINATE_SEGMENT = 0.32f
+private const val INDETERMINATE_MS = 1400
 
 @Composable
 fun TwoLine(

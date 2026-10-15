@@ -198,6 +198,7 @@ private fun shapesFor(television: Boolean) = if (television) {
 
 private val LocalStudioColors = staticCompositionLocalOf { Studio }
 private val LocalStudioType = staticCompositionLocalOf { studioTypeFor(television = true, scale = 1f) }
+private val LocalStudioTelevision = staticCompositionLocalOf { false }
 
 /**
  * The parts of the Studio language Material has no role for: the two lights, the guide's
@@ -211,6 +212,17 @@ object StudioTheme {
     val type: StudioType
         @Composable @ReadOnlyComposable
         get() = LocalStudioType.current
+
+    /**
+     * Which shell is showing. The base components (`ui/common/StudioControls.kt`) are shared by
+     * both shells and draw the canvas's ten-foot or touch version from it — a dialog opened from
+     * a shared screen has to know without being told by every caller. Unlike `LocalTvMetrics`,
+     * which only the television shell's root provides, this is set above both shells, so it is
+     * also right inside the prompts `MainActivity` draws over them.
+     */
+    val television: Boolean
+        @Composable @ReadOnlyComposable
+        get() = LocalStudioTelevision.current
 }
 
 /**
@@ -238,6 +250,7 @@ fun TiviCopyTheme(
     CompositionLocalProvider(
         LocalStudioColors provides colors,
         LocalStudioType provides type,
+        LocalStudioTelevision provides television,
     ) {
         MaterialTheme(
             colorScheme = scheme,

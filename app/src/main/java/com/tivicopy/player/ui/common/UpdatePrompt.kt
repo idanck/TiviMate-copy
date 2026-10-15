@@ -3,13 +3,13 @@ package com.tivicopy.player.ui.common
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,6 +27,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.update.UpdateBlocker
 import com.tivicopy.player.data.update.UpdateState
 import com.tivicopy.player.ui.settings.messageRes
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -76,99 +77,95 @@ fun UpdatePrompt() {
             val megabytes = manifest.sizeBytes / (1024.0 * 1024.0)
             val notes = manifest.notesFor(Locale.getDefault().toLanguageTag())
 
-            AppDialog(
+            StudioDialog(
                 onDismissRequest = { postponed = true },
-                title = { Text(stringResource(R.string.update_dialog_title)) },
-                text = {
-                    Column {
-                        Text(
-                            text = TimeModel.ltr(
-                                stringResource(
-                                    R.string.update_dialog_summary,
-                                    manifest.versionName,
-                                    String.format(Locale.ROOT, "%.1f", megabytes),
-                                ),
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (!notes.isNullOrBlank()) {
-                            Text(
-                                text = notes,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        TextButton(onClick = { updates.skip(manifest) }) {
-                            Text(stringResource(R.string.update_skip))
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(
+                title = stringResource(R.string.update_dialog_title),
+                icon = Icons.Filled.SystemUpdate,
+                buttons = {
+                    DialogButton(
+                        label = stringResource(R.string.update_now),
                         onClick = {
                             watching = true
                             ServiceLocator.appScope.launch { updates.downloadAndInstall(manifest) }
                         },
-                    ) {
-                        Text(stringResource(R.string.update_now))
-                    }
+                        variant = StudioButtonVariant.PRIMARY,
+                        initialFocus = true,
+                    )
+                    DialogButton(label = stringResource(R.string.update_later), onClick = { postponed = true })
+                    DialogButton(label = stringResource(R.string.update_skip), onClick = { updates.skip(manifest) })
                 },
-                dismissButton = {
-                    TextButton(onClick = { postponed = true }) {
-                        Text(stringResource(R.string.update_later))
-                    }
-                },
-            )
+            ) {
+                Text(
+                    text = TimeModel.ltr(
+                        stringResource(
+                            R.string.update_dialog_summary,
+                            manifest.versionName,
+                            String.format(Locale.ROOT, "%.1f", megabytes),
+                        ),
+                    ),
+                )
+                if (!notes.isNullOrBlank()) {
+                    // The canvas's note line: the release notes, in the third ink.
+                    Text(text = notes, style = StudioTheme.type.caption, color = StudioTheme.colors.ink3)
+                }
+            }
         }
 
         is UpdateState.Downloading, is UpdateState.Verifying, is UpdateState.Installing -> {
             if (!watching) return
             val fraction = (current as? UpdateState.Downloading)?.fraction
-            AppDialog(
+            StudioDialog(
                 // Not dismissible by a tap outside: the buttons say what the options are.
                 onDismissRequest = {},
-                title = { Text(stringResource(R.string.update_dialog_title)) },
-                text = {
-                    Column {
-                        Text(
-                            text = when (current) {
-                                is UpdateState.Downloading ->
-                                    stringResource(R.string.update_downloading, (current.fraction * 100).roundToInt())
-                                is UpdateState.Verifying -> stringResource(R.string.update_verifying)
-                                else -> stringResource(R.string.update_installing)
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (fraction != null) {
-                            LinearProgressIndicator(
-                                progress = { fraction },
-                                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-                            )
-                        }
-                    }
+                dismissOnClickOutside = false,
+                title = stringResource(R.string.update_dialog_title),
+                icon = Icons.Filled.SystemUpdate,
+                buttons = {
+                    DialogButton(
+                        label = stringResource(R.string.update_hide),
+                        onClick = { watching = false },
+                        initialFocus = true,
+                    )
                 },
-                confirmButton = {
-                    TextButton(onClick = { watching = false }) {
-                        Text(stringResource(R.string.update_hide))
-                    }
-                },
-            )
+            ) {
+                Text(
+                    text = when (current) {
+                        is UpdateState.Downloading ->
+                            stringResource(R.string.update_downloading, (current.fraction * 100).roundToInt())
+                        is UpdateState.Verifying -> stringResource(R.string.update_verifying)
+                        else -> stringResource(R.string.update_installing)
+                    },
+                )
+                // Checking the signature and handing over to the installer have no fraction to
+                // show, and still have to look like something is happening.
+                StudioProgress(
+                    fraction = fraction ?: 0f,
+                    indeterminate = fraction == null,
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                )
+            }
         }
 
         is UpdateState.Failed -> {
             if (!watching) return
-            AppDialog(
+            StudioDialog(
                 onDismissRequest = { watching = false },
-                title = { Text(stringResource(R.string.update_dialog_title)) },
-                text = { Text(current.error.describe(context)) },
-                confirmButton = {
+                title = stringResource(R.string.update_dialog_title),
+                icon = Icons.Filled.ErrorOutline,
+                danger = true,
+                buttons = {
                     // Nothing here is retryable from this dialog, so the terminal state goes
                     // with it: the settings row returns to reporting when it last looked.
-                    TextButton(onClick = { watching = false; updates.dismiss() }) {
-                        Text(stringResource(R.string.action_ok))
-                    }
+                    DialogButton(
+                        label = stringResource(R.string.action_ok),
+                        onClick = { watching = false; updates.dismiss() },
+                        variant = StudioButtonVariant.PRIMARY,
+                        initialFocus = true,
+                    )
                 },
-            )
+            ) {
+                Text(current.error.describe(context))
+            }
         }
 
         /*
@@ -187,51 +184,45 @@ fun UpdatePrompt() {
             // Null on the TV builds that ship no such activity, and below API 26 where the
             // switch is global rather than per app: there the instructions are all we have.
             val intent = if (permission) updates.unknownSourcesIntent() else null
-            AppDialog(
+            StudioDialog(
                 onDismissRequest = { watching = false },
-                title = { Text(stringResource(R.string.update_dialog_title)) },
-                text = {
-                    Column {
-                        Text(
-                            text = stringResource(current.blocker.messageRes()),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (permission) {
-                            Text(
-                                text = stringResource(
-                                    if (intent == null) R.string.update_unknown_sources_manual
-                                    else R.string.update_unknown_sources_sub,
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
-                        }
-                    }
-                },
-                confirmButton = {
+                title = stringResource(R.string.update_dialog_title),
+                icon = Icons.Filled.Info,
+                buttons = {
                     if (intent == null) {
                         // The offer is deliberately left standing: the user fixes what the
                         // message named and presses "update" again, from here or from settings.
-                        TextButton(onClick = { watching = false }) {
-                            Text(stringResource(R.string.action_ok))
-                        }
+                        DialogButton(
+                            label = stringResource(R.string.action_ok),
+                            onClick = { watching = false },
+                            variant = StudioButtonVariant.PRIMARY,
+                            initialFocus = true,
+                        )
                     } else {
-                        TextButton(onClick = { openUnknownSources(context, intent) }) {
-                            Text(stringResource(R.string.update_unknown_sources))
-                        }
+                        DialogButton(
+                            label = stringResource(R.string.update_unknown_sources),
+                            onClick = { openUnknownSources(context, intent) },
+                            variant = StudioButtonVariant.PRIMARY,
+                            initialFocus = true,
+                        )
+                        // Only alongside a button that goes somewhere: the plain acknowledgement
+                        // shown instead already closes the dialog by itself.
+                        DialogButton(label = stringResource(R.string.update_later), onClick = { watching = false })
                     }
                 },
-                dismissButton = {
-                    // Only alongside a confirm button that goes somewhere: the plain
-                    // acknowledgement shown instead already closes the dialog by itself.
-                    if (intent != null) {
-                        TextButton(onClick = { watching = false }) {
-                            Text(stringResource(R.string.update_later))
-                        }
-                    }
-                },
-            )
+            ) {
+                Text(text = stringResource(current.blocker.messageRes()))
+                if (permission) {
+                    Text(
+                        text = stringResource(
+                            if (intent == null) R.string.update_unknown_sources_manual
+                            else R.string.update_unknown_sources_sub,
+                        ),
+                        style = StudioTheme.type.caption,
+                        color = StudioTheme.colors.ink3,
+                    )
+                }
+            }
         }
 
         else -> Unit

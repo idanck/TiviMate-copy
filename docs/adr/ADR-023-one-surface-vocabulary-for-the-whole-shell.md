@@ -5,6 +5,10 @@
 Accepted. Extends ADR-022, which introduced the floating navigation capsule and the round station
 mark but applied both to the home screen alone.
 
+The plate this ADR defined is also what Studio's dialog and notice are drawn on (Studio stage 7):
+every menu and prompt is `StudioDialog`, and the app's messages are `StudioNotice`s on the panel
+colour, both in `ui/common/`. See ADR-025's addendum.
+
 ## Context
 
 ADR-022 landed the design pass on the home screen and stopped there. The result was worse than

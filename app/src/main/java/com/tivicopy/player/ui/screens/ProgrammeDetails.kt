@@ -2,15 +2,10 @@ package com.tivicopy.player.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,7 +21,9 @@ import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.record.ScheduleResult
-import com.tivicopy.player.ui.common.AppDialog
+import com.tivicopy.player.ui.common.DialogButton
+import com.tivicopy.player.ui.common.StudioButtonVariant
+import com.tivicopy.player.ui.common.StudioDialog
 
 /**
  * Programme details with the actions FR-UI-08 lists.
@@ -55,101 +52,101 @@ fun ProgrammeDetailsDialog(
     var favourite by remember(channel.id) { mutableStateOf(channel.favourite) }
     val archiveAvailable = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
 
-    AppDialog(
+    StudioDialog(
         onDismissRequest = onDismiss,
-        title = { Text(programme.title, style = MaterialTheme.typography.headlineSmall) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    // The channel name may be Hebrew and the rest is numeric, so the numeric part
-                    // is isolated as one run: otherwise the day, the times and the duration merge
-                    // into a single left-to-right run and land in the wrong order (NFR-UX-08).
-                    text = "${channel.displayName} · " + TimeModel.ltr(
-                        "${TimeModel.formatDay(programme.startUtc)} " +
-                            "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
-                            "(${TimeModel.formatDuration(programme.durationMillis)})",
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+        title = programme.title,
+        buttons = {
+            // The one action this sheet is for comes first and takes focus: catching up on what
+            // has aired, or watching what has not. The rest are ghosts (`Dialog`).
+            if (archiveAvailable) {
+                DialogButton(
+                    label = stringResource(R.string.catchup_available),
+                    onClick = { onCatchup(); onDismiss() },
+                    variant = StudioButtonVariant.PRIMARY,
+                    initialFocus = true,
                 )
-                programme.subtitle?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
-                programme.category?.let {
-                    Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                }
-                if (programme.seasonNumber != null || programme.episodeNumber != null) {
-                    Text(
-                        text = "S${programme.seasonNumber ?: 0}E${programme.episodeNumber ?: 0}",
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                }
-                programme.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-
-                if (inPast && channel.hasCatchup && !archiveAvailable) {
-                    Text(
-                        text = stringResource(R.string.catchup_outside_window),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-                if (inPast && !channel.hasCatchup) {
-                    Text(
-                        text = stringResource(R.string.catchup_unsupported),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            }
+            if (!inPast) {
+                DialogButton(
+                    label = stringResource(R.string.action_watch),
+                    onClick = { onWatch(); onDismiss() },
+                    variant = StudioButtonVariant.PRIMARY,
+                    initialFocus = true,
+                )
+            }
+            DialogButton(
+                label = stringResource(R.string.action_record),
+                onClick = {
+                    onMessage(scheduleRecording(channel, programme))
+                    onDismiss()
+                },
+            )
+            DialogButton(
+                label = stringResource(R.string.rec_record_series),
+                onClick = {
+                    onMessage(scheduleSeries(channel, programme, upcoming))
+                    onDismiss()
+                },
+            )
+            // The label has to say what the press will do; a fixed "Favourite" left the user
+            // unable to tell whether they had just added or removed one.
+            DialogButton(
+                label = stringResource(if (favourite) R.string.action_unfavourite else R.string.action_favourite),
+                onClick = { favourite = !favourite; onFavourite(favourite) },
+            )
+            DialogButton(label = stringResource(R.string.action_close), onClick = onDismiss)
+        },
+    ) {
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                // The channel name may be Hebrew and the rest is numeric, so the numeric part
+                // is isolated as one run: otherwise the day, the times and the duration merge
+                // into a single left-to-right run and land in the wrong order (NFR-UX-08).
+                text = "${channel.displayName} · " + TimeModel.ltr(
+                    "${TimeModel.formatDay(programme.startUtc)} " +
+                        "${TimeModel.formatClock(programme.startUtc)}–${TimeModel.formatClock(programme.endUtc)} " +
+                        "(${TimeModel.formatDuration(programme.durationMillis)})",
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            programme.subtitle?.let { Text(it, style = MaterialTheme.typography.titleSmall) }
+            programme.category?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            }
+            if (programme.seasonNumber != null || programme.episodeNumber != null) {
                 Text(
-                    text = stringResource(R.string.rec_uses_connection),
+                    text = "S${programme.seasonNumber ?: 0}E${programme.episodeNumber ?: 0}",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            programme.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+
+            if (inPast && channel.hasCatchup && !archiveAvailable) {
+                Text(
+                    text = stringResource(R.string.catchup_outside_window),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (inPast && !channel.hasCatchup) {
+                Text(
+                    text = stringResource(R.string.catchup_unsupported),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        },
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (archiveAvailable) {
-                    Button(onClick = { onCatchup(); onDismiss() }) {
-                        Text(stringResource(R.string.catchup_available))
-                    }
-                }
-                if (!inPast) {
-                    Button(onClick = { onWatch(); onDismiss() }) {
-                        Text(stringResource(R.string.action_watch))
-                    }
-                }
-                TextButton(onClick = {
-                    onMessage(scheduleRecording(channel, programme))
-                    onDismiss()
-                }) {
-                    Text(stringResource(R.string.action_record))
-                }
-                TextButton(onClick = {
-                    onMessage(scheduleSeries(channel, programme, upcoming))
-                    onDismiss()
-                }) {
-                    Text(stringResource(R.string.rec_record_series))
-                }
-            }
-        },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = { favourite = !favourite; onFavourite(favourite) }) {
-                    // The label has to say what the press will do; a fixed "Favourite" left the
-                    // user unable to tell whether they had just added or removed one.
-                    Text(
-                        stringResource(
-                            if (favourite) R.string.action_unfavourite else R.string.action_favourite,
-                        ),
-                    )
-                }
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-            }
-        },
-        modifier = Modifier.fillMaxWidth().padding(16.dp),
-    )
+            Text(
+                text = stringResource(R.string.rec_uses_connection),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    
+    }
 }
 
 /** Schedules and returns the sentence to show the user, warnings included. */
