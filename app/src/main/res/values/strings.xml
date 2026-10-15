@@ -435,5 +435,5 @@
     <string name="info_next">Next</string>
     <string name="rec_summary">%1$d scheduled · %2$d completed</string>
     <string name="radio_label">Israeli radio</string>
-    <string name="radio_now_playing">Now playing · %1$s</string>
+    <string name="radio_now_playing_on">Now playing · %1$s</string>
 </resources>

@@ -431,7 +431,7 @@ fun AudioOnlyNowPlaying(
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
-                    text = stringResource(R.string.radio_now_playing, headline),
+                    text = stringResource(R.string.radio_now_playing_on, headline),
                     style = type.body.copy(fontWeight = FontWeight.SemiBold),
                     color = studio.ink2,
                     maxLines = 1,
