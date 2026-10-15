@@ -113,6 +113,10 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   a live picture, the collapse button on a scrim, the live badge and channel, the programme title
   in Karantina, time with progress and minutes left, zapping around a cue play/pause, favourite /
   guide / view as `PButton`s, and the next programme in a panel.
+  Its third part is the radio (`PRadio`, `ui/mobile/PhoneRadio.kt`): in portrait a station of the
+  bundled radio takes the whole player screen — the shifting background, the disc in a halo, the
+  song in Karantina, the equaliser, favourite / previous / play-pause / next / guide, and a strip of
+  stations under national / regional / other chips with the one on air marked by the tally.
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,

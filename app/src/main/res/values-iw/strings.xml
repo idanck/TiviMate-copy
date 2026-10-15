@@ -406,5 +406,8 @@
     <string name="player_view">תצוגה</string>
     <string name="radio_label">רדיו ישראלי</string>
     <string name="radio_now_playing_on">מתנגן עכשיו · %1$s</string>
+    <string name="radio_previous">תחנה קודמת</string>
+    <string name="radio_next">תחנה הבאה</string>
+    <string name="radio_stations">תחנות</string>
     <string name="radio_equalizer">אקולייזר</string>
 </resources>
