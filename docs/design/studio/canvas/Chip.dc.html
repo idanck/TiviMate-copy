@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — צ'יפ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button aria-pressed="{{pressed}}" class="st-anim" style="height: var(--st-h-chip); padding: 0 24px; box-sizing: border-box; border: 0; border-radius: var(--st-r-chip); background: {{bg}}; color: {{fg}}; box-shadow: {{shadow}}; transform: {{tf}}; font-family: var(--st-font-ui); font-size: 22px; font-weight: 600; white-space: nowrap; cursor: pointer">{{label}}</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"היום"},"state":{"editor":"enum","options":["rest","selected","focus"],"default":"rest"},"$preview":{"width":160,"height":52}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const s = this.props.state || 'rest';
+    const S = {
+      rest: { bg: 'var(--st-surface)', fg: 'var(--st-ink-2)', shadow: 'none', tf: 'none' },
+      selected: { bg: 'var(--st-ink)', fg: 'var(--st-ground)', shadow: 'none', tf: 'none' },
+      focus: { bg: 'var(--st-cue)', fg: 'var(--st-on-cue)', shadow: 'var(--st-lift)', tf: 'scale(var(--st-focus-scale))' }
+    }[s] || {};
+    return Object.assign({ label: this.props.label ?? 'היום', pressed: s === 'selected' ? 'true' : 'false' }, S);
+  }
+}
+</script>
+</body>
+</html>

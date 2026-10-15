@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הגדרות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+
+<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+
+<nav aria-label="סעיפי הגדרות" style="position: absolute; top: 160px; right: var(--st-safe-x); width: 560px; height: 866px; box-sizing: border-box; padding: 20px 16px; border-radius: var(--st-r-panel); background: var(--st-surface); display: flex; flex-direction: column; gap: 4px">
+<h1 class="st-t-title-s" style="padding: 0 12px 16px">הגדרות</h1>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="9">
+<dc-import name="ListRow" label="{{s.label}}" glyph="{{s.glyph}}" trail="chevron" state="{{s.state}}" width="528" hint-size="528px,72px"></dc-import>
+</sc-for>
+</nav>
+
+<section aria-label="מראה" style="position: absolute; top: 160px; right: 712px; width: 1112px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 18px">
+<h2 class="st-t-h1">מראה</h2>
+<span class="st-t-caption">הגדרות › מראה</span>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+<dc-import name="ListRow" label="{{r.label}}" sub="{{r.sub}}" trail="{{r.trail}}" value="{{r.value}}" state="{{r.state}}" width="1112" hint-size="1112px,72px"></dc-import>
+</sc-for>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sections = [
+      ['רשימות ולוח שידורים', 'tv'], ['ניגון', 'play'], ['מראה', 'appearance'], ['רשת', 'network'],
+      ['הקלטה', 'record'], ['בקרת הורים', 'lock'], ['גיבוי ושחזור', 'backup'], ['אבחון', 'pulse'], ['אודות', 'info']
+    ].map((s) => ({ label: s[0], glyph: s[1], state: s[0] === 'מראה' ? 'selected' : 'rest' }));
+    const row = (label, trail, value, sub, state) => ({ label: label, trail: trail, value: value || '', sub: sub || '', state: state || 'rest' });
+    return {
+      sections: sections,
+      rows: [
+        row('שפה', 'value', 'עברית', 'חל מיד. בחירה בעברית גם הופכת את פריסת המסך מימין לשמאל.'),
+        row('ערכת נושא', 'value', 'כהה', '', 'focus'),
+        row('גודל טקסט', 'value', '100%'),
+        row('סדר הערוצים', 'value', 'כפי שרשימת ההשמעה שולחת'),
+        row('הצג קבוצות שהספק יוסיף בהמשך', 'on'),
+        row('הסתר שכבות אחרי', 'value', '5 שנ׳'),
+        row('אטימות שכבות', 'value', '85%'),
+        row('שומר מסך', 'on', '', 'מחליף תמונה סטטית בשעון נודד, כדי ששום דבר לא ייצרב במסך'),
+        row('הפעלת שומר המסך אחרי', 'value', '10 דק׳')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

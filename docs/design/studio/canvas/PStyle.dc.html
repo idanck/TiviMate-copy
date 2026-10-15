@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — יסודות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div dir="rtl" style="width: 1280px; height: 760px; box-sizing: border-box; padding: 44px 48px; background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: baseline; gap: 20px">
+<h1 class="st-t-title" style="font-size: 72px">אולפן · טלפון</h1>
+<span class="st-t-meta" style="font-size: 18px">studio.css ואחריו studio-phone.css · פיקסלים = dp</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; flex-grow: 1">
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">שתי נוריות בטלפון</h2>
+<div class="st-card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px"><span aria-hidden="true" style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--st-tally)"></span><span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700">טאלי</span><span style="font-size: 14px; color: var(--st-ink-2)">מה שמתנגן עכשיו — כמו בטלוויזיה</span></span></div>
+<div class="st-card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px"><span aria-hidden="true" style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--st-cue)"></span><span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700">קיו</span><span style="font-size: 14px; color: var(--st-ink-2)">אין שלט: מה שפעיל או נבחר — לשונית, פעולה ראשית, משבצת</span></span></div>
+<div class="st-card" style="padding: 14px 16px; display: flex; align-items: center; gap: 14px"><span aria-hidden="true" style="flex: 0 0 28px; height: 28px; border-radius: 50%; background: var(--st-next)"></span><span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700">הבא</span><span style="font-size: 14px; color: var(--st-ink-2)">מה שמגיע אחרי התוכנית הנוכחית</span></span></div>
+<span class="st-t-caption" style="font-size: 14px">כל הצבעים והגופנים זהים לטלוויזיה ומגיעים מ־studio.css. הקובץ של הטלפון משנה רק מידות.</span>
+</section>
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">טיפוגרפיה</h2>
+<sc-for list="{{type}}" as="t" hint-placeholder-count="8">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+<span class="{{t.cls}}" style="white-space: nowrap">{{t.sample}}</span>
+<span dir="ltr" style="font-size: 13px; color: var(--st-ink-3); white-space: nowrap">{{t.spec}}</span>
+</div>
+</sc-for>
+</section>
+<section style="display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 700">מידות</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 20px">
+<sc-for list="{{metrics}}" as="m" hint-placeholder-count="16">
+<div style="display: flex; justify-content: space-between; gap: 8px; font-size: 15px">
+<span>{{m.label}}</span>
+<span dir="ltr" class="st-num" style="color: var(--st-ink-2); white-space: nowrap">{{m.val}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":760}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    const read = () => {
+      try {
+        const cs = getComputedStyle(document.documentElement);
+        const vals = {};
+        this.metricList().forEach((x) => { vals[x[0]] = cs.getPropertyValue('--st-' + x[0]).trim(); });
+        this.setState({ vals: vals });
+      } catch (e) {}
+    };
+    read();
+    this._t = setTimeout(read, 600);
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  metricList() {
+    return [['safe-x', 'שוליים'], ['safe-top', 'שוליים עליונים'], ['h-topbar', 'שורה עליונה'], ['h-navbar', 'ניווט תחתון'], ['h-mini', 'נגן מוקטן'],
+      ['h-row', 'שורה'], ['h-control-l', 'כפתור'], ['h-control-m', 'כפתור קטן'], ['h-chip', 'צ׳יפ'], ['touch', 'אזור מגע'],
+      ['r-card', 'רדיוס כרטיס'], ['r-control', 'רדיוס כפתור'], ['r-chip', 'רדיוס צ׳יפ'], ['r-panel', 'רדיוס פאנל'], ['r-sheet', 'רדיוס גיליון'], ['ring', 'טבעת בחירה']];
+  }
+  renderVals() {
+    const v = (this.state && this.state.vals) || {};
+    return {
+      metrics: this.metricList().map((x) => ({ label: x[1], val: v[x[0]] || '' })),
+      type: [
+        { cls: 'st-t-hero', sample: 'שם התוכנית', spec: 'hero 48' },
+        { cls: 'st-t-title', sample: 'כותרת', spec: 'title 40' },
+        { cls: 'st-t-title-s', sample: 'כותרת מסך', spec: 'title-s 32' },
+        { cls: 'st-t-h1', sample: 'כותרת מקטע', spec: 'h1 20 · 700' },
+        { cls: 'st-t-body', sample: 'שם ערוץ ושורה', spec: 'body 16' },
+        { cls: 'st-t-meta', sample: 'תוכנית ומטא', spec: 'meta 14' },
+        { cls: 'st-t-caption', sample: 'כיתוב ושעות', spec: 'caption 13' },
+        { cls: 'st-t-nav', sample: 'ניווט תחתון', spec: 'nav 12 · 600' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — תג בשידור חי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<span style="display: inline-flex; align-items: center; gap: {{gap}}; height: {{h}}; padding: {{pad}}; box-sizing: border-box; border-radius: var(--st-r-badge); background: var(--st-scrim); box-shadow: inset 0 0 0 1px var(--st-hairline); color: var(--st-ink); font-family: var(--st-font-ui); font-size: {{fs}}; font-weight: 600; white-space: nowrap"><span aria-hidden="true" style="flex: 0 0 auto; width: {{dot}}; height: {{dot}}; border-radius: 50%; background: var(--st-tally)"></span>{{label}}</span>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"בשידור חי"},"size":{"editor":"enum","options":["m","s","xs"],"default":"m"},"$preview":{"width":200,"height":44}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {
+      m: { gap: '10px', h: '44px', pad: '0 16px', fs: '22px', dot: '12px' },
+      s: { gap: '10px', h: '32px', pad: '0 10px', fs: '18px', dot: '10px' },
+      xs: { gap: '6px', h: '24px', pad: '0 8px', fs: '13px', dot: '8px' }
+    }[this.props.size || 'm'] || {};
+    return Object.assign({ label: this.props.label || 'בשידור חי' }, S);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — יסודות שפת העיצוב</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="box-sizing: border-box; padding: 56px var(--st-safe-x); display: flex; flex-direction: column; gap: 36px">
+
+<div style="display: flex; align-items: baseline; gap: 28px">
+<h1 class="st-t-title">אולפן · יסודות</h1>
+<span class="st-t-meta" style="font-size: 26px">כל ערך בלוח נקרא מ־studio.css · פיקסלים ל־1080p = dp×2</span>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 56px; flex-grow: 1">
+
+<section style="display: flex; flex-direction: column; gap: 18px">
+<h2 class="st-t-h1" style="font-size: 30px">שתי נוריות</h2>
+<div style="display: flex; gap: 16px">
+<div class="st-card" style="flex: 1 1 0; height: 130px; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; justify-content: space-between">
+<span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: var(--st-tally)"></span>
+<span style="font-size: 22px; font-weight: 700">טאלי <span class="st-t-caption">· מה שעל המסך</span></span>
+</div>
+<div class="st-card" style="flex: 1 1 0; height: 130px; box-sizing: border-box; padding: 18px; display: flex; flex-direction: column; justify-content: space-between">
+<span aria-hidden="true" style="width: 36px; height: 36px; border-radius: 50%; background: var(--st-cue)"></span>
+<span style="font-size: 22px; font-weight: 700">קיו <span class="st-t-caption">· איפה השלט</span></span>
+</div>
+</div>
+<h2 class="st-t-h1" style="font-size: 30px; margin-top: 6px">צבע</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 18px">
+<sc-for list="{{colors}}" as="c" hint-placeholder-count="20">
+<div style="display: flex; align-items: center; gap: 12px; min-width: 0">
+<span aria-hidden="true" style="flex: 0 0 44px; height: 32px; border-radius: 6px; background: {{c.css}}; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18)"></span>
+<span style="display: flex; flex-direction: column; min-width: 0">
+<span style="font-size: 18px; font-weight: 600; white-space: nowrap">{{c.label}}</span>
+<span dir="ltr" class="st-num" style="font-size: 15px; color: var(--st-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right">{{c.token}} {{c.val}}</span>
+</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<h2 class="st-t-h1" style="font-size: 30px">טיפוגרפיה</h2>
+<div style="display: flex; flex-direction: column; gap: 2px; padding-bottom: 14px; border-bottom: 1px solid var(--st-hairline)">
+<span class="st-t-hero">שם התוכנית</span>
+<span class="st-t-caption">Karantina 700 · hero 140 · title 108 · title-s 64</span>
+</div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-h1">כותרת מדף</span><span dir="ltr" class="st-t-caption">h1 · 34 · 700</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-action">פעולה</span><span dir="ltr" class="st-t-caption">action · 30 · 700</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-nav">ניווט</span><span dir="ltr" class="st-t-caption">nav · 28 · 500</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-body">גוף וכותרת כרטיס</span><span dir="ltr" class="st-t-caption">body · 24 · 500</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-meta">מטא ושעות</span><span dir="ltr" class="st-t-caption">meta · 22 · 400</span></div>
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span class="st-t-caption">כיתוב</span><span dir="ltr" class="st-t-caption">caption · 20 · 500</span></div>
+<span class="st-t-meta">IBM Plex Sans Hebrew לכל הממשק · ספרות טבלאיות לשעות</span>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 18px">
+<h2 class="st-t-h1" style="font-size: 30px">צורה ופוקוס</h2>
+<div style="display: flex; align-items: flex-end; gap: 22px">
+<sc-for list="{{radii}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px">
+<span aria-hidden="true" class="st-card" style="width: 84px; height: 60px; border-radius: {{r.css}}"></span>
+<span class="st-t-caption" style="font-size: 17px; white-space: nowrap">{{r.label}} {{r.val}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: flex; gap: 28px; align-items: center; padding: 14px 0">
+<span class="st-card" style="width: 160px; height: 90px"></span>
+<span class="st-card" style="width: 160px; height: 90px; background: var(--st-card-focus); box-shadow: 0 0 0 var(--st-ring) var(--st-cue), var(--st-lift); transform: scale(var(--st-focus-scale))"></span>
+<span class="st-t-caption">רגיל ← בפוקוס</span>
+</div>
+<h2 class="st-t-h1" style="font-size: 30px">מרווח ותנועה</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px">
+<sc-for list="{{metrics}}" as="m" hint-placeholder-count="14">
+<div style="display: flex; justify-content: space-between; gap: 12px; font-size: 19px">
+<span>{{m.label}}</span>
+<span dir="ltr" class="st-num" style="color: var(--st-ink-2); white-space: nowrap">{{m.val}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    const read = () => {
+      try {
+        const cs = getComputedStyle(document.documentElement);
+        const vals = {};
+        this.allTokens().forEach((t) => { vals[t] = cs.getPropertyValue('--st-' + t).trim(); });
+        this.setState({ vals: vals });
+      } catch (e) {}
+    };
+    read();
+    this._t = setTimeout(read, 600);
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  colorList() {
+    return [['ground', 'רקע'], ['surface', 'משטח'], ['card', 'כרטיס'], ['card-focus', 'כרטיס בפוקוס'], ['airing', 'משודר עכשיו'], ['future', 'עתידי'], ['past', 'שודר'], ['control', 'כפתור'], ['panel', 'פאנל'], ['scrim', 'כיסוי'], ['hairline', 'קו מתאר'], ['track', 'מסלול'], ['ink', 'טקסט ראשי'], ['ink-2', 'טקסט משני'], ['ink-3', 'טקסט שלישי'], ['cue', 'קיו'], ['tally', 'טאלי'], ['error', 'שגיאה'], ['ok', 'תקין'], ['halo', 'הילה']];
+  }
+  radiusList() { return [['r-card', 'כרטיס'], ['r-control', 'כפתור'], ['r-chip', 'צ׳יפ'], ['r-badge', 'תג'], ['r-panel', 'פאנל']]; }
+  metricList() {
+    return [['safe-x', 'שוליים לרוחב'], ['safe-y', 'שוליים לגובה'], ['gap-rail', 'רווח במדף'], ['gap-row', 'רווח בין שורות'], ['pad-panel', 'ריפוד פאנל'], ['h-control-l', 'כפתור גדול'], ['h-control-m', 'כפתור בינוני'], ['h-row', 'שורה'], ['h-chip', 'צ׳יפ'], ['ring', 'טבעת פוקוס'], ['focus-scale', 'הגדלה בפוקוס'], ['dur-focus', 'מעבר פוקוס'], ['dur-panel', 'כניסת פאנל'], ['dur-info', 'זמן תצוגת מידע']];
+  }
+  allTokens() { return this.colorList().concat(this.radiusList(), this.metricList()).map((x) => x[0]); }
+  renderVals() {
+    const v = (this.state && this.state.vals) || {};
+    const map = (list) => list.map((x) => ({ label: x[1], token: '--st-' + x[0], css: 'var(--st-' + x[0] + ')', val: v[x[0]] || '' }));
+    return { colors: map(this.colorList()), radii: map(this.radiusList()), metrics: map(this.metricList()) };
+  }
+}
+</script>
+</body>
+</html>

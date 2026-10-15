@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — אקולייזר</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0}</style>
+</helmet>
+<div role="img" aria-label="{{aria}}" style="width: {{w}}; height: {{h}}; display: flex; align-items: flex-end; gap: {{gap}}">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="32">
+<span style="flex: 1 1 0; height: {{b.h}}; border-radius: 3px; background: var(--st-eq-bar); transition: height var(--st-eq-step) linear"></span>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"count":{"editor":"int","default":32,"min":8,"max":64},"width":{"editor":"int","default":1000,"min":120,"max":1728},"height":{"editor":"int","default":96,"min":24,"max":400},"bpm":{"editor":"int","default":118,"min":60,"max":180},"playing":{"editor":"boolean","default":true},"$preview":{"width":1000,"height":96}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._t0 = Date.now();
+    this._timer = setInterval(() => {
+      const p = this.props.playing;
+      if (p === false || p === 'false') return;
+      this.setState({ t: Date.now() - this._t0 });
+    }, 70);
+  }
+  componentWillUnmount() { clearInterval(this._timer); }
+  renderVals() {
+    const n = Math.max(8, Math.min(64, Number(this.props.count) || 32));
+    const H = Number(this.props.height) || 96;
+    const W = Number(this.props.width) || 1000;
+    const p = this.props.playing;
+    const playing = !(p === false || p === 'false');
+    const t = ((this.state && this.state.t) || 0) / 1000;
+    const beat = 60 / (Number(this.props.bpm) || 118);
+    const k = Math.floor(t / beat);
+    const ph = (t % beat) / beat;
+    const half = (t % (beat / 2)) / (beat / 2);
+    const kick = Math.exp(-ph * 6);
+    const snare = k % 2 === 1 ? Math.exp(-ph * 9) : 0;
+    const hat = Math.exp(-half * 10);
+    const rnd = (a, b) => { const s = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return s - Math.floor(s); };
+    const bars = [];
+    for (let i = 0; i < n; i++) {
+      const x = i / (n - 1);
+      const r = 0.7 + 0.3 * rnd(i, k);
+      const low = Math.pow(1 - x, 2) * kick * r;
+      const mid = Math.exp(-Math.pow(x - 0.45, 2) / 0.03) * (0.55 * snare + 0.22) * r;
+      const high = Math.pow(x, 1.5) * hat * 0.55 * (0.6 + 0.4 * rnd(i + 99, Math.floor(t / (beat / 2))));
+      const wob = 0.12 * (0.5 + 0.5 * Math.sin(t * 3.1 + i * 1.7)) * (0.6 + 0.4 * Math.sin(t * 0.7 + i));
+      const v = playing ? Math.max(0.06, Math.min(1, 0.05 + 0.8 * low + 0.65 * mid + high + wob)) : 0.06;
+      bars.push({ h: Math.round(v * H) + 'px' });
+    }
+    return {
+      bars: bars, w: W + 'px', h: H + 'px',
+      gap: Math.max(3, Math.round(W / n * 0.28)) + 'px',
+      aria: playing ? 'אקולייזר — מתנגן' : 'אקולייזר — מושהה'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+/* אולפן — שלד שפת העיצוב של שידור · טלוויזיה
+   מקור אחד לכל הלוחות בקנבס: שינוי כאן משנה את כולם.
+   מידות בפיקסלים ל-1080p = dp×2 (מסך 960×540dp).
+   מיפוי לקוד:
+     צבע            → ui/theme/Theme.kt
+     טיפוגרפיה      → ui/theme/Type.kt
+     משטח, כרטיס    → ui/tv/TvSurfaces.kt
+     פוקוס          → ui/common/Focus.kt
+     מידות ומרווחים → ui/common/TvMetrics.kt
+     תנועה          → ui/common/Motion.kt */
+
+:root {
+  /* צבע — קרקע ומשטחים */
+  --st-ground: #080C14;
+  --st-surface: #0F1624;
+  --st-card: #172033;
+  --st-card-focus: #26365A;
+  --st-airing: #1C2840;
+  --st-future: #131B2B;
+  --st-past: #0D131E;
+  --st-control: rgba(23, 32, 51, 0.88);
+  --st-panel: rgba(15, 22, 36, 0.9);
+  --st-drawer: rgba(12, 18, 30, 0.97);
+  --st-rail: rgba(12, 18, 30, 0.86);
+  --st-dim-open: rgba(8, 12, 20, 0.55);
+  --st-scrim: rgba(8, 12, 20, 0.82);
+  --st-hairline: rgba(255, 255, 255, 0.14);
+  --st-hairline-soft: rgba(255, 255, 255, 0.07);
+  --st-track: rgba(255, 255, 255, 0.18);
+  --st-halo: rgba(70, 112, 196, 0.42);
+
+  /* צבע — טקסט */
+  --st-ink: #F3F5F9;
+  --st-ink-2: #AEB8C8;
+  --st-ink-3: #8591A5;
+  --st-next: #9DC0F7; /* "הבא" — מה שמגיע אחרי התוכנית הנוכחית */
+
+  /* צבע — שתי הנוריות ומצבים */
+  --st-cue: #FFB547;
+  --st-on-cue: #140E00;
+  --st-tally: #FF5A5F;
+  --st-on-tally: #1A0505;
+  --st-onscreen: #2B1B27; /* מילוי כרטיס הערוץ שעל המסך — כהה בגוון הטאלי */
+  --st-tally-glow: rgba(255, 90, 95, 0.38);
+  --st-error: #FF9C9C;
+  --st-ok: #7FD8A6;
+
+  /* טיפוגרפיה */
+  --st-font-display: 'Karantina', 'IBM Plex Sans Hebrew', sans-serif;
+  --st-font-ui: 'IBM Plex Sans Hebrew', 'Noto Sans Hebrew', sans-serif;
+
+  /* צורה */
+  --st-r-card: 12px;
+  --st-r-control: 14px;
+  --st-r-chip: 12px;
+  --st-r-badge: 10px;
+  --st-r-panel: 24px;
+
+  /* מרווח ומידות */
+  --st-safe-x: 96px;
+  --st-safe-y: 54px;
+  --st-gap-rail: 32px;
+  --st-gap-row: 8px;
+  --st-pad-panel: 28px;
+  --st-h-control-l: 84px;
+  --st-h-control-m: 64px;
+  --st-h-row: 72px;
+  --st-h-chip: 52px;
+  --st-w-drawer: 480px;
+  --st-w-rail: 112px;
+  /* שוליים בצד ימין (תחילת השורה). גדל כשפס הצד הסגור מוצג, ושמאל נשאר var(--st-safe-x) */
+  --st-inset-start: var(--st-safe-x);
+
+  /* פוקוס */
+  --st-ring: 4px;
+  --st-focus-scale: 1.05;
+  --st-focus-scale-row: 1.02;
+  --st-lift: 0 14px 30px rgba(0, 0, 0, 0.55);
+
+  /* תנועה */
+  --st-ease: cubic-bezier(0.2, 0, 0, 1);
+  --st-dur-focus: 150ms;
+  --st-dur-panel: 220ms;
+  --st-dur-info: 4000ms;
+
+  /* רקע מתחלף (רדיו) — נגד צריבת פיקסלים */
+  --st-amb-1: #0B1424;
+  --st-amb-2: #08191C;
+  --st-amb-3: #160F22;
+  --st-amb-4: #1A120C;
+  --st-amb-cycle: 120s;
+  --st-amb-period-x: 47s;
+  --st-amb-period-y: 76s;
+  --st-amb-hue: 26deg;
+
+  /* אקולייזר */
+  --st-eq-bar: rgba(243, 245, 249, 0.88);
+  --st-eq-step: 70ms;
+}
+
+/* רקע מתחלף: גוון הבסיס עובר בין ארבעה גוונים כהים, ובריכת האור נודדת במסלול שאינו נסגר (יחס הזהב בין הצירים) */
+@keyframes st-amb-tone { 0%, 100% { background-color: var(--st-amb-1); } 25% { background-color: var(--st-amb-2); } 50% { background-color: var(--st-amb-3); } 75% { background-color: var(--st-amb-4); } }
+@keyframes st-amb-x { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-560px); } }
+@keyframes st-amb-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(300px); } }
+@keyframes st-amb-hue { 0%, 100% { filter: hue-rotate(calc(var(--st-amb-hue) * -1)); } 50% { filter: hue-rotate(var(--st-amb-hue)); } }
+.st-amb-tone { animation: st-amb-tone var(--st-amb-cycle) ease-in-out infinite; }
+.st-amb-x { animation: st-amb-x var(--st-amb-period-x) ease-in-out infinite; }
+.st-amb-y { animation: st-amb-y var(--st-amb-period-y) ease-in-out infinite; }
+.st-amb-hue { animation: st-amb-hue var(--st-amb-cycle) ease-in-out infinite; }
+
+/* מסך מלא */
+.st-screen { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); }
+
+/* סולם טקסט */
+.st-t-hero { margin: 0; font-family: var(--st-font-display); font-weight: 700; font-size: 140px; line-height: 0.9; }
+.st-t-title { margin: 0; font-family: var(--st-font-display); font-weight: 700; font-size: 108px; line-height: 0.9; }
+.st-t-title-s { margin: 0; font-family: var(--st-font-display); font-weight: 700; font-size: 64px; line-height: 1; }
+.st-t-h1 { margin: 0; font-size: 34px; font-weight: 700; line-height: 1.2; }
+.st-t-action { font-size: 30px; font-weight: 700; }
+.st-t-nav { font-size: 28px; font-weight: 500; }
+.st-t-body { font-size: 24px; font-weight: 500; line-height: 1.35; }
+.st-t-meta { font-size: 22px; font-weight: 400; line-height: 1.35; color: var(--st-ink-2); }
+.st-t-caption { font-size: 20px; font-weight: 500; line-height: 1.3; color: var(--st-ink-3); }
+.st-num { font-variant-numeric: tabular-nums; }
+
+/* משטחים */
+.st-panel { background: var(--st-panel); border-radius: var(--st-r-panel); box-shadow: inset 0 0 0 1px var(--st-hairline); }
+.st-card { background: var(--st-card); border-radius: var(--st-r-card); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); }
+
+/* שכבות מעל תמונה */
+.st-scrim-bottom { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, #080C14 0%, rgba(8, 12, 20, 0.95) 34%, rgba(8, 12, 20, 0.55) 60%, rgba(8, 12, 20, 0) 80%); }
+.st-scrim-top { position: absolute; top: 0; left: 0; right: 0; height: 220px; pointer-events: none; background: linear-gradient(to bottom, rgba(8, 12, 20, 0.88), rgba(8, 12, 20, 0)); }
+.st-dim { position: absolute; inset: 0; pointer-events: none; background: rgba(8, 12, 20, 0.74); }
+
+/* תנועה */
+.st-anim { transition: transform var(--st-dur-focus) var(--st-ease), box-shadow var(--st-dur-focus) var(--st-ease), background-color var(--st-dur-focus) var(--st-ease), color var(--st-dur-focus) var(--st-ease); }
+
+/* שדות */
+.st-input::placeholder { color: var(--st-ink-3); }

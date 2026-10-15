@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — החלפת ערוץ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+
+<div style="position: absolute; inset: 0"><dc-import name="Picture" scene="talk" width="1920" height="1080" label="[תמונת השידור במסך מלא]" hint-size="1920px,1080px"></dc-import></div>
+<div class="st-scrim-bottom"></div>
+
+<span class="st-num" style="position: absolute; top: 48px; left: var(--st-safe-x); padding: 14px 20px; border-radius: var(--st-r-control); background: var(--st-scrim); font-size: 36px; font-weight: 600; line-height: 1">20:56</span>
+
+<div style="position: absolute; right: var(--st-safe-x); top: 596px; display: flex; align-items: center; gap: 12px; font-size: 22px; color: var(--st-ink-2)">
+<dc-import name="Icon" glyph="chevron-up" size="24" hint-size="24px,24px"></dc-import>
+<span class="st-num" style="font-weight: 600; color: var(--st-ink)">12</span>
+<span>קשת 12 · מהדורת החדשות המרכזית</span>
+</div>
+
+<div style="position: absolute; right: var(--st-safe-x); top: 660px"><dc-import name="LowerThird" num="13" channel="ערוץ 13" title="תוכנית אירוח" time="20:00–21:00" pct="93" left="נותרו 4 דק׳" next-title="תחקיר" next-time="21:00–22:15" hint-size="1728px,200px"></dc-import></div>
+
+<div style="position: absolute; right: var(--st-safe-x); top: 976px; display: flex; align-items: center; gap: 12px; font-size: 22px; color: var(--st-ink-2)">
+<dc-import name="Icon" glyph="chevron-down" size="24" hint-size="24px,24px"></dc-import>
+<span class="st-num" style="font-weight: 600; color: var(--st-ink)">14</span>
+<span>ערוץ 14 · פאנל ערב</span>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

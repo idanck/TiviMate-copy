@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — כפתור</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button aria-label="{{aria}}" class="st-anim" style="height: {{h}}; min-width: {{minw}}; padding: {{pad}}; box-sizing: border-box; border: 0; border-radius: {{r}}; background: {{bg}}; color: {{fg}}; box-shadow: {{shadow}}; font-family: var(--st-font-ui); font-size: {{fs}}; font-weight: {{fw}}; display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; cursor: pointer">
+<sc-if value="{{hasIcon}}" hint-placeholder-val="{{true}}"><dc-import name="Icon" glyph="{{glyph}}" size="{{isz}}" hint-size="22px,22px"></dc-import></sc-if>
+<sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}"><span>{{label}}</span></sc-if>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה"},"variant":{"editor":"enum","options":["primary","secondary","ghost"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["xl","l","m"],"default":"l"},"round":{"editor":"boolean","default":false},"$preview":{"width":200,"height":48}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const yes = (v) => v === true || v === 'true';
+    const label = this.props.label ?? 'צפייה';
+    const glyph = this.props.glyph ?? 'play';
+    const v = this.props.variant || 'secondary';
+    const iconOnly = yes(this.props.iconOnly);
+    const size = this.props.size || 'l';
+    const h = { xl: 64, l: 48, m: 40 }[size] || 48;
+    const V = {
+      primary: { bg: 'var(--st-cue)', fg: 'var(--st-on-cue)', shadow: 'var(--st-lift)', fw: '700' },
+      secondary: { bg: 'var(--st-card)', fg: 'var(--st-ink)', shadow: 'inset 0 0 0 1px var(--st-hairline)', fw: '500' },
+      ghost: { bg: 'transparent', fg: 'var(--st-ink)', shadow: 'none', fw: '500' }
+    }[v] || {};
+    return Object.assign({
+      label: label, glyph: glyph, hasIcon: !!glyph, showLabel: !iconOnly,
+      aria: iconOnly ? label : undefined,
+      h: h + 'px', minw: iconOnly ? h + 'px' : '0px',
+      pad: iconOnly ? '0px' : (size === 'm' ? '0 16px' : '0 22px'),
+      r: yes(this.props.round) || iconOnly ? '999px' : 'var(--st-r-control)',
+      fs: size === 'm' ? '14px' : '16px',
+      isz: size === 'xl' ? 30 : (size === 'm' ? 18 : 22)
+    }, V);
+  }
+}
+</script>
+</body>
+</html>

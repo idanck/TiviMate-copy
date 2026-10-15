@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — רדיו, מתנגן עכשיו</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-amb-tone" dir="rtl" style="animation-duration: {{toneDur}}">
+<div aria-hidden="true" class="st-amb-x" style="position: absolute; left: -70px; top: -40px; width: 530px; height: 530px; pointer-events: none; animation-duration: {{xDur}}">
+<div class="st-amb-y" style="width: 100%; height: 100%; animation-duration: {{yDur}}">
+<div class="st-amb-hue" style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, var(--st-halo) 0%, rgba(70,112,196,0.14) 36%, rgba(70,112,196,0) 68%); animation-duration: {{toneDur}}"></div>
+</div>
+</div>
+<div style="position: absolute; top: var(--st-safe-top); right: 6px; left: var(--st-safe-x); height: 56px; display: flex; align-items: center; justify-content: space-between">
+<button aria-label="כיווץ הנגן" style="width: var(--st-touch); height: var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="chevron-down" size="24" hint-size="24px,24px"></dc-import></button>
+<dc-import name="LiveBadge" size="xs" hint-size="90px,24px"></dc-import>
+</div>
+<div style="position: absolute; top: 96px; right: 85px"><dc-import name="StationDisc" label="גלגלצ" size="220" caption="false" halo="true" hint-size="220px,220px"></dc-import></div>
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 352px; right: var(--st-safe-x); width: 358px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center">
+<span style="font-size: 13px; font-weight: 600; color: var(--st-ink-2)">מתנגן עכשיו · גלגלצ</span>
+<h1 class="st-t-hero" style="line-height: 0.95">[שם השיר]</h1>
+<span style="font-size: 18px; font-weight: 500; color: var(--st-ink-2)">[שם האמן]</span>
+</section>
+<div style="position: absolute; top: 474px; right: var(--st-safe-x)"><dc-import name="Equalizer" count="28" width="358" height="56" bpm="118" playing="{{playing}}" hint-size="358px,56px"></dc-import></div>
+<div style="position: absolute; top: 552px; right: 0; width: 390px; display: flex; align-items: center; justify-content: center; gap: 22px">
+<dc-import name="PButton" label="מועדף" glyph="star" variant="ghost" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+<dc-import name="PButton" label="תחנה קודמת" glyph="chevron-up" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+<dc-import name="PButton" label="השהיה" glyph="pause" variant="primary" icon-only="true" size="xl" hint-size="64px,64px"></dc-import>
+<dc-import name="PButton" label="תחנה הבאה" glyph="chevron-down" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+<dc-import name="PButton" label="מדריך" glyph="guide" variant="ghost" icon-only="true" size="l" hint-size="48px,48px"></dc-import>
+</div>
+<div style="position: absolute; top: 640px; right: var(--st-safe-x); left: 0; display: flex; align-items: center; gap: 10px">
+<h2 class="st-t-h1" style="font-size: 18px">תחנות</h2>
+<dc-import name="PChip" label="ארצי" state="selected" hint-size="60px,36px"></dc-import>
+<dc-import name="PChip" label="אזורי" hint-size="60px,36px"></dc-import>
+<dc-import name="PChip" label="אחר" hint-size="60px,36px"></dc-import>
+</div>
+<div style="position: absolute; top: 696px; right: var(--st-safe-x); left: 0; display: flex; gap: 14px; overflow: hidden">
+<sc-for list="{{stations}}" as="st" hint-placeholder-count="6">
+<div style="flex: 0 0 64px; display: flex; justify-content: center"><dc-import name="StationDisc" label="{{st.label}}" state="{{st.state}}" size="64" caption-size="12" hint-size="64px,92px"></dc-import></div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"demo":{"editor":"boolean","default":true},"playing":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const off = (v) => v === false || v === 'false';
+    const demo = !off(this.props.demo);
+    const names = ['כאן ב', 'כאן גימל', 'כאן 88', 'גלגלצ', 'גלי צה״ל', '103FM', 'רדיו תשעים'];
+    return {
+      playing: !off(this.props.playing),
+      toneDur: demo ? '24s' : '', xDur: demo ? '9.4s' : '', yDur: demo ? '15.2s' : '',
+      stations: names.map((n) => ({ label: n, state: n === 'גלגלצ' ? 'onscreen' : 'rest' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — גלריית רכיבים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div dir="rtl" style="width: 1280px; height: 1140px; box-sizing: border-box; padding: 44px 48px; background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: baseline; gap: 20px">
+<h1 class="st-t-title" style="font-size: 72px">אולפן · טלפון · רכיבים</h1>
+<span class="st-t-meta" style="font-size: 18px">כל מסך טלפון בקנבס מורכב מהרכיבים האלה</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px">
+<div style="display: flex; flex-direction: column; gap: 26px">
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">כפתור <span class="st-t-caption">PButton</span></h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px">
+<dc-import name="PButton" label="צפייה" glyph="play" variant="primary" hint-size="110px,48px"></dc-import>
+<dc-import name="PButton" label="מדריך" glyph="guide" hint-size="110px,48px"></dc-import>
+<dc-import name="PButton" label="ביטול" glyph="" variant="ghost" size="m" hint-size="80px,40px"></dc-import>
+<dc-import name="PButton" label="השהיה" glyph="pause" variant="primary" icon-only="true" size="xl" hint-size="64px,64px"></dc-import>
+<dc-import name="PButton" label="ערוץ קודם" glyph="chevron-up" icon-only="true" hint-size="48px,48px"></dc-import>
+<dc-import name="PButton" label="מועדף" glyph="star" size="m" hint-size="100px,40px"></dc-import>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">צ׳יפ ותג <span class="st-t-caption">PChip · LiveBadge xs</span></h2>
+<div style="display: flex; align-items: center; gap: 10px">
+<dc-import name="PChip" label="היום" state="selected" hint-size="70px,36px"></dc-import>
+<dc-import name="PChip" label="מחר" hint-size="70px,36px"></dc-import>
+<dc-import name="LiveBadge" size="xs" hint-size="90px,24px"></dc-import>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">שורת ערוץ <span class="st-t-caption">PChannelRow · רגיל · על המסך · תחנה</span></h2>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<dc-import name="PChannelRow" item="{{c1}}" hint-size="358px,72px"></dc-import>
+<dc-import name="PChannelRow" item="{{c2}}" state="onscreen" hint-size="358px,72px"></dc-import>
+<dc-import name="PChannelRow" item="{{c3}}" disc="true" hint-size="358px,72px"></dc-import>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">נגן מוקטן <span class="st-t-caption">PMiniPlayer · וידאו · רדיו מושהה</span></h2>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<dc-import name="PMiniPlayer" hint-size="390px,64px"></dc-import>
+<dc-import name="PMiniPlayer" channel="גלגלצ" title="[שם השיר] · [שם האמן]" pct="0" playing="false" disc="true" hint-size="390px,64px"></dc-import>
+</div>
+</section>
+</div>
+<div style="display: flex; flex-direction: column; gap: 26px">
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">שורת רשימה <span class="st-t-caption">PListRow</span></h2>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<dc-import name="PListRow" label="{{r.label}}" sub="{{r.sub}}" glyph="{{r.glyph}}" trail="{{r.trail}}" value="{{r.value}}" tone="{{r.tone}}" state="{{r.state}}" hint-size="358px,60px"></dc-import>
+</sc-for>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">משבצת מדריך <span class="st-t-caption">PGuideCell · שודר · משודר · עתידי · נבחר</span></h2>
+<div style="display: flex; gap: 8px">
+<dc-import name="PGuideCell" item="{{g1}}" state="past" width="110" hint-size="110px,52px"></dc-import>
+<dc-import name="PGuideCell" item="{{g2}}" state="airing" width="140" hint-size="140px,52px"></dc-import>
+<dc-import name="PGuideCell" item="{{g3}}" state="future" width="110" hint-size="110px,52px"></dc-import>
+<dc-import name="PGuideCell" item="{{g4}}" state="selected" width="110" hint-size="110px,52px"></dc-import>
+</div>
+</section>
+<section style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">שורה עליונה וניווט תחתון <span class="st-t-caption">PTopBar · PNavBar</span></h2>
+<dc-import name="PTopBar" title="ערוצים" hint-size="390px,56px"></dc-import>
+<dc-import name="PTopBar" title="מראה" back="true" search="false" hint-size="390px,56px"></dc-import>
+<dc-import name="PNavBar" current="guide" hint-size="390px,72px"></dc-import>
+</section>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const row = (label, sub, glyph, trail, value, tone, state) => ({ label: label, sub: sub || '', glyph: glyph || '', trail: trail, value: value || '', tone: tone || 'muted', state: state || 'rest' });
+    return {
+      c1: { label: 'כאן 11', num: '11', now: 'סרט תעודה', time: '20:15–21:45', pct: 45 },
+      c2: { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62 },
+      c3: { label: 'גלגלצ', num: '', now: 'רדיו · ארצי', time: '' },
+      g1: { title: 'פינת תרבות', time: '20:30–20:45' },
+      g2: { title: 'מהדורת החדשות המרכזית', time: '20:00–21:30', onScreen: true },
+      g3: { title: 'מגזין ערב', time: '21:30–23:00' },
+      g4: { title: 'תחקיר', time: '21:00–22:15' },
+      rows: [
+        row('מראה', '', 'appearance', 'chevron'),
+        row('ערכת נושא', 'כהה', '', 'chevron'),
+        row('הצג קבוצות שהספק יוסיף בהמשך', '', '', 'on'),
+        row('אמון בתעודות לא תקפות', '', 'lock', 'off'),
+        row('עברית', '', '', 'check', '', '', 'selected'),
+        row('מהדורת החדשות המרכזית', 'קשת 12 · היום 20:00–21:30', '', 'status', 'מקליט', 'tally'),
+        row('דיון במליאה', 'ערוץ הכנסת · שלישי 13.10', '', 'status', 'נכשלה', 'error'),
+        row('צפייה מההתחלה', 'אין שידור חוזר לערוץ הזה', 'restart', 'none', '', '', 'disabled')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

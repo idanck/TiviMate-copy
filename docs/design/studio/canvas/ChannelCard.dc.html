@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — כרטיס ערוץ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 320px; display: flex; flex-direction: column; gap: 12px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div class="st-anim" style="position: relative; width: 320px; height: 180px; box-sizing: border-box; border-radius: var(--st-r-card); background: {{tileBg}}; box-shadow: {{tileShadow}}; transform: {{tf}}; display: flex; align-items: center; justify-content: center; overflow: hidden">
+<sc-if value="{{disc}}" hint-placeholder-val="{{false}}"><span style="width: 136px; height: 136px; box-sizing: border-box; padding: 0 14px; border-radius: 50%; background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 26px; font-weight: 700; line-height: 1.1">{{it.label}}</span></sc-if>
+<sc-if value="{{word}}" hint-placeholder-val="{{true}}"><span style="font-size: 40px; font-weight: 700; white-space: nowrap">{{it.label}}</span></sc-if>
+<span class="st-num" style="position: absolute; top: 12px; right: 16px; font-size: 20px; font-weight: 600; color: var(--st-ink-2)">{{it.num}}</span>
+<sc-if value="{{onScreen}}" hint-placeholder-val="{{false}}">
+<span aria-hidden="true" style="position: absolute; top: 0; left: 0; right: 0; height: 6px; background: var(--st-tally)"></span>
+<span style="position: absolute; top: 16px; left: 14px; display: flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 6px; background: var(--st-scrim); font-size: 18px; font-weight: 600"><span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: var(--st-tally)"></span>על המסך</span>
+</sc-if>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{true}}"><div aria-hidden="true" style="position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: rgba(255,255,255,0.12)"><div style="height: 5px; width: {{pct}}; background: var(--st-ink)"></div></div></sc-if>
+</div>
+<span style="font-size: 24px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{it.now}}</span>
+<span class="st-num" style="font-size: 20px; color: var(--st-ink-3)">{{it.time}}</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","onscreen","focus"],"default":"rest"},"disc":{"editor":"boolean","default":false},"$preview":{"width":320,"height":262}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const it = this.props.item || { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62 };
+    const s = this.props.state || 'rest';
+    const disc = this.props.disc === true || this.props.disc === 'true';
+    const focus = s === 'focus';
+    const hasPct = it.pct !== undefined && it.pct !== null && it.pct !== '';
+    return {
+      it: it, disc: disc, word: !disc, onScreen: s === 'onscreen',
+      hasPct: hasPct, pct: hasPct ? Number(it.pct) + '%' : '0%',
+      tileBg: focus ? 'var(--st-card-focus)' : (s === 'onscreen' ? 'var(--st-onscreen)' : 'var(--st-card)'),
+      tileShadow: focus ? '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)'
+        : (s === 'onscreen' ? '0 0 0 2px var(--st-tally), 0 0 40px var(--st-tally-glow)' : 'inset 0 0 0 1px var(--st-hairline-soft)'),
+      tf: focus ? 'scale(var(--st-focus-scale))' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

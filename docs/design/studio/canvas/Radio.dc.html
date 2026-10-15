@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — רדיו, מתנגן עכשיו</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-amb-tone" dir="rtl" style="animation-duration: {{toneDur}}">
+
+<div aria-hidden="true" class="st-amb-x" style="position: absolute; left: 840px; top: -200px; width: 1200px; height: 1200px; pointer-events: none; animation-duration: {{xDur}}">
+<div class="st-amb-y" style="width: 100%; height: 100%; animation-duration: {{yDur}}">
+<div class="st-amb-hue" style="width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, var(--st-halo) 0%, rgba(70,112,196,0.14) 34%, rgba(70,112,196,0) 66%); animation-duration: {{toneDur}}"></div>
+</div>
+</div>
+
+<div style="position: absolute; top: 48px; right: var(--st-safe-x); display: flex; align-items: center; gap: 18px">
+<dc-import name="LiveBadge" hint-size="160px,44px"></dc-import>
+<span class="st-t-meta" style="font-size: 24px">רדיו ישראלי</span>
+</div>
+<span class="st-num" style="position: absolute; top: 50px; left: var(--st-safe-x); font-size: 36px; font-weight: 600; line-height: 1">20:56</span>
+
+<div style="position: absolute; top: 170px; right: 220px"><dc-import name="StationDisc" label="גלגלצ" size="440" caption="false" halo="true" hint-size="440px,440px"></dc-import></div>
+
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 226px; right: 732px; width: 1000px; display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 24px; font-weight: 600; color: var(--st-ink-2)">מתנגן עכשיו · גלגלצ</span>
+<h1 class="st-t-hero" style="font-size: 150px; line-height: 0.88">[שם השיר]</h1>
+<span style="font-size: 40px; font-weight: 500; color: var(--st-ink-2)">[שם האמן]</span>
+<div style="margin-top: 10px"><dc-import name="Equalizer" count="32" width="1000" height="96" bpm="118" playing="{{playing}}" hint-size="1000px,96px"></dc-import></div>
+<div style="display: flex; gap: 16px; margin-top: 18px">
+<dc-import name="Button" label="השהיה" glyph="pause" size="m" hint-size="200px,64px"></dc-import>
+<dc-import name="Button" label="הוספה למועדפים" glyph="star" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+</div>
+</section>
+
+<section aria-label="תחנות" style="position: absolute; top: 716px; left: 0; right: 0">
+<div style="padding: 0 var(--st-safe-x); display: flex; align-items: center; gap: 24px; margin-bottom: 30px">
+<h2 class="st-t-h1">תחנות</h2>
+<div role="group" aria-label="קטגוריה" style="display: flex; gap: 10px">
+<dc-import name="Chip" label="ארצי" state="selected" hint-size="100px,52px"></dc-import>
+<dc-import name="Chip" label="אזורי" state="rest" hint-size="100px,52px"></dc-import>
+<dc-import name="Chip" label="אחר" state="rest" hint-size="100px,52px"></dc-import>
+</div>
+</div>
+<div style="display: flex; gap: 44px; padding: 0 var(--st-safe-x); overflow: hidden">
+<sc-for list="{{stations}}" as="st" hint-placeholder-count="9">
+<div style="flex: 0 0 150px; display: flex; justify-content: center"><dc-import name="StationDisc" label="{{st.label}}" state="{{st.state}}" size="150" hint-size="150px,200px"></dc-import></div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"demo":{"editor":"boolean","default":true},"playing":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const names = ['כאן ב', 'כאן גימל', 'כאן 88', 'גלגלצ', 'גלי צה״ל', '103FM', 'רדיו תשעים', '99FM', 'רדיוס 100FM', 'כאן מורשת'];
+    const off = (v) => v === false || v === 'false';
+    const demo = !off(this.props.demo);
+    return {
+      playing: !off(this.props.playing),
+      toneDur: demo ? '24s' : '',
+      xDur: demo ? '9.4s' : '',
+      yDur: demo ? '15.2s' : '',
+      stations: names.map((n) => ({ label: n, state: n === 'כאן 88' ? 'focus' : (n === 'גלגלצ' ? 'onscreen' : 'rest') }))
+    };
+  }
+}
+</script>
+</body>
+</html>
