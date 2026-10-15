@@ -467,6 +467,12 @@ fun AudioOnlyNowPlaying(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                // The sound itself, measured from the player's own output (ADR-031).
+                Equalizer(
+                    playing = playWhenReady,
+                    description = stringResource(R.string.radio_equalizer),
+                    modifier = Modifier.padding(top = 5.dp).width(NOW_WIDTH).height(EQUALIZER_HEIGHT),
+                )
                 if (onTogglePlay != null) {
                     Row(
                         modifier = Modifier.padding(top = 9.dp),
@@ -783,6 +789,7 @@ private val DISC_GAP = 36.dp
 private val NOW_TOP = 28.dp
 private val NOW_WIDTH = 500.dp
 private val TASKS_WIDTH = 560.dp
+private val EQUALIZER_HEIGHT = 48.dp
 
 /** The halo ring is 18px around a 440px disc. */
 private const val DISC_HALO_FRACTION = 18f / 440f

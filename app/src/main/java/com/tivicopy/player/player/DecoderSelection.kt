@@ -5,7 +5,10 @@ import android.os.Handler
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.audio.AudioRendererEventListener
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import androidx.media3.exoplayer.mediacodec.MediaCodecInfo
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.video.VideoRendererEventListener
@@ -74,12 +77,24 @@ class SelectiveRenderersFactory(
             extensionRendererMode,
             selectorFor(audioMode, mediaCodecSelector),
             enableFloatOutput,
-            audioSink,
+            spectrumSink(context, enableFloatOutput),
             eventHandler,
             eventListener,
             out,
         )
     }
+
+    /**
+     * The same sink `DefaultRenderersFactory` builds — its defaults, and the float-output choice it
+     * was given — with one pass-through processor in it: a [TeeAudioProcessor] that lets the radio's
+     * equaliser read the samples on their way out (ADR-031). It changes nothing it hands on; when
+     * nothing is showing the bars it does nothing but hand on.
+     */
+    private fun spectrumSink(context: Context, enableFloatOutput: Boolean): AudioSink =
+        DefaultAudioSink.Builder(context)
+            .setEnableFloatOutput(enableFloatOutput)
+            .setAudioProcessors(arrayOf<AudioProcessor>(TeeAudioProcessor(AudioSpectrum.Sink())))
+            .build()
 
     private fun selectorFor(mode: DecoderMode, base: MediaCodecSelector): MediaCodecSelector =
         when (mode) {
