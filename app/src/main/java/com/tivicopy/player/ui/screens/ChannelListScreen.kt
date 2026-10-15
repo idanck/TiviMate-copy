@@ -1,5 +1,6 @@
 package com.tivicopy.player.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -7,12 +8,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
@@ -44,7 +49,10 @@ import com.tivicopy.player.ui.common.Badge
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusableRow
+import com.tivicopy.player.ui.common.LiveBadge
+import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
@@ -430,9 +438,13 @@ private fun ChannelRow(
     onToggleFavourite: () -> Unit,
     onOptions: () -> Unit,
 ) {
+    // `Channels`' rows are `ListRow`s: the number, the mark, the name with what is on under it,
+    // and the archive as a quiet value at the end. The channel on screen takes the tally — the
+    // dark red fill, the ring and a dot after its name — rather than the card colour.
+    val studio = StudioTheme.colors
     FocusableRow(
         onClick = onClick,
-        selected = selected,
+        onScreen = selected,
         contentDescription = channel.displayName,
         onFocused = onFocused,
         onLongClick = onOptions,
@@ -440,8 +452,8 @@ private fun ChannelRow(
     ) {
         Text(
             text = channel.number.takeIf { it > 0 }?.toString().orEmpty(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+            color = studio.ink2,
             // Fixed, not a minimum, so mixed-length numbers keep the logos in one column;
             // sized for the five digits providers actually issue instead of the three the
             // old 36dp held, which wrapped "16035" onto two lines (device report).
@@ -454,13 +466,41 @@ private fun ChannelRow(
             sizeDp = LocalTvMetrics.current.rowLogoSize,
             circular = circularLogo,
         )
-        TwoLine(
-            primary = channel.displayName,
-            secondary = nowProgramme?.title,
-            modifier = Modifier.weight(1f),
-        )
-        if (channel.hasCatchup) Badge(text = stringResource(R.string.catchup_available))
-        if (channel.locked) Badge(text = "🔒")
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    text = channel.displayName,
+                    style = StudioTheme.type.rowLabel,
+                    color = studio.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (selected) {
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(studio.tally))
+                }
+            }
+            nowProgramme?.title?.let {
+                Text(
+                    text = it,
+                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.Normal),
+                    color = studio.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (channel.locked) {
+            Icon(
+                imageVector = StudioIcons.Lock,
+                contentDescription = stringResource(R.string.channel_lock),
+                tint = studio.ink2,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+        if (channel.hasCatchup) {
+            Text(text = stringResource(R.string.catchup_available), style = StudioTheme.type.meta, color = studio.ink2)
+        }
         // FR-ORG-07. This was a `★` badge that only reported the state; marking a favourite meant
         // opening the guide, picking a programme and using its dialog. A control on the row is
         // one press on touch, and one step right on a D-pad.
@@ -650,29 +690,20 @@ private fun GroupRow(
     name: String,
     selected: Boolean,
     dimmed: Boolean = false,
-    /** A leading icon for the smart-filter rows (star, history, …); provider categories have none. */
+    /** A leading icon for the smart-filter rows (star, history, …). */
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
-    FocusableRow(
+    // `Channels`' group column: `ListRow`s with their glyphs. A hidden group stays listed, wearing
+    // the hide glyph, because otherwise nothing could ever show it again.
+    ListRow(
+        label = name,
         onClick = onClick,
+        icon = if (dimmed) StudioIcons.Hide else icon,
         selected = selected,
-        contentDescription = name,
         onLongClick = onLongClick,
-    ) {
-        val tint = if (dimmed) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
-        if (icon != null) {
-            Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
-        }
-        Text(
-            text = name,
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = tint,
-        )
-    }
+    )
 }
 
 /**
@@ -765,6 +796,10 @@ fun NowNextPane(
      */
     circularLogo: Boolean = false,
 ) {
+    if (StudioTheme.television) {
+        ChannelPreview(channel = channel, now = now, next = next, circularLogo = circularLogo, modifier = modifier)
+        return
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (channel == null) return@Column
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -813,6 +848,96 @@ fun NowNextPane(
                 )
             }
         }
+    }
+}
+
+/**
+ * The preview beside a television's channel list (`Channels`' aside): the number in Karantina
+ * beside the name, the live badge, the programme's title in Karantina, its times with the
+ * progress and the minutes left, its synopsis, and under a hairline what comes next — in the
+ * `next` colour, which is what it is for. The canvas's three buttons at the foot of the pane are
+ * not drawn: the row already does all three (OK, the guide key, the star on the row).
+ */
+@Composable
+private fun ChannelPreview(
+    channel: Channel?,
+    now: Programme?,
+    next: Programme?,
+    circularLogo: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        if (channel == null) return@Column
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            if (channel.number > 0) {
+                Text(text = TimeModel.ltr(channel.number.toString()), style = type.titleSmall, color = studio.ink)
+            } else {
+                ChannelLogo(channel = channel, sizeDp = 32, circular = circularLogo)
+            }
+            Text(text = channel.displayName, style = type.rowLabel, color = studio.ink, maxLines = 1)
+        }
+        if (now == null) {
+            // FR-EPG-16: an explicit state, never a blank row.
+            Text(text = stringResource(R.string.no_guide_data), style = type.meta, color = studio.ink2)
+        } else {
+            val clock = System.currentTimeMillis()
+            if (clock in now.startUtc until now.endUtc) LiveBadge()
+            Text(
+                text = now.title,
+                // 88px at 1080p against the title step's 108.
+                style = type.title.copy(fontSize = type.title.fontSize * (88f / 108f)),
+                color = studio.ink,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = TimeModel.ltr(TimeModel.formatClockRange(now.startUtc, now.endUtc)),
+                    style = type.meta,
+                    color = studio.ink2,
+                )
+                ProgrammeProgress(now.startUtc, now.endUtc, modifier = Modifier.width(100.dp))
+                val left = ((now.endUtc - clock) / 60_000L).toInt()
+                if (left > 0) {
+                    Text(
+                        text = stringResource(R.string.home_minutes_left, left),
+                        style = type.meta,
+                        color = studio.ink2,
+                    )
+                }
+            }
+            now.description?.let {
+                Text(text = it, style = type.caption, color = studio.ink2, maxLines = 5, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        next?.let {
+            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).height(1.dp).background(studio.hairline))
+            Text(
+                text = stringResource(R.string.info_next) + " · " + TimeModel.ltr(TimeModel.formatClock(it.startUtc)),
+                style = type.meta.copy(fontWeight = FontWeight.SemiBold),
+                color = studio.next,
+            )
+            Text(
+                text = it.title,
+                style = type.h1.copy(fontWeight = FontWeight.SemiBold),
+                color = studio.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = TimeModel.ltr(TimeModel.formatClockRange(it.startUtc, it.endUtc)),
+                style = type.meta,
+                color = studio.ink2,
+            )
+        }
+        Text(
+            text = stringResource(R.string.channel_options_hint),
+            style = type.caption,
+            color = studio.ink3,
+            modifier = Modifier.padding(top = 8.dp),
+        )
     }
 }
 

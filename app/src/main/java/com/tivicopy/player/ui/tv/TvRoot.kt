@@ -375,9 +375,9 @@ fun TvRoot(
             PlaybackMenu(
                 vm = vm,
                 onDismiss = { onOverlayChange(TvOverlay.NONE) },
+                // `PlayerMenu`: a drawer against the end edge of the screen, full height.
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(TV_CONTENT_INSET)
+                    .align(Alignment.CenterEnd)
                     .screenEntrance(Unit),
             )
         }

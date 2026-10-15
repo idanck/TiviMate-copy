@@ -1,5 +1,6 @@
 package com.tivicopy.player.ui.tv
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -54,6 +59,10 @@ import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.ui.common.nowPlayingLabels
 import com.tivicopy.player.ui.common.qualitySummary
 import com.tivicopy.player.ui.common.rememberAspectCycler
+import com.tivicopy.player.ui.common.ListRow
+import com.tivicopy.player.ui.common.RowTrail
+import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
@@ -100,15 +109,25 @@ fun TransportBar(
     }
     val labels = nowPlayingLabels(state.nowPlaying, state.now?.title) ?: return
 
+    // `PlayerTransport`: no plate. A lower third over the canvas's bottom scrim, the controls
+    // under it as square buttons, and the hint for the long press under those. The scrim follows
+    // the viewer's overlay opacity (FR-UI-18), with a floor so the text over it stays legible.
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val scrim = prefs.overlayOpacity.coerceAtLeast(0.5f)
     Column(
-        // A floating plate, inset from the edges, rather than a band the picture stops at —
-        // the same surface the filmstrip is drawn from (`TvSurfaces.kt`).
         modifier = modifier
             .fillMaxWidth()
-            .padding(TV_CONTENT_INSET)
-            .tvGlassPanel(prefs.overlayOpacity)
-            .padding(horizontal = 28.dp, vertical = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .background(
+                Brush.verticalGradient(
+                    0f to studio.ground.copy(alpha = 0f),
+                    0.3f to studio.ground.copy(alpha = 0.55f * scrim),
+                    0.6f to studio.ground.copy(alpha = 0.95f * scrim),
+                    1f to studio.ground.copy(alpha = scrim),
+                ),
+            )
+            .padding(start = 48.dp, end = 48.dp, top = 72.dp, bottom = 27.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // Live *and* not paused, the same rule the station backdrop applies to the same badge:
         // this bar is the one place a viewer can stop a live stream, so it is the last place that
@@ -127,39 +146,43 @@ fun TransportBar(
                     .then(if (onAir) Modifier else Modifier.clearAndSetSemantics {}),
             )
         }
-        Text(
-            text = labels.first,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
         labels.second?.let {
             Text(
                 text = it,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = type.rowLabel,
+                color = studio.ink2,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        Text(
+            text = labels.first,
+            // The lower third's title: Karantina, between the small title step and the title.
+            style = type.title.copy(fontSize = type.title.fontSize * LOWER_THIRD_TITLE_SCALE),
+            color = studio.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
 
         // Only live has a programme to be part-way through. Catch-up and on-demand have a
         // position, but this app has no scrubber yet and docs/10 says so rather than drawing one
         // that cannot be dragged.
         if (live != null) {
             state.now?.let { now ->
-                Text(
-                    text = TimeModel.ltr(TimeModel.formatClockRange(now.startUtc, now.endUtc)),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                ProgrammeProgress(now.startUtc, now.endUtc, modifier = Modifier.fillMaxWidth())
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = TimeModel.ltr(TimeModel.formatClockRange(now.startUtc, now.endUtc)),
+                        style = type.meta,
+                        color = studio.ink2,
+                    )
+                    ProgrammeProgress(now.startUtc, now.endUtc, modifier = Modifier.width(220.dp))
+                }
             }
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(top = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (state.nowPlaying.isLive()) {
@@ -174,9 +197,8 @@ fun TransportBar(
                 description = stringResource(
                     if (playback.playWhenReady) R.string.action_pause else R.string.action_play,
                 ),
-                primary = true,
                 onClick = { ServiceLocator.player.togglePlayPause() },
-                modifier = Modifier.focusRequester(focusPlay),
+                focusRequester = focusPlay,
             )
             if (state.nowPlaying.isLive()) {
                 TransportButton(
@@ -185,6 +207,14 @@ fun TransportBar(
                     onClick = { vm.zap(1) },
                 )
             }
+            // The canvas's rule between moving through the stream and everything else.
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .width(1.dp)
+                    .height(22.dp)
+                    .background(studio.hairline),
+            )
             if (liveChannel != null) {
                 TransportButton(
                     icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
@@ -209,60 +239,39 @@ fun TransportBar(
             Box(modifier = Modifier.weight(1f))
 
             qualitySummary(playback)?.let {
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Text(text = it, style = type.meta, color = studio.ink2)
             }
         }
 
         Text(
             text = stringResource(R.string.playback_menu_hint),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = type.caption,
+            color = studio.ink2,
             modifier = Modifier.clickable(onClick = onOpenMenu),
         )
     }
 }
 
+/**
+ * One control on the transport bar: Studio's medium icon-only button (`PlayerTransport`), square,
+ * becoming the cue when the remote is on it. Every one is the same weight; the canvas gives play
+ * and pause no plate of their own.
+ */
 @Composable
 private fun TransportButton(
     icon: ImageVector,
     description: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    primary: Boolean = false,
+    focusRequester: FocusRequester? = null,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    val size = if (primary) 64.dp else 52.dp
-    Box(
-        modifier = modifier
-            .size(size)
-            .focusLift(focused, shape = CircleShape)
-            // A button says it has focus by becoming the accent, which is what this one already
-            // did — over a ring that widened from 0dp to 3dp and rested on `Color.Transparent`,
-            // so the icon shifted inside the circle and the ring darkened on its way out. The
-            // fill was always the answer; the ring was a second one (`ui/common/Focus.kt`).
-            .focusSurface(
-                focused = focused,
-                shape = CircleShape,
-                selected = primary,
-                fill = FocusFill.FILLED,
-            )
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = description,
-            // The play button is Studio's primary variant — ink at rest — so its icon turns over
-            // with it as every other button's does with focus.
-            tint = filledContentColour(focused, selected = primary),
-            modifier = Modifier.size(if (primary) 32.dp else 24.dp),
-        )
-    }
+    StudioButton(
+        label = description,
+        onClick = onClick,
+        icon = icon,
+        iconOnly = true,
+        size = StudioButtonSize.MEDIUM,
+        focusRequester = focusRequester,
+    )
 }
 
 /**
@@ -302,27 +311,30 @@ fun PlaybackMenu(
         // a list of track names and settings being *read*, several lines of small text at once,
         // and the setting goes down to 0.3: at that value every other surface is a caption
         // glanced at over video, and this one would be unreadable.
+        //
+        // `PlayerMenu`: a drawer the full height of the screen against its end edge, as the
+        // channel menu is — the picture stays in view beside it.
         modifier = modifier
-            .fillMaxWidth(0.5f)
-            .tvGlassPanel(prefs.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY))
-            .padding(TV_CONTENT_INSET),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .width(310.dp)
+            .fillMaxHeight()
+            .background(StudioTheme.colors.drawer.copy(alpha = prefs.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY)))
+            .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
+        Text(
+            text = stringResource(R.string.playback_menu),
+            style = StudioTheme.type.titleSmall.copy(fontSize = StudioTheme.type.titleSmall.fontSize * 0.75f),
+            color = StudioTheme.colors.ink,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
         labels?.let {
             Text(
-                text = it.first,
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
+                text = listOfNotNull(it.first, qualitySummary(playback)).joinToString(" · "),
+                style = StudioTheme.type.caption,
+                color = StudioTheme.colors.ink2,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-            )
-        }
-        qualitySummary(playback)?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 8.dp),
+                modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp),
             )
         }
 
@@ -332,6 +344,7 @@ fun PlaybackMenu(
                     title = stringResource(
                         if (playback.playWhenReady) R.string.action_pause else R.string.action_play,
                     ),
+                    icon = if (playback.playWhenReady) StudioIcons.Pause else StudioIcons.Play,
                     onClick = { ServiceLocator.player.togglePlayPause(); onDismiss() },
                 )
             }
@@ -339,6 +352,7 @@ fun PlaybackMenu(
                 MenuEntry(
                     title = stringResource(R.string.aspect_ratio),
                     detail = stringResource(prefs.aspectMode.labelRes()),
+                    icon = StudioIcons.Aspect,
                     onClick = cycleAspect,
                 )
             }
@@ -388,63 +402,34 @@ fun PlaybackMenu(
 private fun MenuHeading(text: String) {
     Text(
         text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 12.dp),
+        style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+        color = StudioTheme.colors.ink2,
+        modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 12.dp),
     )
 }
 
+/** One entry in the playback menu: Studio's list row, with its glyph, value or check. */
 @Composable
 private fun MenuEntry(
     title: String,
     onClick: () -> Unit,
     detail: String? = null,
     selected: Boolean = false,
+    icon: ImageVector? = null,
 ) {
-    var focused by remember { mutableStateOf(false) }
-    // A row on a panel is a row: same corner and same treatment as every row in every list, taken
-    // from the shell rather than written again here. This menu is the one surface ADR-023 fixed,
-    // and its own rows were still drawing an 8dp corner, a 2dp ring, and both colours cut rather
-    // than crossed — over `Color.Transparent`, which is transparent *black*.
-    val metrics = LocalTvMetrics.current
-    val shape = RoundedCornerShape(metrics.rowCorner)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
-            .focusSurface(focused = focused, shape = shape, selected = selected)
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        // A tick rather than a radio button: this is a list of what is on, not a form.
-        Box(modifier = Modifier.width(20.dp)) {
-            if (selected) {
-                Text(
-                    text = "✓",
-                    style = MaterialTheme.typography.titleMedium,
-                    // `ListRow`'s check trail is ink: what is on is a fact, not focus.
-                    color = StudioTheme.colors.ink,
-                )
-            }
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        detail?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
+    ListRow(
+        label = title,
+        onClick = onClick,
+        icon = icon,
+        trail = when {
+            detail != null -> RowTrail.VALUE
+            selected -> RowTrail.CHECK
+            else -> RowTrail.NONE
+        },
+        value = detail,
+        selected = selected,
+    )
 }
 
+/** The lower third's programme title: 96px at 1080p against the title step's 108. */
+private const val LOWER_THIRD_TITLE_SCALE = 96f / 108f
