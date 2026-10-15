@@ -125,6 +125,8 @@
     <string name="card_on_screen">On screen</string>
     <string name="filmstrip_hint">Left and right between channels · OK switches</string>
     <string name="playback_error_hint">Up and down still change channel from here.</string>
+    <string name="playback_network_settings">Network settings</string>
+    <string name="playback_channel_list">Channel list</string>
     <string name="playback_audio_only">Playing — audio only, no picture</string>
     <string name="playback_live_badge">Live</string>
     <string name="decoder_video">Video decoder</string>

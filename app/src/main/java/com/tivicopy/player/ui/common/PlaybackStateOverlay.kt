@@ -18,12 +18,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.player.PlaybackStatus
@@ -39,8 +42,8 @@ import kotlinx.coroutines.delay
  * screen — so every non-playing state is named here, and the retry counter is shown while the
  * engine is still working through its attempts.
  *
- * Nothing here handles pointer input, so the playback gestures on the surface below keep
- * working through it.
+ * Nothing here handles pointer input but the error panel's own buttons, so the playback gestures
+ * on the surface below keep working through it everywhere else.
  *
  * A live stream dips into buffering for a fraction of a second fairly often, and a card that
  * appeared for each of those would be worse than no card at all, so the busy state has to hold
@@ -54,6 +57,9 @@ import kotlinx.coroutines.delay
  *   is progress rather than a verdict.
  * @param opacity the user's overlay opacity (FR-UI-16), so this card thins out with every other
  *   overlay rather than staying the most solid thing on screen.
+ * @param errorActions what a settled failure offers to do about it (ADR-034), or null for a panel
+ *   that only says what went wrong — under a surface that owns the remote, say, where buttons
+ *   behind it would be reachable by an arrow that has run off the end of that surface.
  */
 @Composable
 fun PlaybackStateOverlay(
@@ -62,6 +68,7 @@ fun PlaybackStateOverlay(
     showErrorText: Boolean = true,
     // Default matches `Settings.overlayOpacity`, for a caller with no preference to hand.
     opacity: Float = 0.85f,
+    errorActions: PlaybackErrorActions? = null,
 ) {
     val context = LocalContext.current
     val error = status.error
@@ -101,22 +108,52 @@ fun PlaybackStateOverlay(
     val tv = StudioTheme.television
     if (error != null && !retrying) {
         // A settled failure (`TvPlayError`, `PPlayError`): a panel naming the channel with the
-        // alert glyph in the error colour, and the reason as its heading. The canvas's three
-        // buttons under it are a behaviour change (MIGRATION.md round 2 §5) and are not drawn.
+        // alert glyph in the error colour, the reason as its heading, and what can be done about
+        // it under that (ADR-034).
+        if (!tv) {
+            // `PPlayError`: no plate inside a picture this small. The whole of it goes dark, and
+            // the glyph, the reason and the one button sit in the middle of what is left.
+            Column(
+                modifier = modifier
+                    .fillMaxSize()
+                    .background(studio.ground.copy(alpha = PHONE_ERROR_DIM))
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+            ) {
+                Icon(
+                    imageVector = StudioIcons.Alert,
+                    contentDescription = null,
+                    tint = studio.error,
+                    modifier = Modifier.size(28.dp),
+                )
+                Text(
+                    text = message,
+                    style = type.rowLabel.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                detail?.let { Text(text = it, style = type.meta, color = studio.ink2) }
+                errorActions?.let { ErrorButtons(it, message) }
+            }
+            return
+        }
         Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = if (tv) 500.dp else 342.dp)
+                    .widthIn(max = 500.dp)
                     .panelSurface(opacity.coerceAtLeast(MENU_MIN_OPACITY), MaterialTheme.shapes.large)
-                    .padding(horizontal = if (tv) 28.dp else 20.dp, vertical = if (tv) 24.dp else 18.dp),
-                verticalArrangement = Arrangement.spacedBy(if (tv) 9.dp else 8.dp),
+                    .padding(horizontal = 28.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(
                         imageVector = StudioIcons.Alert,
                         contentDescription = null,
                         tint = studio.error,
-                        modifier = Modifier.size(if (tv) 20.dp else 22.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     if (status.title.isNotBlank()) {
                         Text(text = status.title, style = type.rowLabel, color = studio.ink, maxLines = 1)
@@ -125,11 +162,12 @@ fun PlaybackStateOverlay(
                 // 40px at 1080p: the h1 step, larger, because the reason is the whole message.
                 Text(
                     text = message,
-                    style = if (tv) type.h1.copy(fontSize = type.h1.fontSize * (20f / 17f)) else type.h1,
+                    style = type.h1.copy(fontSize = type.h1.fontSize * (20f / 17f)),
                     color = studio.ink,
                 )
                 detail?.let { Text(text = it, style = type.meta, color = studio.ink2) }
-                if (tv) Text(text = stringResource(R.string.playback_error_hint), style = type.meta, color = studio.ink2)
+                Text(text = stringResource(R.string.playback_error_hint), style = type.meta, color = studio.ink2)
+                errorActions?.let { ErrorButtons(it, message) }
             }
         }
         return
@@ -160,6 +198,71 @@ fun PlaybackStateOverlay(
         }
     }
 }
+
+/**
+ * What a settled playback failure offers to do about it (`TvPlayError`, `PPlayError`, ADR-034).
+ *
+ * Until Studio stage 12 the panel only said what had gone wrong, and the way out of it was a
+ * remote binding the viewer had to already know. The canvas puts the three ways out on the panel
+ * itself. A null entry draws no button: the phone's panel has room for the retry alone.
+ *
+ * @param takeFocus whether the retry takes the remote's focus as the panel appears. Only while
+ *   nothing else owns the D-pad; the arrows that do not move between the buttons still fall
+ *   through to the shell, so up and down go on changing channel from here.
+ */
+class PlaybackErrorActions(
+    val onRetry: () -> Unit,
+    val onNetworkSettings: (() -> Unit)? = null,
+    val onChannelList: (() -> Unit)? = null,
+    val takeFocus: Boolean = false,
+)
+
+/** The error panel's buttons: retry first, where the focus lands, then the two ways out. */
+@Composable
+private fun ErrorButtons(actions: PlaybackErrorActions, message: String) {
+    val tv = StudioTheme.television
+    val retry = remember { FocusRequester() }
+    // Re-asked for each new failure and each time the remote comes back to the bare screen: a
+    // surface opened over the panel took the focus with it, and closing it hands nothing back.
+    LaunchedEffect(actions.takeFocus, message) {
+        if (!actions.takeFocus) return@LaunchedEffect
+        withFrameNanos { }
+        runCatching { retry.requestFocus() }
+    }
+    Row(
+        modifier = Modifier.padding(top = if (tv) 7.dp else 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        StudioButton(
+            label = stringResource(R.string.action_retry),
+            onClick = actions.onRetry,
+            icon = StudioIcons.Restart,
+            // The phone's one action is the panel's primary; the television's three are equals.
+            variant = if (tv) StudioButtonVariant.SECONDARY else StudioButtonVariant.PRIMARY,
+            size = StudioButtonSize.MEDIUM,
+            focusRequester = retry,
+        )
+        actions.onNetworkSettings?.let { open ->
+            StudioButton(
+                label = stringResource(R.string.playback_network_settings),
+                onClick = open,
+                icon = StudioIcons.Network,
+                size = StudioButtonSize.MEDIUM,
+            )
+        }
+        actions.onChannelList?.let { open ->
+            StudioButton(
+                label = stringResource(R.string.playback_channel_list),
+                onClick = open,
+                icon = StudioIcons.Tv,
+                size = StudioButtonSize.MEDIUM,
+            )
+        }
+    }
+}
+
+/** How dark a phone's picture goes behind a settled failure (`PPlayError`). */
+private const val PHONE_ERROR_DIM = 0.94f
 
 /** How far the last frame is dimmed behind the reconnecting loader (`TvReconnect`). */
 private const val RECONNECT_DIM = 0.6f
