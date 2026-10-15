@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -101,7 +99,7 @@ fun PinRequestDialog(vm: AppViewModel) {
     StudioDialog(
         onDismissRequest = vm::cancelPinRequest,
         title = pending.channel.displayName,
-        icon = Icons.Filled.Lock,
+        icon = StudioIcons.Lock,
         buttons = {
             DialogButton(label = stringResource(R.string.action_cancel), onClick = vm::cancelPinRequest)
         },

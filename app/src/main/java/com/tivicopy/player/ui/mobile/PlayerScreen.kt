@@ -19,15 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +74,7 @@ import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The phone's Now Playing screen (ADR-011): a full-screen surface over the browse shell, the
@@ -270,7 +262,7 @@ fun PlayerScreen(
                                 .background(StudioTheme.colors.scrim),
                         ) {
                             Icon(
-                                imageVector = Icons.Filled.KeyboardArrowDown,
+                                imageVector = StudioIcons.ChevronDown,
                                 contentDescription = stringResource(R.string.action_collapse_player),
                                 tint = StudioTheme.colors.ink,
                             )
@@ -459,14 +451,14 @@ private fun NowPlayingDetails(
                 if (liveChannel != null) {
                     PhoneButton(
                         label = stringResource(R.string.player_favourite),
-                        icon = if (liveChannel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                         size = PhoneButtonSize.M,
                         onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
                         modifier = Modifier.weight(1f),
                     )
                     PhoneButton(
                         label = stringResource(R.string.nav_guide),
-                        icon = Icons.Filled.DateRange,
+                        icon = StudioIcons.Guide,
                         size = PhoneButtonSize.M,
                         onClick = onOpenGuide,
                         modifier = Modifier.weight(1f),
@@ -474,7 +466,7 @@ private fun NowPlayingDetails(
                 }
                 PhoneButton(
                     label = stringResource(R.string.player_view),
-                    icon = Icons.Filled.AspectRatio,
+                    icon = StudioIcons.Aspect,
                     size = PhoneButtonSize.M,
                     onClick = onCycleAspect,
                     modifier = Modifier.weight(1f),
@@ -604,7 +596,7 @@ private fun TransportRow(
         if (showZap) {
             PhoneButton(
                 label = stringResource(R.string.channel_previous),
-                icon = Icons.Filled.KeyboardArrowUp,
+                icon = StudioIcons.ChevronUp,
                 iconOnly = true,
                 size = PhoneButtonSize.L,
                 onClick = onZapPrevious,
@@ -612,7 +604,7 @@ private fun TransportRow(
         }
         PhoneButton(
             label = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play),
-            icon = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            icon = if (wantsPlay) StudioIcons.Pause else StudioIcons.Play,
             iconOnly = true,
             variant = PhoneButtonVariant.PRIMARY,
             size = PhoneButtonSize.XL,
@@ -621,7 +613,7 @@ private fun TransportRow(
         if (showZap) {
             PhoneButton(
                 label = stringResource(R.string.channel_next),
-                icon = Icons.Filled.KeyboardArrowDown,
+                icon = StudioIcons.ChevronDown,
                 iconOnly = true,
                 size = PhoneButtonSize.L,
                 onClick = onZapNext,

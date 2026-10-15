@@ -23,12 +23,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -59,6 +53,7 @@ import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Studio's phone chrome (`docs/design/studio/canvas/PTopBar`, `PNavBar`, `PMiniPlayer`): the bar
@@ -96,7 +91,7 @@ internal fun PhoneTopBar(
         if (onBack != null) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    imageVector = StudioIcons.Back,
                     contentDescription = stringResource(R.string.action_back),
                     tint = studio.ink,
                 )
@@ -113,7 +108,7 @@ internal fun PhoneTopBar(
         if (onSearch != null) {
             IconButton(onClick = onSearch) {
                 Icon(
-                    imageVector = Icons.Filled.Search,
+                    imageVector = StudioIcons.Search,
                     contentDescription = stringResource(R.string.nav_search),
                     tint = studio.ink,
                 )
@@ -262,7 +257,7 @@ internal fun PhoneMiniPlayer(
                 }
                 IconButton(onClick = onTogglePlay) {
                     Icon(
-                        imageVector = if (wantsPlay) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        imageVector = if (wantsPlay) StudioIcons.Pause else StudioIcons.Play,
                         contentDescription = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play),
                         tint = studio.ink,
                         modifier = Modifier.size(26.dp),
@@ -329,7 +324,7 @@ private fun MiniPlate(nowPlaying: NowPlayingInfo, radio: Boolean) {
         if (channel != null) {
             ChannelLogo(channel = channel, sizeDp = 32)
         } else {
-            Icon(imageVector = Icons.Filled.Movie, contentDescription = null, tint = studio.ink2)
+            Icon(imageVector = StudioIcons.Movie, contentDescription = null, tint = studio.ink2)
         }
     }
 }

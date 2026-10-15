@@ -24,14 +24,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -65,6 +57,7 @@ import com.tivicopy.player.ui.common.StationDisc
 import com.tivicopy.player.ui.common.splitSong
 import com.tivicopy.player.ui.common.studioAmbient
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * Studio's radio on a phone (`docs/design/studio/canvas/PRadio.dc.html`): the whole screen, not a
@@ -107,7 +100,7 @@ internal fun PhoneRadio(
             ) {
                 IconButton(onClick = onCollapse) {
                     Icon(
-                        imageVector = Icons.Filled.KeyboardArrowDown,
+                        imageVector = StudioIcons.ChevronDown,
                         contentDescription = stringResource(R.string.action_collapse_player),
                         tint = studio.ink,
                     )
@@ -168,20 +161,20 @@ internal fun PhoneRadio(
             ) {
                 PhoneButton(
                     label = stringResource(if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite),
-                    icon = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                     iconOnly = true,
                     variant = PhoneButtonVariant.GHOST,
                     onClick = onFavourite,
                 )
                 PhoneButton(
                     label = stringResource(R.string.radio_previous),
-                    icon = Icons.Filled.KeyboardArrowUp,
+                    icon = StudioIcons.ChevronUp,
                     iconOnly = true,
                     onClick = onPrevious,
                 )
                 PhoneButton(
                     label = stringResource(if (playWhenReady) R.string.action_pause else R.string.action_play),
-                    icon = if (playWhenReady) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    icon = if (playWhenReady) StudioIcons.Pause else StudioIcons.Play,
                     iconOnly = true,
                     variant = PhoneButtonVariant.PRIMARY,
                     size = PhoneButtonSize.XL,
@@ -189,13 +182,13 @@ internal fun PhoneRadio(
                 )
                 PhoneButton(
                     label = stringResource(R.string.radio_next),
-                    icon = Icons.Filled.KeyboardArrowDown,
+                    icon = StudioIcons.ChevronDown,
                     iconOnly = true,
                     onClick = onNext,
                 )
                 PhoneButton(
                     label = stringResource(R.string.nav_guide),
-                    icon = Icons.Filled.DateRange,
+                    icon = StudioIcons.Guide,
                     iconOnly = true,
                     variant = PhoneButtonVariant.GHOST,
                     onClick = onOpenGuide,

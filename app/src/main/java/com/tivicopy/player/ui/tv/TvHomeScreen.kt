@@ -25,17 +25,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Fullscreen
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Radio
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -86,6 +75,7 @@ import com.tivicopy.player.ui.home.HomeRailId
 import com.tivicopy.player.ui.home.HomeRails
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The ten-foot home screen (FR-UI-24): the live picture as a full-bleed banner, an icon rail down
@@ -170,15 +160,15 @@ fun TvHomeScreen(
     )
     // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline.
     val destinations = listOf(
-        MenuDestination(stringResource(R.string.nav_home), Icons.Filled.Home, null),
-        MenuDestination(stringResource(R.string.nav_live), Icons.Filled.LiveTv, TvOverlay.CHANNELS),
-        MenuDestination(stringResource(R.string.nav_guide), Icons.Filled.DateRange, TvOverlay.GUIDE),
-        MenuDestination(stringResource(R.string.nav_radio), Icons.Filled.Radio, TvOverlay.RADIO),
-        MenuDestination(stringResource(R.string.nav_recordings), Icons.Filled.History, TvOverlay.RECORDINGS),
+        MenuDestination(stringResource(R.string.nav_home), StudioIcons.Home, null),
+        MenuDestination(stringResource(R.string.nav_live), StudioIcons.Tv, TvOverlay.CHANNELS),
+        MenuDestination(stringResource(R.string.nav_guide), StudioIcons.Guide, TvOverlay.GUIDE),
+        MenuDestination(stringResource(R.string.nav_radio), StudioIcons.Radio, TvOverlay.RADIO),
+        MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.History, TvOverlay.RECORDINGS),
     )
     val tools = listOf(
-        MenuDestination(stringResource(R.string.nav_search), Icons.Filled.Search, TvOverlay.SEARCH),
-        MenuDestination(stringResource(R.string.nav_settings), Icons.Filled.Settings, TvOverlay.SETTINGS),
+        MenuDestination(stringResource(R.string.nav_search), StudioIcons.Search, TvOverlay.SEARCH),
+        MenuDestination(stringResource(R.string.nav_settings), StudioIcons.Settings, TvOverlay.SETTINGS),
     )
 
     // OK on the channel already playing goes fullscreen; OK on any other card tunes it and stays
@@ -421,20 +411,20 @@ private fun HomeBanner(
                 ) {
                     StudioButton(
                         label = stringResource(R.string.home_watch_fullscreen),
-                        icon = Icons.Filled.Fullscreen,
+                        icon = StudioIcons.Fullscreen,
                         onClick = onFullscreen,
                         focusRequester = watchFocus,
                     )
                     StudioButton(
                         label = stringResource(R.string.nav_guide),
-                        icon = Icons.Filled.DateRange,
+                        icon = StudioIcons.Guide,
                         onClick = onGuide,
                     )
                     StudioButton(
                         label = stringResource(
                             if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                         ),
-                        icon = if (channel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                        icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                         iconOnly = true,
                         onClick = { onFavourite(channel) },
                     )

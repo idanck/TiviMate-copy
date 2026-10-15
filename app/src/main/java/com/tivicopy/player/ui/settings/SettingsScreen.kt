@@ -46,19 +46,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.PlayCircle
-import androidx.compose.material.icons.filled.Storage
-import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.ui.draw.clip
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
 
@@ -570,15 +561,15 @@ fun OffsetRow(title: String, minutes: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun SettingsSectionRows(selected: SettingsSection?, onNavigate: (SettingsSection) -> Unit) {
     val entries = listOf(
-        Triple(SettingsSection.SOURCES, R.string.settings_sources, Icons.Filled.Storage),
-        Triple(SettingsSection.PLAYBACK, R.string.settings_playback, Icons.Filled.PlayCircle),
-        Triple(SettingsSection.APPEARANCE, R.string.settings_appearance, Icons.Filled.Palette),
-        Triple(SettingsSection.NETWORK, R.string.settings_network, Icons.Filled.Wifi),
-        Triple(SettingsSection.RECORDING, R.string.settings_recording, Icons.Filled.FiberManualRecord),
-        Triple(SettingsSection.PARENTAL, R.string.settings_parental, Icons.Filled.Lock),
-        Triple(SettingsSection.BACKUP, R.string.settings_backup, Icons.Filled.Backup),
-        Triple(SettingsSection.DIAGNOSTICS, R.string.settings_diagnostics, Icons.Filled.BugReport),
-        Triple(SettingsSection.ABOUT, R.string.settings_about, Icons.Filled.Info),
+        Triple(SettingsSection.SOURCES, R.string.settings_sources, StudioIcons.Storage),
+        Triple(SettingsSection.PLAYBACK, R.string.settings_playback, StudioIcons.Play),
+        Triple(SettingsSection.APPEARANCE, R.string.settings_appearance, StudioIcons.Appearance),
+        Triple(SettingsSection.NETWORK, R.string.settings_network, StudioIcons.Network),
+        Triple(SettingsSection.RECORDING, R.string.settings_recording, StudioIcons.Record),
+        Triple(SettingsSection.PARENTAL, R.string.settings_parental, StudioIcons.Lock),
+        Triple(SettingsSection.BACKUP, R.string.settings_backup, StudioIcons.Backup),
+        Triple(SettingsSection.DIAGNOSTICS, R.string.settings_diagnostics, StudioIcons.Pulse),
+        Triple(SettingsSection.ABOUT, R.string.settings_about, StudioIcons.Info),
     )
     entries.forEach { (target, label, icon) ->
         SettingsRow(

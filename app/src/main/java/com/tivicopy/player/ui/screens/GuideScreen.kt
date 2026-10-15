@@ -25,8 +25,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -71,6 +69,7 @@ import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 // The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
 // television shell fills in from the real viewport (see `ui/common/TvMetrics.kt`). The touch shell
@@ -177,7 +176,7 @@ fun GuideScreen(
         HorizontalDivider()
 
         if (channels.isEmpty()) {
-            EmptyState(stringResource(R.string.empty_no_channels), icon = Icons.Filled.LiveTv)
+            EmptyState(stringResource(R.string.empty_no_channels), icon = StudioIcons.Tv)
             return@Column
         }
 

@@ -53,4 +53,17 @@ class StudioComponentsTest {
             offenders,
         )
     }
+
+    @Test
+    fun `every icon is Studio's`() {
+        val offenders = uiSources()
+            .filter { code(it).contains("androidx.compose.material.icons") }
+            .map { it.name }
+        assertEquals(
+            "these draw Material's icons rather than StudioIcons (ADR-033); the extended set is no " +
+                "longer a dependency at all",
+            emptyList<String>(),
+            offenders,
+        )
+    }
 }

@@ -9,11 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +32,7 @@ import com.tivicopy.player.ui.common.PhoneButtonSize
 import com.tivicopy.player.ui.common.PhoneButtonVariant
 import com.tivicopy.player.ui.screens.GuideScreen
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The phone's guide (`docs/design/studio/canvas/PGuide.dc.html`): the shared grid, and under it a
@@ -131,7 +127,7 @@ private fun ProgrammeSheet(
             if (airing) {
                 PhoneButton(
                     label = stringResource(R.string.action_watch),
-                    icon = Icons.Filled.PlayArrow,
+                    icon = StudioIcons.Play,
                     variant = PhoneButtonVariant.PRIMARY,
                     size = PhoneButtonSize.M,
                     onClick = onWatch,
@@ -140,7 +136,7 @@ private fun ProgrammeSheet(
             if (replay && (airing || aired)) {
                 PhoneButton(
                     label = stringResource(if (airing) R.string.guide_from_start else R.string.guide_watch_catchup),
-                    icon = Icons.Filled.Replay,
+                    icon = StudioIcons.Restart,
                     size = PhoneButtonSize.M,
                     onClick = onCatchup,
                 )
@@ -150,14 +146,14 @@ private fun ProgrammeSheet(
             if (!airing && !aired) {
                 PhoneButton(
                     label = stringResource(R.string.action_record),
-                    icon = Icons.Filled.FiberManualRecord,
+                    icon = StudioIcons.Record,
                     size = PhoneButtonSize.M,
                     onClick = onDetails,
                 )
             }
             PhoneButton(
                 label = stringResource(R.string.guide_details),
-                icon = Icons.Filled.Info,
+                icon = StudioIcons.Info,
                 iconOnly = true,
                 variant = PhoneButtonVariant.GHOST,
                 size = PhoneButtonSize.M,

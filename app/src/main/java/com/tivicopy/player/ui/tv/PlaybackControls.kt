@@ -13,15 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -64,6 +55,7 @@ import com.tivicopy.player.ui.common.nowPlayingLabels
 import com.tivicopy.player.ui.common.qualitySummary
 import com.tivicopy.player.ui.common.rememberAspectCycler
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The controls the ten-foot shell never had.
@@ -172,13 +164,13 @@ fun TransportBar(
         ) {
             if (state.nowPlaying.isLive()) {
                 TransportButton(
-                    icon = Icons.Filled.SkipPrevious,
+                    icon = StudioIcons.ChevronUp,
                     description = stringResource(R.string.channel_previous),
                     onClick = { vm.zap(-1) },
                 )
             }
             TransportButton(
-                icon = if (playback.playWhenReady) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                icon = if (playback.playWhenReady) StudioIcons.Pause else StudioIcons.Play,
                 description = stringResource(
                     if (playback.playWhenReady) R.string.action_pause else R.string.action_play,
                 ),
@@ -188,14 +180,14 @@ fun TransportBar(
             )
             if (state.nowPlaying.isLive()) {
                 TransportButton(
-                    icon = Icons.Filled.SkipNext,
+                    icon = StudioIcons.ChevronDown,
                     description = stringResource(R.string.channel_next),
                     onClick = { vm.zap(1) },
                 )
             }
             if (liveChannel != null) {
                 TransportButton(
-                    icon = if (liveChannel.favourite) Icons.Filled.Star else Icons.Filled.StarBorder,
+                    icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                     description = stringResource(
                         if (liveChannel.favourite) R.string.action_unfavourite
                         else R.string.action_favourite,
@@ -203,13 +195,13 @@ fun TransportBar(
                     onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
                 )
                 TransportButton(
-                    icon = Icons.Filled.DateRange,
+                    icon = StudioIcons.Guide,
                     description = stringResource(R.string.nav_guide),
                     onClick = onOpenGuide,
                 )
             }
             TransportButton(
-                icon = Icons.Filled.AspectRatio,
+                icon = StudioIcons.Aspect,
                 description = stringResource(R.string.aspect_ratio),
                 onClick = cycleAspect,
             )

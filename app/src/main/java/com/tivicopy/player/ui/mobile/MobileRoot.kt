@@ -7,12 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.FiberManualRecord
-import androidx.compose.material.icons.filled.LiveTv
-import androidx.compose.material.icons.filled.Radio
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -52,6 +46,7 @@ import com.tivicopy.player.ui.screens.VodScreenState
 import com.tivicopy.player.ui.settings.SettingsScreen
 import com.tivicopy.player.ui.settings.SettingsSection
 import kotlinx.coroutines.delay
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The phone's destinations. Five have a tab (ADR-032); [VOD] has none and is reached only from
@@ -274,11 +269,11 @@ fun MobileRoot(
                     // place on-demand held, since this installation carries no on-demand (ADR-016).
                     PhoneNavBar(
                         tabs = listOf(
-                            PhoneTab(MobileTab.LIVE, stringResource(R.string.nav_live), Icons.Filled.LiveTv),
-                            PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), Icons.Filled.DateRange),
-                            PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), Icons.Filled.Radio),
-                            PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), Icons.Filled.FiberManualRecord),
-                            PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), Icons.Filled.Settings),
+                            PhoneTab(MobileTab.LIVE, stringResource(R.string.nav_live), StudioIcons.Tv),
+                            PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
+                            PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio),
+                            PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
+                            PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),
                         selected = tab.takeIf { !showAddSource && it != MobileTab.VOD },
                         onSelect = selectTab,

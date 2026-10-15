@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -23,6 +21,7 @@ import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.StudioToggle
 import com.tivicopy.player.ui.theme.StudioTheme
+import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * A thin wrapper over the shared [SectionHeader] with Settings' own, more prominent look (it
@@ -130,7 +129,7 @@ fun <T> SettingsChoice(
                 )
                 if (value == selected) {
                     Icon(
-                        imageVector = Icons.Filled.Check,
+                        imageVector = StudioIcons.Check,
                         contentDescription = null,
                         tint = StudioTheme.colors.ink,
                         modifier = Modifier.size(16.dp),
