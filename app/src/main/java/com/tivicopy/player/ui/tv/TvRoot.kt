@@ -298,11 +298,10 @@ fun TvRoot(
         }
 
         // Zapping on a remote gives no other feedback: without this a channel that is still
-        // tuning is a black screen, identical to one that failed. The settled-failure text is
-        // left to PlaybackErrorBanner below, which is where a 10-foot layout wants it.
+        // tuning is a black screen, identical to one that failed. A settled failure is Studio's
+        // error panel in the middle of the screen (`TvPlayError`), drawn by the same overlay.
         PlaybackStateOverlay(
             status = status,
-            showErrorText = false,
             opacity = prefs.overlayOpacity,
             modifier = Modifier.fillMaxSize(),
         )
@@ -346,13 +345,6 @@ fun TvRoot(
                     .padding(TV_CONTENT_INSET)
                     .background(MaterialTheme.colorScheme.surface.copy(alpha = prefs.overlayOpacity))
                     .padding(horizontal = 24.dp, vertical = 12.dp),
-            )
-        }
-
-        status.error?.let { error ->
-            PlaybackErrorBanner(
-                error = error,
-                modifier = Modifier.align(Alignment.TopStart).padding(TV_CONTENT_INSET),
             )
         }
 
@@ -860,22 +852,6 @@ private const val INFO_TITLE_SCALE = 124f / 108f
 /** The channel name is 32px against the action step's 30; the time line 26px against the body's 24. */
 private const val INFO_CHANNEL_SCALE = 32f / 30f
 private const val INFO_META_SCALE = 26f / 24f
-
-@Composable
-private fun PlaybackErrorBanner(error: com.tivicopy.player.core.AppError, modifier: Modifier = Modifier) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    Column(
-        modifier = modifier
-            .background(MaterialTheme.colorScheme.errorContainer)
-            .padding(16.dp),
-    ) {
-        Text(
-            text = error.describe(context),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onErrorContainer,
-        )
-    }
-}
 
 /** Whether [channel] is one of the bundled Israeli radio stations (ADR-015). */
 private fun isBundledRadio(state: com.tivicopy.player.ui.AppUiState, channel: com.tivicopy.player.data.model.Channel): Boolean {

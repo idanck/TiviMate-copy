@@ -206,6 +206,11 @@ fun FocusableRow(
      * when the list opens. Null (the default) changes nothing for every other row.
      */
     focusRequester: FocusRequester? = null,
+    /**
+     * The channel on screen (`ListRow`'s `onscreen` state): the dark tally fill, a tally ring and
+     * its glow, as the channel card draws it. Focus still wins.
+     */
+    onScreen: Boolean = false,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -228,7 +233,12 @@ fun FocusableRow(
             // The app's one focus treatment (`ui/common/Focus.kt`), tinting rather than raising
             // because a row sits on a settled surface. Every list in the app is built from this
             // row, so this one call is most of what focus feels like here.
-            .focusSurface(focused = focused, shape = rowShape, selected = selected)
+            .focusSurface(
+                focused = focused,
+                shape = rowShape,
+                selected = selected || onScreen,
+                fill = if (onScreen) FocusFill.RAISE else FocusFill.TINT,
+            )
             .onFocusChanged {
                 // `hasFocus`, not `isFocused`: rows now carry their own controls — the favourite
                 // toggle — and a D-pad step onto one of those must not look like leaving the row.
