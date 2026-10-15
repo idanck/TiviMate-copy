@@ -96,6 +96,11 @@ The licences ship at `assets/licenses/ibm-plex-sans-hebrew-ofl.txt` and
   focused button and chip, a shadow under every lift, and Studio's durations and curve. The guide's
   cells take the airing/future/past tones. Glow (`--st-tally-glow`) is not drawn: Compose has no
   coloured blur below API 28, and the fill and tally ring already carry the state.
+- Stage 4 redraws the television's screens. Its first part is the home hero (live badge, the
+  programme title in Karantina, time with progress and minutes left, watch / guide / favourite
+  buttons, the next programme in "next" blue) and the zapping card as Studio's lower third (a
+  number tile under the tally, the title, and a "next" panel), with the shared live badge,
+  progress bar and button they are built from.
 - Stage 3 replaces the home screen's floating capsule with the side menu (`ui/tv/SideMenu.kt`):
   a full-height 56dp strip of icons that opens to 240dp over the screen when focus enters it,
   dimming what is behind, with the destinations in Studio's order (home, channels, guide, radio,
