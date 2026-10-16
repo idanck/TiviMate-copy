@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — שומר מסך, שעון אולפן</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="background: var(--st-saver-ground)">
+
+<div class="st-saver-x" style="position: absolute; top: 54px; right: 96px; width: 720px; animation-play-state: {{play}}">
+<div class="st-saver-y" style="display: flex; flex-direction: column; align-items: center; gap: 30px; opacity: 0.78; animation-play-state: {{play}}">
+
+<div role="img" aria-label="שעון אולפן, {{time}}" style="position: relative; width: 440px; height: 440px">
+<sc-for list="{{marks}}" as="k" hint-placeholder-count="12">
+<span aria-hidden="true" style="position: absolute; left: {{k.x}}px; top: {{k.y}}px; width: 12px; height: 12px; border-radius: 50%; background: var(--st-ink-3)"></span>
+</sc-for>
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="60">
+<span aria-hidden="true" style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: 8px; height: 8px; border-radius: 50%; background: {{d.c}}"></span>
+</sc-for>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+<span class="st-num" style="font-size: 112px; font-weight: 600; line-height: 1; letter-spacing: -2px; color: var(--st-ink)">{{time}}</span>
+<span style="font-size: 26px; color: var(--st-ink-2)">חמישי 15.10</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+<div style="display: flex; align-items: center; gap: 14px">
+<sc-if value="{{paused}}" hint-placeholder-val="{{true}}"><span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-size: 20px; font-weight: 600; color: var(--st-ink-2)"><dc-import name="Icon" glyph="pause" size="20" hint-size="20px,20px"></dc-import>בהשהיה</span></sc-if>
+<sc-if value="{{live}}" hint-placeholder-val="{{false}}"><dc-import name="LiveBadge" size="s" hint-size="140px,32px"></dc-import></sc-if>
+<span style="font-size: 26px; font-weight: 600">קשת 12</span>
+</div>
+<span style="font-family: var(--st-font-display); font-weight: 700; font-size: 72px; line-height: 0.95">מהדורת החדשות המרכזית</span>
+<span class="st-num" style="font-size: 24px; font-weight: 600; color: var(--st-next)">הבא · 21:30 · מגזין ערב</span>
+</div>
+
+</div>
+</div>
+
+<sc-if value="{{crawl}}" hint-placeholder-val="{{true}}">
+<section aria-label="עכשיו בערוצים" style="position: absolute; left: 0; right: 0; top: 968px; height: 56px; overflow: hidden; opacity: 0.6">
+<div dir="ltr" class="st-crawl" style="display: flex; width: max-content; animation-play-state: {{play}}">
+<sc-for list="{{rounds}}" as="r" hint-placeholder-count="2">
+<div style="display: flex; align-items: center">
+<sc-for list="{{now}}" as="c" hint-placeholder-count="6">
+<span dir="rtl" style="display: inline-flex; align-items: center; gap: 12px; padding: 0 36px; height: 56px; white-space: nowrap; font-size: 24px; color: var(--st-ink-2)"><b style="font-weight: 600; color: var(--st-ink)">{{c.ch}}</b>{{c.title}}<span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--st-ink-3); margin-right: 24px"></span></span>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scene":{"editor":"enum","options":["paused","menu"],"default":"paused"},"crawl":{"editor":"boolean","default":true},"demo":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.iv = setInterval(() => this.setState({ n: ((this.state && this.state.n) || 0) + 1 }), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.iv);
+  }
+  renderVals() {
+    const off = (v) => v === false || v === 'false';
+    const demo = !off(this.props.demo);
+    const n = demo ? ((this.state && this.state.n) || 0) : 0;
+    const t = 20 * 3600 + 56 * 60 + 23 + n;
+    const h = Math.floor(t / 3600) % 24, m = Math.floor(t / 60) % 60, s = t % 60;
+    const pad = (x) => (x < 10 ? '0' : '') + x;
+    const at = (i, count, r, size) => {
+      const a = (i / count) * 2 * Math.PI - Math.PI / 2;
+      return { x: Math.round(220 + r * Math.cos(a) - size / 2), y: Math.round(220 + r * Math.sin(a) - size / 2) };
+    };
+    const dots = [];
+    for (let i = 0; i < 60; i++) {
+      const p = at(i, 60, 184, 8);
+      p.c = i < s ? 'rgba(174, 184, 200, 0.7)' : (i === s ? 'var(--st-ink)' : 'rgba(255, 255, 255, 0.08)');
+      dots.push(p);
+    }
+    const marks = [];
+    for (let i = 0; i < 12; i++) marks.push(at(i, 12, 208, 12));
+    const now = [
+      ['כאן 11', 'סרט תעודה'], ['ערוץ 13', 'תוכנית אירוח'], ['ערוץ 14', 'פאנל ערב'],
+      ['כאן חינוכית', 'סדרת נוער'], ['מכאן 33', 'מהדורה בערבית'], ['ערוץ הכנסת', 'דיון במליאה']
+    ].map((c) => ({ ch: c[0], title: c[1] }));
+    return {
+      time: pad(h) + ':' + pad(m),
+      dots: dots, marks: marks,
+      paused: this.props.scene !== 'menu', live: this.props.scene === 'menu',
+      crawl: !off(this.props.crawl),
+      now: now, rounds: [0, 1],
+      play: demo ? 'running' : 'paused'
+    };
+  }
+}
+</script>
+</body>
+</html>

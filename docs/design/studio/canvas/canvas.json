@@ -23,6 +23,10 @@
    "name": "טלוויזיה · ניווט"
   },
   {
+   "id": "tv-screensaver",
+   "name": "טלוויזיה · שומר מסך"
+  },
+  {
    "id": "components",
    "name": "טלוויזיה · רכיבים"
   },
@@ -1053,6 +1057,42 @@
    "title": "רדיו — רשימת תחנות (מתפריט הצד)",
    "page": "screens",
    "is_interactive": true
+  },
+  "TvScreensaver.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "שומר מסך — שעון אולפן (קונספט)",
+   "page": "tv-screensaver",
+   "is_interactive": true
+  },
+  "TvScreensaverFlashes.dc.html": {
+   "x": 2000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "שומר מסך — מבזקים (קונספט)",
+   "page": "tv-screensaver",
+   "is_interactive": true
+  },
+  "TvSettingsFlashes.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — שומר מסך: מבזקים וצבעים (קונספט)",
+   "page": "tv-screensaver",
+   "is_interactive": true
+  },
+  "TvScreensaverCombo.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "שומר מסך — שעון ומבזקים, בצבע (קונספט)",
+   "page": "tv-screensaver",
+   "is_interactive": true
   }
  },
  "order": [
@@ -1177,7 +1217,11 @@
   "PNotice.dc.html",
   "PEmptyState.dc.html",
   "NavMap.dc.html",
-  "TvShell.dc.html"
+  "TvShell.dc.html",
+  "TvScreensaver.dc.html",
+  "TvScreensaverFlashes.dc.html",
+  "TvScreensaverCombo.dc.html",
+  "TvSettingsFlashes.dc.html"
  ],
  "notes": {},
  "designSystems": []

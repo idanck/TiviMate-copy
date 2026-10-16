@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — שומר מסך, שעון ומבזקים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="background: var(--st-saver-ground)">
+<div style="position: absolute; inset: 0; opacity: 0.82">
+
+<div style="position: absolute; top: 50%; right: 96px; width: 520px; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 30px">
+<div role="img" aria-label="שעון אולפן, {{time}}" style="position: relative; width: 480px; height: 480px">
+<sc-if value="{{colors}}" hint-placeholder-val="{{true}}"><div aria-hidden="true" class="st-amb-hue" style="position: absolute; inset: -60px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--st-saver-c1) 14%, transparent), transparent 68%); animation-play-state: {{play}}"></div></sc-if>
+<div class="{{ringClass}}" style="position: absolute; inset: 0; animation-play-state: {{play}}">
+<sc-for list="{{marks}}" as="k" hint-placeholder-count="12">
+<span aria-hidden="true" style="position: absolute; left: {{k.x}}px; top: {{k.y}}px; width: 12px; height: 12px; border-radius: 50%; background: {{k.c}}"></span>
+</sc-for>
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="60">
+<span aria-hidden="true" style="position: absolute; left: {{d.x}}px; top: {{d.y}}px; width: 9px; height: 9px; border-radius: 50%; background: {{d.c}}"></span>
+</sc-for>
+</div>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+<span class="st-num" style="font-size: 108px; font-weight: 600; line-height: 1; letter-spacing: -2px; color: var(--st-ink)">{{time}}</span>
+<span style="font-size: 26px; color: var(--st-ink-2)">חמישי 15.10</span>
+</div>
+</div>
+
+<sc-if value="{{radio}}" hint-placeholder-val="{{true}}">
+<div aria-label="מתנגן עכשיו: גלגלצ" style="display: flex; align-items: center; gap: 20px">
+<dc-import name="StationDisc" label="גלגלצ" size="84" caption="false" state="onscreen" hint-size="84px,84px"></dc-import>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 22px; font-weight: 600; color: {{accent}}">מתנגן עכשיו</span>
+<span style="font-size: 38px; font-weight: 600; line-height: 1.1">גלגלצ</span>
+</div>
+<dc-import name="Equalizer" count="9" width="110" height="44" playing="{{eqPlaying}}" hint-size="110px,44px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{video}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center">
+<div style="display: flex; align-items: center; gap: 14px">
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-size: 20px; font-weight: 600; color: var(--st-ink-2)"><dc-import name="Icon" glyph="pause" size="20" hint-size="20px,20px"></dc-import>בהשהיה</span>
+<span style="font-size: 26px; font-weight: 600">קשת 12</span>
+</div>
+<span style="font-family: var(--st-font-display); font-weight: 700; font-size: 64px; line-height: 0.95">מהדורת החדשות המרכזית</span>
+</div>
+</sc-if>
+</div>
+
+<section aria-label="מבזקים" style="position: absolute; top: 0; bottom: 0; left: 96px; width: 760px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%); mask-image: linear-gradient(to bottom, transparent 0, #000 14%, #000 86%, transparent 100%)">
+<div class="st-feed-down" style="animation-duration: {{loop}}s; animation-play-state: {{play}}">
+<sc-for list="{{rounds}}" as="r" hint-placeholder-count="2">
+<div aria-hidden="{{r.hidden}}">
+<div style="padding: 30px 0 4px; font-size: 22px; font-weight: 600; color: var(--st-ink-3)">מבזקים · מ-3 מקורות · עד 20:56</div>
+<sc-for list="{{flashes}}" as="f" hint-placeholder-count="8">
+<article style="display: flex; gap: 22px; padding: 28px 0; border-bottom: 1px solid var(--st-hairline-soft)">
+<span aria-hidden="true" style="flex: 0 0 6px; border-radius: 3px; background: {{f.bar}}"></span>
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; align-items: center; gap: 16px">
+<span class="st-num" style="font-size: 36px; font-weight: 600; line-height: 1; color: var(--st-ink)">{{f.at}}</span>
+<span style="display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: var(--st-r-badge); background: {{f.chipBg}}; box-shadow: inset 0 0 0 1px {{f.chipLine}}; font-size: 19px; font-weight: 600; color: {{f.chipInk}}">{{f.src}}</span>
+</div>
+<span style="font-size: 40px; font-weight: 600; line-height: 1.2; color: var(--st-ink)">[כותרת המבזק, עד שתי שורות]</span>
+</div>
+</article>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"enum","options":["radio","video","none"],"default":"radio"},"colors":{"editor":"boolean","default":true},"loop":{"editor":"int","default":80,"min":30,"max":200},"demo":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this.tick = setInterval(() => this.setState({ n: ((this.state && this.state.n) || 0) + 1 }), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.tick);
+  }
+  renderVals() {
+    const off = (v) => v === false || v === 'false';
+    const demo = !off(this.props.demo);
+    const colors = !off(this.props.colors);
+    const n = demo ? ((this.state && this.state.n) || 0) : 0;
+
+    // the clock stands still; only its seconds ring and digits change
+    const t = 20 * 3600 + 56 * 60 + 23 + n;
+    const h = Math.floor(t / 3600) % 24, m = Math.floor(t / 60) % 60, s = t % 60;
+    const pad = (x) => (x < 10 ? '0' : '') + x;
+    const at = (i, count, r, size) => {
+      const a = (i / count) * 2 * Math.PI - Math.PI / 2;
+      return { x: Math.round(240 + r * Math.cos(a) - size / 2), y: Math.round(240 + r * Math.sin(a) - size / 2) };
+    };
+    const dots = [];
+    for (let i = 0; i < 60; i++) {
+      const p = at(i, 60, 200, 9);
+      if (i === s) p.c = 'var(--st-ink)';
+      else if (i > s) p.c = 'rgba(255, 255, 255, 0.08)';
+      else p.c = colors ? 'color-mix(in srgb, var(--st-saver-c2) ' + Math.round((i / 59) * 100) + '%, var(--st-saver-c1))' : 'rgba(174, 184, 200, 0.7)';
+      dots.push(p);
+    }
+    const marks = [];
+    for (let i = 0; i < 12; i++) {
+      const p = at(i, 12, 226, 12);
+      p.c = colors && i % 3 === 0 ? 'var(--st-saver-c1)' : 'var(--st-ink-3)';
+      marks.push(p);
+    }
+
+    // the flashes: newest at the top, the whole list sliding down; one source, one colour
+    const SRC = { '[מקור 1]': 'var(--st-saver-c1)', '[מקור 2]': 'var(--st-saver-c2)', '[מקור 3]': 'var(--st-saver-c3)' };
+    const all = [['[מקור 1]', '20:51'], ['[מקור 2]', '20:44'], ['[מקור 1]', '20:30'], ['[מקור 3]', '20:12'],
+                 ['[מקור 2]', '19:58'], ['[מקור 1]', '19:40'], ['[מקור 3]', '19:22'], ['[מקור 2]', '19:05']];
+    const flashes = all.map((f) => {
+      const c = SRC[f[0]];
+      return {
+        src: f[0], at: f[1],
+        bar: colors ? c : 'var(--st-ink-3)',
+        chipBg: colors ? 'color-mix(in srgb, ' + c + ' 16%, transparent)' : 'var(--st-surface)',
+        chipLine: colors ? 'color-mix(in srgb, ' + c + ' 40%, transparent)' : 'var(--st-hairline-soft)',
+        chipInk: colors ? c : 'var(--st-ink)'
+      };
+    });
+    const playing = this.props.playing || 'radio';
+    return {
+      time: pad(h) + ':' + pad(m),
+      dots: dots, marks: marks,
+      colors: colors,
+      ringClass: colors ? 'st-amb-hue' : '',
+      radio: playing === 'radio', video: playing === 'video',
+      accent: colors ? 'var(--st-saver-c1)' : 'var(--st-ink-2)',
+      eqPlaying: demo,
+      flashes: flashes,
+      rounds: [{ hidden: 'false' }, { hidden: 'true' }],
+      loop: Math.max(30, Number(this.props.loop) || 80),
+      play: demo ? 'running' : 'paused'
+    };
+  }
+}
+</script>
+</body>
+</html>

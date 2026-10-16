@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — הגדרות, שומר מסך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+
+
+<nav aria-label="סעיפי הגדרות" style="position: absolute; top: 160px; right: var(--st-inset-start); width: 560px; height: 866px; box-sizing: border-box; padding: 20px 16px; border-radius: var(--st-r-panel); background: var(--st-surface); display: flex; flex-direction: column; gap: 4px">
+<h1 class="st-t-title-s" style="padding: 0 12px 16px">הגדרות</h1>
+<sc-for list="{{sections}}" as="s" hint-placeholder-count="9">
+<dc-import name="ListRow" href="{{s.href}}" label="{{s.label}}" glyph="{{s.glyph}}" trail="chevron" state="{{s.state}}" width="528" hint-size="528px,72px"></dc-import>
+</sc-for>
+</nav>
+
+<section aria-label="שומר מסך" style="position: absolute; top: 160px; right: 776px; width: 1048px; display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; align-items: baseline; gap: 16px; padding: 0 24px 18px">
+<h2 class="st-t-h1">שומר מסך</h2>
+<span class="st-t-caption">הגדרות › מראה › שומר מסך</span>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<dc-import name="ListRow" label="{{r.label}}" sub="{{r.sub}}" trail="{{r.trail}}" value="{{r.value}}" state="{{r.state}}" width="1048" hint-size="1048px,72px"></dc-import>
+</sc-for>
+<span class="st-t-caption" style="padding: 18px 24px 6px">מקורות</span>
+<sc-for list="{{sources}}" as="r" hint-placeholder-count="4">
+<dc-import name="ListRow" label="{{r.label}}" glyph="{{r.glyph}}" sub="{{r.sub}}" trail="{{r.trail}}" value="{{r.value}}" state="{{r.state}}" width="1048" hint-size="1048px,92px"></dc-import>
+</sc-for>
+<span class="st-t-caption" style="padding: 14px 24px 0">מקור הוא כתובת RSS או JSON. בלי מקורות פעילים מוצג רק השעון. המבזקים מכל המקורות מוצגים יחד לפי השעה, ובמצב צבעוני לכל מקור צבע משלו.</span>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="settings" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const HREF = { 'מראה': 'Settings.dc.html', 'רשימות ולוח שידורים': 'TvSettingsSources.dc.html', 'הקלטה': 'TvSettingsRecording.dc.html', 'בקרת הורים': 'TvSettingsParental.dc.html', 'גיבוי ושחזור': 'TvSettingsBackup.dc.html', 'אבחון': 'TvSettingsDiagnostics.dc.html', 'אודות': 'TvSettingsUpdates.dc.html' };
+    const sections = [
+      ['רשימות ולוח שידורים', 'tv'], ['ניגון', 'play'], ['מראה', 'appearance'], ['רשת', 'network'],
+      ['הקלטה', 'record'], ['בקרת הורים', 'lock'], ['גיבוי ושחזור', 'backup'], ['אבחון', 'pulse'], ['אודות', 'info']
+    ].map((s) => ({ label: s[0], glyph: s[1], href: HREF[s[0]] || '', state: s[0] === 'מראה' ? 'selected' : 'rest' }));
+    const row = (label, trail, value, sub, state, glyph) => ({ label: label, trail: trail, value: value || '', sub: sub || '', state: state || 'rest', glyph: glyph || '' });
+    return {
+      sections: sections,
+      rows: [
+        row('מבזקים לצד השעון', 'on', '', 'השעון מימין, המבזקים משמאל'),
+        row('צבעים בשעון ובמבזקים', 'on', '', 'כבוי: הכול בצבעי הטקסט', 'focus'),
+        row('מהירות הגלילה', 'value', 'איטית')
+      ],
+      sources: [
+        row('[מקור 1]', 'on', '', 'https://…/rss'),
+        row('[מקור 2]', 'on', '', 'https://…/feed.json'),
+        row('[מקור 3]', 'off', '', 'https://…/rss'),
+        row('הוספת מקור', 'chevron', '', 'כתובת RSS או JSON', 'rest', 'plus')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
