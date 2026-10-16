@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -123,10 +122,11 @@ internal fun HomeAppStrip(
      * reaches the screen edge under the strip.
      */
     startInset: Dp,
+    /** Where each app notes itself as it takes the remote, for the side menu to return to. */
+    focusReturn: HomeFocusReturn,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val rowFocus = remember { FocusRequester() }
     Column(modifier = modifier.fillMaxWidth().background(background)) {
         // `TvHomeApps`: the h1 step in ink, and a caption saying where the list comes from.
         Row(
@@ -143,14 +143,14 @@ internal fun HomeAppStrip(
             )
         }
         LazyRow(
-            // Notes the app the remote leaves from, for the home list to return to (TvHomeScreen).
-            modifier = Modifier.fillMaxWidth().savesFocusedChild(rowFocus).focusGroup(),
+            modifier = Modifier.fillMaxWidth().focusGroup(),
             contentPadding = PaddingValues(start = startInset, end = 4.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             items(apps, key = { it.app.id }) { tile ->
                 AppTile(
                     tile = tile,
+                    focusReturn = focusReturn,
                     onClick = {
                         val intent = launchIntentFor(context.packageManager, tile.app.packageName)
                         if (intent != null) {
@@ -168,7 +168,7 @@ internal fun HomeAppStrip(
 }
 
 @Composable
-private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
+private fun AppTile(tile: HomeAppTile, focusReturn: HomeFocusReturn, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     // `TvHomeApps`: each app is a card — the card colour inside a faint edge, raised to
     // `card-focus` in the cue ring when the remote is on it — with the app's own icon in the
@@ -186,6 +186,7 @@ private fun AppTile(tile: HomeAppTile, onClick: () -> Unit) {
                 .focusLift(focused, shape = shape)
                 .focusSurface(focused = focused, shape = shape, fill = FocusFill.RAISE)
                 .onFocusChanged { focused = it.isFocused }
+                .notesFocus(focusReturn)
                 // `clickable` is the focus target on its own.
                 .clickable(onClick = onClick)
                 .semantics { contentDescription = tile.app.label },

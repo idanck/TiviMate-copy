@@ -36,11 +36,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -98,10 +101,11 @@ internal data class MenuDestination(
  *
  * @param current the overlay on screen; the entry that opens it is drawn as the current one, and a
  *   screen with no entry of its own (on demand, adding a source) lights none
- * @param contentFocus where a press towards the content sends the remote, for a screen the D-pad
- *   cannot find from here on its own; null leaves it to the D-pad. Home needs it: its rails run
- *   full-bleed under the strip, so to the D-pad they are not beside the menu at all, and the press
- *   went nowhere (device report, 2026-10-16). It must be attached whenever it is passed.
+ * @param onTowardContent hands the remote back to a screen the D-pad cannot find from here on its
+ *   own, on a press towards the content and on the lit entry; false when it could not, which
+ *   leaves the press to the D-pad. Null leaves it to the D-pad always. Home needs it: its rails
+ *   run full-bleed under the strip, so to the D-pad they are not beside the menu at all, and the
+ *   press went nowhere (device report, 2026-10-16); see `HomeFocusReturn`.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -109,7 +113,7 @@ internal fun SideMenu(
     current: TvOverlay,
     onOpen: (TvOverlay) -> Unit,
     modifier: Modifier = Modifier,
-    contentFocus: FocusRequester? = null,
+    onTowardContent: (() -> Boolean)? = null,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
@@ -130,10 +134,13 @@ internal fun SideMenu(
 
     // The content lies towards the end edge: the left in Hebrew, the right in English.
     val focusManager = LocalFocusManager.current
-    val towardContent = if (LocalLayoutDirection.current == LayoutDirection.Rtl) {
-        FocusDirection.Left
-    } else {
-        FocusDirection.Right
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val towardContent = if (rtl) FocusDirection.Left else FocusDirection.Right
+    // The remote's own key for it: the D-pad's arrows are physical, whatever the layout direction.
+    val towardContentKey = if (rtl) Key.DirectionLeft else Key.DirectionRight
+    // Into the content: handed back by the screen when it takes it, otherwise left to the D-pad.
+    val enterContent: () -> Unit = {
+        if (onTowardContent?.invoke() != true) focusManager.moveFocus(towardContent)
     }
     // Once the screen an entry opened is composed, the remote moves into it — unless that screen
     // has already claimed it for its own first focus (home's banner, the playing channel's row),
@@ -143,13 +150,13 @@ internal fun SideMenu(
         if (!open) return@LaunchedEffect
         withFrameNanos { }
         withFrameNanos { }
-        if (open) focusManager.moveFocus(towardContent)
+        if (open) enterContent()
     }
     // The lit entry is reported too, though it changes nothing on screen: it is still a choice made
     // from the menu, and a screen opened from the video stops being one once it is (ADR-036).
     val choose: (TvOverlay) -> Unit = { overlay ->
         onOpen(overlay)
-        if (overlay == current) focusManager.moveFocus(towardContent)
+        if (overlay == current) enterContent()
     }
     val width by animateDpAsState(
         targetValue = if (open) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
@@ -180,6 +187,13 @@ internal fun SideMenu(
                 // Before `focusGroup`, so it observes the group's own focus: `hasFocus` is true
                 // while any entry inside is focused, which is exactly when the menu is open.
                 .onFocusChanged { open = it.hasFocus }
+                // Ahead of the D-pad's own search, which finds nothing beside the menu on a screen
+                // drawn under the strip. Handed back, the press is spent; otherwise the D-pad
+                // carries on as on every other screen.
+                .onPreviewKeyEvent { event ->
+                    onTowardContent != null && event.type == KeyEventType.KeyDown &&
+                        event.key == towardContentKey && onTowardContent()
+                }
                 .focusGroup()
                 .width(width)
                 .background(animatedColour(if (open) studio.drawer else studio.rail))
@@ -188,7 +202,7 @@ internal fun SideMenu(
         ) {
             MenuHeader(open = open)
             destinations.forEach {
-                MenuEntry(it, current = it.overlay == current, open = open, contentFocus = contentFocus, onChoose = choose)
+                MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose)
             }
             Box(
                 modifier = Modifier
@@ -198,7 +212,7 @@ internal fun SideMenu(
                     .background(studio.hairline),
             )
             tools.forEach {
-                MenuEntry(it, current = it.overlay == current, open = open, contentFocus = contentFocus, onChoose = choose)
+                MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose)
             }
         }
         // The inner edge: a hairline along the full height of the menu.
@@ -266,7 +280,6 @@ private fun MenuEntry(
     destination: MenuDestination,
     current: Boolean,
     open: Boolean,
-    contentFocus: FocusRequester?,
     onChoose: (TvOverlay) -> Unit,
 ) {
     val metrics = LocalTvMetrics.current
@@ -295,9 +308,6 @@ private fun MenuEntry(
             .clip(shape)
             .background(fill)
             .onFocusChanged { focused = it.isFocused }
-            // Towards the content is the end edge in either direction: the left in Hebrew, the
-            // right in English. Before `clickable`, whose focus target it describes.
-            .focusProperties { if (contentFocus != null) end = contentFocus }
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
             // the remote a second press to pass every entry.
             .clickable { onChoose(destination.overlay) }
