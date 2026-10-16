@@ -47,6 +47,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-10 | playback | 404 stream, failover pair, slow start | 404 doesn't crash; failover ends up playing |
 | QA-11 | navigation | 20 D-pad keys around the home screen | a focused node exists after every key |
 | QA-12 | guide | Guide shows mock programmes; search finds "Sport 05" | both found |
+| QA-24 | navigation | TV only (ADR-036). From bare video: the channel-list arrow, Back, Back, Back; the arrow, OK on the playing channel, Back, Back; the arrow, Back, yellow, Back, Back, Back; OK, the transport bar's Guide, Back; the arrow, the side menu's Guide, Back; the arrow, the side menu's lit Live, Back. The surface is read from the side menu's selected entry, and no menu means video | list → video → list → home; list → video → list → home; list → video → guide → video → list → home; guide → video; guide → home; list → home |
 | QA-13 | lifecycle | Home, return, Back ×4, process death, rotation, PiP | no sound behind the launcher without PiP; app survives |
 | QA-14 | resilience | 20 s outage during playback: the mock provider drops every connection (and the phone also turns Wi-Fi/data off; the TV emulator is on Ethernet, which `svc wifi` cannot cut) | picture back within 45 s with no user action |
 | QA-15 | security | 7 malformed/hostile deep links | no crash |

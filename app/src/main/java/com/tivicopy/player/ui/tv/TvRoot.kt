@@ -171,7 +171,13 @@ fun TvRoot(
     vm: AppViewModel,
     overlay: TvOverlay,
     settingsSection: SettingsSection,
+    /** Moves to another overlay. Whatever opens this way was not opened from the video (ADR-036). */
     onOverlayChange: (TvOverlay) -> Unit,
+    /**
+     * Opens a browse surface from the fullscreen video — here, the transport bar's guide button —
+     * so that Back from it returns to the video rather than rising to home (ADR-036).
+     */
+    onOpenFromVideo: (TvOverlay) -> Unit,
     onSettingsSection: (SettingsSection) -> Unit,
     numericEntry: String,
     modifier: Modifier = Modifier,
@@ -393,7 +399,7 @@ fun TvRoot(
         if (overlay == TvOverlay.TRANSPORT) {
             TransportBar(
                 vm = vm,
-                onOpenGuide = { onOverlayChange(TvOverlay.GUIDE) },
+                onOpenGuide = { onOpenFromVideo(TvOverlay.GUIDE) },
                 onOpenMenu = { onOverlayChange(TvOverlay.PLAYBACK_MENU) },
                 // The sheet is a dialog over the bare picture: the bar goes, and closing the sheet
                 // leaves the viewer watching rather than back on a bar they did not ask for.
@@ -437,7 +443,9 @@ fun TvRoot(
                 // One menu for every browse screen, the one home has always had (ADR-035). It is
                 // drawn by the scaffold rather than by each screen so it is the same instance from
                 // one screen to the next: it does not fade out and back in with the screen under
-                // it, and only which entry is lit changes.
+                // it, and only which entry is lit changes. Every choice in it, the lit entry's
+                // included, reaches `onOverlayChange`, so a screen chosen from the menu rises to
+                // home on Back even if it had been opened from the video (ADR-036).
                 sideMenu = { SideMenu(current = overlay, onOpen = onOverlayChange) },
             ) {
                 when (overlay) {
@@ -489,7 +497,13 @@ fun TvRoot(
                     TvOverlay.GUIDE -> PictureInGuide(
                         vm = vm,
                         onDockBounds = { dockBounds = it },
-                        onPlay = { channel -> vm.play(channel) },
+                        // The guide stays up, with the new channel in its picture. Re-asserting
+                        // it is what counts the OK as a move made here: Back then rises to home
+                        // like any browse surface, even if the guide came from the video (ADR-036).
+                        onPlay = { channel ->
+                            vm.play(channel)
+                            onOverlayChange(TvOverlay.GUIDE)
+                        },
                         onOpenProgramme = { channel, programme -> details = channel to programme },
                         opacity = prefs.overlayOpacity,
                         modifier = Modifier.fillMaxSize(),

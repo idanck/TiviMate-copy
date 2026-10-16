@@ -80,7 +80,26 @@ class MainActivity : ComponentActivity() {
 
     private val vm: AppViewModel by viewModels()
 
-    private var overlay by mutableStateOf(TvOverlay.NONE)
+    private var shownOverlay by mutableStateOf(TvOverlay.NONE)
+
+    /**
+     * The TV shell's overlay. Every write is a move made from wherever the viewer was, so it also
+     * forgets [openedFromVideo]; [openFromVideo] is the one route that sets it again.
+     */
+    private var overlay: TvOverlay
+        get() = shownOverlay
+        set(value) {
+            shownOverlay = value
+            openedFromVideo = null
+        }
+
+    /**
+     * The browse surface on screen, if it was opened from the fullscreen video: the channel list
+     * on the arrow that points at it, or the guide on GUIDE, yellow or the transport bar's button.
+     * Back from it returns to the video instead of rising to home (ADR-036). Any other move —
+     * a side-menu choice, OK on a channel, another surface — clears it, through [overlay]'s setter.
+     */
+    private var openedFromVideo by mutableStateOf<TvOverlay?>(null)
 
     /**
      * The channel/radio list Back returns to from bare fullscreen video (FR-SET-06). Fullscreen
@@ -424,6 +443,7 @@ class MainActivity : ComponentActivity() {
                                         overlay = if (state.playlists.isEmpty() && !state.loading) TvOverlay.ADD_SOURCE else overlay,
                                         settingsSection = settingsSection,
                                         onOverlayChange = { overlay = it },
+                                        onOpenFromVideo = ::openFromVideo,
                                         onSettingsSection = { settingsSection = it },
                                         numericEntry = numericEntry,
                                         radioTasks = tasks,
@@ -635,11 +655,17 @@ class MainActivity : ComponentActivity() {
             // FR-UI-21: in a right-to-left layout the two horizontal bindings swap, so the key
             // pointing at the channel column still opens the channel column. Without this a
             // Hebrew interface has a mirrored screen and an unmirrored remote.
-            KeyEvent.KEYCODE_DPAD_LEFT ->
-                { overlay = if (isRtl) TvOverlay.MINI_GUIDE else TvOverlay.CHANNELS; true }
-            KeyEvent.KEYCODE_DPAD_RIGHT ->
-                { overlay = if (isRtl) TvOverlay.CHANNELS else TvOverlay.MINI_GUIDE; true }
-            KeyEvent.KEYCODE_GUIDE, KeyEvent.KEYCODE_PROG_YELLOW -> { overlay = TvOverlay.GUIDE; true }
+            // The channel list opened here, and the guide below, are opened *from* the video, so
+            // Back from either returns to it rather than rising to home (ADR-036).
+            KeyEvent.KEYCODE_DPAD_LEFT -> {
+                if (isRtl) overlay = TvOverlay.MINI_GUIDE else openFromVideo(TvOverlay.CHANNELS)
+                true
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (isRtl) openFromVideo(TvOverlay.CHANNELS) else overlay = TvOverlay.MINI_GUIDE
+                true
+            }
+            KeyEvent.KEYCODE_GUIDE, KeyEvent.KEYCODE_PROG_YELLOW -> { openFromVideo(TvOverlay.GUIDE); true }
             KeyEvent.KEYCODE_INFO -> { showInfoCard(); true }
             KeyEvent.KEYCODE_SEARCH -> { overlay = TvOverlay.SEARCH; true }
             KeyEvent.KEYCODE_MENU -> { overlay = TvOverlay.SETTINGS; true }
@@ -739,6 +765,13 @@ class MainActivity : ComponentActivity() {
             // (NONE is passthrough too, and is already handled by the rung above.)
             overlay.isPassthrough -> overlay = TvOverlay.NONE
 
+            // A browse surface opened *from* the video — the channel list on its arrow, the guide
+            // on GUIDE, yellow or the transport bar's button — was a look away from the picture,
+            // and Back puts the picture back (ADR-036). [lastBrowseOverlay] is left alone: the
+            // list is still the surface the next Back from the video returns to, and the guide
+            // never is one, so that Back goes wherever the viewer was before.
+            overlay == openedFromVideo -> overlay = TvOverlay.NONE
+
             // Every browse surface steps up to the home screen, which is now the root
             // (ADR-016). This replaced a rung that compared against [lastBrowseOverlay] and,
             // with Home as its default, would have dropped the channel list to bare video
@@ -755,6 +788,15 @@ class MainActivity : ComponentActivity() {
             else -> return false
         }
         return true
+    }
+
+    /**
+     * Opens [target] from the fullscreen video, so that Back from it returns to the video
+     * (ADR-036). The mark is set after the move because the move itself clears it.
+     */
+    private fun openFromVideo(target: TvOverlay) {
+        overlay = target
+        openedFromVideo = target
     }
 
     /** The bottom rung on both shells: confirm, then leave (FR-SET-06). */

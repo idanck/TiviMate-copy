@@ -151,6 +151,7 @@ class Node:
         self.cls = el.get("class") or ""
         self.focused = el.get("focused") == "true"
         self.selected = el.get("selected") == "true"
+        self.checked = el.get("checked") == "true"
         self.clickable = el.get("clickable") == "true"
         self.pkg = el.get("package") or ""
         m = re.findall(r"\d+", el.get("bounds") or "[0,0][0,0]")
@@ -498,7 +499,7 @@ class Runner:
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
+                   self.s24_back_to_video, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
                    self.s23_scheduled_recording, self.s21_suspended_refresh,
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
@@ -971,6 +972,112 @@ class Runner:
             status = "PASS" if guide_hits and s_hits else ("WARN" if guide_hits or s_hits else "FAIL")
             self.record(sid, title, status, f"guide cells seen: {guide_hits}; search hits: {s_hits}",
                         [g_shot, s_shot], area)
+
+    # The side menu's entries (English labels) and the one each TV surface lights; "video" is no menu.
+    TV_MENU = ("Home", "Live", "Guide", "Radio", "DVR", "Search", "Settings")
+
+    def tv_menu_entries(self, nodes):
+        """The side menu's entries: named like one, in the strip along the start edge (left, in
+        English). The edge matters: the transport bar's guide button and the live badge carry
+        the same words."""
+        w, _ = screen_size()
+        return [n for n in nodes if n.desc in self.TV_MENU and n.x1 < w * 0.2]
+
+    def tv_screen(self, tag=None):
+        """Which TV surface is up: the side-menu entry marked selected, or "video" with no menu.
+
+        Every browse surface draws the one side menu (ADR-035) and marks its own entry selected
+        (ADR-036); bare video and the layers over it draw no menu at all. "Home" and "DVR" are
+        only ever menu entries, so their absence is the menu's absence.
+        """
+        nodes = self.ui.dump(tag)
+        menu = self.tv_menu_entries(nodes)
+        if not any(n.desc == "Home" for n in menu) or not any(n.desc == "DVR" for n in menu):
+            return "video"
+        lit = [n.desc for n in menu if n.selected or n.checked]
+        return lit[0] if lit else "menu, nothing lit"
+
+    def s24_back_to_video(self):
+        @self.scenario("QA-24", "Back from a screen opened from the video returns to the video (ADR-036)",
+                       "navigation")
+        def _(sid, title, area):
+            if self.form != "tv":
+                self.record(sid, title, "SKIP", "television only: the phone's MobileRoot handles Back itself",
+                            [], area)
+                return
+            cid = self.channel_id("qa.ch01")
+            if not cid:
+                self.record(sid, title, "SKIP", "mock playlist missing", [], area)
+                return
+            # English is left to right, so the channel list is on Left (Right in Hebrew).
+            list_key = "KEYCODE_DPAD_LEFT"
+            steps, wrong, shots = [], [], []
+
+            def expect(label, want, wait=2.0):
+                time.sleep(wait)
+                got = self.tv_screen(f"{sid}_{len(steps):02d}")
+                steps.append(f"{label}->{got}")
+                if got != want:
+                    wrong.append(f"{label}: wanted {want}, got {got}")
+                    shots.append(self.ev.shot(f"{sid}_{len(steps):02d}_wrong"))
+
+            def video():
+                deep_link(f"shidur://channel/{cid}")
+                expect("deep link", "video", wait=6)
+
+            def press(k, label, want):
+                key(k)
+                expect(label, want)
+
+            def choose(entry, label, want):
+                """Taps a side-menu entry."""
+                hits = [n for n in self.tv_menu_entries(self.ui.dump()) if n.desc == entry]
+                if hits:
+                    tap(*hits[0].center)
+                expect(label, want)
+
+            # 1. The list from its arrow: Back to the video, then the list, then home.
+            video()
+            press(list_key, "arrow", "Live")
+            press("KEYCODE_BACK", "back", "video")
+            press("KEYCODE_BACK", "back", "Live")
+            press("KEYCODE_BACK", "back", "Home")
+            # 2. OK on a channel forgets the arrow: the list reached by Back rises to home.
+            video()
+            press(list_key, "arrow", "Live")
+            press("KEYCODE_DPAD_CENTER", "OK on the channel", "video")
+            press("KEYCODE_BACK", "back", "Live")
+            press("KEYCODE_BACK", "back", "Home")
+            # 3. The guide from yellow: Back to the video, then to the screen before the guide.
+            video()
+            press(list_key, "arrow", "Live")
+            press("KEYCODE_BACK", "back", "video")
+            press("KEYCODE_PROG_YELLOW", "yellow", "Guide")
+            press("KEYCODE_BACK", "back", "video")
+            press("KEYCODE_BACK", "back", "Live")
+            press("KEYCODE_BACK", "back", "Home")
+            # 4. The guide from the transport bar's button: Back to the video.
+            video()
+            key("KEYCODE_DPAD_CENTER")
+            time.sleep(2)
+            button = self.ui.find("Guide", exact=True)
+            if button:
+                tap(*button.center)
+            expect("transport bar's guide", "Guide")
+            press("KEYCODE_BACK", "back", "video")
+            # 5. A side-menu choice forgets the arrow, the lit entry's included.
+            video()
+            press(list_key, "arrow", "Live")
+            choose("Guide", "menu guide", "Guide")
+            press("KEYCODE_BACK", "back", "Home")
+            video()
+            press(list_key, "arrow", "Live")
+            choose("Live", "menu lit entry", "Live")
+            press("KEYCODE_BACK", "back", "Home")
+
+            shots.append(self.ev.shot(f"{sid}_end"))
+            self.record(sid, title, "PASS" if not wrong else "FAIL",
+                        ("; ".join(wrong) + " || " if wrong else "") + " · ".join(steps), shots, area)
 
     def s13_lifecycle(self):
         @self.scenario("QA-13", "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",
