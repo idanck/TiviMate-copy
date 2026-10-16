@@ -12,10 +12,10 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="st-screen" dir="rtl" style="--st-inset-start: calc(var(--st-w-rail) + 48px)">
-<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<div class="st-screen st-browse" dir="rtl">
+
 <div style="position: absolute; top: 330px; left: 0; right: 0; display: flex; justify-content: center"><dc-import name="EmptyState" glyph="tv" text="עדיין אין ערוצים. הוסף רשימת השמעה בהגדרות." action="הוספת רשימה" focused="true" hint-size="760px,380px"></dc-import></div>
-<div style="position: absolute; top: 0; right: 0"><dc-import name="SideMenu" open="false" current="channels" focus="" hint-size="112px,1080px"></dc-import></div>
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="channels" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>

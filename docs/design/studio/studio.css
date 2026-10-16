@@ -70,6 +70,8 @@
   --st-w-rail: 112px;
   /* שוליים בצד ימין (תחילת השורה). גדל כשפס הצד הסגור מוצג, ושמאל נשאר var(--st-safe-x) */
   --st-inset-start: var(--st-safe-x);
+  /* מסכי דפדוף: הפס הצר של תפריט הצד ועוד 48 (ADR-035). חל דרך המחלקה st-browse */
+  --st-inset-browse: calc(var(--st-w-rail) + 48px);
 
   /* פוקוס */
   --st-ring: 4px;
@@ -110,6 +112,9 @@
 
 /* מסך מלא */
 .st-screen { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); }
+
+/* מסך דפדוף: התוכן מתחיל אחרי הפס הצר של תפריט הצד */
+.st-browse { --st-inset-start: var(--st-inset-browse); }
 
 /* סולם טקסט */
 .st-t-hero { margin: 0; font-family: var(--st-font-display); font-weight: 700; font-size: 140px; line-height: 0.9; }

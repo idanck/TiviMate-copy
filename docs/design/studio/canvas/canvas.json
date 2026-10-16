@@ -19,6 +19,10 @@
    "name": "טלוויזיה · מסכים משלימים"
   },
   {
+   "id": "tv-navigation",
+   "name": "טלוויזיה · ניווט"
+  },
+  {
    "id": "components",
    "name": "טלוויזיה · רכיבים"
   },
@@ -50,7 +54,8 @@
    "w": 1920,
    "h": 1080,
    "title": "בית",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "Live.dc.html": {
    "x": 2000,
@@ -196,7 +201,8 @@
    "w": 1920,
    "h": 1080,
    "title": "בית — תפריט צד פתוח",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "SideMenu.dc.html": {
    "x": 4000,
@@ -204,7 +210,8 @@
    "w": 480,
    "h": 1080,
    "title": "תפריט צד · SideMenu",
-   "page": "components"
+   "page": "components",
+   "is_interactive": true
   },
   "TopBar.dc.html": {
    "x": 2000,
@@ -229,7 +236,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — מראה",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "Recordings.dc.html": {
    "x": 0,
@@ -237,15 +245,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הקלטות",
-   "page": "screens"
-  },
-  "MainRail.dc.html": {
-   "x": 6000,
-   "y": 0,
-   "w": 1920,
-   "h": 1080,
-   "title": "בית — תפריט צד סגור",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "PChannels.dc.html": {
    "x": 0,
@@ -391,7 +392,8 @@
    "w": 1920,
    "h": 1080,
    "title": "בית — מדפים (אחרי גלילה)",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "Channels.dc.html": {
    "x": 4000,
@@ -399,7 +401,8 @@
    "w": 1920,
    "h": 1080,
    "title": "ערוצים",
-   "page": "screens"
+   "page": "screens",
+   "is_interactive": true
   },
   "PlayerTransport.dc.html": {
    "x": 0,
@@ -463,7 +466,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הוספת מנוי",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvChannelMenu.dc.html": {
    "x": 2000,
@@ -479,7 +483,8 @@
    "w": 1920,
    "h": 1080,
    "title": "חיפוש",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvVod.dc.html": {
    "x": 6000,
@@ -487,7 +492,8 @@
    "w": 1920,
    "h": 1080,
    "title": "VOD",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvSettingsSources.dc.html": {
    "x": 0,
@@ -495,7 +501,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — רשימות ולוח שידורים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvSettingsParental.dc.html": {
    "x": 2000,
@@ -503,7 +510,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — בקרת הורים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvSettingsUpdates.dc.html": {
    "x": 4000,
@@ -511,7 +519,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — עדכונים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "Loader.dc.html": {
    "x": 3620,
@@ -527,7 +536,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — הקלטה",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvSettingsBackup.dc.html": {
    "x": 0,
@@ -535,7 +545,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — גיבוי ושחזור",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvSettingsDiagnostics.dc.html": {
    "x": 2000,
@@ -543,7 +554,8 @@
    "w": 1920,
    "h": 1080,
    "title": "הגדרות — אבחון",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "PPin.dc.html": {
    "x": 0,
@@ -831,7 +843,8 @@
    "w": 1920,
    "h": 1080,
    "title": "בית — שורת אפליקציות",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvChannelEdit.dc.html": {
    "x": 0,
@@ -879,7 +892,8 @@
    "w": 1920,
    "h": 1080,
    "title": "מצב ריק — אין ערוצים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvEmptyHidden.dc.html": {
    "x": 4000,
@@ -887,7 +901,8 @@
    "w": 1920,
    "h": 1080,
    "title": "מצב ריק — אין ערוצים מוסתרים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "TvGuideNoData.dc.html": {
    "x": 6000,
@@ -895,7 +910,8 @@
    "w": 1920,
    "h": 1080,
    "title": "מדריך — ערוץ בלי לוח שידורים",
-   "page": "screens-more"
+   "page": "screens-more",
+   "is_interactive": true
   },
   "PChannelEdit.dc.html": {
    "x": 1880,
@@ -992,19 +1008,66 @@
    "h": 240,
    "title": "מצב ריק · PEmptyState",
    "page": "phone-components"
+  },
+  "NavMap.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 2960,
+   "h": 1900,
+   "title": "מפת ניווט — טלוויזיה",
+   "page": "tv-navigation",
+   "is_interactive": true
+  },
+  "TvShell.dc.html": {
+   "x": 4560,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "מסגרת ניווט · TvShell",
+   "page": "components",
+   "is_interactive": true
+  },
+  "ChannelsFromVideo.dc.html": {
+   "x": 6000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "ערוצים — נפתח מהווידאו בחץ ימינה",
+   "page": "screens",
+   "is_interactive": true
+  },
+  "GuideFromVideo.dc.html": {
+   "x": 6000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מדריך — נפתח מהווידאו (GUIDE / צהוב / פס השליטה)",
+   "page": "screens",
+   "is_interactive": true
+  },
+  "RadioList.dc.html": {
+   "x": 8000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "רדיו — רשימת תחנות (מתפריט הצד)",
+   "page": "screens",
+   "is_interactive": true
   }
  },
  "order": [
   "Main.dc.html",
   "MainMenu.dc.html",
-  "MainRail.dc.html",
   "HomeRails.dc.html",
   "Channels.dc.html",
+  "ChannelsFromVideo.dc.html",
+  "RadioList.dc.html",
   "PlayerMenu.dc.html",
   "PlayerDetails.dc.html",
   "PlayerTransport.dc.html",
   "Live.dc.html",
   "Guide.dc.html",
+  "GuideFromVideo.dc.html",
   "Radio.dc.html",
   "Settings.dc.html",
   "Recordings.dc.html",
@@ -1112,7 +1175,9 @@
   "Notice.dc.html",
   "EmptyState.dc.html",
   "PNotice.dc.html",
-  "PEmptyState.dc.html"
+  "PEmptyState.dc.html",
+  "NavMap.dc.html",
+  "TvShell.dc.html"
  ],
  "notes": {},
  "designSystems": []
