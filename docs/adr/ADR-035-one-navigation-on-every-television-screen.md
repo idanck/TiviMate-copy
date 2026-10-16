@@ -68,3 +68,10 @@ every destination, not only home.
 - From the channel list, the guide or settings are one press towards the start edge and one OK
   away, where before they were a scroll to the top of the group column.
 - Nothing here can be compiled where it was written (see `CLAUDE.md`); CI is the build gate.
+- **Home hands the remote back explicitly (0.14.24).** Home is the one screen drawn full-bleed
+  under the strip, so the D-pad found nothing beside the menu there, and a press towards the
+  content went nowhere (device report, 2026-10-16). On home the menu now sends that press to the
+  home list itself, which returns the remote to the banner button, app or card it left from: the
+  list carries a `focusRestorer`, and each rail notes its own card on the way out without
+  restoring it, so a step between rails is unchanged. Every other screen is inset past the
+  strip, and the D-pad still finds it as before.

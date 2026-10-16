@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -125,6 +126,7 @@ internal fun HomeAppStrip(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val rowFocus = remember { FocusRequester() }
     Column(modifier = modifier.fillMaxWidth().background(background)) {
         // `TvHomeApps`: the h1 step in ink, and a caption saying where the list comes from.
         Row(
@@ -141,7 +143,8 @@ internal fun HomeAppStrip(
             )
         }
         LazyRow(
-            modifier = Modifier.fillMaxWidth().focusGroup(),
+            // Notes the app the remote leaves from, for the home list to return to (TvHomeScreen).
+            modifier = Modifier.fillMaxWidth().savesFocusedChild(rowFocus).focusGroup(),
             contentPadding = PaddingValues(start = startInset, end = 4.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
