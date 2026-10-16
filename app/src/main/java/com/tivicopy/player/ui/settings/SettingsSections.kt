@@ -32,6 +32,8 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.data.news.NewsDigests
 import com.tivicopy.player.data.news.NewsSource
+import com.tivicopy.player.data.news.SuggestedNewsSource
+import com.tivicopy.player.data.news.SuggestedNewsSources
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ParentalPin
@@ -627,10 +629,59 @@ fun NewsSourcesSetting(vm: AppViewModel, sources: List<NewsSource>) {
         },
     )
     RowDivider()
+
+    // The suggestions (ADR-038): checked feeds, offered rather than switched on, so an owner who
+    // wants headlines does not have to type a feed address with a remote. Hidden once the list
+    // is full, where pressing one could only be refused.
+    val suggestions = SuggestedNewsSources.available(sources)
+    if (suggestions.isNotEmpty() && sources.size < NewsSource.MAX_SOURCES) {
+        SettingsSectionTitle(stringResource(R.string.settings_news_suggested))
+        suggestions.forEach { suggestion ->
+            val name = stringResource(suggestedNameRes(suggestion))
+            ListRow(
+                label = name,
+                sub = stringResource(
+                    when {
+                        !suggestion.timed -> R.string.settings_news_suggested_flashes_untimed
+                        suggestion.flashes -> R.string.settings_news_suggested_flashes
+                        else -> R.string.settings_news_suggested_articles
+                    },
+                ),
+                icon = StudioIcons.Plus,
+                onClick = {
+                    if (!settings.addNewsSource(suggestion.url)) {
+                        vm.post(
+                            UiMessage(
+                                text = context.getString(R.string.settings_news_source_refused, NewsSource.MAX_SOURCES),
+                            ),
+                        )
+                        return@ListRow
+                    }
+                    ServiceLocator.appScope.launch { ServiceLocator.news.refresh(force = true) }
+                    vm.post(UiMessage(text = context.getString(R.string.settings_news_suggested_added, name)))
+                },
+            )
+            RowDivider()
+        }
+    }
+
     Text(
         text = stringResource(R.string.settings_news_sources_note),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = 12.dp),
     )
+}
+
+/** The name a suggested news source is shown under, in the screen's language. */
+private fun suggestedNameRes(source: SuggestedNewsSource): Int = when (source.id) {
+    "ynet" -> R.string.news_source_ynet
+    "walla" -> R.string.news_source_walla
+    "maariv" -> R.string.news_source_maariv
+    "i24" -> R.string.news_source_i24
+    "n12" -> R.string.news_source_n12
+    "israel_hayom" -> R.string.news_source_israel_hayom
+    "inn" -> R.string.news_source_inn
+    "srugim" -> R.string.news_source_srugim
+    else -> R.string.settings_news_sources
 }
