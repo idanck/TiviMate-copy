@@ -33,6 +33,7 @@ import com.tivicopy.player.ui.common.labelRes
 import com.tivicopy.player.data.prefs.BufferPreset
 import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
+import com.tivicopy.player.data.prefs.FlashSpeed
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
@@ -388,6 +389,31 @@ fun SettingsScreen(
                     value = s.screensaverIdleMinutes.toFloat(),
                     range = 1f..60f,
                 ) { settings.setScreensaverIdleMinutes(it.toInt()) }
+                // FR-UI-33 / ADR-037: the headlines beside the clock. On by default, because
+                // without a source added below there are none to show.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_screensaver_flashes),
+                    subtitle = stringResource(R.string.settings_screensaver_flashes_sub),
+                    checked = s.screensaverFlashes,
+                    onChange = settings::setScreensaverFlashes,
+                )
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_screensaver_colours),
+                    subtitle = stringResource(R.string.settings_screensaver_colours_sub),
+                    checked = s.screensaverColours,
+                    onChange = settings::setScreensaverColours,
+                )
+                SettingsChoice(
+                    title = stringResource(R.string.settings_flash_speed),
+                    options = listOf(
+                        FlashSpeed.SLOW to stringResource(R.string.flash_speed_slow),
+                        FlashSpeed.NORMAL to stringResource(R.string.flash_speed_normal),
+                        FlashSpeed.FAST to stringResource(R.string.flash_speed_fast),
+                    ),
+                    selected = s.flashSpeed,
+                    onSelect = settings::setFlashSpeed,
+                )
+                NewsSourcesSetting(vm = vm, sources = s.newsSources)
                 // FR-UI-32. Off by default, and pointless until the address below is set: this
                 // app is installed on other people's televisions, and a to-do list is the last
                 // thing that should appear on one uninvited.

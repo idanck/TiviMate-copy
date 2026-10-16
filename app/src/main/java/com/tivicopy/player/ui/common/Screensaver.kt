@@ -5,20 +5,34 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -27,58 +41,77 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.news.SourcedFlash
+import com.tivicopy.player.data.prefs.FlashSpeed
 import com.tivicopy.player.data.tasks.TaskItem
+import com.tivicopy.player.player.PlaybackStatus
+import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.PI
+import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * The burn-in guard (FR-UI-31, ADR-024).
+ * The burn-in guard (FR-UI-31, ADR-024), drawn as Studio's screensaver (ADR-037).
  *
  * A television left on a still picture wears the picture into the panel. This app is unusually
  * good at producing one: it holds `FLAG_KEEP_SCREEN_ON` for as long as it is on screen, a paused
- * stream is a frozen frame that stays frozen until somebody comes back to it, an overlay left
- * open is a wall of unmoving text, and the radio backdrop — the one this app is most likely to be
- * left on for hours — is a static logo, a static name and a clock that changes one glyph a
- * minute. Nothing here dims the picture while it is *moving*: video is its own protection.
+ * stream is a frozen frame that stays frozen until somebody comes back to it, and an overlay
+ * left open is a wall of unmoving text. Nothing here touches the picture while it is *moving*:
+ * video is its own protection, and so — since ADR-030 — is the radio's own screen.
  *
- * Two skins over one mechanism:
+ * What replaces the still screen is the canvas's `TvScreensaverCombo`: a black panel with a
+ * studio clock at the start side — a ring of sixty dots filling with the seconds, twelve hour
+ * marks, the time and the date — what is behind the screensaver under it, and, when the owner
+ * has added news sources, their headlines scrolling down the end side in one continuous column.
  *
- * - **Dark**, for a still picture of any kind. The panel goes black — actually black, so an OLED
- *   emits nothing across almost all of it — and a small block of text drifts across it.
- * - **Ambient**, for an audio-only stream, which is to say the radio. Blacking out a station
- *   somebody is *listening* to would be the wrong answer to the right problem, so instead the
- *   station's own colour stays, dimmed, and drifts slowly around the hue it started from. When
- *   the owner has pointed the app at a task list, one open task at a time is printed with it,
- *   each in a different place from the last.
+ * **It no longer drifts.** ADR-024 moved a block of text around the panel on a path that never
+ * closed; ADR-037 holds the clock in place, because a clock that wanders is not one anybody can
+ * find at a glance. What protects the panel instead is that almost all of it is black; that the
+ * headlines never stop moving; and that every three minutes the whole layout steps a few pixels
+ * along the same never-closing path ([shiftAt]) — too little to notice from a sofa, enough that
+ * no ring dot or hour mark stands on the same pixels for hours.
  *
- * Every pixel is therefore moving or dark, on a screen nobody is looking at.
- *
- * **This is the one thing in the app that animates while idle**, which `ui/common/Motion.kt`
- * otherwise forbids outright, and FR-UI-30 says out loud. The exception is the whole point: the
- * rule exists so an unattended television is not redrawing itself for nothing, and this redraws
- * an unattended television precisely so that it is not holding still. It is kept cheap on the
- * terms that rule is really about — the animation is driven at [TICK_MS] rather than at frame
- * rate, and every value it produces is read inside a `graphicsLayer` or `drawBehind` lambda, so
- * a tick redraws two nodes and recomposes nothing.
+ * **This is one of the two things in the app that animate while idle** (the radio screen is the
+ * other), which `ui/common/Motion.kt` otherwise forbids outright and FR-UI-30 says out loud. It is
+ * kept cheap on the terms that rule is really about: the clock redraws once a second and
+ * recomposes once a minute; the column of headlines moves by a `graphicsLayer` translation, so a
+ * step of it redraws one layer and recomposes nothing; and nothing runs at frame rate.
  */
 
 // -------------------------------------------------------------------- decisions
@@ -91,7 +124,7 @@ enum class IdleScene {
     /** A frozen frame, a menu, a guide, an error — a still image, whatever produced it. */
     STILL,
 
-    /** Sound with no picture: a radio station, or any other audio-only stream. */
+    /** The radio's own screen: sound with no picture, and nothing drawn over it. */
     AUDIO_ONLY,
 }
 
@@ -104,10 +137,12 @@ enum class IdleScene {
  *   station that has been paused: the first is still the radio, the second is a still screen.
  * @param hasPicture the stream has a video track. An audio-only one never produces a frame.
  * @param failed playback has settled on an error, so what is on screen is a message.
- * @param videoFillsPanel the video is what the screen *is*, rather than something an overlay has
- *   covered or shrunk into a corner. The guide docks the picture into a preview slot and fills the
- *   rest of the panel with a grid that does not move for hours; that is a still screen with a
- *   moving stamp on it, and it burns in exactly like any other.
+ * @param videoFillsPanel the stream's own screen is what the panel *is*, rather than something an
+ *   overlay has covered or shrunk into a corner. The guide docks the picture into a preview slot
+ *   and fills the rest of the panel with a grid that does not move for hours; that is a still
+ *   screen with a moving stamp on it, and it burns in exactly like any other. The same goes for a
+ *   station: its screen protects itself (ADR-030), but a settings page left open over it does not,
+ *   and that is a still screen with the radio playing behind it (ADR-037).
  */
 fun idleScene(
     playing: Boolean,
@@ -117,7 +152,7 @@ fun idleScene(
     videoFillsPanel: Boolean,
 ): IdleScene = when {
     failed -> IdleScene.STILL
-    !hasPicture && playWhenReady -> IdleScene.AUDIO_ONLY
+    !hasPicture && playWhenReady && videoFillsPanel -> IdleScene.AUDIO_ONLY
     playing && hasPicture && videoFillsPanel -> IdleScene.MOVING
     else -> IdleScene.STILL
 }
@@ -145,16 +180,63 @@ fun screensaverApplies(enabled: Boolean, scene: IdleScene, inPip: Boolean): Bool
 fun radioTasksApply(enabled: Boolean, tasks: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
     enabled && tasks && !inPip && scene == IdleScene.AUDIO_ONLY
 
+/** What the screensaver says is behind it (ADR-037, decision 4). */
+sealed interface SaverPlaying {
+    /** A station, playing behind a still screen — a menu left open over the radio. */
+    data class Radio(val channel: Channel, val playing: Boolean) : SaverPlaying
+
+    /** A picture: paused, or playing under an overlay that covers it. */
+    data class Video(
+        val channel: String?,
+        val programme: String?,
+        val paused: Boolean,
+        val live: Boolean,
+    ) : SaverPlaying
+
+    /** Nothing playing, or a stream that failed: the clock alone. */
+    data object None : SaverPlaying
+}
+
+/**
+ * What to print under the clock, from what the player is carrying and what it reports.
+ *
+ * Named from [nowPlaying] rather than from the current channel, which deliberately outlives an
+ * on-demand session: a film paused after a radio station must not be drawn as that station.
+ *
+ * @param programme the programme on air on the live channel, from the guide; null when unknown.
+ */
+internal fun saverPlaying(nowPlaying: NowPlayingInfo?, programme: String?, status: PlaybackStatus): SaverPlaying {
+    if (status.error != null || nowPlaying == null) return SaverPlaying.None
+    val paused = !status.playWhenReady
+    val hasPicture = status.width > 0 || status.height > 0
+    if (!hasPicture) {
+        // Sound with no picture is a station. Playing behind a still screen, it is "now
+        // playing"; paused, it is a paused stream like any other.
+        val station = nowPlaying.audioOnlyChannel() ?: return SaverPlaying.None
+        return if (paused) {
+            SaverPlaying.Video(channel = station.displayName, programme = null, paused = true, live = false)
+        } else {
+            SaverPlaying.Radio(station, playing = status.playing)
+        }
+    }
+    return when (nowPlaying) {
+        is NowPlayingInfo.Live -> SaverPlaying.Video(nowPlaying.channel.displayName, programme, paused, live = true)
+        is NowPlayingInfo.Catchup ->
+            SaverPlaying.Video(nowPlaying.channel.displayName, nowPlaying.programme.title, paused, live = false)
+        is NowPlayingInfo.OnDemand -> SaverPlaying.Video(null, nowPlaying.item.name, paused, live = false)
+        is NowPlayingInfo.RecordingFile -> SaverPlaying.Video(null, nowPlaying.recording.title, paused, live = false)
+    }
+}
+
 // ------------------------------------------------------------------------ maths
 
 /**
- * Where the drifting block sits at [phase] — a fraction of one horizontal cycle — as a fraction
- * of the travel it is allowed, in -1..1 on each axis.
+ * A point on a path that never closes, at [phase], as a fraction of the travel allowed in -1..1
+ * on each axis.
  *
- * A Lissajous figure rather than a circle or a bounce, and with an *irrational* ratio between the
- * two axes ([DRIFT_RATIO] is the golden ratio) so the path never closes: the block is somewhere
- * new on every pass instead of retracing one loop for six hours, which would wear that loop into
- * the panel just as surely as standing still would.
+ * A Lissajous figure with an *irrational* ratio between its axes ([DRIFT_RATIO] is the golden
+ * ratio), so it never retraces itself: ADR-024 drifted the whole screensaver along it, and
+ * ADR-037 steps the still layout along it ([shiftAt]).
  */
 internal fun driftAt(phase: Float): Pair<Float, Float> {
     val x = sin(TWO_PI * phase)
@@ -163,69 +245,115 @@ internal fun driftAt(phase: Float): Pair<Float, Float> {
 }
 
 /**
- * The station's hue, swung gently either side of itself.
+ * Where the whole layout stands after its [step]th shift, in -1..1 of [SHIFT_DP] on each axis.
  *
- * Deliberately a swing rather than a rotation through the whole wheel: this is still meant to
- * look like *that station's* screen at three in the morning, and a station whose colour is orange
- * turning green is a different screen, not a resting one.
+ * Each step moves the phase on by 1/φ², the golden angle as a fraction of a turn — the step
+ * that spreads successive points most evenly — so consecutive positions are far apart and no
+ * two are ever the same.
+ */
+internal fun shiftAt(step: Int): Pair<Float, Float> = driftAt(step * SHIFT_PHASE_STEP)
+
+/**
+ * A hue, swung gently either side of itself.
+ *
+ * Deliberately a swing rather than a rotation through the whole wheel: the canvas's
+ * `st-amb-hue` is ±26° over two minutes, enough that the clock's colour is never quite the same
+ * twice and not so much that cyan turns into green.
  */
 internal fun ambientHue(baseHue: Float, phase: Float, swingDegrees: Float): Float =
     ((baseHue + swingDegrees * sin(TWO_PI * phase)) % 360f + 360f) % 360f
 
+/** Where one of the ring's sixty dots stands against the current second. */
+internal enum class RingDot { PASSED, NOW, AHEAD }
+
+internal fun ringDot(index: Int, second: Int): RingDot = when {
+    index == second -> RingDot.NOW
+    index < second -> RingDot.PASSED
+    else -> RingDot.AHEAD
+}
+
+/**
+ * How far the column of headlines is translated, in pixels, [elapsedSeconds] after it appeared.
+ *
+ * The column is the same round of headlines repeated; translating it from minus one round's
+ * height towards zero, and wrapping, moves it continuously *down* with no seam — the canvas's
+ * `st-feed-down`. Computed in doubles, because after a night the distance travelled is in the
+ * hundreds of thousands of pixels and a float would start to stutter.
+ */
+internal fun feedOffset(elapsedSeconds: Float, speedPxPerSecond: Float, roundHeightPx: Float): Float {
+    if (roundHeightPx <= 0f) return 0f
+    val travelled = (elapsedSeconds.toDouble() * speedPxPerSecond) % roundHeightPx
+    return (travelled - roundHeightPx).toFloat()
+}
+
+/**
+ * How many copies of a round the column needs so the viewport is never short of one: as many as
+ * fit, plus the one sliding in from the top. Two at least, which is the canvas's own.
+ */
+internal fun feedCopies(viewportPx: Float, roundHeightPx: Float): Int =
+    if (roundHeightPx <= 0f) 2 else (ceil(viewportPx / roundHeightPx).toInt() + 1).coerceAtLeast(2)
+
+/** A headline's time: the clock for today's, the date and the clock for yesterday's. */
+internal fun flashTime(publishedUtc: Long, nowUtc: Long): String =
+    if (TimeModel.startOfLocalDay(publishedUtc) == TimeModel.startOfLocalDay(nowUtc)) {
+        TimeModel.ltr(TimeModel.formatClock(publishedUtc))
+    } else {
+        TimeModel.formatDayTime(publishedUtc)
+    }
+
 private const val TWO_PI = (2.0 * PI).toFloat()
 
-/** Golden ratio: an axis ratio that never resynchronises, so the drift path never repeats. */
+/** Golden ratio: an axis ratio that never resynchronises, so the path never repeats. */
 private const val DRIFT_RATIO = 1.6180339f
 
 /** A quarter turn between the axes, so the path opens out instead of starting as a diagonal. */
 private const val DRIFT_OFFSET = 0.25f
+
+/** 1/φ², the golden angle as a fraction of a full turn. */
+private const val SHIFT_PHASE_STEP = 0.381966f
 
 // --------------------------------------------------------------------------- ui
 
 /**
  * The screensaver itself, drawn over everything.
  *
- * @param ambient whether this is the radio's lit skin rather than the dark one.
- * @param channel the station or channel on screen, for its name and (when [ambient]) its colour.
- * @param headline what to call what is playing when there is no channel to name.
- * @param song the song the station says is on, or null. Drawn under the name, so the screen at
- *   rest still answers "what is this song" without waking it.
- * @param tasks the open tasks to cycle through, or empty for none. Only ever non-empty for the
- *   ambient skin, and only when the owner has both configured a list and switched it on.
+ * @param playing what is behind it: a station, a picture, or nothing.
+ * @param flashes the headlines to scroll, newest first, or empty for the clock alone.
+ * @param flashesUpdatedUtc when the headlines were last fetched, for the line between rounds.
+ * @param colours whether the clock and the headlines are drawn in Studio's three soft colours.
+ * @param speed how fast the headlines scroll.
  */
 @Composable
 fun Screensaver(
-    ambient: Boolean,
-    channel: Channel?,
-    headline: String,
-    tasks: List<TaskItem>,
+    playing: SaverPlaying,
+    flashes: List<SourcedFlash>,
+    flashesUpdatedUtc: Long,
+    colours: Boolean,
+    speed: FlashSpeed,
     modifier: Modifier = Modifier,
-    song: String? = null,
 ) {
-    // Asked for only by the skin that uses it: resolving a station's accent downloads and
-    // samples its logo the first time that station is seen, and the dark skin is black.
-    val accent = if (ambient) rememberStationAccent(channel) else 0
-    val hsl = remember(accent) { rgbToHsl(accent) }
-    val baseHue = hsl[0]
-    val saturation = hsl[1]
-
-    // One monotonic clock in seconds, from which both the drift and the colour take their own
-    // period. Read from the system rather than accumulated, so a tick the device was too busy to
-    // deliver is skipped rather than slowing the drift down for the rest of the night.
-    val startedAt = remember { SystemClock.elapsedRealtime() }
-    var elapsed by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(TICK_MS)
-            elapsed = (SystemClock.elapsedRealtime() - startedAt) / 1000f
-        }
-    }
+    val studio = StudioTheme.colors
 
     // The screensaver arrives as a slow fade rather than a cut: it is replacing a picture
     // somebody may still glance up at, and Motion.ENTRANCE — a quarter of a second — would read
     // as the app doing something rather than as the screen settling.
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { fade.animateTo(1f, tween(FADE_IN_MS, easing = FastOutSlowInEasing)) }
+
+    // The anti burn-in step (ADR-037): every few minutes, a few pixels along a path that never
+    // closes, eased so that nobody watching sees a jump.
+    val shiftX = remember { Animatable(0f) }
+    val shiftY = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        var step = 0
+        while (true) {
+            delay(SHIFT_EVERY_MS)
+            step++
+            val (x, y) = shiftAt(step)
+            launch { shiftX.animateTo(x, tween(SHIFT_MS, easing = FastOutSlowInEasing)) }
+            shiftY.animateTo(y, tween(SHIFT_MS, easing = FastOutSlowInEasing))
+        }
+    }
 
     BoxWithConstraints(
         modifier = modifier
@@ -237,89 +365,565 @@ fun Screensaver(
             .pointerInput(Unit) { detectTapGestures { } }
             // Read in the draw phase, so the fade costs redraws rather than recompositions.
             .graphicsLayer { alpha = fade.value }
-            .drawBehind {
-                if (!ambient) {
-                    // Actually black. On an OLED panel an unlit pixel emits nothing and ages
-                    // not at all, which makes this the strongest thing the app can do about
-                    // burn-in — and on an LCD it is simply the darkest the screen goes.
-                    drawRect(Color.Black)
-                    return@drawBehind
-                }
-                val hue = ambientHue(baseHue, elapsed / HUE_PERIOD_SECONDS, HUE_SWING_DEGREES)
-                val top = Color(hslToArgb(hue, saturation, AMBIENT_TOP_LIGHTNESS))
-                val bottom = Color(hslToArgb(hue, saturation, AMBIENT_BOTTOM_LIGHTNESS))
-                drawRect(Brush.verticalGradient(listOf(top, bottom)))
-
-                // A pool of light that wanders on its own, slower period than the text and out
-                // of phase with it. It is what keeps the *background* from being a fixed
-                // gradient with something moving on top: on a dark station colour the top of a
-                // vertical gradient is the brightest thing on the panel, and left in one place
-                // it is the part that would age.
-                val (gx, gy) = driftAt(elapsed / GLOW_PERIOD_SECONDS)
-                val glow = Color(hslToArgb(hue, saturation, AMBIENT_GLOW_LIGHTNESS))
-                drawRect(
-                    Brush.radialGradient(
-                        colors = listOf(glow.copy(alpha = AMBIENT_GLOW_ALPHA), glow.copy(alpha = 0f)),
-                        center = Offset(
-                            size.width / 2f + gx * size.width * GLOW_TRAVEL,
-                            size.height / 2f + gy * size.height * GLOW_TRAVEL,
-                        ),
-                        radius = size.minDimension * GLOW_RADIUS,
-                    ),
-                )
-            },
+            .background(studio.saverGround),
     ) {
-        val compact = maxHeight < COMPACT_SCREENSAVER_HEIGHT
-        val density = LocalDensity.current
-        val travelX = with(density) { maxWidth.toPx() } * DRIFT_FRACTION
-        val travelY = with(density) { maxHeight.toPx() } * DRIFT_FRACTION
+        // The canvas is drawn for a 1080p panel, 960×540dp; every size below is that canvas's,
+        // scaled to whatever this screen is. A phone held upright stacks the two halves instead.
+        val landscape = maxWidth >= maxHeight
+        val scale = if (landscape) {
+            min(maxWidth.value / CANVAS_WIDTH_DP, maxHeight.value / CANVAS_HEIGHT_DP)
+        } else {
+            min(maxWidth.value / PORTRAIT_WIDTH_DP, maxHeight.value / PORTRAIT_HEIGHT_DP)
+        }
+        val units = SaverUnits(scale, LocalDensity.current)
+        val shiftPx = with(LocalDensity.current) { units.dp(SHIFT_DP).toPx() }
+        val withFlashes = flashes.isNotEmpty()
 
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 12.dp),
+        Box(
             modifier = Modifier
-                .align(Alignment.Center)
-                // Held to well under half the panel, because the drift below moves it by
-                // [DRIFT_FRACTION] of the panel in each direction and the two together have to
-                // stay inside it.
-                .fillMaxWidth(if (compact) 0.86f else 0.56f)
+                .fillMaxSize()
                 .graphicsLayer {
-                    val (dx, dy) = driftAt(elapsed / DRIFT_PERIOD_SECONDS)
-                    translationX = dx * travelX
-                    translationY = dy * travelY
+                    translationX = shiftX.value * shiftPx
+                    translationY = shiftY.value * shiftPx
                 },
         ) {
-            ScreensaverClock(compact = compact, dim = !ambient)
-
-            val name = channel?.displayName?.takeIf { it.isNotBlank() } ?: headline
-            if (name.isNotBlank()) {
-                Text(
-                    text = name,
-                    style = if (compact) {
-                        MaterialTheme.typography.titleSmall
-                    } else {
-                        MaterialTheme.typography.titleLarge
-                    },
-                    color = Color.White.copy(alpha = if (ambient) 0.8f else DARK_TEXT_ALPHA),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+            if (landscape) {
+                ClockBlock(
+                    playing = playing,
+                    colours = colours,
+                    units = units,
+                    modifier = Modifier
+                        // Without headlines the clock is the whole screen, and sits in the middle.
+                        .align(if (withFlashes) Alignment.CenterStart else Alignment.Center)
+                        .padding(start = if (withFlashes) units.dp(EDGE_DP) else 0.dp)
+                        .width(units.dp(CLOCK_COLUMN_DP)),
                 )
+                if (withFlashes) {
+                    FlashColumn(
+                        flashes = flashes,
+                        updatedUtc = flashesUpdatedUtc,
+                        colours = colours,
+                        speed = speed,
+                        units = units,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = units.dp(EDGE_DP))
+                            .width(units.dp(FLASH_COLUMN_DP))
+                            .fillMaxHeight(),
+                    )
+                }
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = if (withFlashes) Arrangement.Top else Arrangement.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = if (withFlashes) units.dp(EDGE_DP) else 0.dp),
+                ) {
+                    ClockBlock(
+                        playing = playing,
+                        colours = colours,
+                        units = units,
+                        modifier = Modifier.width(units.dp(CLOCK_COLUMN_DP)),
+                    )
+                    if (withFlashes) {
+                        Spacer(modifier = Modifier.height(units.dp(PORTRAIT_GAP_DP)))
+                        FlashColumn(
+                            flashes = flashes,
+                            updatedUtc = flashesUpdatedUtc,
+                            colours = colours,
+                            speed = speed,
+                            units = units,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(horizontal = units.dp(PORTRAIT_SIDE_DP)),
+                        )
+                    }
+                }
             }
-
-            if (song != null) {
-                SongLine(song = song, compact = compact, alpha = if (ambient) 0.8f else DARK_TEXT_ALPHA)
-            }
-
-            if (tasks.isNotEmpty()) TaskRotation(tasks = tasks, compact = compact)
         }
     }
 }
 
 /**
- * The open tasks, one at a time (FR-UI-32): twelve seconds each, cross-faded. Shared by this
- * screensaver and the radio screen, which carries the list itself now that it no longer hands
- * over to a screensaver (ADR-030).
+ * The canvas's sizes, scaled to this screen. Text is sized in dp and converted, rather than in
+ * sp: the screensaver is laid out as a picture, and a font scale meant for reading menus at arm's
+ * length would push its text out of the ring it is centred in.
+ */
+@Immutable
+private class SaverUnits(val scale: Float, private val density: Density) {
+    fun dp(value: Float): Dp = (value * scale).dp
+    fun sp(value: Float): TextUnit = with(density) { (value * scale).dp.toSp() }
+}
+
+/** The clock, and what is behind the screensaver under it, at the canvas's 0.82 opacity. */
+@Composable
+private fun ClockBlock(playing: SaverPlaying, colours: Boolean, units: SaverUnits, modifier: Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(units.dp(15f)),
+        modifier = modifier.graphicsLayer {
+            alpha = CONTENT_ALPHA
+            // Each draw at 0.82 rather than one offscreen layer at 0.82: nothing here overlaps,
+            // and an offscreen layer would be re-rendered every second for the ring.
+            compositingStrategy = CompositingStrategy.ModulateAlpha
+        },
+    ) {
+        StudioClock(colours = colours, units = units)
+        when (playing) {
+            is SaverPlaying.Radio -> RadioLine(playing, colours, units)
+            is SaverPlaying.Video -> VideoLine(playing, units)
+            SaverPlaying.None -> Unit
+        }
+    }
+}
+
+/**
+ * Studio's clock (`TvScreensaverCombo`): sixty dots filling with the seconds, twelve hour marks,
+ * the time and the date. In colour, the passed seconds run from the first soft colour to the
+ * second, the quarter marks take the first, a faint pool of it sits behind the ring, and the hue
+ * of all three swings slowly (`st-amb-hue`).
+ */
+@Composable
+private fun StudioClock(colours: Boolean, units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    // The *configuration's* locale, as everywhere else in this app: the in-app language wraps
+    // this composition's context rather than the JVM default (FR-UI-23).
+    val configuration = LocalConfiguration.current
+    val locale = remember(configuration) {
+        ConfigurationCompat.getLocales(configuration).get(0) ?: Locale.getDefault()
+    }
+
+    // A tick on every second, read by the ring in its draw lambda — so the ring redraws once a
+    // second and nothing recomposes until the minute, or the day, changes.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(SECOND_MILLIS - now % SECOND_MILLIS)
+        }
+    }
+    val time by remember { derivedStateOf { TimeModel.ltr(TimeModel.formatClock(now)) } }
+    val date by remember(locale) { derivedStateOf { TimeModel.formatShortDate(now, locale) } }
+    val startedAt = remember { SystemClock.elapsedRealtime() }
+
+    val first = studio.saverTones[0].toArgb()
+    val second = studio.saverTones[1].toArgb()
+    val passedGrey = PASSED_GREY
+    val ahead = Color.White.copy(alpha = AHEAD_ALPHA)
+    val ink = studio.ink
+    val ink3 = studio.ink3
+    val glowReach = units.dp(GLOW_REACH_DP)
+
+    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(units.dp(RING_BOX_DP))) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val second60 = ((now / SECOND_MILLIS) % 60).toInt()
+            val phase = (SystemClock.elapsedRealtime() - startedAt) / 1000f / HUE_PERIOD_SECONDS - 0.25f
+            fun tone(argb: Int): Color {
+                val hsl = rgbToHsl(argb)
+                return Color(hslToArgb(ambientHue(hsl[0], phase, HUE_SWING_DEGREES), hsl[1], hsl[2]))
+            }
+            val half = size.minDimension / 2f
+            val centre = Offset(size.width / 2f, size.height / 2f)
+            val c1 = if (colours) tone(first) else Color.Transparent
+            val c2 = if (colours) tone(second) else Color.Transparent
+
+            if (colours) {
+                val reach = half + glowReach.toPx()
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        0f to c1.copy(alpha = GLOW_ALPHA),
+                        GLOW_FADE to Color.Transparent,
+                        center = centre,
+                        radius = reach,
+                    ),
+                    radius = reach,
+                    center = centre,
+                )
+            }
+            for (i in 0 until 12) {
+                val angle = i / 12f * TWO_PI - TWO_PI / 4f
+                drawCircle(
+                    color = if (colours && i % 3 == 0) c1 else ink3,
+                    radius = half * MARK_RADIUS,
+                    center = centre + Offset(cos(angle), sin(angle)) * (half * MARK_ORBIT),
+                )
+            }
+            for (i in 0 until 60) {
+                val angle = i / 60f * TWO_PI - TWO_PI / 4f
+                val colour = when (ringDot(i, second60)) {
+                    RingDot.NOW -> ink
+                    RingDot.AHEAD -> ahead
+                    RingDot.PASSED -> if (colours) lerp(c1, c2, i / 59f) else passedGrey
+                }
+                drawCircle(
+                    color = colour,
+                    radius = half * DOT_RADIUS,
+                    center = centre + Offset(cos(angle), sin(angle)) * (half * DOT_ORBIT),
+                )
+            }
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(units.dp(3f)),
+        ) {
+            Text(
+                text = time,
+                style = type.h1.copy(
+                    fontSize = units.sp(54f),
+                    lineHeight = units.sp(54f),
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = units.sp(-1f),
+                ),
+                color = studio.ink,
+            )
+            Text(
+                text = date,
+                style = type.meta.copy(fontSize = units.sp(13f), lineHeight = units.sp(17f)),
+                color = studio.ink2,
+            )
+        }
+    }
+}
+
+/** "Now playing", the station's disc and name, and the equaliser (ADR-037, decision 4). */
+@Composable
+private fun RadioLine(radio: SaverPlaying.Radio, colours: Boolean, units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(units.dp(10f)),
+    ) {
+        StationDisc(channel = radio.channel, size = units.dp(42f))
+        Column(
+            verticalArrangement = Arrangement.spacedBy(units.dp(2f)),
+            modifier = Modifier.weight(1f, fill = false),
+        ) {
+            Text(
+                text = stringResource(R.string.screensaver_now_playing),
+                style = type.body.copy(
+                    fontSize = units.sp(11f),
+                    lineHeight = units.sp(14f),
+                    fontWeight = FontWeight.SemiBold,
+                ),
+                color = if (colours) studio.saverTones[0] else studio.ink2,
+            )
+            Text(
+                text = radio.channel.displayName,
+                style = type.h1.copy(
+                    fontSize = units.sp(19f),
+                    lineHeight = units.sp(21f),
+                    fontWeight = FontWeight.SemiBold,
+                    textDirection = TextDirection.Content,
+                ),
+                color = studio.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        // The sound itself, measured from the player's own output (ADR-031).
+        Equalizer(
+            playing = radio.playing,
+            description = stringResource(R.string.radio_equalizer),
+            modifier = Modifier.width(units.dp(55f)).height(units.dp(22f)),
+        )
+    }
+}
+
+/** The picture behind the screensaver: paused, or live under an overlay; its channel and programme. */
+@Composable
+private fun VideoLine(video: SaverPlaying.Video, units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(units.dp(4f)),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(units.dp(7f)),
+        ) {
+            if (video.paused) {
+                PausedBadge(units)
+            } else if (video.live) {
+                LiveBadge()
+            }
+            video.channel?.let { name ->
+                Text(
+                    text = name,
+                    style = type.rowLabel.copy(
+                        fontSize = units.sp(13f),
+                        lineHeight = units.sp(17f),
+                        textDirection = TextDirection.Content,
+                    ),
+                    color = studio.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        video.programme?.let { title ->
+            Text(
+                text = title,
+                style = type.titleSmall.copy(
+                    fontSize = units.sp(32f),
+                    lineHeight = units.sp(30.4f),
+                    textDirection = TextDirection.Content,
+                ),
+                color = studio.ink,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PausedBadge(units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val shape = MaterialTheme.shapes.extraSmall
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(units.dp(4f)),
+        modifier = Modifier
+            .height(units.dp(17f))
+            .clip(shape)
+            .background(studio.surface)
+            .border(1.dp, studio.hairlineSoft, shape)
+            .padding(horizontal = units.dp(7f)),
+    ) {
+        Icon(
+            imageVector = StudioIcons.Pause,
+            contentDescription = null,
+            tint = studio.ink2,
+            modifier = Modifier.size(units.dp(10f)),
+        )
+        Text(
+            text = stringResource(R.string.screensaver_paused),
+            style = StudioTheme.type.caption.copy(
+                fontSize = units.sp(10f),
+                lineHeight = units.sp(12f),
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = studio.ink2,
+        )
+    }
+}
+
+/**
+ * The headlines (FR-UI-33): one column the height of the screen, moving down without stopping,
+ * newest at the top of each round, the round's header between one and the next, and the top and
+ * bottom fading into the black.
+ */
+@Composable
+private fun FlashColumn(
+    flashes: List<SourcedFlash>,
+    updatedUtc: Long,
+    colours: Boolean,
+    speed: FlashSpeed,
+    units: SaverUnits,
+    modifier: Modifier,
+) {
+    val ground = StudioTheme.colors.saverGround
+    val sources = remember(flashes) { flashes.map { it.colourIndex }.distinct().size }
+    val asOf = TimeModel.ltr(TimeModel.formatClock(if (updatedUtc > 0) updatedUtc else System.currentTimeMillis()))
+    val header = if (sources == 1) {
+        stringResource(R.string.screensaver_flashes_header_one, asOf)
+    } else {
+        stringResource(R.string.screensaver_flashes_header, sources, asOf)
+    }
+    val speedPx = with(LocalDensity.current) { units.dp(speed.dpPerSecond).toPx() }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .clipToBounds()
+            // Drawn over the column at full strength, outside its 0.82: the canvas's mask, which
+            // on a black ground is the same thing as black fading in at each end.
+            .drawWithContent {
+                drawContent()
+                val edge = size.height * FEED_EDGE
+                drawRect(
+                    brush = Brush.verticalGradient(listOf(ground, Color.Transparent), startY = 0f, endY = edge),
+                    size = Size(size.width, edge),
+                )
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        listOf(Color.Transparent, ground),
+                        startY = size.height - edge,
+                        endY = size.height,
+                    ),
+                    topLeft = Offset(0f, size.height - edge),
+                    size = Size(size.width, edge),
+                )
+            },
+    ) {
+        val viewport = constraints.maxHeight.toFloat()
+        var roundHeight by remember { mutableIntStateOf(0) }
+        val copies = feedCopies(viewport, roundHeight.toFloat())
+
+        // Its own clock, finer than the ring's: text moving continuously reads as stepping at a
+        // dozen steps a second. A step is a layer translation, so it redraws one layer.
+        val startedAt = remember { SystemClock.elapsedRealtime() }
+        var elapsed by remember { mutableFloatStateOf(0f) }
+        LaunchedEffect(Unit) {
+            while (true) {
+                delay(FEED_TICK_MS)
+                elapsed = (SystemClock.elapsedRealtime() - startedAt) / 1000f
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(align = Alignment.Top, unbounded = true)
+                .graphicsLayer {
+                    translationY = feedOffset(elapsed, speedPx, roundHeight.toFloat())
+                    alpha = CONTENT_ALPHA
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                },
+        ) {
+            repeat(copies) { copy ->
+                FlashRound(
+                    flashes = flashes,
+                    header = header,
+                    colours = colours,
+                    units = units,
+                    modifier = if (copy == 0) {
+                        Modifier.onSizeChanged { roundHeight = it.height }
+                    } else {
+                        // The copies are scenery: a screen reader reads the headlines once.
+                        Modifier.clearAndSetSemantics { }
+                    },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FlashRound(
+    flashes: List<SourcedFlash>,
+    header: String,
+    colours: Boolean,
+    units: SaverUnits,
+    modifier: Modifier,
+) {
+    val studio = StudioTheme.colors
+    val nowUtc = remember(flashes) { System.currentTimeMillis() }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = header,
+            style = StudioTheme.type.meta.copy(
+                fontSize = units.sp(11f),
+                lineHeight = units.sp(14f),
+                fontWeight = FontWeight.SemiBold,
+            ),
+            color = studio.ink3,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = units.dp(15f), bottom = units.dp(2f)),
+        )
+        flashes.forEach { flash -> FlashRow(flash, nowUtc, colours, units) }
+    }
+}
+
+/** One headline: the source's bar, the time, the source's chip, and up to two lines of title. */
+@Composable
+private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val tone = studio.saverTones[item.colourIndex % studio.saverTones.size]
+    val hairline = studio.hairlineSoft
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(units.dp(11f)),
+        modifier = Modifier
+            .fillMaxWidth()
+            .drawBehind {
+                val y = size.height - 0.5.dp.toPx()
+                drawLine(hairline, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
+            }
+            .padding(vertical = units.dp(14f))
+            .height(IntrinsicSize.Min),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(units.dp(3f))
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(units.dp(1.5f)))
+                .background(if (colours) tone else studio.ink3),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(units.dp(6f))) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(units.dp(8f)),
+            ) {
+                item.flash.publishedUtc?.let { at ->
+                    Text(
+                        text = flashTime(at, nowUtc),
+                        style = type.h1.copy(
+                            fontSize = units.sp(18f),
+                            lineHeight = units.sp(18f),
+                            fontWeight = FontWeight.SemiBold,
+                        ),
+                        color = studio.ink,
+                    )
+                }
+                SourceChip(label = item.source, tone = tone, colours = colours, units = units)
+            }
+            Text(
+                text = item.flash.title,
+                style = type.h1.copy(
+                    fontSize = units.sp(20f),
+                    lineHeight = units.sp(24f),
+                    fontWeight = FontWeight.SemiBold,
+                    // A Hebrew headline under an English interface, or the other way round,
+                    // lays itself out by what it says.
+                    textDirection = TextDirection.Content,
+                ),
+                color = studio.ink,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceChip(label: String, tone: Color, colours: Boolean, units: SaverUnits) {
+    val studio = StudioTheme.colors
+    val shape = MaterialTheme.shapes.extraSmall
+    Box(
+        contentAlignment = Alignment.CenterStart,
+        modifier = Modifier
+            .height(units.dp(16f))
+            .widthIn(max = units.dp(CHIP_MAX_DP))
+            .clip(shape)
+            .background(if (colours) tone.copy(alpha = CHIP_FILL_ALPHA) else studio.surface)
+            .border(1.dp, if (colours) tone.copy(alpha = CHIP_LINE_ALPHA) else studio.hairlineSoft, shape)
+            .padding(horizontal = units.dp(6f)),
+    ) {
+        Text(
+            text = label,
+            style = StudioTheme.type.caption.copy(
+                fontSize = units.sp(9.5f),
+                lineHeight = units.sp(12f),
+                fontWeight = FontWeight.SemiBold,
+                textDirection = TextDirection.Content,
+            ),
+            color = if (colours) tone else studio.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * The open tasks, one at a time (FR-UI-32): twelve seconds each, cross-faded, along the bottom of
+ * the radio screen once the viewer has been away (ADR-030).
  */
 @Composable
 internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Modifier = Modifier) {
@@ -343,44 +947,6 @@ internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Mod
     ) { (task, at) ->
         TaskCard(task = task, at = at, of = tasks.size, compact = compact)
     }
-}
-
-/** The wall clock and today's date, large, in the middle of the drifting block. */
-@Composable
-private fun ScreensaverClock(compact: Boolean, dim: Boolean) {
-    // The *configuration's* locale, as everywhere else in this app: the in-app language wraps
-    // this composition's context rather than the JVM default (FR-UI-23).
-    val configuration = LocalConfiguration.current
-    val locale = remember(configuration) {
-        ConfigurationCompat.getLocales(configuration).get(0) ?: Locale.getDefault()
-    }
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            delay(MINUTE_MILLIS - now % MINUTE_MILLIS)
-        }
-    }
-    Text(
-        text = TimeModel.ltr(TimeModel.formatClock(now)),
-        style = if (compact) {
-            MaterialTheme.typography.displaySmall
-        } else {
-            MaterialTheme.typography.displayLarge
-        },
-        color = Color.White.copy(alpha = if (dim) DARK_TEXT_ALPHA else 1f),
-        textAlign = TextAlign.Center,
-    )
-    Text(
-        text = TimeModel.formatFullDate(now, locale),
-        style = if (compact) {
-            MaterialTheme.typography.labelMedium
-        } else {
-            MaterialTheme.typography.titleMedium
-        },
-        color = Color.White.copy(alpha = if (dim) DARK_SECONDARY_ALPHA else 0.75f),
-        textAlign = TextAlign.Center,
-    )
 }
 
 /**
@@ -447,43 +1013,59 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
     }
 }
 
-/**
- * How often the drift advances.
- *
- * Not every frame. The block moves a few pixels a second, so twelve steps a second is already
- * finer than the eye can follow on a movement this slow — and it is the difference between an
- * unattended television redrawing two nodes twelve times a second and sixty.
- */
-private const val TICK_MS = 80L
+/** The canvas's panel, in dp, and the phone held upright it is re-laid out for. */
+private const val CANVAS_WIDTH_DP = 960f
+private const val CANVAS_HEIGHT_DP = 540f
+private const val PORTRAIT_WIDTH_DP = 420f
+private const val PORTRAIT_HEIGHT_DP = 880f
 
-/** One horizontal sweep of the drifting block. Slow enough to read as still if you glance up. */
-private const val DRIFT_PERIOD_SECONDS = 210f
+/** The canvas's 96px from each edge, 520px for the clock and 760px for the headlines. */
+private const val EDGE_DP = 48f
+private const val CLOCK_COLUMN_DP = 260f
+private const val FLASH_COLUMN_DP = 380f
+private const val PORTRAIT_GAP_DP = 24f
+private const val PORTRAIT_SIDE_DP = 24f
 
-/** How far the block travels either side of centre, as a fraction of the panel. */
-private const val DRIFT_FRACTION = 0.16f
+/** The ring's 480px box; its dots and marks as fractions of half of it (200/240 and 226/240). */
+private const val RING_BOX_DP = 240f
+private const val DOT_ORBIT = 200f / 240f
+private const val DOT_RADIUS = 4.5f / 240f
+private const val MARK_ORBIT = 226f / 240f
+private const val MARK_RADIUS = 6f / 240f
 
-/** The pool of light behind the ambient skin: its own period, longer than the text's. */
-private const val GLOW_PERIOD_SECONDS = 340f
-private const val GLOW_TRAVEL = 0.22f
-private const val GLOW_RADIUS = 0.75f
-private const val AMBIENT_GLOW_ALPHA = 0.42f
+/** The pool of colour behind the ring: 60px past it, 14% strong, gone by 68% of the way out. */
+private const val GLOW_REACH_DP = 30f
+private const val GLOW_ALPHA = 0.14f
+private const val GLOW_FADE = 0.68f
 
-/** One swing of the station's hue, and how far either side of it the swing reaches. */
-private const val HUE_PERIOD_SECONDS = 190f
+/** A passed second without colour, and one still to come. */
+private val PASSED_GREY = Color(0xB3AEB8C8)
+private const val AHEAD_ALPHA = 0.08f
+
+/** `st-amb-hue`: ±26° over the 120-second ambient cycle. */
+private const val HUE_PERIOD_SECONDS = 120f
 private const val HUE_SWING_DEGREES = 26f
 
-/**
- * The ambient skin's gradient, darker at both ends than the station backdrop it replaces
- * (0.34/0.06 in `StationBackdrop.kt`). This is the same screen at rest: still the station's
- * colour, and putting less light through the panel while nobody is watching it.
- */
-private const val AMBIENT_TOP_LIGHTNESS = 0.20f
-private const val AMBIENT_BOTTOM_LIGHTNESS = 0.04f
-private const val AMBIENT_GLOW_LIGHTNESS = 0.30f
+/** Everything on the screensaver is drawn at 0.82 (`TvScreensaverCombo`). */
+private const val CONTENT_ALPHA = 0.82f
 
-/** How bright the dark skin's text is. Legible across a room, well short of a lit screen. */
-private const val DARK_TEXT_ALPHA = 0.55f
-private const val DARK_SECONDARY_ALPHA = 0.4f
+/** How much of the headline column fades into the black at each end. */
+private const val FEED_EDGE = 0.14f
+
+/** How often the headlines step: smooth for slow text, still nowhere near frame rate. */
+private const val FEED_TICK_MS = 40L
+
+private const val CHIP_MAX_DP = 140f
+private const val CHIP_FILL_ALPHA = 0.16f
+private const val CHIP_LINE_ALPHA = 0.40f
+
+/**
+ * The anti burn-in step: how far, how often and how slowly (ADR-037). Six dp is about twelve
+ * pixels on a 1080p panel — more than a ring dot is wide, so none of them lands where it was.
+ */
+private const val SHIFT_DP = 6f
+private const val SHIFT_EVERY_MS = 3L * 60 * 1000
+private const val SHIFT_MS = 2_000
 
 private const val TASK_CARD_ALPHA = 0.10f
 private const val TASK_BORDER_ALPHA = 0.18f
@@ -494,7 +1076,4 @@ private const val TASK_FADE_MS = 700
 
 private const val FADE_IN_MS = 1_200
 
-private const val MINUTE_MILLIS = 60_000L
-
-/** Below this the screensaver is on a phone rather than a panel, and lays out smaller. */
-private val COMPACT_SCREENSAVER_HEIGHT = 400.dp
+private const val SECOND_MILLIS = 1_000L
