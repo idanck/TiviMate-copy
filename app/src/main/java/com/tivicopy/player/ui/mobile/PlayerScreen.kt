@@ -10,12 +10,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -109,6 +115,23 @@ fun PlayerScreen(
                 subtitleScale = prefs.subtitleTextScale,
                 modifier = Modifier.fillMaxSize(),
             )
+            // A station has no picture, so the floating window was a black rectangle with sound
+            // in it (device report, 2026-10-16). The station's own screen takes the picture's
+            // place, as it does under the phone's video box and on the television, laid out for
+            // a window this small. Both shells' floating windows come through here.
+            var wasAudioOnly by remember(state.nowPlaying) { mutableStateOf(false) }
+            val audioOnly = audioOnlyBackdropVisible(playback, wasAudioOnly)
+            SideEffect { wasAudioOnly = audioOnly }
+            if (audioOnly) {
+                AudioOnlyNowPlaying(
+                    channel = state.nowPlaying.audioOnlyChannel(),
+                    title = playback.title,
+                    playWhenReady = playback.playWhenReady,
+                    song = playback.streamTitle,
+                    live = state.nowPlaying.isLive(),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             PlaybackStateOverlay(
                 status = playback,
                 opacity = prefs.overlayOpacity,
@@ -181,7 +204,23 @@ fun PlayerScreen(
             return@Surface
         }
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            // In portrait the picture starts below the status bar, as `PNowPlaying` sets it
+            // (`--st-safe-top`). Drawn under the bar, the bar's clock and chips sat on the picture
+            // and the collapse button sat on the clock (device report, 2026-10-16). Landscape is
+            // the whole panel, as it always was.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (landscape) {
+                            Modifier
+                        } else {
+                            Modifier.windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                            )
+                        },
+                    ),
+            ) {
                 val videoModifier = if (landscape) {
                     Modifier.fillMaxWidth().weight(1f)
                 } else {
@@ -343,6 +382,9 @@ private fun NowPlayingDetails(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
+            // Inside the scroll, so the last row can be scrolled clear of the navigation bar
+            // rather than ending under its buttons.
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

@@ -52,6 +52,8 @@ class RadioBackgroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
+        // The headset's buttons follow the station into the background (PlayerMediaSession).
+        PlayerMediaSession.hold(PlayerMediaSession.HOLDER_RADIO_SERVICE, this, ServiceLocator.player)
         ServiceLocator.player.status
             // [PlaybackStatus.playWhenReady], not `playing`: a station that is rebuffering has
             // not been paused, and a button drawn from `playing` would offer Play mid-stall and
@@ -136,6 +138,7 @@ class RadioBackgroundService : Service() {
 
     override fun onDestroy() {
         scope.cancel()
+        PlayerMediaSession.release(PlayerMediaSession.HOLDER_RADIO_SERVICE)
         super.onDestroy()
     }
 

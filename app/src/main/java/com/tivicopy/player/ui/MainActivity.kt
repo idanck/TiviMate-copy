@@ -47,6 +47,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
+import com.tivicopy.player.player.PlayerMediaSession
 import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.IdleScene
 import com.tivicopy.player.ui.common.NoticeTone
@@ -900,6 +901,9 @@ class MainActivity : ComponentActivity() {
         // was on its way out — and nothing ever silenced it. Now that the window is known gone,
         // do what a stop with no window does.
         if (!lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            // [onStop] kept the session for the window; with the window gone, nothing shows the
+            // stream any more.
+            PlayerMediaSession.release(PlayerMediaSession.HOLDER_ACTIVITY)
             pauseInBackground()
             return
         }
@@ -985,6 +989,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        // A headset's play/pause reaches this app's playback while it is in front of the viewer
+        // (PlayerMediaSession); [onStop] lets go once nothing is showing it.
+        PlayerMediaSession.hold(PlayerMediaSession.HOLDER_ACTIVITY, this, ServiceLocator.player)
         // Whatever [onStop] handed off to while backgrounded is no longer needed: the UI is
         // back and drives the player directly again.
         RadioBackgroundService.stop(this)
@@ -1042,6 +1049,7 @@ class MainActivity : ComponentActivity() {
         // running in its own foreground service either way.
         if (isFinishing) {
             RadioBackgroundService.stop(this)
+            PlayerMediaSession.release(PlayerMediaSession.HOLDER_ACTIVITY)
             ServiceLocator.player.release()
             return
         }
@@ -1050,6 +1058,10 @@ class MainActivity : ComponentActivity() {
         // showing this stream.
         val pipNow = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
         if (pipNow) return
+        // From here the activity shows nothing. A station handed to RadioBackgroundService is
+        // held by the service instead; anything else is paused below, and a headset must not be
+        // able to start it again behind the viewer's back.
+        PlayerMediaSession.release(PlayerMediaSession.HOLDER_ACTIVITY)
         // A window already reported gone, with no resume since, was closed with its X: the
         // viewer asking for quiet, not for the radio to carry on in the background.
         if (vm.isRadioPlaying && !leftForPip) {

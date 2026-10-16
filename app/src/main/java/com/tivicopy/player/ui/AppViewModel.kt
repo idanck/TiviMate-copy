@@ -905,6 +905,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * time and could add a favourite but never remove one.
      */
     fun setFavourite(channel: Channel, favourite: Boolean) {
+        // Every copy of the channel the state holds, not only the list the reload below refreshes:
+        // a star drawn from any other copy never moved (see `withFavourite`).
+        _state.value = _state.value.withFavourite(channel.id, favourite)
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = favourite) }
             loadChannels()
