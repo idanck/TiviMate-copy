@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -96,6 +98,10 @@ internal data class MenuDestination(
  *
  * @param current the overlay on screen; the entry that opens it is drawn as the current one, and a
  *   screen with no entry of its own (on demand, adding a source) lights none
+ * @param contentFocus where a press towards the content sends the remote, for a screen the D-pad
+ *   cannot find from here on its own; null leaves it to the D-pad. Home needs it: its rails run
+ *   full-bleed under the strip, so to the D-pad they are not beside the menu at all, and the press
+ *   went nowhere (device report, 2026-10-16). It must be attached whenever it is passed.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -103,6 +109,7 @@ internal fun SideMenu(
     current: TvOverlay,
     onOpen: (TvOverlay) -> Unit,
     modifier: Modifier = Modifier,
+    contentFocus: FocusRequester? = null,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
@@ -180,7 +187,9 @@ internal fun SideMenu(
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             MenuHeader(open = open)
-            destinations.forEach { MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose) }
+            destinations.forEach {
+                MenuEntry(it, current = it.overlay == current, open = open, contentFocus = contentFocus, onChoose = choose)
+            }
             Box(
                 modifier = Modifier
                     .padding(vertical = 7.dp)
@@ -188,7 +197,9 @@ internal fun SideMenu(
                     .height(1.dp)
                     .background(studio.hairline),
             )
-            tools.forEach { MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose) }
+            tools.forEach {
+                MenuEntry(it, current = it.overlay == current, open = open, contentFocus = contentFocus, onChoose = choose)
+            }
         }
         // The inner edge: a hairline along the full height of the menu.
         Box(
@@ -255,6 +266,7 @@ private fun MenuEntry(
     destination: MenuDestination,
     current: Boolean,
     open: Boolean,
+    contentFocus: FocusRequester?,
     onChoose: (TvOverlay) -> Unit,
 ) {
     val metrics = LocalTvMetrics.current
@@ -283,6 +295,9 @@ private fun MenuEntry(
             .clip(shape)
             .background(fill)
             .onFocusChanged { focused = it.isFocused }
+            // Towards the content is the end edge in either direction: the left in Hebrew, the
+            // right in English. Before `clickable`, whose focus target it describes.
+            .focusProperties { if (contentFocus != null) end = contentFocus }
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
             // the remote a second press to pass every entry.
             .clickable { onChoose(destination.overlay) }

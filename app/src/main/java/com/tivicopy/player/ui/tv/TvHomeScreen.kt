@@ -37,10 +37,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -105,7 +108,8 @@ import com.tivicopy.player.ui.common.StudioIcons
 // `Modifier.focusGroup` is `@ExperimentalFoundationApi` at this Compose version, as
 // `combinedClickable` is in `ui/common/Components.kt`. It keeps a D-pad step between rails
 // landing at the start of the next one rather than at whichever card happens to be nearest.
-@OptIn(ExperimentalFoundationApi::class)
+// `focusRestorer` is `@ExperimentalComposeUiApi` at this Compose version.
+@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
 @Composable
 fun TvHomeScreen(
     vm: AppViewModel,
@@ -117,6 +121,12 @@ fun TvHomeScreen(
     audioOnlyBackdrop: Boolean,
     onOpen: (TvOverlay) -> Unit,
     onFullscreen: () -> Unit,
+    /**
+     * Where the side menu hands the remote back to this screen: whatever it was on when it left
+     * for the menu. The menu cannot find this screen by itself — the rails run full-bleed under
+     * its strip, so to the D-pad nothing here lies beside the menu (`SideMenu`'s `contentFocus`).
+     */
+    contentFocus: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
@@ -203,6 +213,11 @@ fun TvHomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .focusRequester(contentFocus)
+                // Back from the menu to the banner button, app or card the remote left from. A
+                // rail is restored to its own card because each rail remembers it on the way out
+                // ([savesFocusedChild]); this list remembers only which rail it was.
+                .focusRestorer()
                 .focusGroup(),
         ) {
             item(key = "hero") {
@@ -446,6 +461,7 @@ private fun HomeCardRail(
     startInset: Dp,
     onOpen: (HomeCard) -> Unit,
 ) {
+    val rowFocus = remember { FocusRequester() }
     Column(modifier = Modifier.fillMaxWidth().background(background)) {
         SectionHeader(
             text = title,
@@ -461,6 +477,7 @@ private fun HomeCardRail(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
+                .savesFocusedChild(rowFocus)
                 .focusGroup(),
             // The home screen is drawn without `OverlayScaffold`'s content inset — a full-bleed
             // banner cannot start 24dp from the edge — so the rails apply it themselves, plus
@@ -521,6 +538,27 @@ private fun HomeTile(
         modifier = modifier,
     )
 }
+
+/**
+ * Has the row this is put on — ahead of its `focusGroup` — note which of its children had the
+ * remote each time the remote leaves it, so the home list's `focusRestorer` can return to that
+ * exact card from the side menu.
+ *
+ * It only notes; it never restores by itself. A `focusRestorer` on the row would also answer a
+ * step down from the rail above with the card last used in this one, and a step between rails is
+ * meant to stay as it is.
+ *
+ * @param requester remembered by the caller, and used for nothing else
+ */
+@OptIn(ExperimentalComposeUiApi::class)
+internal fun Modifier.savesFocusedChild(requester: FocusRequester): Modifier =
+    focusRequester(requester).focusProperties {
+        exit = {
+            // Never worth a crash: at worst the menu returns the remote to the row's default card.
+            runCatching { requester.saveFocusedChild() }
+            FocusRequester.Default
+        }
+    }
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000

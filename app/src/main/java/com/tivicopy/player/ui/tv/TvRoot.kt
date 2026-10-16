@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -203,6 +204,8 @@ fun TvRoot(
     // Forgotten as soon as the guide is left, so the next guide opens as it always has.
     var guideFor by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(overlay) { if (overlay != TvOverlay.GUIDE) guideFor = null }
+    // Home's content, for the side menu to hand the remote back to; see TvHomeScreen.
+    val homeFocus = remember { FocusRequester() }
 
     // The screen drops the request itself once it has taken it; this only covers the request
     // that is never taken, because on demand was left before it composed.
@@ -452,7 +455,16 @@ fun TvRoot(
                 // it, and only which entry is lit changes. Every choice in it, the lit entry's
                 // included, reaches `onOverlayChange`, so a screen chosen from the menu rises to
                 // home on Back even if it had been opened from the video (ADR-036).
-                sideMenu = { SideMenu(current = overlay, onOpen = onOverlayChange) },
+                // On home, a press towards the content is sent there explicitly: the D-pad cannot
+                // find home's full-bleed rails from the menu by itself. Passed only while home is
+                // the screen, which is exactly while its requester is attached.
+                sideMenu = {
+                    SideMenu(
+                        current = overlay,
+                        onOpen = onOverlayChange,
+                        contentFocus = homeFocus.takeIf { overlay == TvOverlay.HOME },
+                    )
+                },
             ) {
                 when (overlay) {
                     // The television's root surface (ADR-016). Added here in the same edit as the
@@ -467,6 +479,7 @@ fun TvRoot(
                         audioOnlyBackdrop = audioOnly,
                         onOpen = onOverlayChange,
                         onFullscreen = { onOverlayChange(TvOverlay.NONE) },
+                        contentFocus = homeFocus,
                         modifier = Modifier.fillMaxSize(),
                     )
 
