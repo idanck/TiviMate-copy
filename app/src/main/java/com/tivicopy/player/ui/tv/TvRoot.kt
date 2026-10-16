@@ -199,6 +199,10 @@ fun TvRoot(
     // Held here, above the overlay switch, so closing and reopening the on-demand overlay
     // restores the search box, the filter, the open series and the scroll position.
     val vodState = remember { VodScreenState() }
+    // The channel the channel list's preview opened the guide for, which the guide lands on.
+    // Forgotten as soon as the guide is left, so the next guide opens as it always has.
+    var guideFor by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(overlay) { if (overlay != TvOverlay.GUIDE) guideFor = null }
 
     // The screen drops the request itself once it has taken it; this only covers the request
     // that is never taken, because on demand was left before it composed.
@@ -472,6 +476,12 @@ fun TvRoot(
                         vm = vm,
                         onPlay = { channel -> vm.play(channel); onOverlayChange(TvOverlay.NONE) },
                         onAddSource = { onOverlayChange(TvOverlay.ADD_SOURCE) },
+                        // The preview's "schedule": the guide, landed on that channel's programme
+                        // on air. Not the radio's, whose stations carry no guide.
+                        onOpenGuide = { channel ->
+                            guideFor = channel.id
+                            onOverlayChange(TvOverlay.GUIDE)
+                        },
                         // Opening the list lands on the playing channel, focused, so zapping
                         // onward is one press instead of a scroll from the top.
                         scrollToCurrent = true,
@@ -511,7 +521,8 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                         // From the video, the guide opens where the viewer already is: on the
                         // programme on air on the channel playing (`canvas/GuideFromVideo.dc.html`).
-                        landOnNow = openedFromVideo == TvOverlay.GUIDE,
+                        // From the channel list's preview, on the channel it was showing.
+                        landOn = if (openedFromVideo == TvOverlay.GUIDE) state.currentChannel?.id else guideFor,
                     )
 
                     TvOverlay.SEARCH -> SearchScreen(

@@ -56,6 +56,11 @@ while it is on screen focuses its airing cell. It has one try — a channel with
 now leaves the guide as it was, and a later refetch never pulls the remote back from wherever the
 viewer has taken it.
 
+The same landing serves the channel list's preview on the television: its "schedule" button
+(`canvas/Channels.dc.html`, the only one of the board's three buttons drawn) opens the guide on
+the previewed channel's programme on air. That guide was opened from a browse screen, not from
+the video, so Back from it rises to home.
+
 ## Routes that keep their old behaviour
 
 Back rises to home, as ADR-016 has it, from:

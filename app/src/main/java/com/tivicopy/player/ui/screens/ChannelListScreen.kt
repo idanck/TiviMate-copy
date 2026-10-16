@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -116,6 +117,11 @@ fun ChannelListScreen(
      * RadioCategoryClassifier], instead of the playlist's raw provider groups.
      */
     isRadio: Boolean = false,
+    /**
+     * Opens the guide on a channel, from the "schedule" button at the foot of the television's
+     * preview (`canvas/Channels.dc.html`). Null draws no button — the radio and the phone.
+     */
+    onOpenGuide: ((Channel) -> Unit)? = null,
 ) {
     val state by vm.state.collectAsState()
     var previewChannel by remember { mutableStateOf<Channel?>(null) }
@@ -312,6 +318,7 @@ fun ChannelListScreen(
                     .fillMaxHeight()
                     .padding(12.dp),
                 circularLogo = isRadio,
+                onOpenGuide = onOpenGuide,
             )
         }
     }
@@ -772,9 +779,18 @@ fun NowNextPane(
      * beside rows that are already drawing the same station round.
      */
     circularLogo: Boolean = false,
+    /** The television preview's "schedule" button; null draws none. */
+    onOpenGuide: ((Channel) -> Unit)? = null,
 ) {
     if (StudioTheme.television) {
-        ChannelPreview(channel = channel, now = now, next = next, circularLogo = circularLogo, modifier = modifier)
+        ChannelPreview(
+            channel = channel,
+            now = now,
+            next = next,
+            circularLogo = circularLogo,
+            onOpenGuide = onOpenGuide,
+            modifier = modifier,
+        )
         return
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -832,8 +848,11 @@ fun NowNextPane(
  * The preview beside a television's channel list (`Channels`' aside): the number in Karantina
  * beside the name, the live badge, the programme's title in Karantina, its times with the
  * progress and the minutes left, its synopsis, and under a hairline what comes next — in the
- * `next` colour, which is what it is for. The canvas's three buttons at the foot of the pane are
- * not drawn: the row already does all three (OK, the guide key, the star on the row).
+ * `next` colour, which is what it is for.
+ *
+ * Of the canvas's three buttons at the foot of the pane, only "schedule" is drawn ([onOpenGuide]):
+ * watching is OK on the row and the favourite is the star on the row, but the channel's schedule
+ * was a long press and a menu away. The owner's call (2026-10-16, `MIGRATION.md` round 3).
  */
 @Composable
 private fun ChannelPreview(
@@ -841,6 +860,7 @@ private fun ChannelPreview(
     now: Programme?,
     next: Programme?,
     circularLogo: Boolean,
+    onOpenGuide: ((Channel) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
@@ -907,6 +927,16 @@ private fun ChannelPreview(
                 text = TimeModel.ltr(TimeModel.formatClockRange(it.startUtc, it.endUtc)),
                 style = type.meta,
                 color = studio.ink2,
+            )
+        }
+        // The foot of the pane, as the canvas sets it: the button, then the hint under it.
+        Spacer(modifier = Modifier.weight(1f))
+        if (onOpenGuide != null) {
+            StudioButton(
+                label = stringResource(R.string.preview_open_guide),
+                icon = StudioIcons.Guide,
+                size = StudioButtonSize.MEDIUM,
+                onClick = { onOpenGuide(channel) },
             )
         }
         Text(
