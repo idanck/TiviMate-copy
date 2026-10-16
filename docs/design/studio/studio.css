@@ -94,6 +94,15 @@
   --st-amb-period-x: 47s;
   --st-amb-period-y: 76s;
   --st-amb-hue: 26deg;
+  /* שומר מסך: שחור אמיתי, כדי שמסך OLED לא יפלוט כמעט כלום */
+  --st-saver-ground: #000000;
+  /* טווח הנדידה של שומר המסך. לוח עם קבוצה רחבה יותר מקטין אותו */
+  --st-saver-span-x: 1000px;
+  --st-saver-span-y: 230px;
+  /* שומר מסך במצב צבעוני: גוונים רכים מחוץ לצבעי המשמעות (פוקוס, חי, הבא, הצלחה, שגיאה). כיבוי הצבעים מחזיר לצבעי הטקסט */
+  --st-saver-c1: #5CC8E6;
+  --st-saver-c2: #B79CFF;
+  --st-saver-c3: #C6E37A;
 
   /* אקולייזר */
   --st-eq-bar: rgba(243, 245, 249, 0.88);
@@ -109,6 +118,16 @@
 .st-amb-x { animation: st-amb-x var(--st-amb-period-x) ease-in-out infinite; }
 .st-amb-y { animation: st-amb-y var(--st-amb-period-y) ease-in-out infinite; }
 .st-amb-hue { animation: st-amb-hue var(--st-amb-cycle) ease-in-out infinite; }
+/* שומר מסך: אותו מסלול שלא נסגר (47s/76s), בטווח של כל המסך */
+@keyframes st-saver-x { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(calc(var(--st-saver-span-x) * -1)); } }
+@keyframes st-saver-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(var(--st-saver-span-y)); } }
+@keyframes st-crawl { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.st-saver-x { animation: st-saver-x var(--st-amb-period-x) ease-in-out infinite; }
+.st-saver-y { animation: st-saver-y var(--st-amb-period-y) ease-in-out infinite; }
+.st-crawl { animation: st-crawl 70s linear infinite; }
+/* פיד המבזקים בשומר המסך: גלילה רציפה מלמעלה למטה. המשך הלולאה נקבע בלוח */
+@keyframes st-feed-down { from { transform: translateY(-50%); } to { transform: translateY(0); } }
+.st-feed-down { animation: st-feed-down 80s linear infinite; }
 
 /* מסך מלא */
 .st-screen { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--st-ground); color: var(--st-ink); font-family: var(--st-font-ui); }

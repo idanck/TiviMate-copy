@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור — שומר מסך, מבזקים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="background: var(--st-saver-ground)">
+
+<div class="st-saver-x" style="position: absolute; top: 54px; right: 96px; width: 1040px; --st-saver-span-x: 680px; animation-play-state: {{play}}">
+<section aria-label="מבזקים" class="st-saver-y" style="display: flex; flex-direction: column; gap: 26px; opacity: 0.8; animation-play-state: {{play}}">
+
+<div style="display: flex; align-items: flex-end; justify-content: space-between; padding-bottom: 18px; border-bottom: 1px solid var(--st-hairline-soft)">
+<div style="display: flex; align-items: baseline; gap: 12px">
+<span style="font-size: 30px; font-weight: 600">מבזקים</span>
+<span style="font-size: 22px; color: var(--st-ink-2)">מ-3 מקורות</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span style="font-size: 22px; color: var(--st-ink-2)">חמישי 15.10</span>
+<span class="st-num" style="font-size: 52px; font-weight: 600; line-height: 1">20:56</span>
+</div>
+</div>
+
+<article style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 14px">
+<span style="display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: var(--st-r-badge); background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline-soft); font-size: 20px; font-weight: 600; color: var(--st-ink)">{{cur.src}}</span>
+<span class="st-num" style="font-size: 24px; font-weight: 600; color: var(--st-ink-2)">{{cur.at}}</span>
+<span style="font-size: 22px; color: var(--st-ink-3)">{{cur.ago}}</span>
+</div>
+<h1 style="margin: 0; font-size: 60px; font-weight: 600; line-height: 1.15; min-height: 138px">[כותרת המבזק, עד שתי שורות]</h1>
+<div aria-hidden="true" style="display: flex; gap: 8px">
+<sc-for list="{{pips}}" as="p" hint-placeholder-count="6">
+<span style="width: {{p.w}}px; height: 6px; border-radius: 3px; background: {{p.c}}"></span>
+</sc-for>
+</div>
+</article>
+
+<ol aria-label="מבזקים קודמים" style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{older}}" as="o" hint-placeholder-count="3">
+<li style="display: flex; align-items: baseline; gap: 16px; font-size: 26px; color: var(--st-ink-2)">
+<span class="st-num" style="flex: 0 0 auto; font-size: 22px; font-weight: 600; color: var(--st-ink-3)">{{o.at}}</span>
+<span style="flex: 0 0 auto; font-size: 22px; font-weight: 600">{{o.src}}</span>
+<span style="min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[כותרת המבזק]</span>
+</li>
+</sc-for>
+</ol>
+
+</section>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"seconds":{"editor":"int","default":6,"min":3,"max":20},"demo":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    const every = (Number(this.props.seconds) || 6) * 1000;
+    this.iv = setInterval(() => this.setState({ i: ((this.state && this.state.i) || 0) + 1 }), every);
+  }
+  componentWillUnmount() {
+    clearInterval(this.iv);
+  }
+  renderVals() {
+    const off = (v) => v === false || v === 'false';
+    const demo = !off(this.props.demo);
+    const NOW = 20 * 60 + 56;
+    const all = [['[מקור 1]', '20:51'], ['[מקור 2]', '20:44'], ['[מקור 1]', '20:30'], ['[מקור 3]', '20:12'], ['[מקור 2]', '19:58'], ['[מקור 1]', '19:40']];
+    const k = demo ? (((this.state && this.state.i) || 0) % all.length) : 0;
+    const mins = (at) => { const p = at.split(':'); return Number(p[0]) * 60 + Number(p[1]); };
+    const ago = (at) => { const d = NOW - mins(at); return d < 60 ? 'לפני ' + d + ' דק׳' : 'לפני שעה ו-' + (d - 60) + ' דק׳'; };
+    const pick = (j) => { const f = all[(k + j) % all.length]; return { src: f[0], at: f[1], ago: ago(f[1]) }; };
+    return {
+      cur: pick(0),
+      older: [1, 2, 3].filter((j) => k + j < all.length).map(pick),
+      pips: all.map((f, j) => ({ w: j === k ? 28 : 6, c: j === k ? 'var(--st-ink)' : 'var(--st-ink-3)' })),
+      play: demo ? 'running' : 'paused'
+    };
+  }
+}
+</script>
+</body>
+</html>
