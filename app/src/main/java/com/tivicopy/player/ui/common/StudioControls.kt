@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -37,7 +38,9 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarVisuals
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -95,6 +98,11 @@ import com.tivicopy.player.ui.theme.StudioTheme
  *
  * @param helper a line under the field: a hint, or with [isError] the reason it was refused
  * @param trailing a control at the end of the field, such as the channel filter's clear button
+ * @param editOnPress on a television, that reaching the field is not yet editing it: the remote
+ *   stops on it as on any row, ringed, and only OK (or a tap) puts the cursor in and brings the
+ *   keyboard up. A form full of these — Settings, a playlist's details — otherwise opens the
+ *   keyboard over the screen on every field focus passes through on its way down. Editing ends
+ *   when focus leaves the field. Ignored on a phone, where focus already means a finger chose it.
  */
 @Composable
 fun StudioField(
@@ -112,13 +120,28 @@ fun StudioField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     focusRequester: FocusRequester? = null,
+    editOnPress: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     val tv = StudioTheme.television
     val interaction = remember { MutableInteractionSource() }
-    val focused by interaction.collectIsFocusedAsState()
+    val inputFocused by interaction.collectIsFocusedAsState()
+    val pressToEdit = editOnPress && tv
+    // While not editing, the input is disabled: it cannot take focus, so the keyboard stays down,
+    // and a tap goes to the click on the field as a whole, as OK does.
+    var editing by remember { mutableStateOf(false) }
+    // Counts the presses rather than holding a flag, so a second OK still focuses the input if
+    // the first request did not land.
+    var editRequests by remember { mutableIntStateOf(0) }
+    var outerFocused by remember { mutableStateOf(false) }
+    val outerInteraction = remember { MutableInteractionSource() }
+    val inputFocus = remember { FocusRequester() }
+    LaunchedEffect(editRequests) {
+        if (editRequests > 0) inputFocus.requestFocus()
+    }
+    val focused = inputFocused || (pressToEdit && outerFocused)
     val shape = MaterialTheme.shapes.medium
     val ringWidth = if (tv) TV_RING else PHONE_RING
     val ring = animatedColour(
@@ -132,7 +155,23 @@ fun StudioField(
     val inputStyle = type.rowLabel.copy(fontWeight = FontWeight.Normal, color = studio.ink)
 
     Column(
-        modifier = modifier.alpha(if (enabled) 1f else DISABLED_ALPHA),
+        modifier = modifier
+            .alpha(if (enabled) 1f else DISABLED_ALPHA)
+            .then(
+                if (pressToEdit) {
+                    Modifier
+                        // `hasFocus`: while editing, focus is on the input inside.
+                        .onFocusChanged { outerFocused = it.hasFocus }
+                        .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                        // OK on the remote is a click, as on every row.
+                        .clickable(enabled = enabled, interactionSource = outerInteraction, indication = null) {
+                            editing = true
+                            editRequests++
+                        }
+                } else {
+                    Modifier
+                },
+            ),
         verticalArrangement = Arrangement.spacedBy(if (tv) 5.dp else 6.dp),
     ) {
         if (!label.isNullOrEmpty()) {
@@ -141,7 +180,7 @@ fun StudioField(
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            enabled = enabled,
+            enabled = enabled && (!pressToEdit || editing),
             singleLine = singleLine,
             textStyle = inputStyle,
             cursorBrush = SolidColor(studio.cue),
@@ -151,7 +190,17 @@ fun StudioField(
             interactionSource = interaction,
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
+                .then(
+                    when {
+                        pressToEdit -> Modifier
+                            .focusRequester(inputFocus)
+                            // Leaving the input, by the remote or by the keyboard's own action,
+                            // is the end of editing: the next visit starts at rest again.
+                            .onFocusChanged { if (!it.isFocused) editing = false }
+                        focusRequester != null -> Modifier.focusRequester(focusRequester)
+                        else -> Modifier
+                    },
+                ),
             decorationBox = { input ->
                 Row(
                     modifier = Modifier

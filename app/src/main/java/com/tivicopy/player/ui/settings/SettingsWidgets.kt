@@ -1,26 +1,51 @@
 package com.tivicopy.player.ui.settings
 
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.common.ListRow
+import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.RowTrail
-import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
+import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.theme.StudioTheme
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * A heading in a settings section, as the canvas draws the two (`TvSettingsSources`).
@@ -144,6 +169,27 @@ fun <T> SettingsChoice(
     RowDivider()
 }
 
+/**
+ * A number set along a range: its label and value over Studio's track.
+ *
+ * The whole row is one focus target, drawn as every other row is ([focusSurface]), and the
+ * remote's left and right move the value one [keyStep] at a time — in the direction the track is
+ * drawn, so in Hebrew, where it runs right to left, left raises it. Held, a key repeats, and over
+ * a long range it soon moves five steps a press. Up and down are left alone, so focus goes on to
+ * the next row as it does from any other.
+ *
+ * Material's slider is still what is drawn, and what a finger drags on a phone, but it never takes
+ * focus itself. On its own it showed no focus at all, and with no steps its arrow keys moved by 1%
+ * of the range, which a setting stored as a whole number truncated straight back to where it was:
+ * on a television the row looked dead.
+ *
+ * Focused, the value sits between two chevrons, each dimmed once the value is at the end it points
+ * to, and the thumb and the filled track turn the cue: the cue is reserved for focus.
+ *
+ * @param keyStep how far one press of the remote moves the value. Defaults to one of [steps] when
+ *   there are some and to a twentieth of the range otherwise; a setting stored as a whole number
+ *   needs a whole step.
+ */
 @Composable
 fun SettingsSlider(
     title: String,
@@ -151,27 +197,84 @@ fun SettingsSlider(
     value: Float,
     range: ClosedFloatingPointRange<Float>,
     steps: Int = 0,
+    keyStep: Float = defaultKeyStep(range, steps),
     onChange: (Float) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+    val studio = StudioTheme.colors
+    val tv = StudioTheme.television
+    val metrics = LocalTvMetrics.current
+    val shape = RoundedCornerShape(metrics.rowCorner)
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    var focused by remember { mutableStateOf(false) }
+    // Read when the key arrives rather than when the row was composed: a held key can repeat
+    // before the new value has come back round from the settings.
+    val latest by rememberUpdatedState(value)
+    val change by rememberUpdatedState(onChange)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
+            .focusSurface(focused = focused, shape = shape)
+            .onFocusChanged { focused = it.isFocused }
+            .onKeyEvent { event ->
+                val towardsEnd = when (event.key) {
+                    Key.DirectionRight -> !rtl
+                    Key.DirectionLeft -> rtl
+                    else -> return@onKeyEvent false
+                }
+                if (event.type == KeyEventType.KeyDown) {
+                    val times = keyStepMultiplier(event.nativeKeyEvent.repeatCount, range, keyStep)
+                    val next = steppedValue(latest, towardsEnd, keyStep, range, times)
+                    if (next != latest) change(next)
+                }
+                // The release as well, so no half of the press reaches the focus search.
+                true
+            }
+            .focusable()
+            .semantics { contentDescription = "$title, $valueLabel" }
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(title, style = StudioTheme.type.rowLabel, color = StudioTheme.colors.ink)
-            Text(valueLabel, style = StudioTheme.type.meta, color = StudioTheme.colors.ink2)
+            Text(
+                title,
+                style = StudioTheme.type.rowLabel,
+                color = studio.ink,
+                modifier = Modifier.weight(1f),
+            )
+            if (tv) {
+                // Laid out at rest too, only invisible, so the value does not jump sideways when
+                // focus arrives. `ChevronEnd` turned over is the one towards the start: the icon
+                // set draws only the canvas's glyphs, and the canvas has the one chevron.
+                SliderChevron(
+                    focused = focused,
+                    atLimit = value <= range.start,
+                    modifier = Modifier.graphicsLayer { scaleX = -1f },
+                )
+            }
+            Text(
+                valueLabel,
+                style = StudioTheme.type.meta,
+                color = animatedColour(if (focused) studio.ink else studio.ink2),
+            )
+            if (tv) SliderChevron(focused = focused, atLimit = value >= range.endInclusive)
         }
-        val studio = StudioTheme.colors
+        val thumb = animatedColour(if (focused) studio.cue else studio.ink)
         Slider(
             value = value,
             onValueChange = onChange,
             valueRange = range,
             steps = steps,
+            // The row takes focus and the keys; the slider would otherwise be a second, invisible
+            // stop on the way down the list, and handle the keys its own way.
+            modifier = Modifier.focusProperties { canFocus = false },
             // Ink on the track, as Studio's progress bar is: the cue is reserved for focus.
             colors = SliderDefaults.colors(
-                thumbColor = studio.ink,
-                activeTrackColor = studio.ink,
+                thumbColor = thumb,
+                activeTrackColor = thumb,
                 inactiveTrackColor = studio.track,
                 activeTickColor = studio.ground,
                 inactiveTickColor = studio.ink3,
@@ -180,3 +283,60 @@ fun SettingsSlider(
     }
     RowDivider()
 }
+
+/** One of the chevrons either side of a focused slider's value; dim at the end it points to. */
+@Composable
+private fun SliderChevron(focused: Boolean, atLimit: Boolean, modifier: Modifier = Modifier) {
+    val studio = StudioTheme.colors
+    val tint = when {
+        !focused -> studio.ink.copy(alpha = 0f)
+        atLimit -> studio.ink3
+        else -> studio.ink
+    }
+    Icon(
+        imageVector = StudioIcons.ChevronEnd,
+        contentDescription = null,
+        tint = animatedColour(tint),
+        modifier = modifier.size(13.dp),
+    )
+}
+
+/** One step of a slider with [steps], or a twentieth of a range without any. */
+internal fun defaultKeyStep(range: ClosedFloatingPointRange<Float>, steps: Int): Float =
+    (range.endInclusive - range.start) / (if (steps > 0) steps + 1 else 20)
+
+/**
+ * Where one press of the remote takes [value]: [times] steps of [step] towards the end of [range]
+ * or its start, on the grid of whole steps counted from the start, and no further than either end.
+ * A value between two grid points — a phone's drag — goes to the next one that way, never back.
+ */
+internal fun steppedValue(
+    value: Float,
+    towardsEnd: Boolean,
+    step: Float,
+    range: ClosedFloatingPointRange<Float>,
+    times: Int = 1,
+): Float {
+    // Within a hair of a grid point counts as on it: 0.3 + 0.05 × 7 is not quite 0.65 in a float.
+    val position = (value - range.start) / step
+    val index = if (towardsEnd) {
+        floor(position + GRID_SLACK).toInt() + times
+    } else {
+        ceil(position - GRID_SLACK).toInt() - times
+    }
+    return (range.start + index * step).coerceIn(range)
+}
+
+/**
+ * Five steps a press once a key has been held for [ACCELERATE_AFTER] repeats — about a second
+ * — on a range longer than [LONG_RANGE_STEPS] steps; one otherwise, so a short range is never
+ * overshot.
+ */
+internal fun keyStepMultiplier(repeatCount: Int, range: ClosedFloatingPointRange<Float>, step: Float): Int =
+    if (repeatCount >= ACCELERATE_AFTER && (range.endInclusive - range.start) / step > LONG_RANGE_STEPS) 5 else 1
+
+private const val ACCELERATE_AFTER = 10
+private const val LONG_RANGE_STEPS = 40
+
+/** A thousandth of a step: float error, not a position between two grid points. */
+private const val GRID_SLACK = 0.001f

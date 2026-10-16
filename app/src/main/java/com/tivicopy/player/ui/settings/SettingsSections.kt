@@ -64,6 +64,7 @@ fun TextSetting(
         onValueChange = { draft = it; onChange(it) },
         label = title,
         placeholder = placeholder,
+        editOnPress = true,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     )
 }
@@ -203,12 +204,14 @@ fun RecordingSection(vm: AppViewModel) {
         valueLabel = "${s.recordingPreRollMinutes} min",
         value = s.recordingPreRollMinutes.toFloat(),
         range = 0f..30f,
+        keyStep = 1f,
     ) { settings.setRecordingPadding(it.toInt(), s.recordingPostRollMinutes) }
     SettingsSlider(
         title = stringResource(R.string.rec_padding, s.recordingPreRollMinutes, s.recordingPostRollMinutes),
         valueLabel = "${s.recordingPostRollMinutes} min",
         value = s.recordingPostRollMinutes.toFloat(),
         range = 0f..60f,
+        keyStep = 1f,
     ) { settings.setRecordingPadding(s.recordingPreRollMinutes, it.toInt()) }
     SettingsSlider(
         title = stringResource(R.string.rec_concurrency),
@@ -222,6 +225,7 @@ fun RecordingSection(vm: AppViewModel) {
         valueLabel = "${s.recordingFreeSpaceWarnGb} GB",
         value = s.recordingFreeSpaceWarnGb.toFloat(),
         range = 1f..100f,
+        keyStep = 1f,
     ) { settings.setRecordingFreeSpaceWarnGb(it.toInt()) }
     Text(
         text = stringResource(R.string.rec_uses_connection),
@@ -341,6 +345,7 @@ private fun ParentalPinSetup(
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
             keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword,
         ),
+        editOnPress = true,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     )
     SettingsRow(title = stringResource(R.string.action_save), icon = StudioIcons.Check, onClick = onSave)
@@ -605,6 +610,7 @@ fun NewsSourcesSetting(vm: AppViewModel, sources: List<NewsSource>) {
         } else {
             null
         },
+        editOnPress = true,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
     )
     ListRow(

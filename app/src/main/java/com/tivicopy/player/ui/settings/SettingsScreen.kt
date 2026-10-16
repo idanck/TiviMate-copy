@@ -164,12 +164,14 @@ fun SettingsScreen(
                         valueLabel = "${s.customBufferMinMs} ms",
                         value = s.customBufferMinMs.toFloat(),
                         range = 200f..30_000f,
+                        keyStep = 100f,
                     ) { settings.setCustomBuffer(it.toInt(), s.customBufferMaxMs); vm.onSettingsChanged() }
                     SettingsSlider(
                         title = stringResource(R.string.buffer_size),
                         valueLabel = "${s.customBufferMaxMs} ms",
                         value = s.customBufferMaxMs.toFloat(),
                         range = 1_000f..120_000f,
+                        keyStep = 1_000f,
                     ) { settings.setCustomBuffer(s.customBufferMinMs, it.toInt()); vm.onSettingsChanged() }
                 }
                 SettingsChoice(
@@ -200,6 +202,7 @@ fun SettingsScreen(
                     valueLabel = "%.1f×".format(s.subtitleTextScale),
                     value = s.subtitleTextScale,
                     range = 0.5f..2.5f,
+                    keyStep = 0.1f,
                     onChange = settings::setSubtitleTextScale,
                 )
                 SettingsChoice(
@@ -337,6 +340,7 @@ fun SettingsScreen(
                     valueLabel = "%.1f×".format(s.fontScale),
                     value = s.fontScale,
                     range = 0.8f..1.6f,
+                    keyStep = 0.1f,
                     onChange = settings::setFontScale,
                 )
                 // FR-ORG-06. Manual moves live in `sort_index`, which only the provider order
@@ -367,12 +371,14 @@ fun SettingsScreen(
                     valueLabel = stringResource(R.string.settings_seconds, s.overlayAutoHideSeconds),
                     value = s.overlayAutoHideSeconds.toFloat(),
                     range = 2f..60f,
+                    keyStep = 1f,
                 ) { settings.setOverlayAutoHideSeconds(it.toInt()) }
                 SettingsSlider(
                     title = stringResource(R.string.settings_overlay_opacity),
                     valueLabel = "%.0f%%".format(s.overlayOpacity * 100),
                     value = s.overlayOpacity,
                     range = 0.3f..1f,
+                    keyStep = 0.05f,
                     onChange = settings::setOverlayOpacity,
                 )
                 // FR-UI-31 / ADR-024. On by default: it is a burn-in guard, and a guard nobody
@@ -388,6 +394,7 @@ fun SettingsScreen(
                     valueLabel = stringResource(R.string.settings_minutes, s.screensaverIdleMinutes),
                     value = s.screensaverIdleMinutes.toFloat(),
                     range = 1f..60f,
+                    keyStep = 1f,
                 ) { settings.setScreensaverIdleMinutes(it.toInt()) }
                 // FR-UI-33 / ADR-037: the headlines beside the clock. On by default, because
                 // without a source added below there are none to show.
@@ -469,6 +476,7 @@ fun SettingsScreen(
                     valueLabel = "${s.connectTimeoutSeconds}s / ${s.readTimeoutSeconds}s / ${s.retries}",
                     value = s.connectTimeoutSeconds.toFloat(),
                     range = 3f..120f,
+                    keyStep = 1f,
                 ) { settings.setTimeouts(it.toInt(), s.readTimeoutSeconds, s.retries) }
                 SettingsSlider(
                     title = stringResource(R.string.action_retry),
@@ -563,6 +571,7 @@ fun CacheRows() {
         valueLabel = "${s.cacheBudgetMb} MB",
         value = s.cacheBudgetMb.toFloat(),
         range = 50f..4_000f,
+        keyStep = 50f,
     ) { settings.setCacheBudgetMb(it.toInt()) }
     SettingsRow(stringResource(R.string.settings_cache_clear_images)) {
         ServiceLocator.cache.clearImages(); usage = ServiceLocator.cache.usage()
