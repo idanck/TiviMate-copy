@@ -501,7 +501,7 @@ class Runner:
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s26_home_menu_return, self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s24_back_to_video, self.s25_guide_lands_on_now, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
+                   self.s24_back_to_video, self.s25_guide_lands_on_now, self.s27_settings_by_remote, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
                    self.s23_scheduled_recording, self.s21_suspended_refresh,
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
@@ -1213,6 +1213,108 @@ class Runner:
             if label.split(",")[0] != target.split(",")[0] or not visible:
                 wrong.append(f"after OK: wanted {target[:30]} on screen, got {label[:30] or 'nothing'}"
                              f"{'' if visible else ' (off screen)'}")
+            done()
+
+    # Settings' sections (English labels), as the panel at the start of the TV layout lists them.
+    SETTINGS_SECTIONS = ("Playlists and guide", "Playback", "Appearance", "Network", "Recording",
+                         "Parental controls", "Backup and restore", "Diagnostics", "About")
+
+    def s27_settings_by_remote(self):
+        @self.scenario("QA-27", "Settings by remote: a slider shows focus and moves with left and right; a text "
+                       "field brings the keyboard up only on OK", "navigation")
+        def _(sid, title, area):
+            if self.form != "tv":
+                self.record(sid, title, "SKIP", "television only: on a phone a finger picks the field and drags "
+                            "the slider", [], area)
+                return
+            steps, wrong = [], []
+            slider = "Timeouts and retries"
+
+            def where(tag):
+                """The focused node's label, or "" when nothing has the remote."""
+                nodes = self.ui.dump(f"{sid}_{len(steps):02d}_{tag}")
+                focused = [n for n in nodes if n.focused]
+                return UI.label_within(focused[-1], nodes) if focused else ""
+
+            def press(k, tag):
+                key(k, pause=0.8)
+                label = where(tag)
+                steps.append(f"{tag}:{label[:30] or '∅'}")
+                return label
+
+            def in_section(label):
+                """On something in the open section: not a section in the panel, not the side menu."""
+                return bool(label) and label.split(",")[0] not in self.SETTINGS_SECTIONS \
+                    and label not in self.TV_MENU
+
+            def seconds(label):
+                """The connect timeout the slider's row reads out: "Timeouts and retries, 15s / 30s / 3"."""
+                m = re.search(r", (\d+)s", label)
+                return int(m.group(1)) if m else None
+
+            def done():
+                hide_ime()
+                shot = self.ev.shot(f"{sid}_end")
+                self.record(sid, title, "PASS" if not wrong else "FAIL",
+                            ("; ".join(wrong) + " || " if wrong else "") + " · ".join(steps), [shot], area)
+
+            hide_ime()
+            self.home_of_app()
+            if not self.go_settings() or not self.ui.tap_label("Network", scrolls=2, exact=True):
+                wrong.append("could not reach Settings > Network")
+                return done()
+            time.sleep(1.5)
+
+            # 1. Into the open section, from wherever the tap left the remote: the panel of
+            #    sections is at the start, on the left in English.
+            label = where("start")
+            for i in range(4):
+                if in_section(label):
+                    break
+                label = press("KEYCODE_DPAD_RIGHT", f"into{i}")
+            if not in_section(label):
+                wrong.append(f"the remote never reached the Network section: {label or 'nothing'}")
+                return done()
+
+            # 2. Down to the timeouts slider, or up to it if the remote came in below it. Its row
+            #    is what holds the remote, and reads out its value.
+            for k in ["KEYCODE_DPAD_DOWN"] * 12 + ["KEYCODE_DPAD_UP"] * 16:
+                if label.startswith(slider):
+                    break
+                label = press(k, k.split("_")[-1].lower())
+            if not label.startswith(slider):
+                wrong.append("no focused row reads as the timeouts slider")
+                return done()
+            before = seconds(label)
+
+            # 3. Right raises it a second, and the remote stays on the row; left puts it back.
+            label = press("KEYCODE_DPAD_RIGHT", "raise")
+            raised = seconds(label) if label.startswith(slider) else None
+            if before is None or raised != before + 1:
+                wrong.append(f"right on the slider: wanted {before} + 1 s with the remote still on it, "
+                             f"got {label[:40] or 'nothing'}")
+            label = press("KEYCODE_DPAD_LEFT", "lower")
+            lowered = seconds(label) if label.startswith(slider) else None
+            if lowered != before:
+                wrong.append(f"left on the slider: wanted {before} s back, got {label[:40] or 'nothing'}")
+
+            # 4. Up to the user agent field: reaching it leaves the keyboard down.
+            for i in range(12):
+                if "User agent" in label:
+                    break
+                label = press("KEYCODE_DPAD_UP", f"to_field{i}")
+            if "User agent" not in label:
+                wrong.append("the remote never reached the user agent field")
+                return done()
+            if ime_shown():
+                wrong.append("the keyboard came up as the remote reached the field, before OK")
+
+            # 5. OK on it puts the cursor in and brings the keyboard up.
+            key("KEYCODE_DPAD_CENTER", pause=2)
+            opened = ime_shown()
+            steps.append(f"ok:keyboard={'up' if opened else 'down'}")
+            if not opened:
+                wrong.append("OK on the field did not bring the keyboard up")
             done()
 
     def s13_lifecycle(self):

@@ -188,6 +188,7 @@ fun AddSourceScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = stringResource(R.string.setup_name),
+                editOnPress = true,
                 modifier = Modifier.fillMaxWidth(),
             )
 
@@ -198,12 +199,14 @@ fun AddSourceScreen(
                         onValueChange = { url = it },
                         label = stringResource(R.string.setup_server),
                         placeholder = "http://example.com:8080",
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     StudioField(
                         value = username,
                         onValueChange = { username = it },
                         label = stringResource(R.string.setup_username),
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     StudioField(
@@ -212,6 +215,7 @@ fun AddSourceScreen(
                         label = stringResource(R.string.setup_password),
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Password),
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -221,12 +225,14 @@ fun AddSourceScreen(
                         value = url,
                         onValueChange = { url = it },
                         label = stringResource(R.string.setup_url),
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     StudioField(
                         value = epgUrl,
                         onValueChange = { epgUrl = it },
                         label = stringResource(R.string.setup_epg_url),
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
@@ -243,6 +249,7 @@ fun AddSourceScreen(
                         value = epgUrl,
                         onValueChange = { epgUrl = it },
                         label = stringResource(R.string.setup_epg_url),
+                        editOnPress = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
