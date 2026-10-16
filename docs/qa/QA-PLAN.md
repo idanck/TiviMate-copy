@@ -37,6 +37,7 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-02 | performance | 3 cold starts + 1 warm start | worst cold start < 4 s (WARN < 8 s) |
 | QA-03 | sources | First run bootstraps built-in TV channels and radio | both playlists exist with channels |
 | QA-04 | navigation | Every top-level destination opens | all open, no crash |
+| QA-26 | navigation | TV only (ADR-035), straight after QA-04 on the built-in channels. On home: Down, and the arrow towards the content if that landed in the side menu; one card along; into the menu, a step down in it, back towards the content; into the menu again, up to the lit Home, OK; one card along, OK | from the menu the remote reaches home; back from the menu, and OK on the lit Home, both return it to the card it left from; after OK tunes a card and the rails rebuild around it, that card still has the remote, on screen |
 | QA-05 | sources | Malformed, 404 and empty playlist URLs | no crash; failure is recorded, not reported as OK |
 | QA-06 | sources | Add the mock M3U + XMLTV through the UI | 30 channels, ≥3 groups, ≥28 matched to the guide |
 | QA-06b | guide | Wait 60 s after QA-06's Save, no user action | the XMLTV was requested and programmes exist |

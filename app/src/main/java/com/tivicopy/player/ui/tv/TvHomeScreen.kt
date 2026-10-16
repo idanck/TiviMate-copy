@@ -22,14 +22,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,13 +41,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -108,8 +109,7 @@ import com.tivicopy.player.ui.common.StudioIcons
 // `Modifier.focusGroup` is `@ExperimentalFoundationApi` at this Compose version, as
 // `combinedClickable` is in `ui/common/Components.kt`. It keeps a D-pad step between rails
 // landing at the start of the next one rather than at whichever card happens to be nearest.
-// `focusRestorer` is `@ExperimentalComposeUiApi` at this Compose version.
-@OptIn(ExperimentalFoundationApi::class, ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvHomeScreen(
     vm: AppViewModel,
@@ -123,10 +123,10 @@ fun TvHomeScreen(
     onFullscreen: () -> Unit,
     /**
      * Where the side menu hands the remote back to this screen: whatever it was on when it left
-     * for the menu. The menu cannot find this screen by itself — the rails run full-bleed under
-     * its strip, so to the D-pad nothing here lies beside the menu (`SideMenu`'s `contentFocus`).
+     * for the menu. Every control here notes itself in it as it takes the remote; see
+     * [HomeFocusReturn] for why the menu cannot find this screen by itself.
      */
-    contentFocus: FocusRequester,
+    focusReturn: HomeFocusReturn,
     modifier: Modifier = Modifier,
 ) {
     val state by vm.state.collectAsState()
@@ -196,6 +196,11 @@ fun TvHomeScreen(
         withFrameNanos { }
         runCatching { if (heroIsFocusable) heroFocus.requestFocus() else firstCard.requestFocus() }
     }
+    // The menu's fallback when the control the remote left from is no longer drawn: the same
+    // first stop the screen opens on. Both are forgotten with the screen, so a later visit never
+    // hands the remote to a control that has gone.
+    SideEffect { focusReturn.fallback = if (heroIsFocusable) heroFocus else firstCard }
+    DisposableEffect(focusReturn) { onDispose { focusReturn.forget() } }
 
     // What everything below the banner is painted on, and what the banner's gradient fades into.
     // The viewer's own overlay-opacity setting (FR-UI-18), not a constant: every other surface
@@ -213,11 +218,6 @@ fun TvHomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .focusRequester(contentFocus)
-                // Back from the menu to the banner button, app or card the remote left from. A
-                // rail is restored to its own card because each rail remembers it on the way out
-                // ([savesFocusedChild]); this list remembers only which rail it was.
-                .focusRestorer()
                 .focusGroup(),
         ) {
             item(key = "hero") {
@@ -232,6 +232,7 @@ fun TvHomeScreen(
                     scrim = scrim,
                     startInset = railGutter,
                     watchFocus = heroFocus.takeIf { heroIsFocusable },
+                    focusReturn = focusReturn,
                     onFullscreen = onFullscreen,
                     onGuide = { onOpen(TvOverlay.GUIDE) },
                     onFavourite = { vm.setFavourite(it, !it.favourite) },
@@ -244,20 +245,25 @@ fun TvHomeScreen(
                         apps = apps,
                         background = scrim,
                         startInset = railGutter,
+                        focusReturn = focusReturn,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
 
-            items(rails, key = { it.id.name }) { rail ->
+            itemsIndexed(rails, key = { _, rail -> rail.id.name }) { index, rail ->
                 HomeCardRail(
                     title = titles[rail.id].orEmpty(),
+                    // The rail's place in the list: under the banner, and under the apps when
+                    // there are any.
+                    row = index + if (apps.isEmpty()) 1 else 2,
                     cards = rail.cards,
                     playingChannelId = state.currentChannel?.id,
                     cardWidth = metrics.homeCardWidth,
                     background = scrim,
                     firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
                     startInset = railGutter,
+                    focusReturn = focusReturn,
                     onOpen = open,
                 )
             }
@@ -312,6 +318,7 @@ private fun HomeBanner(
     startInset: Dp,
     /** Null when nothing is playing: there is no button to focus, so nothing asks for it. */
     watchFocus: FocusRequester?,
+    focusReturn: HomeFocusReturn,
     onFullscreen: () -> Unit,
     onGuide: () -> Unit,
     onFavourite: (Channel) -> Unit,
@@ -413,12 +420,14 @@ private fun HomeBanner(
                         label = stringResource(R.string.home_watch_fullscreen),
                         icon = StudioIcons.Fullscreen,
                         onClick = onFullscreen,
+                        modifier = Modifier.notesFocus(focusReturn),
                         focusRequester = watchFocus,
                     )
                     StudioButton(
                         label = stringResource(R.string.nav_guide),
                         icon = StudioIcons.Guide,
                         onClick = onGuide,
+                        modifier = Modifier.notesFocus(focusReturn),
                     )
                     StudioButton(
                         label = stringResource(
@@ -427,6 +436,7 @@ private fun HomeBanner(
                         icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                         iconOnly = true,
                         onClick = { onFavourite(channel) },
+                        modifier = Modifier.notesFocus(focusReturn),
                     )
                     next?.let {
                         Text(
@@ -453,15 +463,17 @@ private fun HomeBanner(
 @Composable
 private fun HomeCardRail(
     title: String,
+    /** The rail's place in the home list; see [HomeTile]. */
+    row: Int,
     cards: List<HomeCard>,
     playingChannelId: Long?,
     cardWidth: Dp,
     background: Color,
     firstCardFocus: FocusRequester?,
     startInset: Dp,
+    focusReturn: HomeFocusReturn,
     onOpen: (HomeCard) -> Unit,
 ) {
-    val rowFocus = remember { FocusRequester() }
     Column(modifier = Modifier.fillMaxWidth().background(background)) {
         SectionHeader(
             text = title,
@@ -477,7 +489,6 @@ private fun HomeCardRail(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .savesFocusedChild(rowFocus)
                 .focusGroup(),
             // The home screen is drawn without `OverlayScaffold`'s content inset — a full-bleed
             // banner cannot start 24dp from the edge — so the rails apply it themselves, plus
@@ -492,11 +503,14 @@ private fun HomeCardRail(
             // `--st-gap-rail`: 32px at 1080p.
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            items(cards, key = { it.key }) { card ->
+            itemsIndexed(cards, key = { _, card -> card.key }) { index, card ->
                 HomeTile(
                     card = card,
                     playing = card.channelId != null && card.channelId == playingChannelId,
                     width = cardWidth,
+                    row = row,
+                    index = index,
+                    focusReturn = focusReturn,
                     onClick = { onOpen(card) },
                     modifier = if (firstCardFocus != null && card.key == cards.firstOrNull()?.key) {
                         Modifier.focusRequester(firstCardFocus)
@@ -509,14 +523,28 @@ private fun HomeCardRail(
     }
 }
 
+// `BringIntoViewRequester` is `@ExperimentalFoundationApi` at this Compose version.
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeTile(
     card: HomeCard,
     playing: Boolean,
     width: Dp,
+    /** The rail's place in the home list, and the card's in its rail. */
+    row: Int,
+    index: Int,
+    focusReturn: HomeFocusReturn,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var focused by remember { mutableStateOf(false) }
+    val bringIntoView = remember { BringIntoViewRequester() }
+    // A rebuild can move the card the remote is on: OK on a card puts its channel first under
+    // "continue watching" (and in any rail sorted by what was watched last), and the first channel
+    // ever played adds that rail above the rest. The lists keep their scroll through it, so the
+    // card went off screen with the remote still on it, and the screen showed no focus at all.
+    // Wherever the card lands, the lists follow it.
+    LaunchedEffect(focused, row, index) { if (focused) bringIntoView.bringIntoView() }
     // Studio's channel card (`HomeRails`): the tile is the card, the programme and its time are
     // captions under it. A window still ahead gets its clock rather than a bar sitting at zero.
     val now = System.currentTimeMillis()
@@ -535,30 +563,63 @@ private fun HomeTile(
         circular = card.circular,
         width = width,
         onClick = onClick,
-        modifier = modifier,
+        modifier = modifier
+            .notesFocus(focusReturn)
+            .bringIntoViewRequester(bringIntoView)
+            .onFocusChanged { focused = it.isFocused },
     )
 }
 
 /**
- * Has the row this is put on — ahead of its `focusGroup` — note which of its children had the
- * remote each time the remote leaves it, so the home list's `focusRestorer` can return to that
- * exact card from the side menu.
+ * Where on home the remote last was, so the side menu can hand it back there (ADR-035).
  *
- * It only notes; it never restores by itself. A `focusRestorer` on the row would also answer a
- * step down from the rail above with the card last used in this one, and a step between rails is
- * meant to stay as it is.
+ * Home is drawn full-bleed under the menu's strip, so to the D-pad nothing on it lies beside the
+ * menu, and a press towards the content finds nothing by itself; `SideMenu` asks this instead.
+ * Every control on home notes itself here as it takes the remote ([notesFocus]).
  *
- * @param requester remembered by the caller, and used for nothing else
+ * 0.14.24 used Compose's own `focusRestorer` for this. At this Compose version (1.7) a restorer
+ * remembers only the focus target directly under it, and under a lazy list's `focusGroup` that is
+ * the list's own scroll container, never a card: the press focused the container itself, which
+ * draws nothing and has no neighbours, and the remote was stuck on home with nothing lit until
+ * Back (device report, 2026-10-16). The lit "Home" entry in the menu went the same way.
  */
-@OptIn(ExperimentalComposeUiApi::class)
-internal fun Modifier.savesFocusedChild(requester: FocusRequester): Modifier =
-    focusRequester(requester).focusProperties {
-        exit = {
-            // Never worth a crash: at worst the menu returns the remote to the row's default card.
-            runCatching { requester.saveFocusedChild() }
-            FocusRequester.Default
-        }
+class HomeFocusReturn {
+    private var last: FocusRequester? = null
+
+    /** Where the remote goes when the control it left from is no longer drawn: home's first stop. */
+    var fallback: FocusRequester? = null
+
+    fun note(requester: FocusRequester) {
+        last = requester
     }
+
+    /** Drops both, with the screen they belong to. */
+    fun forget() {
+        last = null
+        fallback = null
+    }
+
+    /**
+     * Hands the remote back to home: to the control it left from, or to home's first stop when
+     * that one has gone. False when neither can take it, so the press is left to the D-pad.
+     */
+    fun restore(): Boolean = listOfNotNull(last, fallback).any { requester ->
+        // A requester whose control has left the composition — a card scrolled away, a rail
+        // rebuilt without it — throws rather than failing quietly. That is the "gone" case, and
+        // never worth a crash.
+        runCatching { requester.requestFocus() }.isSuccess
+    }
+}
+
+/**
+ * Has this control note itself in [focusReturn] each time it takes the remote. Put it on the
+ * control itself, ahead of its `clickable`.
+ */
+@Composable
+internal fun Modifier.notesFocus(focusReturn: HomeFocusReturn): Modifier {
+    val requester = remember { FocusRequester() }
+    return focusRequester(requester).onFocusChanged { if (it.isFocused) focusReturn.note(requester) }
+}
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000

@@ -496,8 +496,10 @@ class Runner:
         # guide, zapping and search checks that follow. The parental check runs before the monkey:
         # on the phone the monkey leaves the notification shade open over the app, and three runs
         # of QA-22 after it never got past that (38427581969, 38434134438, 38442977872).
+        # QA-26 runs straight after QA-04, on the built-in channels alone: it plays one, and it is
+        # the first channel the run plays, which is what adds "continue watching" above the card.
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
-                   self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
+                   self.s26_home_menu_return, self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
                    self.s24_back_to_video, self.s25_guide_lands_on_now, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
                    self.s23_scheduled_recording, self.s21_suspended_refresh,
@@ -1108,6 +1110,110 @@ class Runner:
             self.record(sid, title, status,
                         f"focused: {inside[:4] or 'nothing'}; panel says on air: {airing}", [shot], area)
             key("KEYCODE_BACK")
+
+    def s26_home_menu_return(self):
+        @self.scenario("QA-26", "Home: from the side menu, the arrow towards the content returns the remote "
+                       "to where it left from (ADR-035)", "navigation")
+        def _(sid, title, area):
+            if self.form != "tv":
+                self.record(sid, title, "SKIP", "television only: the phone has no side menu", [], area)
+                return
+            w, h = screen_size()
+            # English is left to right: the menu is on the left, the content on its right.
+            to_menu, to_content = "KEYCODE_DPAD_LEFT", "KEYCODE_DPAD_RIGHT"
+            steps, wrong = [], []
+
+            def where(tag):
+                """(label, in the menu, on screen) for the focused node; no label when nothing has it."""
+                nodes = self.ui.dump(f"{sid}_{len(steps):02d}_{tag}")
+                focused = [n for n in nodes if n.focused]
+                if not focused:
+                    return "", False, False
+                n = focused[0]
+                label = UI.label_within(n, nodes)
+                in_menu = label in self.TV_MENU and n.x1 < w * 0.2
+                on_screen = 0 <= n.x1 < n.x2 <= w and 0 <= n.y1 < n.y2 <= h
+                return label, in_menu, on_screen
+
+            def press(k, tag):
+                key(k, pause=0.8)
+                got = where(tag)
+                steps.append(f"{tag}:{got[0][:24] or '∅'}{' (menu)' if got[1] else ''}")
+                return got
+
+            def into_menu(tag):
+                for _ in range(8):
+                    if press(to_menu, tag)[1]:
+                        return True
+                wrong.append(f"{tag}: no menu entry ever took the remote")
+                return False
+
+            def done():
+                shot = self.ev.shot(f"{sid}_end")
+                self.record(sid, title, "PASS" if not wrong else "FAIL",
+                            ("; ".join(wrong) + " || " if wrong else "") + " · ".join(steps), [shot], area)
+
+            # Home, from wherever the run left the app. Back only off home: on home it asks to exit.
+            self.home_of_app()
+            for _ in range(3):
+                if self.tv_screen() == "Home":
+                    break
+                key("KEYCODE_BACK")
+                time.sleep(2)
+            if self.tv_screen(f"{sid}_home") != "Home":
+                wrong.append("home was never reached")
+                return done()
+            time.sleep(3)  # the rails load after the screen does
+
+            # 1. Into the content. With nothing on home holding the remote yet, the first key can
+            #    land in the menu; from there the arrow towards the content must reach home.
+            label, in_menu, _ = press("KEYCODE_DPAD_DOWN", "down")
+            if not label or in_menu:
+                label, in_menu, visible = press(to_content, "menu_to_content")
+                if not label or in_menu or not visible:
+                    wrong.append(f"from the menu, the arrow towards the content left the remote on "
+                                 f"{label or 'nothing'}")
+                    return done()
+            # 2. One card along, so the card to come back to is not simply home's first stop.
+            start, in_menu, visible = press(to_content, "along")
+            if not start or in_menu or not visible:
+                wrong.append(f"no card one step along the rail: {start or 'nothing'}")
+                return done()
+            # 3. Into the menu, a step inside it, and back: the same card.
+            if not into_menu("to_menu"):
+                return done()
+            press("KEYCODE_DPAD_DOWN", "in_menu")
+            label, in_menu, visible = press(to_content, "back")
+            if label != start or in_menu or not visible:
+                wrong.append(f"back from the menu: wanted {start[:30]}, got {label[:30] or 'nothing'}")
+            # 4. The lit entry chosen with OK: the menu closes onto the same card.
+            if not into_menu("to_menu_again"):
+                return done()
+            for _ in range(8):
+                if press("KEYCODE_DPAD_UP", "up")[0] == "Home":
+                    break
+            label, in_menu, visible = press("KEYCODE_DPAD_CENTER", "ok_on_home")
+            if label != start or in_menu or not visible:
+                wrong.append(f"OK on the lit Home: wanted {start[:30]}, got {label[:30] or 'nothing'}")
+            # 5. OK on the next card along tunes it and stays on home. The rails rebuild around it —
+            #    the first channel ever played adds "continue watching" above them — and the card
+            #    must still have the remote, on screen.
+            target, in_menu, visible = press(to_content, "next")
+            if not target or in_menu:
+                wrong.append("no card to press OK on")
+                return done()
+            key("KEYCODE_DPAD_CENTER")
+            time.sleep(5)
+            if self.tv_screen(f"{sid}_after_ok") == "video":
+                steps.append("that card was the playing channel: full screen, not checked")
+                key("KEYCODE_BACK")
+                return done()
+            label, in_menu, visible = where("after_ok")
+            steps.append(f"after_ok:{label[:24] or '∅'}")
+            if label.split(",")[0] != target.split(",")[0] or not visible:
+                wrong.append(f"after OK: wanted {target[:30]} on screen, got {label[:30] or 'nothing'}"
+                             f"{'' if visible else ' (off screen)'}")
+            done()
 
     def s13_lifecycle(self):
         @self.scenario("QA-13", "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",

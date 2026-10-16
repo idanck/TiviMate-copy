@@ -75,3 +75,15 @@ every destination, not only home.
   list carries a `focusRestorer`, and each rail notes its own card on the way out without
   restoring it, so a step between rails is unchanged. Every other screen is inset past the
   strip, and the D-pad still finds it as before.
+- **Home remembers the control itself (0.14.28).** The 0.14.24 restorer did not work at this
+  Compose version (1.7): a `focusRestorer` remembers only the focus target directly under it,
+  and under a lazy list's `focusGroup` that is the list's own scroll container, never a card. The
+  press towards the content focused that container, which draws nothing and has no neighbours,
+  so the menu closed and the remote was stuck on home with nothing lit until Back (device report,
+  2026-10-16); the lit "Home" entry went the same way. Now every banner button, app and card on
+  home notes itself as it takes the remote (`HomeFocusReturn`), and the menu, on home, catches
+  the press towards the content itself and hands the remote to the noted control, or to home's
+  first stop when that one is no longer drawn. Alongside it, a card the remote is on follows
+  itself into view when a rebuild moves it — OK on a card puts its channel first under
+  "continue watching", and the rows kept their scroll, leaving the card off screen with the
+  remote still on it.
