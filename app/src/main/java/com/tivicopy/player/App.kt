@@ -13,6 +13,7 @@ import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.db.Dao
 import com.tivicopy.player.data.db.Database
 import com.tivicopy.player.data.featured.FeaturedRepository
+import com.tivicopy.player.data.news.NewsRepository
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.repo.EpgRepository
@@ -51,6 +52,7 @@ object ServiceLocator {
     lateinit var updates: UpdateManager private set
     lateinit var featured: FeaturedRepository private set
     lateinit var tasks: TaskRepository private set
+    lateinit var news: NewsRepository private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -100,6 +102,7 @@ object ServiceLocator {
         updates = UpdateManager(appContext, settings, dao)
         featured = FeaturedRepository(settings)
         tasks = TaskRepository(settings)
+        news = NewsRepository(settings)
         initialised = true
     }
 }

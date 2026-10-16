@@ -55,7 +55,7 @@ fun SettingsSectionTitle(text: String, topDivider: Boolean = true) {
  * the card.
  */
 @Composable
-private fun RowDivider() {
+internal fun RowDivider() {
     Spacer(modifier = Modifier.height(4.dp))
 }
 

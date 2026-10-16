@@ -73,6 +73,14 @@ data class StudioColors(
     /** The four tones the radio's shifting background cycles through (anti burn-in). */
     val ambient: List<Color>,
     val equalizerBar: Color,
+    /** The screensaver's ground: actually black, so an OLED panel emits nothing across it. */
+    val saverGround: Color,
+    /**
+     * The screensaver's three soft colours (`--st-saver-c1..c3`, ADR-037): cyan, violet and lime,
+     * kept apart from every colour that means something (cue, tally, next, ok, error). The clock's
+     * ring runs from the first to the second; each news source takes one in turn.
+     */
+    val saverTones: List<Color>,
 )
 
 private val Studio = StudioColors(
@@ -107,6 +115,8 @@ private val Studio = StudioColors(
     ok = Color(0xFF7FD8A6),
     ambient = listOf(Color(0xFF0B1424), Color(0xFF08191C), Color(0xFF160F22), Color(0xFF1A120C)),
     equalizerBar = Color(0xE0F3F5F9),
+    saverGround = Color(0xFF000000),
+    saverTones = listOf(Color(0xFF5CC8E6), Color(0xFFB79CFF), Color(0xFFC6E37A)),
 )
 
 /**

@@ -6,6 +6,7 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.ChannelSort
 import com.tivicopy.player.data.model.DecoderMode
 import com.tivicopy.player.data.net.UserAgents
+import com.tivicopy.player.data.news.NewsSource
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -82,6 +83,12 @@ enum class AppLanguage(val tag: String?) {
 enum class StartBehaviour { LAST_CHANNEL, SPECIFIC_CHANNEL, CHANNEL_LIST, GUIDE, HOME }
 
 enum class ExternalPlayerScope { NEVER, VOD_ONLY, ALWAYS }
+
+/**
+ * How fast the screensaver's headlines scroll (FR-UI-33), in dp a second. [SLOW] is the canvas's
+ * own pace: eight headlines in eighty seconds on a 1080p panel (`TvScreensaverCombo`).
+ */
+enum class FlashSpeed(val dpPerSecond: Float) { SLOW(10f), NORMAL(16f), FAST(24f) }
 
 /**
  * All user settings, backed by SharedPreferences.
@@ -192,6 +199,25 @@ class Settings(context: Context) {
         val taskLastCheckUtc: Long,
         /** The document the last successful fetch read, verbatim; null when there is none. */
         val taskLastFeed: String?,
+        /**
+         * Whether the screensaver scrolls headlines beside its clock (FR-UI-33). On by default,
+         * because it shows nothing at all until [newsSources] has an address in it.
+         */
+        val screensaverFlashes: Boolean,
+        /**
+         * Whether the screensaver's clock and headlines are drawn in their three soft colours
+         * (ADR-037), rather than in the text colours alone.
+         */
+        val screensaverColours: Boolean,
+        val flashSpeed: FlashSpeed,
+        /**
+         * Where the headlines come from. Empty by default, and empty means there are none — the
+         * app ships the reader, not a newsroom. See [com.tivicopy.player.data.news.NewsFeed].
+         */
+        val newsSources: List<NewsSource>,
+        val newsLastCheckUtc: Long,
+        /** Every source's last headlines, already parsed; null when there are none. */
+        val newsLastDigests: String?,
     )
 
     private fun read() = Snapshot(
@@ -265,6 +291,12 @@ class Settings(context: Context) {
         taskFeedUrl = prefs.getString(K_TASK_URL, "") ?: "",
         taskLastCheckUtc = prefs.getLong(K_TASK_LAST_CHECK, 0),
         taskLastFeed = prefs.getString(K_TASK_FEED, null),
+        screensaverFlashes = prefs.getBoolean(K_SAVER_FLASHES, true),
+        screensaverColours = prefs.getBoolean(K_SAVER_COLOURS, true),
+        flashSpeed = prefs.enum(K_FLASH_SPEED, FlashSpeed.SLOW),
+        newsSources = NewsSource.decode(prefs.getString(K_NEWS_SOURCES, null)),
+        newsLastCheckUtc = prefs.getLong(K_NEWS_LAST_CHECK, 0),
+        newsLastDigests = prefs.getString(K_NEWS_DIGESTS, null),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -408,6 +440,43 @@ class Settings(context: Context) {
         }
     }
 
+    /** FR-UI-33. */
+    fun setScreensaverFlashes(v: Boolean) = commit { putBoolean(K_SAVER_FLASHES, v) }
+
+    fun setScreensaverColours(v: Boolean) = commit { putBoolean(K_SAVER_COLOURS, v) }
+
+    fun setFlashSpeed(v: FlashSpeed) = commit { putString(K_FLASH_SPEED, v.name) }
+
+    /**
+     * Adds a news source, switched on, at the end of the list. False — and nothing stored — for
+     * an address that is not HTTPS, one already in the list, or a list that is full.
+     */
+    fun addNewsSource(url: String): Boolean {
+        val trimmed = url.trim()
+        val current = state.value.newsSources
+        if (!NewsSource.acceptable(trimmed)) return false
+        if (current.any { it.url.equals(trimmed, ignoreCase = true) }) return false
+        if (current.size >= NewsSource.MAX_SOURCES) return false
+        commit { putString(K_NEWS_SOURCES, NewsSource.encode(current + NewsSource(trimmed))) }
+        return true
+    }
+
+    fun setNewsSourceEnabled(url: String, enabled: Boolean) = commit {
+        val next = state.value.newsSources.map { if (it.url == url) it.copy(enabled = enabled) else it }
+        putString(K_NEWS_SOURCES, NewsSource.encode(next))
+    }
+
+    /** Its cached headlines go on the next refresh, which drops every address no longer listed. */
+    fun removeNewsSource(url: String) = commit {
+        putString(K_NEWS_SOURCES, NewsSource.encode(state.value.newsSources.filterNot { it.url == url }))
+    }
+
+    /** The headlines' twin of [rememberTasks]: parsed rather than verbatim (see `NewsRepository`). */
+    fun rememberNews(atUtc: Long, digests: String?) = commit {
+        putLong(K_NEWS_LAST_CHECK, atUtc)
+        if (digests == null) remove(K_NEWS_DIGESTS) else putString(K_NEWS_DIGESTS, digests)
+    }
+
     /** The task list's twin of [rememberFeatured], and cached for the same reason. */
     fun rememberTasks(atUtc: Long, document: String?) = commit {
         putLong(K_TASK_LAST_CHECK, atUtc)
@@ -530,5 +599,11 @@ class Settings(context: Context) {
         const val K_TASK_URL = "task_feed_url"
         const val K_TASK_LAST_CHECK = "task_last_check"
         const val K_TASK_FEED = "task_last_feed"
+        const val K_SAVER_FLASHES = "screensaver_flashes"
+        const val K_SAVER_COLOURS = "screensaver_colours"
+        const val K_FLASH_SPEED = "screensaver_flash_speed"
+        const val K_NEWS_SOURCES = "news_sources"
+        const val K_NEWS_LAST_CHECK = "news_last_check"
+        const val K_NEWS_DIGESTS = "news_last_digests"
     }
 }

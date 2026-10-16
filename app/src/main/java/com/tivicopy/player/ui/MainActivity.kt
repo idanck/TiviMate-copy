@@ -44,18 +44,19 @@ import androidx.lifecycle.Lifecycle
 import com.tivicopy.player.App
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.data.news.NewsDigests
+import com.tivicopy.player.data.news.NewsRepository
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.PlayerMediaSession
 import com.tivicopy.player.player.RadioBackgroundService
-import com.tivicopy.player.ui.common.IdleScene
+import com.tivicopy.player.ui.common.saverPlaying
 import com.tivicopy.player.ui.common.NoticeTone
 import com.tivicopy.player.ui.common.NoticeVisuals
 import com.tivicopy.player.ui.common.PinRequestDialog
 import com.tivicopy.player.ui.common.Screensaver
 import com.tivicopy.player.ui.common.StudioNoticeHost
-import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.idleScene
 import com.tivicopy.player.ui.common.radioTasksApply
@@ -352,12 +353,7 @@ class MainActivity : ComponentActivity() {
             // One timer, armed and slept through, rather than a clock ticking every second: a
             // key press moves `lastInteractionAt`, which restarts this effect, so an idle
             // television costs one suspended coroutine and nothing else.
-            LaunchedEffect(
-                applies,
-                lastInteractionAt,
-                prefs.screensaverIdleMinutes,
-                prefs.screensaverTasks,
-            ) {
+            LaunchedEffect(applies, lastInteractionAt, prefs.screensaverIdleMinutes) {
                 if (!applies) {
                     screensaverOn = false
                     return@LaunchedEffect
@@ -366,10 +362,16 @@ class MainActivity : ComponentActivity() {
                 val wait = due - SystemClock.elapsedRealtime()
                 if (wait > 0) delay(wait)
                 screensaverOn = true
-                // Fetched as the screen arms rather than on a schedule of its own: this is the
-                // only surface that reads the list, and the repository rate-limits it to one
-                // request every half hour however often the screensaver comes and goes.
-                if (prefs.screensaverTasks) ServiceLocator.tasks.refresh(force = false)
+            }
+            // FR-UI-33: the headlines are fetched as the screensaver arms, and again on the
+            // repository's own ten-minute limit for as long as it stays up — which, on a
+            // television left on a menu overnight, is all night.
+            LaunchedEffect(screensaverOn, prefs.screensaverFlashes) {
+                if (!screensaverOn || !prefs.screensaverFlashes) return@LaunchedEffect
+                while (true) {
+                    ServiceLocator.news.refresh(force = false)
+                    delay(NewsRepository.CHECK_INTERVAL_MS)
+                }
             }
             // ADR-030: the radio is no longer handed to the screensaver — its own shifting
             // background protects the panel — but it still shows the task list once the viewer
@@ -473,23 +475,20 @@ class MainActivity : ComponentActivity() {
                         if (!inPip) PinRequestDialog(vm)
 
                         if (screensaverOn) {
+                            val newsDigests by ServiceLocator.news.state.collectAsState()
+                            val flashes = if (prefs.screensaverFlashes) {
+                                remember(prefs.newsSources, newsDigests) {
+                                    NewsDigests.merge(prefs.newsSources, newsDigests, System.currentTimeMillis())
+                                }
+                            } else {
+                                emptyList()
+                            }
                             Screensaver(
-                                ambient = scene == IdleScene.AUDIO_ONLY,
-                                // Named from what is actually playing rather than from
-                                // `currentChannel`, which deliberately outlives an on-demand
-                                // session: a film paused after a radio station must not be
-                                // drawn as that station.
-                                channel = if (scene == IdleScene.AUDIO_ONLY) {
-                                    state.nowPlaying.audioOnlyChannel()
-                                } else {
-                                    state.currentChannel
-                                },
-                                headline = playback.title,
-                                // The tasks are the radio's now (ADR-030), and the radio never
-                                // reaches this screensaver.
-                                tasks = emptyList(),
-                                // Only for the station skin: the dark one is for a picture.
-                                song = playback.streamTitle.takeIf { scene == IdleScene.AUDIO_ONLY },
+                                playing = saverPlaying(state.nowPlaying, state.now?.title, playback),
+                                flashes = flashes,
+                                flashesUpdatedUtc = newsDigests.values.maxOfOrNull { it.fetchedUtc } ?: 0L,
+                                colours = prefs.screensaverColours,
+                                speed = prefs.flashSpeed,
                                 modifier = Modifier.fillMaxSize(),
                             )
                         }

@@ -30,12 +30,16 @@ import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TextNormalizer
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelRadioStations
+import com.tivicopy.player.data.news.NewsDigests
+import com.tivicopy.player.data.news.NewsSource
 import com.tivicopy.player.data.prefs.AppLocale
 import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.UiMessage
+import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.PinEntry
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.StudioField
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.keyProbe
@@ -548,4 +552,85 @@ fun KeyCodeProbe() {
             )
         }
     }
+}
+
+/**
+ * The screensaver's news sources (FR-UI-33, canvas `TvSettingsFlashes`): one row per source with
+ * its own switch, a field and a row to add another, and a note on what a source is.
+ *
+ * Empty by default, as the task list's address is (ADR-024): this app is installed on other
+ * people's televisions, and which newsroom scrolls past on one is its owner's to choose.
+ */
+@Composable
+fun NewsSourcesSetting(vm: AppViewModel, sources: List<NewsSource>) {
+    val settings = ServiceLocator.settings
+    val context = LocalContext.current
+    val digests by ServiceLocator.news.state.collectAsState()
+    SettingsSectionTitle(stringResource(R.string.settings_news_sources))
+    sources.forEach { source ->
+        ListRow(
+            label = NewsDigests.label(source, digests[source.url]),
+            sub = source.url,
+            trail = RowTrail.TOGGLE,
+            toggled = source.enabled,
+            onClick = {
+                settings.setNewsSourceEnabled(source.url, !source.enabled)
+                // A source switched back on is read now rather than at the screensaver's next
+                // ten minutes; one switched off simply stops being shown.
+                if (!source.enabled) ServiceLocator.appScope.launch { ServiceLocator.news.refresh(force = true) }
+            },
+            // A long press rather than a third control on every row: removing a source is rare,
+            // and on a remote each extra control is another stop on the way down the list.
+            onLongClick = {
+                settings.removeNewsSource(source.url)
+                ServiceLocator.appScope.launch { ServiceLocator.news.refresh(force = false) }
+                vm.post(UiMessage(text = context.getString(R.string.settings_news_source_removed)))
+            },
+        )
+        RowDivider()
+    }
+
+    var draft by remember { mutableStateOf("") }
+    var refused by remember { mutableStateOf(false) }
+    StudioField(
+        value = draft,
+        onValueChange = { draft = it; refused = false },
+        label = stringResource(R.string.settings_news_source_url),
+        placeholder = "https://…/rss",
+        isError = refused,
+        helper = if (refused) {
+            stringResource(R.string.settings_news_source_refused, NewsSource.MAX_SOURCES)
+        } else {
+            null
+        },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+    ListRow(
+        label = stringResource(R.string.settings_news_source_add),
+        sub = stringResource(R.string.settings_news_source_add_sub),
+        icon = StudioIcons.Plus,
+        onClick = {
+            val url = draft.trim()
+            if (!settings.addNewsSource(url)) {
+                refused = true
+                return@ListRow
+            }
+            draft = ""
+            ServiceLocator.appScope.launch {
+                ServiceLocator.news.refresh(force = true)
+                // Said now, while the person who typed the address is still looking: otherwise
+                // a site's home page pasted in place of its feed fails silently, at night.
+                if (ServiceLocator.news.state.value[url] == null) {
+                    vm.post(UiMessage(text = context.getString(R.string.settings_news_source_unreadable)))
+                }
+            }
+        },
+    )
+    RowDivider()
+    Text(
+        text = stringResource(R.string.settings_news_sources_note),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 12.dp),
+    )
 }
