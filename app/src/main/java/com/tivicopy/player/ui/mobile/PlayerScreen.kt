@@ -10,12 +10,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -181,7 +187,23 @@ fun PlayerScreen(
             return@Surface
         }
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
+            // In portrait the picture starts below the status bar, as `PNowPlaying` sets it
+            // (`--st-safe-top`). Drawn under the bar, the bar's clock and chips sat on the picture
+            // and the collapse button sat on the clock (device report, 2026-10-16). Landscape is
+            // the whole panel, as it always was.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (landscape) {
+                            Modifier
+                        } else {
+                            Modifier.windowInsetsPadding(
+                                WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+                            )
+                        },
+                    ),
+            ) {
                 val videoModifier = if (landscape) {
                     Modifier.fillMaxWidth().weight(1f)
                 } else {
@@ -343,6 +365,9 @@ private fun NowPlayingDetails(
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
+            // Inside the scroll, so the last row can be scrolled clear of the navigation bar
+            // rather than ending under its buttons.
+            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Bottom))
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
