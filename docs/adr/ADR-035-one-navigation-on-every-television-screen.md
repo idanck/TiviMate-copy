@@ -40,7 +40,10 @@ every destination, not only home.
 4. **Choosing an entry hands the remote to the screen it opened.** Once that screen is composed,
    focus moves out of the menu towards the content, as a press would — unless the screen has
    already taken it for its own first focus (home's banner, the playing channel's row, the first
-   poster), which is left alone. Choosing the entry already lit just closes the menu.
+   poster), which is left alone. Choosing the entry already lit just closes the menu — but it is
+   still reported as a choice, so a screen that had been opened from the video then rises to home
+   on Back like one chosen from the menu (ADR-036). Each entry carries `selected` semantics for the
+   screen it opens.
 5. **The channel list's group column holds the list's own filters and groups only.** Its search
    row stays for a tablet, which has no side menu.
 6. **On demand has no entry**, as on the phone (ADR-032): no source in this installation carries

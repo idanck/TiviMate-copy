@@ -43,7 +43,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -135,8 +138,11 @@ internal fun SideMenu(
         withFrameNanos { }
         if (open) focusManager.moveFocus(towardContent)
     }
+    // The lit entry is reported too, though it changes nothing on screen: it is still a choice made
+    // from the menu, and a screen opened from the video stops being one once it is (ADR-036).
     val choose: (TvOverlay) -> Unit = { overlay ->
-        if (overlay == current) focusManager.moveFocus(towardContent) else onOpen(overlay)
+        onOpen(overlay)
+        if (overlay == current) focusManager.moveFocus(towardContent)
     }
     val width by animateDpAsState(
         targetValue = if (open) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
@@ -280,7 +286,13 @@ private fun MenuEntry(
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
             // the remote a second press to pass every entry.
             .clickable { onChoose(destination.overlay) }
-            .semantics { contentDescription = destination.label }
+            // Selected the way Material's own navigation rail marks its item: TalkBack says which
+            // screen this is, and the emulator QA reads it to tell the screens apart (QA-24).
+            .semantics {
+                contentDescription = destination.label
+                role = Role.Tab
+                selected = current
+            }
             .padding(horizontal = ENTRY_ICON_INSET),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp),

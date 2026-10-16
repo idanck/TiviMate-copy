@@ -3,7 +3,9 @@
 **Status:** accepted. The *shape* of the home screen described here — a rail beside a boxed hero
 with its caption alongside — is superseded by ADR-020, which makes the picture a full-bleed banner
 and collapses the rail. Everything else below still holds: that the television's root is a home
-screen, what the rails are, and that video never stops.
+screen, what the rails are, and that video never stops. "Back from any browse surface rises to
+Home" is amended by ADR-036 for two routes: the channel list and the guide, when they were opened
+from fullscreen video, return to the video instead.
 
 ## Decision
 

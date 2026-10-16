@@ -138,6 +138,9 @@ opens the playback menu, and the arrows still zap and open the lists.
 - Default bindings must be sane before customization: Up/Down = zap, Left = channel list,
   Right = channel filmstrip, OK = transport bar, OK-long = playback menu, Back = up one level,
   Back-double = exit with confirm.
+  - **Back** from a browse screen goes up to home (ADR-016), with two exceptions on the
+    television: the channel list opened with its arrow from the video, and the guide opened from
+    the video (Guide, yellow, or the transport bar's button), go back to the video (ADR-036).
   - **OK** was the info card, which named what was playing and offered nothing to do about it.
     It now opens the transport bar, which carries the same identity plus play/pause, zapping,
     the favourite toggle, the aspect control and the quality readout. The info card still exists
