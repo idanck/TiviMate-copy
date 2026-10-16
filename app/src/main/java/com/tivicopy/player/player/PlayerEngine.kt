@@ -284,6 +284,10 @@ class PlayerEngine(
                     .build(),
                 /* handleAudioFocus = */ true,
             )
+            // Headphones pulled out, or a Bluetooth pair disconnecting, pauses rather than
+            // carrying on out of the speaker (owner's call, 2026-10-16). Media3 listens for the
+            // system's "audio becoming noisy" and pauses; play resumes it as any pause.
+            .setHandleAudioBecomingNoisy(true)
             .build()
 
         builtVideoMode = effectiveVideoMode

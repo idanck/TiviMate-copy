@@ -55,6 +55,9 @@ object RadioPlayerFactory {
                 DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
             )
             .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
+            // As the app's own player does: losing the headphones or the car pauses the station
+            // instead of moving it to the phone's speaker.
+            .setHandleAudioBecomingNoisy(true)
             .build()
 
         return RadioPlayer(exoPlayer, httpFactory)
