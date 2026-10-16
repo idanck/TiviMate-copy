@@ -2,12 +2,14 @@ name: QA (emulators)
 
 # The end-to-end QA run from docs/qa/QA-PLAN.md: a debug build driven on an Android TV emulator
 # and a phone emulator against a mock IPTV provider. It publishes nothing to devices — the
-# update manifest is android.yml's job alone — and only runs when the QA kit itself changes or
-# when started by hand, because an emulator run costs about half an hour of runner time.
+# update manifest is android.yml's job alone — and only runs when the QA kit itself changes on
+# `main` or when started by hand, because an emulator run costs about half an hour of runner
+# time. One run per batch of changes, after the last one has landed (CLAUDE.md): a feature
+# branch that touches `qa/` no longer starts one of its own.
 on:
   workflow_dispatch:
   push:
-    branches-ignore: ["apk", "qa-results"]
+    branches: ["main"]
     paths:
       - "qa/**"
       - ".github/workflows/qa.yml"

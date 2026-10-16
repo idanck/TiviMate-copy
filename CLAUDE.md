@@ -29,6 +29,21 @@ rule, scoped specifically to landing a finished, validated change on `main` so
 this app's self-update mechanism can pick it up; it does not extend to other
 destructive or hard-to-reverse actions.
 
+## One APK and one QA run per batch of changes, at the end
+
+The owner's rule (2026-10-16): a series of related changes publishes **one** update and gets
+**one** emulator QA run, after its last change has landed on `main` — not one of each per PR.
+
+- **APK.** CI on a feature branch runs the unit tests and lint only (`SHIPS` in
+  `.github/workflows/android.yml`); a release APK is assembled, signed and kept only on `main`,
+  or on a run started by hand. When a batch lands as several PRs, merge them back to back and
+  cancel any earlier `main` run of **Android build** before it reaches "Publish the update
+  manifest", so only the last merge publishes. Every PR still bumps `versionCode` as above — a
+  `main` build that does reach the publish step with an already-published code fails loudly.
+- **QA.** `.github/workflows/qa.yml` runs on pushes to `main` that touch `qa/`, and by hand. Run
+  it once, on `main`, after the batch's last merge, dispatching it by hand if that merge changed
+  nothing under `qa/`.
+
 ## This session's environment cannot build the app
 
 The Claude Code on the web / Claude Code Remote sandbox this repo is usually
