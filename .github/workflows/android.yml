@@ -17,6 +17,11 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # One APK per batch of changes, at the end (CLAUDE.md): a feature branch is checked with
+      # its unit tests and lint, and only `main` — or a build started by hand — assembles,
+      # signs and keeps a release APK.
+      SHIPS: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -60,6 +65,7 @@ jobs:
         continue-on-error: true
 
       - name: Assemble release APK
+        if: env.SHIPS == 'true'
         env:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -67,7 +73,7 @@ jobs:
         run: ./gradlew --no-daemon assembleRelease
 
       - name: Confirm the APK carries the release key
-        if: env.SIGNED == 'true'
+        if: env.SHIPS == 'true' && env.SIGNED == 'true'
         run: |
           set -euo pipefail
           apk=$(ls app/build/outputs/apk/release/*.apk | head -1)
@@ -84,6 +90,7 @@ jobs:
           [ "$expected" = "$actual" ]
 
       - name: Collect artefacts
+        if: env.SHIPS == 'true'
         id: collect
         run: |
           mkdir -p dist
@@ -92,6 +99,7 @@ jobs:
           echo "apk=$(ls dist/*.apk | head -1)" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK
+        if: env.SHIPS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: shidur-apk
@@ -100,11 +108,12 @@ jobs:
           retention-days: 30
 
       - name: Publish the APK to the apk branch
-        # `apk` holds main's build, the one devices update to; any other branch's goes to
-        # `apk-preview`. Until 2026-10-13 every push overwrote `apk`, so what it held depended
-        # on which branch pushed last, and a sideloaded feature build could carry the versionCode
-        # main was about to publish, leaving that device deaf to the real update.
-        if: github.event_name == 'push'
+        # `apk` holds main's build, the one devices update to. Until 2026-10-13 every push
+        # overwrote it, so what it held depended on which branch pushed last, and a sideloaded
+        # feature build could carry the versionCode main was about to publish, leaving that
+        # device deaf to the real update. Feature branches went to `apk-preview` after that;
+        # since 2026-10-16 they build no APK at all, and one started by hand is an artefact only.
+        if: github.event_name == 'push' && env.SHIPS == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TARGET: ${{ github.ref == 'refs/heads/main' && 'apk' || 'apk-preview' }}

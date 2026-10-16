@@ -77,7 +77,9 @@ Not provable on an emulator, checked by hand on the TVs before a release reaches
 
 ## 5. Running it
 
-* Push a change under `qa/` or run **QA (emulators)** from the Actions tab.
+* Once per batch of changes, on `main`, after the batch's last merge: a merge that changes `qa/`
+  starts it, and otherwise run **QA (emulators)** from the Actions tab. A feature branch does not
+  start one.
 * Evidence: the run's artefacts, and the `qa-results` branch (`qa-tv/`, `qa-phone/`, `build/`), each with
   `report.md`, `report.json`, `screenshots/`, `ui/`, `logcat.txt`, `mock/requests.jsonl`.
 * The mock provider runs anywhere: `python3 qa/mock_provider/server.py <media> <logs> 8080` after
