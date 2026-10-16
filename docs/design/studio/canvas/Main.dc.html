@@ -12,7 +12,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="st-screen" dir="rtl">
+<div class="st-screen st-browse" dir="rtl">
 
 <div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="[תמונת השידור החי — ממשיכה לרוץ מאחור]" hint-size="1920px,1080px"></dc-import></div>
 <div class="st-scrim-bottom"></div>
@@ -52,14 +52,17 @@
 </div>
 </section>
 
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="home" topbar="false" menu="{{menu}}" focus="{{menuFocus}}" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"heroFocus":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+<script type="text/x-dc" data-dc-script data-props='{"heroFocus":{"editor":"boolean","default":true},"menu":{"editor":"enum","options":["closed","open"],"default":"closed"},"menuFocus":{"editor":"enum","options":["home","channels","guide","radio","recordings","search","settings"],"default":"channels"},"$preview":{"width":1920,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() {
     const hf = this.props.heroFocus;
     return {
       heroFocus: !(hf === false || hf === 'false'),
+      menu: this.props.menu === 'open' ? 'open' : 'closed',
+      menuFocus: this.props.menuFocus || 'channels',
       channels: [
         { label: 'כאן 11', num: '11', now: 'סרט תעודה', time: '20:15–21:45', pct: 45, state: 'rest' },
         { label: 'קשת 12', num: '12', now: 'מהדורת החדשות המרכזית', time: '20:00–21:30', pct: 62, state: 'onscreen' },

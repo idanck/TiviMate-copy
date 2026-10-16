@@ -12,23 +12,23 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="st-screen" dir="rtl">
+<div class="st-screen st-browse" dir="rtl">
 
-<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
 
-<div style="position: absolute; top: 160px; right: var(--st-safe-x); display: flex; align-items: baseline; gap: 20px">
+
+<div style="position: absolute; top: 160px; right: var(--st-inset-start); display: flex; align-items: baseline; gap: 20px">
 <h1 class="st-t-title-s">הקלטות</h1>
 <span class="st-t-meta">3 מתוזמנות · 3 הושלמו</span>
 </div>
 
-<section aria-label="רשימת הקלטות" style="position: absolute; top: 262px; right: var(--st-safe-x); width: 1040px; display: flex; flex-direction: column; gap: 8px">
+<section aria-label="רשימת הקלטות" style="position: absolute; top: 262px; right: var(--st-inset-start); width: 976px; display: flex; flex-direction: column; gap: 8px">
 <h2 style="margin: 0 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">מתוזמנות</h2>
 <sc-for list="{{scheduled}}" as="r" hint-placeholder-count="3">
-<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="1040" hint-size="1040px,92px"></dc-import>
+<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="976" hint-size="976px,92px"></dc-import>
 </sc-for>
 <h2 style="margin: 24px 0 4px; padding: 0 24px; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">הושלמו</h2>
 <sc-for list="{{finished}}" as="r" hint-placeholder-count="3">
-<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="1040" hint-size="1040px,92px"></dc-import>
+<dc-import name="ListRow" label="{{r.title}}" sub="{{r.sub}}" trail="status" value="{{r.status}}" tone="{{r.tone}}" state="{{r.state}}" width="976" hint-size="976px,92px"></dc-import>
 </sc-for>
 </section>
 
@@ -44,6 +44,7 @@
 </div>
 </section>
 
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="recordings" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>

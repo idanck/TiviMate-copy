@@ -12,15 +12,15 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="st-screen" dir="rtl" style="--st-inset-start: calc(var(--st-w-rail) + 48px)">
+<div class="st-screen st-browse" dir="rtl">
 <div style="position: absolute; inset: 0"><dc-import name="Picture" scene="studio" width="1920" height="1080" label="" hint-size="1920px,1080px"></dc-import></div>
-<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.84); pointer-events: none"></div><div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(8,12,20,0.84); pointer-events: none"></div>
 <nav aria-label="קבוצות" class="st-panel" style="position: absolute; top: 150px; right: var(--st-inset-start); width: 380px; height: 876px; box-sizing: border-box; padding: 20px 16px; display: flex; flex-direction: column; gap: 4px">
 <h1 class="st-t-title-s" style="padding: 0 12px 16px">ערוצים</h1>
 <dc-import name="ListRow" label="סינון מהיר" sub="" glyph="search" trail="none" value="" tone="muted" num="" state="rest" width="348" hint-size="348px,72px"></dc-import><dc-import name="ListRow" label="כל הערוצים" sub="" glyph="grid" trail="none" value="" tone="muted" num="" state="rest" width="348" hint-size="348px,72px"></dc-import><dc-import name="ListRow" label="מועדפים" sub="" glyph="star" trail="none" value="" tone="muted" num="" state="rest" width="348" hint-size="348px,72px"></dc-import><dc-import name="ListRow" label="נצפו לאחרונה" sub="" glyph="history" trail="none" value="" tone="muted" num="" state="rest" width="348" hint-size="348px,72px"></dc-import><dc-import name="ListRow" label="ערוצים מוסתרים" sub="" glyph="hide" trail="none" value="" tone="muted" num="" state="focus" width="348" hint-size="348px,72px"></dc-import><dc-import name="ListRow" label="קבוצה חדשה" sub="" glyph="plus" trail="none" value="" tone="muted" num="" state="rest" width="348" hint-size="348px,72px"></dc-import>
 </nav>
 <div style="position: absolute; top: 380px; right: 640px; width: 1100px; display: flex; justify-content: center"><dc-import name="EmptyState" glyph="hide" text="אין ערוצים מוסתרים. הסתרת ערוץ מתפריט האפשרויות שלו מסירה אותו מכל הרשימות עד שתציג אותו מחדש." action="" width="760" hint-size="760px,300px"></dc-import></div>
-<div style="position: absolute; top: 0; right: 0"><dc-import name="SideMenu" open="false" current="channels" focus="" hint-size="112px,1080px"></dc-import></div>
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="channels" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>

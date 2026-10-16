@@ -12,9 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<div class="st-screen" dir="rtl">
-<div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div>
-<section aria-label="הוספת המנוי שלך" style="position: absolute; top: 150px; right: var(--st-safe-x); width: 1000px; display: flex; flex-direction: column; gap: 18px">
+<div class="st-screen st-browse" dir="rtl">
+
+<section aria-label="הוספת המנוי שלך" style="position: absolute; top: 150px; right: var(--st-inset-start); width: 1000px; display: flex; flex-direction: column; gap: 18px">
 <h1 class="st-t-title">הוספת המנוי שלך</h1>
 <span class="st-t-meta" style="font-size: 24px">האפליקציה מנגנת את המנוי שכבר יש לך. היא אינה כוללת ערוצים ואינה מציעה ספקים — הוסף רשימת השמעה או חשבון Xtream כדי להתחיל.</span>
 <div role="group" aria-label="סוג המנוי" style="display: flex; gap: 12px; margin: 6px 0">
@@ -35,6 +35,7 @@
 <dc-import name="ListRow" label="MPEG-TS" sub="ההשהיה הנמוכה ביותר" glyph="" trail="check" value="" tone="muted" num="" state="selected" width="516" hint-size="516px,92px"></dc-import><dc-import name="ListRow" label="HLS" sub="עדיף ברשתות לא יציבות" glyph="" trail="none" value="" tone="muted" num="" state="rest" width="516" hint-size="516px,92px"></dc-import>
 <span class="st-t-caption" style="display: flex; gap: 10px; margin-top: 8px"><span style="color: var(--st-error); flex: 0 0 auto"><dc-import name="Icon" glyph="alert" size="22" hint-size="22px,22px"></dc-import></span>כשהכתובת היא HTTP רגיל: פרטי ההתחברות נשלחים ללא הצפנה.</span>
 </aside>
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>

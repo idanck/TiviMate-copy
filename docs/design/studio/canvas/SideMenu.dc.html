@@ -19,11 +19,11 @@
 <span style="font-family: var(--st-font-display); font-weight: 700; font-size: 64px; line-height: 1">שידור</span>
 </div>
 <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
-<button aria-current="{{it.aria}}" class="st-anim" style="height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</button>
+<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</a>
 </sc-for>
 <span aria-hidden="true" style="height: 1px; margin: 14px 0; background: var(--st-hairline)"></span>
 <sc-for list="{{tools}}" as="it" hint-placeholder-count="2">
-<button aria-current="{{it.aria}}" class="st-anim" style="height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</button>
+<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</a>
 </sc-for>
 </nav>
 </sc-if>
@@ -31,24 +31,25 @@
 <nav aria-label="ניווט ראשי" style="width: var(--st-w-rail); height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) 0; background: var(--st-rail); box-shadow: -1px 0 0 var(--st-hairline); display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
 <div style="height: 74px; display: flex; align-items: center; margin-bottom: 30px"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-tally)"></span></div>
 <sc-for list="{{items}}" as="it" hint-placeholder-count="5">
-<button aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></button>
+<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></a>
 </sc-for>
 <span aria-hidden="true" style="width: 40px; height: 1px; margin: 14px 0; background: var(--st-hairline)"></span>
 <sc-for list="{{tools}}" as="it" hint-placeholder-count="2">
-<button aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></button>
+<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></a>
 </sc-for>
 </nav>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["home","channels","guide","radio","recordings","search","settings"],"default":"home"},"focus":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"channels"},"open":{"editor":"boolean","default":true},"$preview":{"width":480,"height":1080}}'>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"home"},"focus":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"channels"},"open":{"editor":"boolean","default":true},"$preview":{"width":480,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() {
-    const cur = this.props.current || 'home';
+    const cur = this.props.current ?? 'home';
+    const HREF = { home: 'Main.dc.html', channels: 'Channels.dc.html', guide: 'Guide.dc.html', radio: 'RadioList.dc.html', recordings: 'Recordings.dc.html', search: 'TvSearch.dc.html', settings: 'Settings.dc.html' };
     const foc = this.props.focus ?? 'channels';
     const make = (n) => {
       const f = n[0] === foc, c = n[0] === cur;
       return {
-        label: n[1], glyph: n[2], aria: c ? 'page' : undefined,
+        label: n[1], glyph: n[2], href: HREF[n[0]], aria: c ? 'page' : undefined,
         bg: f ? 'var(--st-cue)' : (c ? 'var(--st-card)' : 'transparent'),
         fg: f ? 'var(--st-on-cue)' : (c ? 'var(--st-ink)' : 'var(--st-ink-2)'),
         shadow: f ? 'var(--st-lift)' : 'none',

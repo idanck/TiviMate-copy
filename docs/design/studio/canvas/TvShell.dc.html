@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — מסגרת הניווט בטלוויזיה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-browse" dir="rtl" style="position: relative; width: 1920px; height: 1080px; pointer-events: none">
+<sc-if value="{{showTop}}" hint-placeholder-val="{{true}}"><div style="position: absolute; top: 0; right: 0"><dc-import name="TopBar" hint-size="1920px,128px"></dc-import></div></sc-if>
+<sc-if value="{{isOpen}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="position: absolute; inset: 0; background: var(--st-dim-open)"></div></sc-if>
+<sc-if value="{{isOpen}}" hint-placeholder-val="{{false}}"><div style="position: absolute; top: 0; right: 0; pointer-events: auto"><dc-import name="SideMenu" open="true" current="{{current}}" focus="{{focus}}" hint-size="480px,1080px"></dc-import></div></sc-if>
+<sc-if value="{{closed}}" hint-placeholder-val="{{true}}"><div style="position: absolute; top: 0; right: 0; pointer-events: auto"><dc-import name="SideMenu" open="false" current="{{current}}" focus="" hint-size="112px,1080px"></dc-import></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"home"},"menu":{"editor":"enum","options":["closed","open"],"default":"closed"},"focus":{"editor":"enum","options":["home","channels","guide","radio","recordings","search","settings"],"default":"channels"},"topbar":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const open = p.menu === 'open';
+    const t = p.topbar;
+    return {
+      current: p.current ?? 'home',
+      focus: p.focus || 'channels',
+      isOpen: open,
+      closed: !open,
+      showTop: !(t === false || t === 'false')
+    };
+  }
+}
+</script>
+</body>
+</html>
