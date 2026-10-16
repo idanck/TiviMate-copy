@@ -41,8 +41,10 @@ class NewsRepository(private val settings: Settings) {
     /**
      * Refreshes every enabled source if it is due, or unconditionally when [force].
      *
-     * Also due, whatever the clock says, when an enabled source has never been read — a source
-     * added a minute ago should not wait out the rest of somebody else's ten minutes.
+     * Settings forces it when a source is added or switched back on, so that one is read at once
+     * rather than at the end of somebody else's ten minutes. A source that has never been read
+     * is not otherwise a reason to skip the limit: one that always fails would never stop being
+     * unread, and every screensaver would fetch every source.
      *
      * `Ok` when nothing was due, when there are no sources, and when at least one source was
      * read; `Err` only when every source failed, with the first failure.
@@ -61,8 +63,7 @@ class NewsRepository(private val settings: Settings) {
         if (enabled.isEmpty()) return@withLock Outcome.Ok(Unit)
 
         val age = System.currentTimeMillis() - snapshot.newsLastCheckUtc
-        val unread = enabled.any { it.url !in kept }
-        if (!force && !unread && snapshot.newsLastCheckUtc > 0 && age in 0 until CHECK_INTERVAL_MS) {
+        if (!force && snapshot.newsLastCheckUtc > 0 && age in 0 until CHECK_INTERVAL_MS) {
             return@withLock Outcome.Ok(Unit)
         }
 

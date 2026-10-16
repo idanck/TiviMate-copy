@@ -97,7 +97,7 @@ shows the station as "now playing". Before this, that screen was never protected
   headlines kept in preferences so the screen has something before the first fetch returns, the
   rate limit on a stored timestamp. Every enabled source is fetched side by side; one that fails
   keeps its last headlines. It refreshes when the screensaver arms and every ten minutes while it is
-  up, and at once when a source is added — after which Settings says so if nothing readable was
+  up, and at once when a source is added or switched back on — after an addition Settings says so if nothing readable was
   found at the address.
 - **Settings** (canvas `TvSettingsFlashes`): "news beside the clock" (on), "colours in the clock and
   the news" (on), "scrolling speed" (slow — the canvas's own pace — normal, fast), and the sources

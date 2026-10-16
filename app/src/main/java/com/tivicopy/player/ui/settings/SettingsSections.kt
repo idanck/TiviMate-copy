@@ -577,7 +577,7 @@ fun NewsSourcesSetting(vm: AppViewModel, sources: List<NewsSource>) {
                 settings.setNewsSourceEnabled(source.url, !source.enabled)
                 // A source switched back on is read now rather than at the screensaver's next
                 // ten minutes; one switched off simply stops being shown.
-                if (!source.enabled) ServiceLocator.appScope.launch { ServiceLocator.news.refresh(force = false) }
+                if (!source.enabled) ServiceLocator.appScope.launch { ServiceLocator.news.refresh(force = true) }
             },
             // A long press rather than a third control on every row: removing a source is rare,
             // and on a remote each extra control is another stop on the way down the list.
