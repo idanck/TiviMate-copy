@@ -178,6 +178,8 @@ fun TvRoot(
      * so that Back from it returns to the video rather than rising to home (ADR-036).
      */
     onOpenFromVideo: (TvOverlay) -> Unit,
+    /** The overlay on screen, if it was opened from the fullscreen video; null otherwise. */
+    openedFromVideo: TvOverlay?,
     onSettingsSection: (SettingsSection) -> Unit,
     numericEntry: String,
     modifier: Modifier = Modifier,
@@ -507,6 +509,9 @@ fun TvRoot(
                         onOpenProgramme = { channel, programme -> details = channel to programme },
                         opacity = prefs.overlayOpacity,
                         modifier = Modifier.fillMaxSize(),
+                        // From the video, the guide opens where the viewer already is: on the
+                        // programme on air on the channel playing (`canvas/GuideFromVideo.dc.html`).
+                        landOnNow = openedFromVideo == TvOverlay.GUIDE,
                     )
 
                     TvOverlay.SEARCH -> SearchScreen(

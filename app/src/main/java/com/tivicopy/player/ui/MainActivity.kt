@@ -444,6 +444,7 @@ class MainActivity : ComponentActivity() {
                                         settingsSection = settingsSection,
                                         onOverlayChange = { overlay = it },
                                         onOpenFromVideo = ::openFromVideo,
+                                        openedFromVideo = openedFromVideo,
                                         onSettingsSection = { settingsSection = it },
                                         numericEntry = numericEntry,
                                         radioTasks = tasks,

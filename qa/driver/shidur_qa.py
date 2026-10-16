@@ -499,7 +499,7 @@ class Runner:
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s24_back_to_video, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
+                   self.s24_back_to_video, self.s25_guide_lands_on_now, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
                    self.s23_scheduled_recording, self.s21_suspended_refresh,
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
@@ -1078,6 +1078,36 @@ class Runner:
             shots.append(self.ev.shot(f"{sid}_end"))
             self.record(sid, title, "PASS" if not wrong else "FAIL",
                         ("; ".join(wrong) + " || " if wrong else "") + " · ".join(steps), shots, area)
+
+    def s25_guide_lands_on_now(self):
+        @self.scenario("QA-25", "The guide opened from the video lands on what the playing channel is airing",
+                       "guide")
+        def _(sid, title, area):
+            if self.form != "tv":
+                self.record(sid, title, "SKIP", "television only: the phone's guide is a tab of its own", [], area)
+                return
+            cid = self.channel_id("qa.ch01")
+            if not cid:
+                self.record(sid, title, "SKIP", "mock playlist missing", [], area)
+                return
+            deep_link(f"shidur://channel/{cid}")
+            time.sleep(6)
+            key("KEYCODE_PROG_YELLOW")
+            time.sleep(4)
+            nodes = self.ui.dump(f"{sid}_guide")
+            shot = self.ev.shot(f"{sid}_guide")
+            focused = [n for n in nodes if n.focused]
+            # The focused cell's own words: its title is the mock's "<tvg-id> show <n>".
+            inside = [m.label for f in focused for m in nodes if m.label and m.x1 >= f.x1 and m.x2 <= f.x2
+                      and m.y1 >= f.y1 and m.y2 <= f.y2]
+            on_row = any("qa.ch01 show" in t for t in inside)
+            # The panel beside the picture describes the focused programme once there is one, so with
+            # a focused cell on the playing row, "On air · …" there says that cell is the airing one.
+            airing = any(n.label.startswith("On air") for n in nodes)
+            status = "PASS" if on_row and airing else "FAIL"
+            self.record(sid, title, status,
+                        f"focused: {inside[:4] or 'nothing'}; panel says on air: {airing}", [shot], area)
+            key("KEYCODE_BACK")
 
     def s13_lifecycle(self):
         @self.scenario("QA-13", "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",

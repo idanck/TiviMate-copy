@@ -38,12 +38,15 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -106,6 +109,12 @@ fun GuideScreen(
     onFocusProgramme: ((Channel, Programme) -> Unit)? = null,
     /** Off where a Studio top bar above this screen already carries the clock. */
     showClock: Boolean = true,
+    /**
+     * Whether to open on the programme on air on the playing channel, focused — the guide opened
+     * from the video starts where the viewer already is (`canvas/GuideFromVideo.dc.html`,
+     * ADR-036). Read once, when the guide opens.
+     */
+    landOnNow: Boolean = false,
 ) {
     val state by vm.state.collectAsState()
     val channels = state.list.channels
@@ -141,11 +150,46 @@ fun GuideScreen(
 
     var recordings by remember { mutableStateOf<Map<Long, List<Recording>>>(emptyMap()) }
 
+    // [landOnNow], once. Held here rather than in a row, which the lazy list may compose and drop
+    // more than once on the way there. The requester stays on the playing channel's airing cell
+    // for as long as the guide is open; only the first fetch that covers that row asks for focus.
+    val landing = remember { landOnNow }
+    var landed by remember { mutableStateOf(!landing) }
+    val onAirFocus = remember { FocusRequester() }
+    val playingId = state.currentChannel?.id
+
+    // The playing channel's row on screen first, with the row above it in view, as the canvas
+    // sets it. Keyed on the list too: the guide can compose before the channels have arrived.
+    LaunchedEffect(channels, playingId) {
+        if (landed || playingId == null) return@LaunchedEffect
+        val index = channels.indexOfFirst { it.id == playingId }
+        if (index > 0) listState.scrollToItem(index - 1)
+    }
+
     LaunchedEffect(visibleChannels, windowStart) {
         // Replaced rather than accumulated: the map is bounded by what is on screen, so a
         // long scroll through a 500-channel guide cannot grow the heap without limit.
-        programmes = if (visibleChannels.isEmpty()) emptyMap()
+        val window: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
         else vm.guideWindow(visibleChannels, windowStart, windowEnd)
+        programmes = window
+        // The landing waits for the first fetch that covers the playing channel while its row is
+        // on screen — a row only in the prefetch margin has no cells to focus yet — and has one
+        // try: a channel with nothing on air now leaves the guide opening as it always has, and
+        // a later refetch never pulls the remote back from wherever the viewer has taken it.
+        val covered = visibleChannels.any { it.id == playingId }
+        val rowShown = listState.layoutInfo.visibleItemsInfo.any { it.key == playingId }
+        if (!landed && playingId != null && covered && rowShown) {
+            val now = System.currentTimeMillis()
+            if (window[playingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
+                // Two frames: one for the row to compose its cells, one for the requester to attach.
+                withFrameNanos { }
+                withFrameNanos { }
+                runCatching { onAirFocus.requestFocus() }
+            }
+            // Only once the try is made: a scroll that cancels this effect mid-wait leaves the
+            // landing to the run that replaces it.
+            landed = true
+        }
     }
 
     // FR-UI-10: recording state belongs in the grid beside catch-up availability. Keyed on the
@@ -207,6 +251,7 @@ fun GuideScreen(
                         onChannelClick = { onPlay(channel) },
                         onProgrammeClick = { onOpenProgramme(channel, it) },
                         onProgrammeFocused = { onFocusProgramme?.invoke(channel, it) },
+                        onAirFocus = onAirFocus.takeIf { landing && channel.id == playingId },
                     )
                 }
             }
@@ -443,6 +488,8 @@ private fun GuideRow(
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
     onProgrammeFocused: (Programme) -> Unit,
+    /** Attached to whichever of this row's cells is on air now; see `GuideScreen`'s `landOnNow`. */
+    onAirFocus: FocusRequester? = null,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
@@ -543,6 +590,9 @@ private fun GuideRow(
                                     onScreen = onScreen,
                                     onClick = { onProgrammeClick(programme) },
                                     onFocused = { onProgrammeFocused(programme) },
+                                    focusRequester = onAirFocus?.takeIf {
+                                        System.currentTimeMillis() in programme.startUtc until programme.endUtc
+                                    },
                                 )
                             }
                             cursor = end
@@ -617,6 +667,7 @@ private fun ProgrammeCell(
     onScreen: Boolean,
     onClick: () -> Unit,
     onFocused: () -> Unit,
+    focusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val now = System.currentTimeMillis()
@@ -657,6 +708,7 @@ private fun ProgrammeCell(
                 focused = it.isFocused
                 if (it.isFocused) onFocused()
             }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
             // with `focusable()` made every cell cost two D-pad presses to pass.
             .clickable(onClick = onClick)

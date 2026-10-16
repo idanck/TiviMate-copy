@@ -42,6 +42,20 @@ stay in it whichever way it was opened.
    was never recorded there, so Back from the video after the guide goes wherever the viewer was
    before it.
 
+## Where the guide opened from the video lands
+
+The owner's third decision of the same round: the guide opened from the video opens on the
+programme on air on the playing channel, focused (`canvas/GuideFromVideo.dc.html`), so the panel
+beside the picture describes what is already playing and one press reaches what is on next. The
+guide opened any other way still opens as before, with the grid at the current time and nothing
+focused for it.
+
+`GuideScreen.landOnNow` does it, read once when the guide opens: the playing channel's row is
+scrolled into view with the row above it, and the first programme fetch that covers that row
+while it is on screen focuses its airing cell. It has one try — a channel with nothing on air
+now leaves the guide as it was, and a later refetch never pulls the remote back from wherever the
+viewer has taken it.
+
 ## Routes that keep their old behaviour
 
 Back rises to home, as ADR-016 has it, from:
