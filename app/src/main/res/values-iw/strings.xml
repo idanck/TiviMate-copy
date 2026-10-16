@@ -241,6 +241,7 @@
     <string name="group_hidden">מוסתרת</string>
     <string name="channel_options">אפשרויות ערוץ</string>
     <string name="channel_options_hint">לחיצה ארוכה על ערוץ, או מקש Menu בשלט, פותחת את האפשרויות שלו.</string>
+    <string name="preview_open_guide">לוח שידורים</string>
     <string name="channel_move_up">הזז למעלה</string>
     <string name="channel_move_down">הזז למטה</string>
     <string name="channel_move_unavailable">שינוי הסדר פועל ב\"כל הערוצים\" ובתוך קבוצה, כשסדר הערוצים מוגדר לסדר של רשימת ההשמעה עצמה.</string>

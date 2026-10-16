@@ -78,10 +78,11 @@ fun PictureInGuide(
     opacity: Float,
     modifier: Modifier = Modifier,
     /**
-     * Whether the guide was opened from the video, and so opens on the programme on air on the
-     * playing channel, focused (`canvas/GuideFromVideo.dc.html`, ADR-036).
+     * The channel whose programme on air the guide opens on, focused: the playing one when the
+     * guide comes from the video (`canvas/GuideFromVideo.dc.html`, ADR-036), or the one the
+     * channel list's preview asked for. Null opens the guide as it always has.
      */
-    landOnNow: Boolean = false,
+    landOn: Long? = null,
 ) {
     val state by vm.state.collectAsState()
     val metrics = LocalTvMetrics.current
@@ -173,7 +174,7 @@ fun PictureInGuide(
                 modifier = Modifier.fillMaxSize().background(pane),
                 onFocusProgramme = { channel, programme -> pick = channel to programme },
                 showClock = false,
-                landOnNow = landOnNow,
+                landOn = landOn,
             )
         }
     }

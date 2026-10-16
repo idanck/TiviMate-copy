@@ -266,6 +266,7 @@
     <string name="group_hidden">Hidden</string>
     <string name="channel_options">Channel options</string>
     <string name="channel_options_hint">Long press a channel, or press Menu on the remote, for its options.</string>
+    <string name="preview_open_guide">Schedule</string>
     <string name="channel_move_up">Move up</string>
     <string name="channel_move_down">Move down</string>
     <string name="channel_move_unavailable">Reordering works in All channels and in a group, with the channel order set to your playlist\'s own.</string>

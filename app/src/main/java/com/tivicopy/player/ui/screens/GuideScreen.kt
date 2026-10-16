@@ -110,11 +110,11 @@ fun GuideScreen(
     /** Off where a Studio top bar above this screen already carries the clock. */
     showClock: Boolean = true,
     /**
-     * Whether to open on the programme on air on the playing channel, focused — the guide opened
-     * from the video starts where the viewer already is (`canvas/GuideFromVideo.dc.html`,
-     * ADR-036). Read once, when the guide opens.
+     * The channel whose programme on air the guide opens on, focused; null for none. The playing
+     * channel when the guide comes from the video (`canvas/GuideFromVideo.dc.html`, ADR-036), or
+     * the one the channel list's preview asked for. Read once, when the guide opens.
      */
-    landOnNow: Boolean = false,
+    landOn: Long? = null,
 ) {
     val state by vm.state.collectAsState()
     val channels = state.list.channels
@@ -150,19 +150,18 @@ fun GuideScreen(
 
     var recordings by remember { mutableStateOf<Map<Long, List<Recording>>>(emptyMap()) }
 
-    // [landOnNow], once. Held here rather than in a row, which the lazy list may compose and drop
-    // more than once on the way there. The requester stays on the playing channel's airing cell
-    // for as long as the guide is open; only the first fetch that covers that row asks for focus.
-    val landing = remember { landOnNow }
-    var landed by remember { mutableStateOf(!landing) }
+    // [landOn], once. Held here rather than in a row, which the lazy list may compose and drop
+    // more than once on the way there. The requester stays on that channel's airing cell for as
+    // long as the guide is open; only the first fetch that covers that row asks for focus.
+    val landingId = remember { landOn }
+    var landed by remember { mutableStateOf(landingId == null) }
     val onAirFocus = remember { FocusRequester() }
-    val playingId = state.currentChannel?.id
 
-    // The playing channel's row on screen first, with the row above it in view, as the canvas
-    // sets it. Keyed on the list too: the guide can compose before the channels have arrived.
-    LaunchedEffect(channels, playingId) {
-        if (landed || playingId == null) return@LaunchedEffect
-        val index = channels.indexOfFirst { it.id == playingId }
+    // That channel's row on screen first, with the row above it in view, as the canvas sets it.
+    // Keyed on the list: the guide can compose before the channels have arrived.
+    LaunchedEffect(channels) {
+        if (landed || landingId == null) return@LaunchedEffect
+        val index = channels.indexOfFirst { it.id == landingId }
         if (index > 0) listState.scrollToItem(index - 1)
     }
 
@@ -172,15 +171,15 @@ fun GuideScreen(
         val window: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
         else vm.guideWindow(visibleChannels, windowStart, windowEnd)
         programmes = window
-        // The landing waits for the first fetch that covers the playing channel while its row is
-        // on screen — a row only in the prefetch margin has no cells to focus yet — and has one
+        // The landing waits for the first fetch that covers that channel while its row is on
+        // screen — a row only in the prefetch margin has no cells to focus yet — and has one
         // try: a channel with nothing on air now leaves the guide opening as it always has, and
         // a later refetch never pulls the remote back from wherever the viewer has taken it.
-        val covered = visibleChannels.any { it.id == playingId }
-        val rowShown = listState.layoutInfo.visibleItemsInfo.any { it.key == playingId }
-        if (!landed && playingId != null && covered && rowShown) {
+        val covered = visibleChannels.any { it.id == landingId }
+        val rowShown = listState.layoutInfo.visibleItemsInfo.any { it.key == landingId }
+        if (!landed && landingId != null && covered && rowShown) {
             val now = System.currentTimeMillis()
-            if (window[playingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
+            if (window[landingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
                 // Two frames: one for the row to compose its cells, one for the requester to attach.
                 withFrameNanos { }
                 withFrameNanos { }
@@ -251,7 +250,7 @@ fun GuideScreen(
                         onChannelClick = { onPlay(channel) },
                         onProgrammeClick = { onOpenProgramme(channel, it) },
                         onProgrammeFocused = { onFocusProgramme?.invoke(channel, it) },
-                        onAirFocus = onAirFocus.takeIf { landing && channel.id == playingId },
+                        onAirFocus = onAirFocus.takeIf { channel.id == landingId },
                     )
                 }
             }
@@ -488,7 +487,7 @@ private fun GuideRow(
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
     onProgrammeFocused: (Programme) -> Unit,
-    /** Attached to whichever of this row's cells is on air now; see `GuideScreen`'s `landOnNow`. */
+    /** Attached to whichever of this row's cells is on air now; see `GuideScreen`'s `landOn`. */
     onAirFocus: FocusRequester? = null,
 ) {
     val metrics = LocalTvMetrics.current
