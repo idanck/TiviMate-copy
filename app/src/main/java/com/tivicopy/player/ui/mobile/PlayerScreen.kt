@@ -115,6 +115,23 @@ fun PlayerScreen(
                 subtitleScale = prefs.subtitleTextScale,
                 modifier = Modifier.fillMaxSize(),
             )
+            // A station has no picture, so the floating window was a black rectangle with sound
+            // in it (device report, 2026-10-16). The station's own screen takes the picture's
+            // place, as it does under the phone's video box and on the television, laid out for
+            // a window this small. Both shells' floating windows come through here.
+            var wasAudioOnly by remember(state.nowPlaying) { mutableStateOf(false) }
+            val audioOnly = audioOnlyBackdropVisible(playback, wasAudioOnly)
+            SideEffect { wasAudioOnly = audioOnly }
+            if (audioOnly) {
+                AudioOnlyNowPlaying(
+                    channel = state.nowPlaying.audioOnlyChannel(),
+                    title = playback.title,
+                    playWhenReady = playback.playWhenReady,
+                    song = playback.streamTitle,
+                    live = state.nowPlaying.isLive(),
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
             PlaybackStateOverlay(
                 status = playback,
                 opacity = prefs.overlayOpacity,

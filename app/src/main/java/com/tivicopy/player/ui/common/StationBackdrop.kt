@@ -372,18 +372,22 @@ fun AudioOnlyNowPlaying(
         val programme = title.takeIf { it.isNotBlank() && it != headline }
 
         if (compact) {
+            // A floating window is smaller again than a phone's video box — a couple of hundred dp
+            // wide and well under half that tall — so there the disc shrinks and the name keeps to
+            // one line, or the song would fall out of the bottom of the window.
+            val tiny = maxHeight < TINY_HEIGHT
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (tiny) 4.dp else 8.dp),
                 modifier = Modifier.align(Alignment.Center).fillMaxWidth().padding(horizontal = 12.dp),
             ) {
-                if (channel != null) StationDisc(channel = channel, size = 64.dp)
+                if (channel != null) StationDisc(channel = channel, size = if (tiny) TINY_DISC_SIZE else 64.dp)
                 Text(
                     text = headline,
                     style = type.rowLabel,
                     color = studio.ink,
                     textAlign = TextAlign.Center,
-                    maxLines = 2,
+                    maxLines = if (tiny) 1 else 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 if (song != null) SongLine(song = song, compact = true)
@@ -776,6 +780,16 @@ private fun PlayPauseButton(
  * tall, so anything shorter than this would have to clip it.
  */
 private val COMPACT_HEIGHT: Dp = 400.dp
+
+/**
+ * Below this the backdrop is a floating window rather than a video box: a phone's portrait video
+ * box is about 220dp tall and the guide's docked preview a little over 200, a floating window
+ * well under 150.
+ */
+private val TINY_HEIGHT: Dp = 180.dp
+
+/** The station's disc in a floating window. */
+private val TINY_DISC_SIZE: Dp = 40.dp
 
 private const val MINUTE_MILLIS = 60_000L
 
