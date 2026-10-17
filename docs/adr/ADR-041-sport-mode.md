@@ -118,7 +118,10 @@ Sport mode opens on them. With nothing to restore, it opens the picker on the fi
   - three of the four audio tracks reached the end of their stream 1.6, 3.4 and 14 seconds after
     starting, and the fourth, the last to connect, played on. A live stream that ends was closed
     by the server;
-  - the provider's account API reports `max_connections = 1`.
+  - the provider's account API reports `max_connections = 1`;
+  - a direct test from the same home network, two streams of the account open at once, saw the
+    first closed two to three seconds after the second opened, whatever user agent either sent.
+    The account offers only the `ts` output, not HLS.
 
   So the account allows one stream at a time, and the provider closes the older streams when a
   newer one opens. The decision that the provider allows several connections (decision 4 above)
