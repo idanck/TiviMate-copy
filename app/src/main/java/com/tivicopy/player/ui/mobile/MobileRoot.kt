@@ -225,10 +225,11 @@ fun MobileRoot(
     val openPlayer: () -> Unit = { onPlayerOpenChange(true) }
 
     // Leaving Sport mode plays the channel in focus, and so shows it, as the television carries it
-    // on full screen. With nothing chosen, whatever played before comes back where it was.
+    // on full screen. With nothing chosen, whatever played before comes back as it was: playing
+    // under the mini player, or paused there.
     val leaveSport: () -> Unit = {
         val chosen = vm.sport.focusedChannel()
-        vm.exitSport()
+        vm.exitSport(restartPaused = false)
         onSportOpenChange(false)
         if (chosen != null) openPlayer()
     }

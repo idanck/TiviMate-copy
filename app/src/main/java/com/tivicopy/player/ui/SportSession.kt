@@ -145,8 +145,11 @@ class SportSession(
         refresh()
     }
 
-    /** The channel in the panel with the remote, which is what plays on when Sport mode is left. */
-    fun focusedChannel(): Channel? = _slots.value.getOrNull(_focused.value)?.channel
+    /**
+     * The channel in the panel with the remote, which is what plays on when Sport mode is left;
+     * none while Sport mode is not the screen, whatever the panels last showed.
+     */
+    fun focusedChannel(): Channel? = if (!active) null else _slots.value.getOrNull(_focused.value)?.channel
 
     fun focus(slot: Int) {
         if (slot !in 0 until _count.value || _focused.value == slot) return

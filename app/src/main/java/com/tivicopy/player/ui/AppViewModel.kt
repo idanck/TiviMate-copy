@@ -876,6 +876,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun enterSport(remembersPanels: Boolean = false) {
         if (sport.active) return
+        playingBeforeSport = playbackStatus.value.playWhenReady
         saveVodProgress()
         player.silence()
         player.setPlayWhenReady(false)
@@ -889,15 +890,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Whether the full-screen player was playing, rather than paused, as Sport mode opened. */
+    private var playingBeforeSport = false
+
     /**
      * Leaves Sport mode for the full-screen player, which carries on with the channel the remote
      * was on — or, with nothing chosen, with whatever was playing before Sport mode opened.
+     *
+     * @param restartPaused whether something that was paused then starts again too. The
+     *   television does, where it is in front of the viewer; the phone leaves it paused under the
+     *   mini player rather than sounding behind a list.
      */
-    fun exitSport() {
+    fun exitSport(restartPaused: Boolean = true) {
         if (!sport.active) return
         val chosen = sport.focusedChannel()
         sport.close()
-        if (chosen != null) play(chosen) else retryPlayback()
+        when {
+            chosen != null -> play(chosen)
+            restartPaused || playingBeforeSport -> retryPlayback()
+        }
     }
 
     /** Sport mode left some other way — a launcher card, which decides for itself what plays. */

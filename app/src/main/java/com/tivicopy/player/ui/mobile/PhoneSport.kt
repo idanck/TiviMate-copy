@@ -389,10 +389,11 @@ private fun PhoneSportPicker(
 
             else -> {
                 val listState = rememberLazyListState()
-                // Opens on the channel the panel already shows, if it has one.
+                // Opens on the channel the panel already shows, if it has one, counting the
+                // row that empties the panel above the list.
                 val shown = choices.indexOfFirst { it.id == current?.id }
                 LaunchedEffect(slot) {
-                    if (shown > 0) listState.scrollToItem(shown)
+                    if (shown >= 0) listState.scrollToItem(shown + 1)
                 }
                 LazyColumn(
                     state = listState,

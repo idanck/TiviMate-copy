@@ -334,7 +334,10 @@ class MainActivity : ComponentActivity() {
                         else -> Unit
                     }
                 }
-                val resumed = vm.resumeStartChannel()
+                // Not into the phone's Sport mode, restored after the process was let go: the
+                // channel would play on the full-screen player over the panels, on a connection
+                // of its own, with the player screen open, unseen, underneath them (ADR-041).
+                val resumed = if (!isTelevision && sportOpen) false else vm.resumeStartChannel()
                 // The phone browses full screen, so a resumed channel opens the player screen —
                 // otherwise it would be audible behind the channel list with no video anywhere.
                 if (!isTelevision && resumed) playerOpen = true
