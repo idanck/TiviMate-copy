@@ -351,7 +351,8 @@ private fun PhoneSportPanel(
             },
     ) {
         if (slot.flashes) {
-            FlashesPanel(modifier = Modifier.fillMaxSize())
+            val live by vm.sport.live.collectAsState()
+            FlashesPanel(live = live, modifier = Modifier.fillMaxSize())
         } else if (channel == null) {
             EmptyPanel(
                 hint = stringResource(R.string.sport_add_hint_touch),

@@ -261,14 +261,16 @@ private fun rememberOnAir(vm: AppViewModel, channel: Channel): String? {
  * News mode's panel of headlines (ADR-042): the screensaver's own column (FR-UI-33), from the
  * sources chosen for it in Settings, in its colours and at its speed, fitted to the panel. Read
  * while the panel is up as the screensaver reads them while it is up: on the repository's own
- * ten-minute limit, so a panel and a screensaver never fetch twice between them.
+ * ten-minute limit, so a panel and a screensaver never fetch twice between them — and only while
+ * [live], so an app left in the background on News mode fetches nothing.
  */
 @Composable
-internal fun FlashesPanel(modifier: Modifier = Modifier) {
+internal fun FlashesPanel(live: Boolean, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
     val prefs by ServiceLocator.settings.state.collectAsState()
     val digests by ServiceLocator.news.state.collectAsState()
-    LaunchedEffect(Unit) {
+    LaunchedEffect(live) {
+        if (!live) return@LaunchedEffect
         while (true) {
             ServiceLocator.news.refresh(force = false)
             delay(NewsRepository.CHECK_INTERVAL_MS)

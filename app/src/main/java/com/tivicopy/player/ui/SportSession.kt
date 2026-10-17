@@ -56,6 +56,14 @@ class SportSession(
     /** Whether any panel is showing a running picture: what the screensaver asks (ADR-040). */
     val anyPlaying: StateFlow<Boolean> = _anyPlaying
 
+    private val _live = MutableStateFlow(false)
+
+    /**
+     * Whether a mode is the screen and in front of the viewer: what keeps News mode's headlines
+     * fetching, and nothing while the app is out of sight.
+     */
+    val live: StateFlow<Boolean> = _live
+
     private val _slots = MutableStateFlow(
         List(SportLayout.SLOTS) { Slot(null, PanelPlayer(context.applicationContext, settings, main, ::refresh)) },
     )
@@ -164,10 +172,18 @@ class SportSession(
             if (channel != null && !suspended) slot.panel.play(channel, profileFor(channel))
             Slot(channel, slot.panel, flashes)
         }
+        // The remote goes to the first channel; with none, to the first empty panel, where the
+        // picker opens — never onto the headlines, which a first choice would replace.
         val first = _slots.value.indexOfFirst { it.channel != null }
-        _focused.value = first.coerceAtLeast(0)
-        if (first < 0 && choices.isNotEmpty()) _picking.value = 0
+        val empty = _slots.value.take(count).indexOfFirst { it.channel == null && !it.flashes }
+        _focused.value = when {
+            first >= 0 -> first
+            empty >= 0 -> empty
+            else -> 0
+        }
+        if (first < 0 && empty >= 0 && choices.isNotEmpty()) _picking.value = empty
         applyAudible()
+        refresh()
     }
 
     /** Leaves Sport mode: every panel stops and lets go of its decoders and its connection. */
@@ -358,6 +374,7 @@ class SportSession(
         val value = !_paused.value
         _paused.value = value
         _slots.value.forEach { it.panel.setPaused(value) }
+        refresh()
     }
 
     /** Every panel quiet at once, ahead of [suspend] or [close]; see [PanelPlayer.silence]. */
@@ -389,6 +406,7 @@ class SportSession(
             Slot(channel, slot.panel, slot.flashes)
         }
         applyAudible()
+        refresh()
     }
 
     /**
@@ -412,8 +430,11 @@ class SportSession(
     }
 
     private fun refresh() {
-        // The headlines move too, so a grid that shows them is not a still screen (ADR-040).
-        _anyPlaying.value = active && !suspended &&
+        _live.value = active && !suspended
+        // The headlines move too, so a grid that shows them is not a still screen (ADR-040) —
+        // unless the panels are paused, when the picture beside them is a still frame, as a paused
+        // grid is in Sport mode.
+        _anyPlaying.value = active && !suspended && !_paused.value &&
             _slots.value.take(_count.value).any { it.flashes || it.panel.status.value.playing }
     }
 
