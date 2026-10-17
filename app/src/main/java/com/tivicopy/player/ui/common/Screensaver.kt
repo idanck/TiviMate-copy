@@ -140,9 +140,10 @@ enum class IdleScene {
  * @param videoFillsPanel the stream's own screen is what the panel *is*, rather than something an
  *   overlay has covered or shrunk into a corner. The guide docks the picture into a preview slot
  *   and fills the rest of the panel with a grid that does not move for hours; that is a still
- *   screen with a moving stamp on it, and it burns in exactly like any other. The same goes for a
- *   station: its screen protects itself (ADR-030), but a settings page left open over it does not,
- *   and that is a still screen with the radio playing behind it (ADR-037).
+ *   screen with a moving stamp on it, and it burns in exactly like any other. So is the
+ *   television's home screen, whose rails and furniture hold still over the picture (ADR-039).
+ *   The same goes for a station: its screen protects itself (ADR-030), but a settings page left
+ *   open over it does not, and that is a still screen with the radio playing behind it (ADR-037).
  */
 fun idleScene(
     playing: Boolean,
