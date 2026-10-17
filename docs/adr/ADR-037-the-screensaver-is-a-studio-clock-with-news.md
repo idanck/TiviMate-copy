@@ -6,6 +6,8 @@ screensaver. Decided by the owner on 2026-10-16 (round 4 of the Studio migration
 `docs/design/studio/MIGRATION.md`; canvas page "טלוויזיה · שומר מסך", board
 `TvScreensaverCombo`, settings board `TvSettingsFlashes`).
 Amended by ADR-038: Settings also offers a list of suggested sources; none is switched on.
+Amended by ADR-040: the radio's own screen is handed to the screensaver too, and the task list
+rides under its clock.
 
 ## Context
 

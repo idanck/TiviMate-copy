@@ -2,7 +2,8 @@
 
 **Status:** accepted. Amends FR-UI-31 and FR-UI-32 (ADR-024), and FR-UI-30's "nothing animates
 while the screen is idle", whose one exception now covers the radio screen as well as the
-screensaver.
+screensaver. **Reversed in part by ADR-040:** the radio's own screen is handed to the screensaver
+like any screen that is not full-screen video, and the task list moved into the screensaver.
 
 ## Context
 

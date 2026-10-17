@@ -24,63 +24,38 @@ class ScreensaverTest {
 
     // ------------------------------------------------------------------ scenes
 
+    /**
+     * The owner's rule (ADR-040): the screensaver comes on in every state except while a channel
+     * is being watched — full screen, with at most the bars that ride over the video.
+     */
     @Test
-    fun `moving video is left alone`() {
+    fun `a channel playing full screen is left alone`() {
         assertEquals(
             IdleScene.MOVING,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = true,
-            ),
+            idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = true),
         )
     }
 
     /**
-     * The case the guide produces: the picture is still playing, but it is a preview beside a
-     * grid that has not changed in an hour. Most of the panel is a still image.
+     * A guide or a menu left open over a playing channel: the picture is still running, but it
+     * is a preview beside a grid, or behind a page, that has not changed in an hour.
      */
     @Test
-    fun `video playing under an overlay is a still screen`() {
+    fun `a channel playing under a guide or a menu is a still screen`() {
         assertEquals(
             IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = false,
-            ),
+            idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = false),
         )
     }
 
-    /**
-     * The television's home screen, as the shell reports it. Its banner is the live picture at
-     * full size, which is why it used to count as moving video — and why the screensaver never
-     * came on over the screen a television is most often left on (ADR-039). Its rails and
-     * furniture hold still over that picture, so it is a still screen like the guide.
-     */
+    /** The home screen's rails and furniture hold still over its banner's picture (ADR-039). */
     @Test
-    fun `the home screen is a still screen, with the picture playing behind its banner`() {
+    fun `the home screen is a still screen, with a channel playing behind its banner`() {
         assertEquals(
             IdleScene.STILL,
             idleScene(
                 playing = true,
-                playWhenReady = true,
                 hasPicture = true,
-                failed = false,
-                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
-            ),
-        )
-        // A station behind home is a station under a menu (ADR-037), not the radio's own screen.
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
                 failed = false,
                 videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
             ),
@@ -107,77 +82,27 @@ class ScreensaverTest {
     fun `a paused film is a still screen`() {
         assertEquals(
             IdleScene.STILL,
-            idleScene(
-                playing = false,
-                playWhenReady = false,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
-    }
-
-    @Test
-    fun `sound with no picture is the radio`() {
-        assertEquals(
-            IdleScene.AUDIO_ONLY,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
+            idleScene(playing = false, hasPicture = true, failed = false, videoFillsPanel = true),
         )
     }
 
     /**
-     * A station that is rebuffering is not playing, and is still the radio: it is the *intent*
-     * that separates it from a station somebody stopped.
+     * A station is sound with no picture, and is handed over like any other screen that is not a
+     * channel being watched — its own screen included, which ADR-030 used to exempt.
      */
     @Test
-    fun `a rebuffering station is still the radio`() {
-        assertEquals(
-            IdleScene.AUDIO_ONLY,
-            idleScene(
-                playing = false,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
-    }
-
-    /**
-     * The radio's own screen protects itself (ADR-030), but a settings page left open over it
-     * does not: that is a still screen with a station playing behind it (ADR-037).
-     */
-    @Test
-    fun `a station under a menu is a still screen`() {
+    fun `a station playing on its own screen is a still screen`() {
         assertEquals(
             IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = false,
-            ),
+            idleScene(playing = true, hasPicture = false, failed = false, videoFillsPanel = true),
         )
     }
 
     @Test
-    fun `a paused station is a still screen`() {
+    fun `nothing playing is a still screen`() {
         assertEquals(
             IdleScene.STILL,
-            idleScene(
-                playing = false,
-                playWhenReady = false,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
+            idleScene(playing = false, hasPicture = false, failed = false, videoFillsPanel = true),
         )
     }
 
@@ -186,37 +111,18 @@ class ScreensaverTest {
     fun `a failed stream is a still screen`() {
         assertEquals(
             IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = true,
-                videoFillsPanel = true,
-            ),
+            idleScene(playing = true, hasPicture = true, failed = true, videoFillsPanel = true),
         )
     }
 
     // ------------------------------------------------------------------ arming
 
     @Test
-    fun `the guard is off when the setting is off, in picture-in-picture, and over moving video`() {
+    fun `the guard is off when the setting is off, in picture-in-picture, and over a channel being watched`() {
         assertTrue(screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = false))
-        // The radio protects itself with Studio's shifting background (ADR-030), so it is never
-        // handed to the screensaver.
-        assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
         assertTrue(!screensaverApplies(enabled = false, scene = IdleScene.STILL, inPip = false))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = true))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.MOVING, inPip = false))
-    }
-
-    @Test
-    fun `the task list counts down only on the radio, and only when both switches are on`() {
-        assertTrue(radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = false, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = false, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = true))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.STILL, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.MOVING, inPip = false))
     }
 
     @Test

@@ -92,8 +92,10 @@ import kotlin.math.sin
  * A television left on a still picture wears the picture into the panel. This app is unusually
  * good at producing one: it holds `FLAG_KEEP_SCREEN_ON` for as long as it is on screen, a paused
  * stream is a frozen frame that stays frozen until somebody comes back to it, and an overlay
- * left open is a wall of unmoving text. Nothing here touches the picture while it is *moving*:
- * video is its own protection, and so — since ADR-030 — is the radio's own screen.
+ * left open is a wall of unmoving text. The one thing it leaves alone is a channel or a film
+ * playing full screen (ADR-040): somebody is watching it, and the picture is its own protection.
+ * Everything else is handed over after the idle period — a guide or a menu left open over a
+ * playing channel, the home screen, and the radio's own screen included.
  *
  * What replaces the still screen is the canvas's `TvScreensaverCombo`: a black panel with a
  * studio clock at the start side — a ring of sixty dots filling with the seconds, twelve hour
@@ -118,45 +120,44 @@ import kotlin.math.sin
 
 /** What the panel is showing, for the purposes of deciding whether it needs protecting. */
 enum class IdleScene {
-    /** Moving video, filling the screen. Nothing to protect against. */
+    /**
+     * A channel or a film playing full screen — with, at most, the bars that ride over it. Left
+     * alone.
+     */
     MOVING,
 
-    /** A frozen frame, a menu, a guide, an error — a still image, whatever produced it. */
+    /**
+     * Anything else: a frozen frame, a station, a guide or a menu (over a playing channel or
+     * not), an error, nothing at all. Handed to the screensaver once nobody has touched the
+     * remote for the idle period.
+     */
     STILL,
-
-    /** The radio's own screen: sound with no picture, and nothing drawn over it. */
-    AUDIO_ONLY,
 }
 
 /**
- * What is on the panel, from what the player reports and where the shell has drawn it.
+ * What is on the panel, from what the player reports and where the shell has drawn it (ADR-040).
+ *
+ * The owner's rule: the screensaver comes on in every state except while a channel is being
+ * watched — and a guide or a menu left open over a playing channel is not being watched, it is a
+ * still screen that wears into the panel like any other. A station is sound with no picture, and
+ * is handed over too, its own screen included (which reverses ADR-030's exception for it).
  *
  * @param playing the stream is actually running — [com.tivicopy.player.player.PlaybackStatus.playing]
  *   rather than the user's intent, because a paused *or* stalled stream is a still frame either way.
- * @param playWhenReady the user's intent, which is what tells a station that is rebuffering from a
- *   station that has been paused: the first is still the radio, the second is a still screen.
  * @param hasPicture the stream has a video track. An audio-only one never produces a frame.
  * @param failed playback has settled on an error, so what is on screen is a message.
- * @param videoFillsPanel the stream's own screen is what the panel *is*, rather than something an
- *   overlay has covered or shrunk into a corner. The guide docks the picture into a preview slot
- *   and fills the rest of the panel with a grid that does not move for hours; that is a still
- *   screen with a moving stamp on it, and it burns in exactly like any other. So is the
- *   television's home screen, whose rails and furniture hold still over the picture (ADR-039).
- *   The same goes for a station: its screen protects itself (ADR-030), but a settings page left
- *   open over it does not, and that is a still screen with the radio playing behind it (ADR-037).
+ * @param videoFillsPanel the picture is what the panel *is*, rather than something a guide, a
+ *   menu or the home screen has covered, docked into a corner or drawn its rails over. The guide's
+ *   grid and the home screen's rails do not move for hours however lively the picture beside or
+ *   behind them (ADR-024, ADR-039).
  */
 fun idleScene(
     playing: Boolean,
-    playWhenReady: Boolean,
     hasPicture: Boolean,
     failed: Boolean,
     videoFillsPanel: Boolean,
-): IdleScene = when {
-    failed -> IdleScene.STILL
-    !hasPicture && playWhenReady && videoFillsPanel -> IdleScene.AUDIO_ONLY
-    playing && hasPicture && videoFillsPanel -> IdleScene.MOVING
-    else -> IdleScene.STILL
-}
+): IdleScene =
+    if (playing && hasPicture && !failed && videoFillsPanel) IdleScene.MOVING else IdleScene.STILL
 
 /** How long a still screen is left alone before the screensaver takes it, in milliseconds. */
 fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120) * 60_000L
@@ -166,24 +167,13 @@ fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120
  *
  * Separate from the countdown itself so the caller can arm one timer and forget it: this answers
  * "is this a screen worth protecting", the timer answers "has it been long enough".
- *
- * Only a still screen. Moving video protects itself, and so — since ADR-030 — does the radio:
- * its screen is Studio's shifting background, which never holds still, so handing it to a
- * screensaver would only replace one moving screen with another.
  */
 fun screensaverApplies(enabled: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
     enabled && !inPip && scene == IdleScene.STILL
 
-/**
- * Whether the radio screen should be counting towards showing the task list (FR-UI-32, ADR-030):
- * the screensaver and its tasks are switched on, and what is on screen is a station.
- */
-fun radioTasksApply(enabled: Boolean, tasks: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
-    enabled && tasks && !inPip && scene == IdleScene.AUDIO_ONLY
-
 /** What the screensaver says is behind it (ADR-037, decision 4). */
 sealed interface SaverPlaying {
-    /** A station, playing behind a still screen — a menu left open over the radio. */
+    /** A station, playing behind the screensaver — its own screen, or a menu left open over it. */
     data class Radio(val channel: Channel, val playing: Boolean) : SaverPlaying
 
     /** A picture: paused, or playing under an overlay that covers it. */
@@ -323,6 +313,8 @@ private const val SHIFT_PHASE_STEP = 0.381966f
  * @param flashesUpdatedUtc when the headlines were last fetched, for the line between rounds.
  * @param colours whether the clock and the headlines are drawn in Studio's three soft colours.
  * @param speed how fast the headlines scroll.
+ * @param tasks the owner's open tasks, one at a time under the clock (FR-UI-32); the caller passes
+ *   them only while a station is behind the screensaver, and empty shows none.
  */
 @Composable
 fun Screensaver(
@@ -332,6 +324,7 @@ fun Screensaver(
     colours: Boolean,
     speed: FlashSpeed,
     modifier: Modifier = Modifier,
+    tasks: List<TaskItem> = emptyList(),
 ) {
     val studio = StudioTheme.colors
 
@@ -391,6 +384,7 @@ fun Screensaver(
             if (landscape) {
                 ClockBlock(
                     playing = playing,
+                    tasks = tasks,
                     colours = colours,
                     units = units,
                     modifier = Modifier
@@ -423,6 +417,7 @@ fun Screensaver(
                 ) {
                     ClockBlock(
                         playing = playing,
+                        tasks = tasks,
                         colours = colours,
                         units = units,
                         modifier = Modifier.width(units.dp(CLOCK_COLUMN_DP)),
@@ -458,9 +453,18 @@ private class SaverUnits(val scale: Float, private val density: Density) {
     fun sp(value: Float): TextUnit = with(density) { (value * scale).dp.toSp() }
 }
 
-/** The clock, and what is behind the screensaver under it, at the canvas's 0.82 opacity. */
+/**
+ * The clock, what is behind the screensaver under it, and under that the open tasks, at the
+ * canvas's 0.82 opacity.
+ */
 @Composable
-private fun ClockBlock(playing: SaverPlaying, colours: Boolean, units: SaverUnits, modifier: Modifier) {
+private fun ClockBlock(
+    playing: SaverPlaying,
+    tasks: List<TaskItem>,
+    colours: Boolean,
+    units: SaverUnits,
+    modifier: Modifier,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(units.dp(15f)),
@@ -477,6 +481,9 @@ private fun ClockBlock(playing: SaverPlaying, colours: Boolean, units: SaverUnit
             is SaverPlaying.Video -> VideoLine(playing, units)
             SaverPlaying.None -> Unit
         }
+        // FR-UI-32: the radio's own screen is handed over now (ADR-040), so the task list that
+        // rode along its bottom rides here instead, under the station it is shown with.
+        TaskRotation(tasks = tasks, compact = true, modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -923,8 +930,8 @@ private fun SourceChip(label: String, tone: Color, colours: Boolean, units: Save
 }
 
 /**
- * The open tasks, one at a time (FR-UI-32): twelve seconds each, cross-faded, along the bottom of
- * the radio screen once the viewer has been away (ADR-030).
+ * The open tasks, one at a time (FR-UI-32): twelve seconds each, cross-faded, under the
+ * screensaver's clock while a station plays behind it (ADR-040).
  */
 @Composable
 internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Modifier = Modifier) {

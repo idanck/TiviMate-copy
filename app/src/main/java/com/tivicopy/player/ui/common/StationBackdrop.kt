@@ -64,7 +64,6 @@ import coil.request.SuccessResult
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
-import com.tivicopy.player.data.tasks.TaskItem
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.NowPlayingInfo
 import com.tivicopy.player.ui.theme.StudioTheme
@@ -313,12 +312,11 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * The audio-only Now Playing screen — Studio's radio screen (`docs/design/studio/canvas/Radio.dc.html`,
  * ADR-030).
  *
- * On a television: Studio's shifting background ([studioAmbient]) — which is also what protects
- * the panel, since this screen no longer hands over to a screensaver — the live badge and the clock
+ * On a television: Studio's shifting background ([studioAmbient]), the live badge and the clock
  * across the top, the station's disc haloed in light, and beside it what is playing: the song as a
- * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. When
- * the viewer has been away for the screensaver's idle time, the task list rides along the bottom
- * (FR-UI-32).
+ * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. Once
+ * the viewer has been away for the idle time, the screensaver takes this screen like any other
+ * that is not full-screen video, and carries the task list under its clock (ADR-040).
  *
  * Under a phone's surface, or docked into the guide, the same content is laid out small.
  *
@@ -331,7 +329,6 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * @param takeDpadFocus whether the button should claim D-pad focus. Only the ten-foot shell
  *   passes true, and only while nothing else on screen owns the arrows: a focusable control
  *   drawn under an open overlay would compete with that overlay's own focus.
- * @param tasks the task list to show, already gated on idleness by the caller; empty shows none
  * @param onFavourite toggles the station as a favourite; offered only where the remote can reach it
  */
 @Composable
@@ -348,11 +345,10 @@ fun AudioOnlyNowPlaying(
      * has not thought about it gets no claim rather than a wrong one.
      */
     live: Boolean = false,
-    tasks: List<TaskItem> = emptyList(),
     onFavourite: (() -> Unit)? = null,
     /**
      * The stations along the bottom (`canvas/Radio.dc.html`), supplied by the shell, which knows
-     * the station list; null where the remote cannot reach it. Gives way to the task list.
+     * the station list; null where the remote cannot reach it.
      */
     stationStrip: (@Composable (Modifier) -> Unit)? = null,
 ) {
@@ -506,20 +502,8 @@ fun AudioOnlyNowPlaying(
             }
         }
 
-        if (tasks.isEmpty() && stationStrip != null) {
+        if (stationStrip != null) {
             stationStrip(Modifier.align(Alignment.BottomStart).fillMaxWidth().padding(bottom = SAFE_Y))
-        }
-
-        // FR-UI-32: the task list, once nobody has touched the remote for a while.
-        if (tasks.isNotEmpty()) {
-            TaskRotation(
-                tasks = tasks,
-                compact = false,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = SAFE_X, end = SAFE_X, bottom = SAFE_Y)
-                    .widthIn(max = TASKS_WIDTH),
-            )
         }
     }
 }
@@ -805,7 +789,6 @@ private val DISC_TOP = 85.dp
 private val DISC_GAP = 36.dp
 private val NOW_TOP = 28.dp
 private val NOW_WIDTH = 500.dp
-private val TASKS_WIDTH = 560.dp
 private val EQUALIZER_HEIGHT = 48.dp
 
 /** The halo ring is 18px around a 440px disc. */

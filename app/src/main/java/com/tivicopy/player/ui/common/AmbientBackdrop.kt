@@ -21,8 +21,9 @@ import kotlinx.coroutines.delay
  * Studio's shifting background for the radio (`docs/design/studio/studio.css`, `.st-amb-*`;
  * ADR-030).
  *
- * The radio is the screen this app is most likely to be left on for hours, so it protects itself
- * rather than waiting for a screensaver to do it: nothing on it holds still.
+ * The radio is the screen this app is most likely to be left on for hours, so nothing on it holds
+ * still — and once the viewer has been away for the idle time, the screensaver takes it like any
+ * screen that is not full-screen video (ADR-040).
  *
  * - The **ground** moves through four dark tones (`--st-amb-1..4`) on a 120-second cycle.
  * - A **pool of light** in Studio's halo blue wanders on two axes with periods of 47 and 76
