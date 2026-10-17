@@ -31,6 +31,13 @@ class SelectiveRenderersFactory(
     context: Context,
     private val videoMode: DecoderMode,
     private val audioMode: DecoderMode,
+    /**
+     * Whether encoded audio (AC-3, E-AC-3, DTS) may go out to an HDMI receiver undecoded. Sport
+     * mode's panels say no (ADR-041): a stream passed through ignores the player's volume, so a
+     * muted panel would still be heard, and the output takes one passed-through stream at a time,
+     * so a second would fail outright. Decoded to PCM, four play at once and mute on request.
+     */
+    private val encodedAudioPassthrough: Boolean = true,
 ) : DefaultRenderersFactory(context) {
 
     init {
@@ -90,11 +97,19 @@ class SelectiveRenderersFactory(
      * equaliser read the samples on their way out (ADR-031). It changes nothing it hands on; when
      * nothing is showing the bars it does nothing but hand on.
      */
-    private fun spectrumSink(context: Context, enableFloatOutput: Boolean): AudioSink =
-        DefaultAudioSink.Builder(context)
+    private fun spectrumSink(context: Context, enableFloatOutput: Boolean): AudioSink {
+        val builder = if (encodedAudioPassthrough) {
+            DefaultAudioSink.Builder(context)
+        } else {
+            // Without a context the sink cannot see the receiver, so it assumes the default
+            // capabilities: PCM only, nothing passed through. That is the whole point here.
+            @Suppress("DEPRECATION") DefaultAudioSink.Builder()
+        }
+        return builder
             .setEnableFloatOutput(enableFloatOutput)
             .setAudioProcessors(arrayOf<AudioProcessor>(TeeAudioProcessor(AudioSpectrum.Sink())))
             .build()
+    }
 
     private fun selectorFor(mode: DecoderMode, base: MediaCodecSelector): MediaCodecSelector =
         when (mode) {

@@ -806,45 +806,52 @@ class PlayerEngine(
         if (scheduler != null) scheduler(delayMillis, guarded) else guarded()
     }
 
-    private fun mapError(error: PlaybackException): AppError = when (error.errorCode) {
-        PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
-        PlaybackException.ERROR_CODE_DRM_DEVICE_REVOKED,
-        PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR,
-        PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
-        PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
-        PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR,
-        -> AppError(AppError.Kind.DrmUnsupported, error.errorCodeName, error)
+    private fun mapError(error: PlaybackException): AppError = playbackErrorOf(error)
+}
 
-        PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
-        PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
-        PlaybackException.ERROR_CODE_DECODING_FAILED,
-        PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
-        -> AppError(AppError.Kind.DecoderFailed, error.errorCodeName, error)
+/**
+ * What a player failure means to the viewer, as an [AppError] the UI can explain — the DRM case
+ * included, which must never be a silent black screen (FR-TVI-06). Shared by [PlayerEngine] and
+ * by Sport mode's panels ([PanelPlayer]), so a panel says what the full-screen player would.
+ */
+internal fun playbackErrorOf(error: PlaybackException): AppError = when (error.errorCode) {
+    PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,
+    PlaybackException.ERROR_CODE_DRM_DEVICE_REVOKED,
+    PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR,
+    PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED,
+    PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED,
+    PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR,
+    -> AppError(AppError.Kind.DrmUnsupported, error.errorCodeName, error)
 
-        PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {
-            val cause = error.cause
-            val code = (cause as? androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException)?.responseCode
-            if (code != null) AppError.fromHttp(code) else AppError(AppError.Kind.Network, error.errorCodeName, error)
-        }
+    PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+    PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
+    PlaybackException.ERROR_CODE_DECODING_FAILED,
+    PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+    -> AppError(AppError.Kind.DecoderFailed, error.errorCodeName, error)
 
-        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
-            AppError(AppError.Kind.Timeout, error.errorCodeName, error)
-
-        PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
-        PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
-        -> AppError(AppError.Kind.Network, error.errorCodeName, error)
-
-        PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
-            AppError(AppError.Kind.NotFound, error.errorCodeName, error)
-
-        PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
-        PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
-        PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
-        PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
-        -> AppError(AppError.Kind.UnsupportedFormat, error.errorCodeName, error)
-
-        else -> AppError(AppError.Kind.Unknown, error.errorCodeName, error)
+    PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {
+        val cause = error.cause
+        val code = (cause as? androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException)?.responseCode
+        if (code != null) AppError.fromHttp(code) else AppError(AppError.Kind.Network, error.errorCodeName, error)
     }
+
+    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT ->
+        AppError(AppError.Kind.Timeout, error.errorCodeName, error)
+
+    PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+    PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+    -> AppError(AppError.Kind.Network, error.errorCodeName, error)
+
+    PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND ->
+        AppError(AppError.Kind.NotFound, error.errorCodeName, error)
+
+    PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+    PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
+    PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
+    PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
+    -> AppError(AppError.Kind.UnsupportedFormat, error.errorCodeName, error)
+
+    else -> AppError(AppError.Kind.Unknown, error.errorCodeName, error)
 }
 
 /**

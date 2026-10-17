@@ -82,8 +82,9 @@ television that still overscans, content near the edge can be cropped. See `docs
 10. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
    section 3.4 and section 3.6.
 
-The side menu is the television's one navigation: Home, Channels, Guide, Radio and Recordings, then
-Search and Settings under a hairline. It is the ten-foot answer to the phone's bottom bar, and it
+The side menu is the television's one navigation: Home, Channels, Guide, Radio, Sport and
+Recordings, then Search and Settings under a hairline. Sport opens Sport mode (ADR-041), the one
+screen the menu does not appear on: four pictures fill it, and Back leaves it. It is the ten-foot answer to the phone's bottom bar, and it
 is on every browse screen — home, channels, radio, guide, search, on demand, recordings, settings
 and adding a source — as one strip in one place, with the screen you are on lit, under Studio's
 top bar (ADR-035). Choosing an entry hands the remote to the screen it opened.

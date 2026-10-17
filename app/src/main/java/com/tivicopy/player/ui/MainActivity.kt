@@ -59,6 +59,7 @@ import com.tivicopy.player.ui.common.SaverPlaying
 import com.tivicopy.player.ui.common.Screensaver
 import com.tivicopy.player.ui.common.StudioNoticeHost
 import com.tivicopy.player.ui.common.describe
+import com.tivicopy.player.ui.common.IdleScene
 import com.tivicopy.player.ui.common.idleScene
 import com.tivicopy.player.ui.common.screensaverApplies
 import com.tivicopy.player.ui.common.screensaverDelayMillis
@@ -339,7 +340,12 @@ class MainActivity : ComponentActivity() {
 
             // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
             // protecting (ADR-040); the countdown below decides when.
-            val scene = idleScene(
+            val sportPlaying by vm.sport.anyPlaying.collectAsState()
+            val scene = if (isTelevision && overlay == TvOverlay.SPORT) {
+                // Sport mode's panels are pictures being watched, though the full-screen player
+                // stands silent underneath them (ADR-041).
+                if (sportPlaying) IdleScene.MOVING else IdleScene.STILL
+            } else idleScene(
                 playing = playback.playing,
                 hasPicture = playback.width > 0 || playback.height > 0,
                 failed = playback.error != null,
@@ -588,6 +594,9 @@ class MainActivity : ComponentActivity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (!isTelevision) return onPhoneKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
+        // Sport mode has its own bindings (ADR-041); none of the full-screen player's below apply.
+        if (overlay == TvOverlay.SPORT) return onSportKeyDown(keyCode) || super.onKeyDown(keyCode, event)
+
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             numericEntry = (numericEntry + (keyCode - KeyEvent.KEYCODE_0)).take(4)
             scheduleNumericCommit()
@@ -662,6 +671,28 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
+     * Sport mode's remote (ADR-041). The arrows, OK and Menu are the panels' own, in Compose; what
+     * reaches here is what acts on the panels as a set or on the one with the remote.
+     *
+     * Play/pause is taken even though Sport mode has no transport bar: left unclaimed, the system
+     * hands it to the media session, which would start the full-screen player again underneath.
+     * The digits are swallowed for the same reason — they tune the full-screen player.
+     */
+    private fun onSportKeyDown(keyCode: Int): Boolean {
+        when (keyCode) {
+            KeyEvent.KEYCODE_CHANNEL_UP -> vm.sport.step(1)
+            KeyEvent.KEYCODE_CHANNEL_DOWN -> vm.sport.step(-1)
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            KeyEvent.KEYCODE_MEDIA_PLAY,
+            KeyEvent.KEYCODE_MEDIA_PAUSE,
+            -> vm.sport.togglePause()
+            in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> Unit
+            else -> return false
+        }
+        return true
+    }
+
+    /**
      * A phone with a Bluetooth remote or a keyboard: the channel keys, the digits and Last act on
      * the full-screen player the way they do on the television (QA-09). Only there — over the
      * lists they would change channel behind the user's back. A focused text field has already
@@ -728,6 +759,11 @@ class MainActivity : ComponentActivity() {
      */
     private fun stepUpOneOverlay(): Boolean {
         when {
+            // Sport mode (ADR-041): the picker closes, a panel filling the screen goes back into
+            // the grid, and the grid leaves for the full-screen player on the channel with the
+            // remote.
+            overlay == TvOverlay.SPORT -> stepUpInSport()
+
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT
 
@@ -770,6 +806,19 @@ class MainActivity : ComponentActivity() {
             else -> return false
         }
         return true
+    }
+
+    /** Back in Sport mode; see the rung in [stepUpOneOverlay]. */
+    private fun stepUpInSport() {
+        val sport = vm.sport
+        when {
+            sport.picking.value != null -> sport.closePicker()
+            sport.expanded.value -> sport.setExpanded(false)
+            else -> {
+                vm.exitSport()
+                overlay = TvOverlay.NONE
+            }
+        }
     }
 
     /**
@@ -854,6 +903,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
+        // Sport mode has no one picture for a floating window to keep showing (ADR-041). Its
+        // panels go quiet now, rather than over the launcher, and [onStop] lets them go.
+        if (isTelevision && overlay == TvOverlay.SPORT) {
+            vm.sport.silence()
+            return
+        }
         // On the phone, browsing shows no video, so there is nothing for a PiP window to keep
         // showing — only the open player screen shrinks into one. The TV shell is always video.
         val prefs = ServiceLocator.settings.state.value
@@ -975,6 +1030,8 @@ class MainActivity : ComponentActivity() {
         // Whatever [onStop] handed off to while backgrounded is no longer needed: the UI is
         // back and drives the player directly again.
         RadioBackgroundService.stop(this)
+        // Sport mode's panels start their channels again, if Sport mode was the screen (ADR-041).
+        vm.resumeSport()
         // Undo what [onStop] did for the background: the shells' own effects only re-run when
         // their keys change, and coming back from the launcher changes none of them.
         ServiceLocator.player.setVideoOutputWanted(isTelevision || playerOpen || inPip)
@@ -1013,6 +1070,7 @@ class MainActivity : ComponentActivity() {
             // The position first, while the player still has it (FR-PLB-29); see [onStop].
             vm.saveVodProgress()
             ServiceLocator.player.silence()
+            vm.sport.silence()
         }
     }
 
@@ -1025,6 +1083,9 @@ class MainActivity : ComponentActivity() {
         // position has to be read here, on the thread that owns ExoPlayer, and while it still
         // has one (FR-PLB-29).
         vm.saveVodProgress()
+        // Sport mode's panels let go of their decoders and connections whenever the activity is
+        // out of sight; [onStart] picks the same channels up again (ADR-041).
+        vm.sport.suspend()
         // Playback is released only when the activity really goes away; a recording keeps
         // running in its own foreground service either way.
         if (isFinishing) {

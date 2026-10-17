@@ -31,6 +31,7 @@ import com.tivicopy.player.data.prefs.PinAttemptLimiter
 import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
+import com.tivicopy.player.data.sport.IsraeliSportChannels
 import com.tivicopy.player.data.xtream.isEpisode
 import com.tivicopy.player.data.xtream.isSeriesContainer
 import com.tivicopy.player.player.PlaybackStatus
@@ -199,6 +200,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val parentalUnlocked: StateFlow<Boolean> = _parentalUnlocked
 
     private val pinLimiter = PinAttemptLimiter()
+
+    /** Sport mode's four panels (ADR-041), beside the full-screen player they stand in for. */
+    val sport = SportSession(app, settings, ::profileFor)
 
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
@@ -859,6 +863,82 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         vodPlayGeneration++
     }
 
+    // ------------------------------------------------------------------ sport
+
+    /**
+     * Opens Sport mode (ADR-041). The full-screen player stands down first — its decoder and its
+     * connection are the panels' now — after writing down where an on-demand title had got to, so
+     * that leaving with nothing chosen can put it back where it was.
+     */
+    fun enterSport() {
+        if (sport.active) return
+        saveVodProgress()
+        player.silence()
+        player.setPlayWhenReady(false)
+        sport.begin()
+        viewModelScope.launch {
+            val choices = sportChoices()
+            val restored = settings.sportSlots().map { id ->
+                id?.let { wanted -> choices.firstOrNull { it.id == wanted } }
+            }
+            sport.offer(choices, restored)
+        }
+    }
+
+    /**
+     * Leaves Sport mode for the full-screen player, which carries on with the channel the remote
+     * was on — or, with nothing chosen, with whatever was playing before Sport mode opened.
+     */
+    fun exitSport() {
+        if (!sport.active) return
+        val chosen = sport.focusedChannel()
+        sport.close()
+        if (chosen != null) play(chosen) else retryPlayback()
+    }
+
+    /** Sport mode left some other way — a launcher card, which decides for itself what plays. */
+    fun closeSport() = sport.close()
+
+    /** Back from the background: the panels start again, any the parental lock now covers aside. */
+    fun resumeSport() = sport.resume { channel -> !channelNeedsPin(channel) }
+
+    /**
+     * Every channel Sport mode may show: the Israeli sports channels of every playlist but the
+     * bundled radio, in playlist order ([IsraeliSportChannels]). Hidden channels and hidden groups
+     * stay hidden, and a channel behind the parental PIN is left out rather than asked for in each
+     * of four panels.
+     */
+    private suspend fun sportChoices(): List<Channel> = withContext(Dispatchers.IO) {
+        val s = settings.state.value
+        val unlocked = _parentalUnlocked.value
+        dao.playlists()
+            .filterNot { it.url == IsraelRadioStations.M3U_URL }
+            .flatMap { playlist ->
+                val groups = dao.groups(playlist.id, includeHidden = true).associateBy { it.id }
+                dao.channels(playlist.id).filter { channel ->
+                    val group = channel.groupId?.let { groups[it] }
+                    val names = listOfNotNull(channel.name, channel.customName)
+                    val isSport = names.any { name ->
+                        IsraeliSportChannels.isIsraeliSport(name, group?.name, channel.tvgId)
+                    }
+                    isSport && !ParentalGate.channelNeedsPin(
+                        channelLocked = channel.locked,
+                        groupLocked = group?.locked == true,
+                        pinSet = s.parentalPinHash.isNotBlank(),
+                        lockChannels = s.lockChannels,
+                        unlocked = unlocked,
+                    )
+                }
+            }
+    }
+
+    /** The request profile [channel]'s own playlist asks for, or the app's defaults. */
+    private fun profileFor(channel: Channel): com.tivicopy.player.data.net.RequestProfile {
+        val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
+        return playlist?.let { sources.profileFor(it) }
+            ?: com.tivicopy.player.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
+    }
+
     /**
      * Writes where the viewer got to, if that is anywhere worth returning to.
      *
@@ -1357,6 +1437,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         player.onScheduleRetry = null
         player.onNotice = null
+        sport.close()
         super.onCleared()
     }
 

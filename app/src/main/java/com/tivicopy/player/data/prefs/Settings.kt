@@ -524,6 +524,22 @@ class Settings(context: Context) {
         _state.value = read()
     }
 
+    /**
+     * The channels Sport mode last had on screen, panel by panel, null where a panel was empty
+     * (ADR-041). Read straight from preferences rather than carried on [Snapshot]: nothing on
+     * screen observes it, and every write would otherwise recompose every screen that reads the
+     * settings.
+     */
+    fun sportSlots(): List<Long?> =
+        prefs.getString(K_SPORT_SLOTS, null)
+            ?.split(',')
+            ?.map { it.trim().toLongOrNull() }
+            .orEmpty()
+
+    fun setSportSlots(ids: List<Long?>) {
+        prefs.edit().putString(K_SPORT_SLOTS, ids.joinToString(",") { it?.toString().orEmpty() }).apply()
+    }
+
     private inline fun <reified E : Enum<E>> SharedPreferences.enum(key: String, fallback: E): E {
         val raw = getString(key, null) ?: return fallback
         return runCatching { enumValueOf<E>(raw) }.getOrDefault(fallback)
@@ -605,5 +621,6 @@ class Settings(context: Context) {
         const val K_NEWS_SOURCES = "news_sources"
         const val K_NEWS_LAST_CHECK = "news_last_check"
         const val K_NEWS_DIGESTS = "news_last_digests"
+        const val K_SPORT_SLOTS = "sport_slots"
     }
 }

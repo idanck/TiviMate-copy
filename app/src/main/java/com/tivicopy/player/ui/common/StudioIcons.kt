@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.dp
  * Studio's own icon set (`docs/design/studio/canvas/Icon.dc.html`, the "סט האייקונים" board),
  * which replaced Material's filled icons everywhere in Studio stage 9 (ADR-033).
  *
- * One drawing rule for all 43: a 2-unit line on a 24-unit grid with round ends and joins, so a
+ * One drawing rule for all of them: a 2-unit line on a 24-unit grid with round ends and joins, so a
  * glyph keeps one weight at every size it is drawn. Only four are solid — play, pause, record and
  * a favourite that is set ([StarOn]) — because those are the ones that state something is
  * happening or chosen, and a solid shape is how the set says so.
@@ -50,6 +50,11 @@ object StudioIcons {
     val Plus: ImageVector by lazy { glyph("plus", "M12 5v14M5 12h14") }
     val Tv: ImageVector by lazy { glyph("tv", "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM9 21h6") }
     val Radio: ImageVector by lazy { glyph("radio", "M12 9a3 3 0 1 1 0 6a3 3 0 1 1 0-6zM7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14") }
+    /**
+     * Sport mode's entry in the side menu (ADR-041): a ball with its seams, drawn to the set's rule.
+     * Not on the canvas's board, which predates the mode.
+     */
+    val Sport: ImageVector by lazy { glyph("sport", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM3 12h18M12 3v18M5.6 5.6a9 9 0 0 1 0 12.8M18.4 5.6a9 9 0 0 0 0 12.8") }
     val Hide: ImageVector by lazy { glyph("hide", "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9 6-.3.9-1.2 2.4-2.6 3.7M6.6 7.7C4.6 9 3.4 10.9 3 12c.5 1.5 4 6 9 6 1.6 0 3-.4 4.2-1.1") }
     val Move: ImageVector by lazy { glyph("move", "M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4") }
     val Info: ImageVector by lazy { glyph("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM12 11v6M12 7.5v.5") }
