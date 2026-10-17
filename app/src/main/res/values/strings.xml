@@ -440,7 +440,7 @@
     <string name="settings_watch_next">Publish to Continue watching</string>
     <string name="settings_watch_next_sub">Offers recently watched channels on the Google TV home screen</string>
     <string name="settings_screensaver">Screensaver</string>
-    <string name="settings_screensaver_sub">Replaces the screen with a studio clock on black whenever no channel or film is playing, so nothing wears into the panel</string>
+    <string name="settings_screensaver_sub">Replaces the screen with a studio clock on black, except while you watch a channel or a film, so nothing wears into the panel</string>
     <string name="settings_screensaver_idle">Start the screensaver after</string>
     <string name="settings_minutes">%1$d min</string>
     <string name="settings_screensaver_tasks">Show my tasks on the radio screensaver</string>

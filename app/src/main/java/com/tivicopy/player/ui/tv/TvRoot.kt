@@ -132,6 +132,19 @@ enum class TvOverlay {
         get() = this == GUIDE || this == HOME
 
     /**
+     * Whether the live picture is what the screen *is* while this overlay is up.
+     *
+     * Not the same question as [isPassthrough], which is about the remote, even though the two
+     * answers coincide: the picture is the screen only on the bare video and under the bars that
+     * ride over it. The guide shrinks it into a preview beside a grid that does not move for
+     * hours, and the home screen draws its top bar, caption and rails over it — still screens
+     * with a moving stamp on them, which wear into a panel like any other (ADR-039, ADR-040).
+     * Read by [com.tivicopy.player.ui.common.idleScene].
+     */
+    val videoFillsPanel: Boolean
+        get() = isPassthrough
+
+    /**
      * Whether this overlay reaches the edges of the panel itself, rather than sitting inside
      * [TV_CONTENT_INSET]. A full-bleed banner cannot start 24dp from the edge, so the home screen
      * takes the inset over as its own content padding (ADR-020).

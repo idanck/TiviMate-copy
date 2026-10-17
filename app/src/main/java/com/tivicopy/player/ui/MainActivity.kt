@@ -337,12 +337,16 @@ class MainActivity : ComponentActivity() {
                 ServiceLocator.appScope.launch { ServiceLocator.updates.check(force = false) }
             }
 
-            // FR-UI-31, ADR-024: the burn-in guard. Whether a picture is playing decides whether
-            // the screen needs protecting at all (ADR-040); the countdown below decides when.
+            // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
+            // protecting (ADR-040); the countdown below decides when.
             val scene = idleScene(
                 playing = playback.playing,
                 hasPicture = playback.width > 0 || playback.height > 0,
                 failed = playback.error != null,
+                // The one question the two shells answer differently: on the television a guide
+                // or a menu may be covering the picture or docking it into a corner, and on the
+                // phone there is no picture on screen at all unless the player screen is open.
+                videoFillsPanel = if (isTelevision) overlay.videoFillsPanel else playerOpen,
             )
             val applies = screensaverApplies(prefs.screensaverEnabled, scene, inPip)
             // One timer, armed and slept through, rather than a clock ticking every second: a

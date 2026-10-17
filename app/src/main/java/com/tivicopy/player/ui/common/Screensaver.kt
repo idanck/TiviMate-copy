@@ -92,9 +92,10 @@ import kotlin.math.sin
  * A television left on a still picture wears the picture into the panel. This app is unusually
  * good at producing one: it holds `FLAG_KEEP_SCREEN_ON` for as long as it is on screen, a paused
  * stream is a frozen frame that stays frozen until somebody comes back to it, and an overlay
- * left open is a wall of unmoving text. The one thing it leaves alone is a picture that is
- * playing — a channel or a film, under a menu or not (ADR-040): somebody is watching it.
- * Everything else is handed over after the idle period, the radio's own screen included.
+ * left open is a wall of unmoving text. The one thing it leaves alone is a channel or a film
+ * playing full screen (ADR-040): somebody is watching it, and the picture is its own protection.
+ * Everything else is handed over after the idle period — a guide or a menu left open over a
+ * playing channel, the home screen, and the radio's own screen included.
  *
  * What replaces the still screen is the canvas's `TvScreensaverCombo`: a black panel with a
  * studio clock at the start side — a ring of sixty dots filling with the seconds, twelve hour
@@ -119,35 +120,44 @@ import kotlin.math.sin
 
 /** What the panel is showing, for the purposes of deciding whether it needs protecting. */
 enum class IdleScene {
-    /** A picture that is playing: a channel or a film, whatever is drawn over it. Left alone. */
+    /**
+     * A channel or a film playing full screen — with, at most, the bars that ride over it. Left
+     * alone.
+     */
     MOVING,
 
     /**
-     * Anything else: a frozen frame, a station, a menu, a guide, an error, nothing at all. Handed
-     * to the screensaver once nobody has touched the remote for the idle period.
+     * Anything else: a frozen frame, a station, a guide or a menu (over a playing channel or
+     * not), an error, nothing at all. Handed to the screensaver once nobody has touched the
+     * remote for the idle period.
      */
     STILL,
 }
 
 /**
- * What is on the panel, from what the player reports (ADR-040).
+ * What is on the panel, from what the player reports and where the shell has drawn it (ADR-040).
  *
- * The owner's rule: the screensaver comes on in every state except while a channel is playing.
- * So the question is only whether a picture is playing — not where the shell has drawn it. A
- * channel playing behind the guide, the home screen or Settings is a channel playing, and is left
- * alone like the bare video; a station is sound with no picture, and is handed over like a menu,
- * its own screen included (which reverses ADR-030's exception for it).
+ * The owner's rule: the screensaver comes on in every state except while a channel is being
+ * watched — and a guide or a menu left open over a playing channel is not being watched, it is a
+ * still screen that wears into the panel like any other. A station is sound with no picture, and
+ * is handed over too, its own screen included (which reverses ADR-030's exception for it).
  *
  * @param playing the stream is actually running — [com.tivicopy.player.player.PlaybackStatus.playing]
  *   rather than the user's intent, because a paused *or* stalled stream is a still frame either way.
  * @param hasPicture the stream has a video track. An audio-only one never produces a frame.
  * @param failed playback has settled on an error, so what is on screen is a message.
+ * @param videoFillsPanel the picture is what the panel *is*, rather than something a guide, a
+ *   menu or the home screen has covered, docked into a corner or drawn its rails over. The guide's
+ *   grid and the home screen's rails do not move for hours however lively the picture beside or
+ *   behind them (ADR-024, ADR-039).
  */
 fun idleScene(
     playing: Boolean,
     hasPicture: Boolean,
     failed: Boolean,
-): IdleScene = if (playing && hasPicture && !failed) IdleScene.MOVING else IdleScene.STILL
+    videoFillsPanel: Boolean,
+): IdleScene =
+    if (playing && hasPicture && !failed && videoFillsPanel) IdleScene.MOVING else IdleScene.STILL
 
 /** How long a still screen is left alone before the screensaver takes it, in milliseconds. */
 fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120) * 60_000L

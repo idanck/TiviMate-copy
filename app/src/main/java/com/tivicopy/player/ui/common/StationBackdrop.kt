@@ -316,7 +316,7 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * across the top, the station's disc haloed in light, and beside it what is playing: the song as a
  * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. Once
  * the viewer has been away for the idle time, the screensaver takes this screen like any other
- * that is not a playing picture, and carries the task list under its clock (ADR-040).
+ * that is not full-screen video, and carries the task list under its clock (ADR-040).
  *
  * Under a phone's surface, or docked into the guide, the same content is laid out small.
  *

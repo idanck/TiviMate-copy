@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.common
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.tv.TvOverlay
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.abs
@@ -25,43 +26,99 @@ class ScreensaverTest {
 
     /**
      * The owner's rule (ADR-040): the screensaver comes on in every state except while a channel
-     * is playing. The shell no longer has a say, so the same answer holds under the guide, the
-     * home screen or Settings as over the bare video.
+     * is being watched — full screen, with at most the bars that ride over the video.
      */
     @Test
-    fun `a playing picture is left alone, whatever is drawn over it`() {
-        assertEquals(IdleScene.MOVING, idleScene(playing = true, hasPicture = true, failed = false))
+    fun `a channel playing full screen is left alone`() {
+        assertEquals(
+            IdleScene.MOVING,
+            idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = true),
+        )
+    }
+
+    /**
+     * A guide or a menu left open over a playing channel: the picture is still running, but it
+     * is a preview beside a grid, or behind a page, that has not changed in an hour.
+     */
+    @Test
+    fun `a channel playing under a guide or a menu is a still screen`() {
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = false),
+        )
+    }
+
+    /** The home screen's rails and furniture hold still over its banner's picture (ADR-039). */
+    @Test
+    fun `the home screen is a still screen, with a channel playing behind its banner`() {
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(
+                playing = true,
+                hasPicture = true,
+                failed = false,
+                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
+            ),
+        )
+    }
+
+    /** What still counts as the picture being the screen: the bare video and what rides over it. */
+    @Test
+    fun `only the bare video and its passthrough overlays leave the picture as the screen`() {
+        val filling = TvOverlay.entries.filter { it.videoFillsPanel }.toSet()
+        assertEquals(
+            setOf(
+                TvOverlay.NONE,
+                TvOverlay.INFO,
+                TvOverlay.MINI_GUIDE,
+                TvOverlay.TRANSPORT,
+                TvOverlay.PLAYBACK_MENU,
+            ),
+            filling,
+        )
     }
 
     @Test
     fun `a paused film is a still screen`() {
-        assertEquals(IdleScene.STILL, idleScene(playing = false, hasPicture = true, failed = false))
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = false, hasPicture = true, failed = false, videoFillsPanel = true),
+        )
     }
 
     /**
      * A station is sound with no picture, and is handed over like any other screen that is not a
-     * playing picture — its own screen included, which ADR-030 used to exempt.
+     * channel being watched — its own screen included, which ADR-030 used to exempt.
      */
     @Test
-    fun `a playing station is a still screen`() {
-        assertEquals(IdleScene.STILL, idleScene(playing = true, hasPicture = false, failed = false))
+    fun `a station playing on its own screen is a still screen`() {
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = false, failed = false, videoFillsPanel = true),
+        )
     }
 
     @Test
     fun `nothing playing is a still screen`() {
-        assertEquals(IdleScene.STILL, idleScene(playing = false, hasPicture = false, failed = false))
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = false, hasPicture = false, failed = false, videoFillsPanel = true),
+        )
     }
 
     /** A settled error is a message on screen, and a message holds as still as anything else. */
     @Test
     fun `a failed stream is a still screen`() {
-        assertEquals(IdleScene.STILL, idleScene(playing = true, hasPicture = true, failed = true))
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = true, failed = true, videoFillsPanel = true),
+        )
     }
 
     // ------------------------------------------------------------------ arming
 
     @Test
-    fun `the guard is off when the setting is off, in picture-in-picture, and over a playing picture`() {
+    fun `the guard is off when the setting is off, in picture-in-picture, and over a channel being watched`() {
         assertTrue(screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = false))
         assertTrue(!screensaverApplies(enabled = false, scene = IdleScene.STILL, inPip = false))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = true))
