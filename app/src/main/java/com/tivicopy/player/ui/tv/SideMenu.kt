@@ -120,11 +120,14 @@ internal fun SideMenu(
     var open by remember { mutableStateOf(false) }
     // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline. On demand
     // is not among them, as on the phone (ADR-032): search reaches it where a source has any.
+    // Sport mode follows the radio (ADR-041). It is the one entry whose screen draws no menu of
+    // its own: four pictures fill it, and Back is the way out.
     val destinations = listOf(
         MenuDestination(stringResource(R.string.nav_home), StudioIcons.Home, TvOverlay.HOME),
         MenuDestination(stringResource(R.string.nav_live), StudioIcons.Tv, TvOverlay.CHANNELS),
         MenuDestination(stringResource(R.string.nav_guide), StudioIcons.Guide, TvOverlay.GUIDE),
         MenuDestination(stringResource(R.string.nav_radio), StudioIcons.Radio, TvOverlay.RADIO),
+        MenuDestination(stringResource(R.string.nav_sport), StudioIcons.Sport, TvOverlay.SPORT),
         MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
     )
     val tools = listOf(

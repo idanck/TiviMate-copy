@@ -34,6 +34,7 @@
     <string name="action_done">סיום</string>
     <string name="nav_live">ערוצים</string>
     <string name="nav_radio">רדיו</string>
+    <string name="nav_sport">ספורט</string>
     <string name="nav_guide">מדריך</string>
     <string name="nav_vod">VOD</string>
     <string name="nav_recordings">הקלטות</string>
@@ -474,4 +475,16 @@
     <string name="player_more_channels">ערוצים נוספים</string>
     <string name="guide_details">פרטים</string>
     <string name="radio_equalizer">אקולייזר</string>
+
+    <!-- Sport mode (ADR-041) -->
+    <string name="sport_add_channel">הוספת ערוץ</string>
+    <string name="sport_add_hint">OK לבחירת ערוץ. לחיצה ארוכה מחליפה אותו.</string>
+    <string name="sport_pick_title">ערוץ למסך הזה</string>
+    <string name="sport_pick_subtitle">ערוצי ספורט ישראליים</string>
+    <string name="sport_pick_remove">הסרה מהמסך</string>
+    <string name="sport_pick_on_screen">כבר על המסך</string>
+    <string name="sport_pick_none">לא נמצאו ערוצי ספורט ישראליים ברשימות שלך.</string>
+    <string name="sport_panel_device_limit">המכשיר לא מצליח לנגן עוד ערוץ במקביל.</string>
+    <string name="sport_panel_retry_hint">OK לניסיון נוסף</string>
+    <string name="sport_sound_here">הסאונד מהמסך הזה</string>
 </resources>

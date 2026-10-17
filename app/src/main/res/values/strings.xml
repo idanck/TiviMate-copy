@@ -40,6 +40,7 @@
     <!-- Navigation -->
     <string name="nav_live">Live</string>
     <string name="nav_radio">Radio</string>
+    <string name="nav_sport">Sport</string>
     <string name="nav_guide">Guide</string>
     <string name="nav_vod">VOD</string>
     <string name="nav_recordings">DVR</string>
@@ -506,4 +507,16 @@
     <string name="player_more_channels">More channels</string>
     <string name="guide_details">Details</string>
     <string name="radio_equalizer">Equalizer</string>
+
+    <!-- Sport mode (ADR-041) -->
+    <string name="sport_add_channel">Add a channel</string>
+    <string name="sport_add_hint">OK picks a channel. A long OK changes it.</string>
+    <string name="sport_pick_title">Channel for this screen</string>
+    <string name="sport_pick_subtitle">Israeli sports channels</string>
+    <string name="sport_pick_remove">Remove from this screen</string>
+    <string name="sport_pick_on_screen">On screen</string>
+    <string name="sport_pick_none">No Israeli sports channels were found in your playlists.</string>
+    <string name="sport_panel_device_limit">This device cannot play another channel at the same time.</string>
+    <string name="sport_panel_retry_hint">OK tries again</string>
+    <string name="sport_sound_here">The sound is from this screen</string>
 </resources>

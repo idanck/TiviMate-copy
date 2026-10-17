@@ -84,7 +84,14 @@ enum class TvOverlay {
     TRANSPORT,
 
     /** Everything the transport bar is too small for, on a long OK. */
-    PLAYBACK_MENU;
+    PLAYBACK_MENU,
+
+    /**
+     * Sport mode (ADR-041): up to four channels at once, each in a panel of its own. Not drawn
+     * over the video at all — the full-screen player stands down while it is up — so it is neither
+     * passthrough nor a browse screen, and [TvRoot] draws it in place of both.
+     */
+    SPORT;
 
     /**
      * Whether the video is still the screen while this overlay is up.
@@ -222,6 +229,14 @@ fun TvRoot(
         }
     }
 
+    // Sport mode owns playback while it is up (ADR-041): the full-screen player stands down as it
+    // opens, and the panels let go as it closes, whichever way it was left. Closed on every other
+    // overlay rather than tracked with a flag like the radio's above: a recreation composes this
+    // afresh with the panels still running in the view model, and they must not play on unseen.
+    LaunchedEffect(overlay) {
+        if (overlay == TvOverlay.SPORT) vm.enterSport() else vm.closeSport()
+    }
+
     LaunchedEffect(details?.first?.id) {
         val channel = details?.first
         upcoming = if (channel == null) emptyList() else {
@@ -268,13 +283,19 @@ fun TvRoot(
                     .size(dock.width.toDp(), dock.height.toDp())
             }
         }
-        PlayerSurface(
-            engine = ServiceLocator.player,
-            aspectMode = prefs.aspectMode,
-            subtitleScale = prefs.subtitleTextScale,
-            docked = dock != null,
-            modifier = pictureBounds,
-        )
+        // Sport mode is the one exception (ADR-041): its panels are video surfaces of their own,
+        // and two surfaces covering the same pixels have no defined order — this one's last frame
+        // could sit on top of the panels. The full-screen player is silent while it is up, and is
+        // attached again as it is left.
+        if (overlay != TvOverlay.SPORT) {
+            PlayerSurface(
+                engine = ServiceLocator.player,
+                aspectMode = prefs.aspectMode,
+                subtitleScale = prefs.subtitleTextScale,
+                docked = dock != null,
+                modifier = pictureBounds,
+            )
+        }
 
         // A settled failure puts its own buttons on screen (ADR-034), and the retry among them
         // takes the remote; the station backdrop's play button must not claim it at the same time.
@@ -293,7 +314,11 @@ fun TvRoot(
         var wasAudioOnly by remember(state.nowPlaying) { mutableStateOf(false) }
         val audioOnly = audioOnlyBackdropVisible(status, wasAudioOnly)
         SideEffect { wasAudioOnly = audioOnly }
-        if (audioOnly) {
+        // Not under Sport mode (ADR-041), whose opaque grid would hide it anyway: its play button
+        // is focusable, and the remote's search for the next panel goes by position, not by what
+        // is drawn on top — an arrow could land on a button nobody can see.
+        val sport = overlay == TvOverlay.SPORT
+        if (audioOnly && !sport) {
             AudioOnlyNowPlaying(
                 channel = state.nowPlaying.audioOnlyChannel(),
                 title = status.title,
@@ -324,26 +349,30 @@ fun TvRoot(
         // Zapping on a remote gives no other feedback: without this a channel that is still
         // tuning is a black screen, identical to one that failed. A settled failure is Studio's
         // error panel in the middle of the screen (`TvPlayError`), drawn by the same overlay.
-        PlaybackStateOverlay(
-            status = status,
-            opacity = prefs.overlayOpacity,
-            // Only while nothing else owns the remote: under the channel list or the transport
-            // bar, buttons here would be reachable by an arrow that ran off the end of those.
-            errorActions = if (overlay.leavesDpadToShell) {
-                PlaybackErrorActions(
-                    onRetry = vm::retryPlayback,
-                    onNetworkSettings = {
-                        onSettingsSection(SettingsSection.NETWORK)
-                        onOverlayChange(TvOverlay.SETTINGS)
-                    },
-                    onChannelList = { onOverlayChange(TvOverlay.CHANNELS) },
-                    takeFocus = true,
-                )
-            } else {
-                null
-            },
-            modifier = Modifier.fillMaxSize(),
-        )
+        // The full-screen player's loader and error panel are its own; Sport mode's panels draw
+        // their own, and this one's error buttons would be another place for an arrow to land.
+        if (!sport) {
+            PlaybackStateOverlay(
+                status = status,
+                opacity = prefs.overlayOpacity,
+                // Only while nothing else owns the remote: under the channel list or the transport
+                // bar, buttons here would be reachable by an arrow that ran off the end of those.
+                errorActions = if (overlay.leavesDpadToShell) {
+                    PlaybackErrorActions(
+                        onRetry = vm::retryPlayback,
+                        onNetworkSettings = {
+                            onSettingsSection(SettingsSection.NETWORK)
+                            onOverlayChange(TvOverlay.SETTINGS)
+                        },
+                        onChannelList = { onOverlayChange(TvOverlay.CHANNELS) },
+                        takeFocus = true,
+                    )
+                } else {
+                    null
+                },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
         // The info card auto-dismisses; everything else waits for Back.
         if (overlay == TvOverlay.INFO) {
@@ -431,7 +460,10 @@ fun TvRoot(
             )
         }
 
-        if (!overlay.isPassthrough) {
+        if (overlay == TvOverlay.SPORT) {
+            // Opaque and full-bleed, over everything above: four pictures are the whole screen.
+            SportScreen(vm = vm, modifier = Modifier.fillMaxSize())
+        } else if (!overlay.isPassthrough) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
                 // The guide paints its own panes and leaves the preview slot bare; the home
