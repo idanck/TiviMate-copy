@@ -52,6 +52,14 @@
 
 **קבצים:** מחליפים את `drawable-xhdpi/tv_banner.png` (320×180) ואת `drawable-mdpi/tv_banner.png` (160×90). אפשר גם לעבור לקובץ וקטורי (`drawable/tv_banner.xml`), כל עוד הוא נראה זהה.
 
+## איך הקבצים נוצרים
+
+`render_icon.py` (באותה תיקייה) קורא את קווי המתאר מ-`karantina_bold.ttf`, מסדר את המילה "שידור" עם HarfBuzz (כמו הדפדפן בקנבס), וכותב:
+- `drawable/ic_launcher_foreground.xml` ו-`drawable/ic_launcher_monochrome.xml` (הנתיבים).
+- כל קובצי ה-PNG של האייקון והאריח, מרונדרים מאותם נתיבים.
+
+`mipmap-anydpi-v26/*.xml` ו-`values/ic_launcher_background.xml` נכתבו ביד. אחרי שינוי בעיצוב מריצים את הסקריפט מתיקיית השורש (ההוראות בראש הקובץ) ועושים commit למה שהוא כתב.
+
 ## בדיקה
 
 - בדיקת יחידה, או בדיקה של המשאבים, שמוודאת:

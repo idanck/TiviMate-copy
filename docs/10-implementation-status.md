@@ -174,7 +174,7 @@ feature that was otherwise in scope is simply available.
 | FR-SET-15 | Done | Budgeted, LRU-evicted, size shown, three clear actions. |
 | FR-SET-16 / 17 | Not implemented | Verbose file logging, revert playback settings. |
 | FR-LIC-* | N/A | See `docs/adr/ADR-007`. FR-LIC-10 (no advertising) holds — there is no ad code. |
-| FR-TVI-01 | Done | Leanback launcher category and a TV banner. |
+| FR-TVI-01 | Done | Leanback launcher category and a TV banner. Since 0.17.5 the banner and the launcher icon are Studio's option D (`docs/design/studio/ICON.md`): an adaptive icon with a monochrome layer for themed icons, legacy PNGs at every density, and a 320×180 banner, all drawn from Karantina's outlines by `docs/design/studio/render_icon.py`. `AppIconResourcesTest` checks the sizes and the layers. |
 | FR-TVI-02 | Done | Recently watched channels are published to Google TV's "Continue watching" row (`tv/WatchNextPlan.kt` decides, `tv/WatchNextSync.kt` writes), capped at ten and expiring after thirty days, with an opt-out in Settings ▸ Playback. Poster art is the channel logo declared as 1:1 — see ADR-017 for why, and what the better answer would cost. |
 | FR-TVI-03 | Not implemented | A preview channel of our own on the home screen. A separate, opt-in surface; not asked for. |
 | FR-TVI-04 | Done | `shidur://channel/<id>`, its own intent filter, handled in `onCreate` and `onNewIntent`. |
