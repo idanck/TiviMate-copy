@@ -3,7 +3,6 @@ package com.tivicopy.player.ui.common
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.NowPlayingInfo
-import com.tivicopy.player.ui.tv.TvOverlay
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.abs
@@ -24,199 +23,49 @@ class ScreensaverTest {
 
     // ------------------------------------------------------------------ scenes
 
-    @Test
-    fun `moving video is left alone`() {
-        assertEquals(
-            IdleScene.MOVING,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
-    }
-
     /**
-     * The case the guide produces: the picture is still playing, but it is a preview beside a
-     * grid that has not changed in an hour. Most of the panel is a still image.
+     * The owner's rule (ADR-040): the screensaver comes on in every state except while a channel
+     * is playing. The shell no longer has a say, so the same answer holds under the guide, the
+     * home screen or Settings as over the bare video.
      */
     @Test
-    fun `video playing under an overlay is a still screen`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = false,
-            ),
-        )
-    }
-
-    /**
-     * The television's home screen, as the shell reports it. Its banner is the live picture at
-     * full size, which is why it used to count as moving video — and why the screensaver never
-     * came on over the screen a television is most often left on (ADR-039). Its rails and
-     * furniture hold still over that picture, so it is a still screen like the guide.
-     */
-    @Test
-    fun `the home screen is a still screen, with the picture playing behind its banner`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
-            ),
-        )
-        // A station behind home is a station under a menu (ADR-037), not the radio's own screen.
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
-            ),
-        )
-    }
-
-    /** What still counts as the picture being the screen: the bare video and what rides over it. */
-    @Test
-    fun `only the bare video and its passthrough overlays leave the picture as the screen`() {
-        val filling = TvOverlay.entries.filter { it.videoFillsPanel }.toSet()
-        assertEquals(
-            setOf(
-                TvOverlay.NONE,
-                TvOverlay.INFO,
-                TvOverlay.MINI_GUIDE,
-                TvOverlay.TRANSPORT,
-                TvOverlay.PLAYBACK_MENU,
-            ),
-            filling,
-        )
+    fun `a playing picture is left alone, whatever is drawn over it`() {
+        assertEquals(IdleScene.MOVING, idleScene(playing = true, hasPicture = true, failed = false))
     }
 
     @Test
     fun `a paused film is a still screen`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = false,
-                playWhenReady = false,
-                hasPicture = true,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
-    }
-
-    @Test
-    fun `sound with no picture is the radio`() {
-        assertEquals(
-            IdleScene.AUDIO_ONLY,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
+        assertEquals(IdleScene.STILL, idleScene(playing = false, hasPicture = true, failed = false))
     }
 
     /**
-     * A station that is rebuffering is not playing, and is still the radio: it is the *intent*
-     * that separates it from a station somebody stopped.
+     * A station is sound with no picture, and is handed over like any other screen that is not a
+     * playing picture — its own screen included, which ADR-030 used to exempt.
      */
     @Test
-    fun `a rebuffering station is still the radio`() {
-        assertEquals(
-            IdleScene.AUDIO_ONLY,
-            idleScene(
-                playing = false,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
-    }
-
-    /**
-     * The radio's own screen protects itself (ADR-030), but a settings page left open over it
-     * does not: that is a still screen with a station playing behind it (ADR-037).
-     */
-    @Test
-    fun `a station under a menu is a still screen`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = false,
-            ),
-        )
+    fun `a playing station is a still screen`() {
+        assertEquals(IdleScene.STILL, idleScene(playing = true, hasPicture = false, failed = false))
     }
 
     @Test
-    fun `a paused station is a still screen`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = false,
-                playWhenReady = false,
-                hasPicture = false,
-                failed = false,
-                videoFillsPanel = true,
-            ),
-        )
+    fun `nothing playing is a still screen`() {
+        assertEquals(IdleScene.STILL, idleScene(playing = false, hasPicture = false, failed = false))
     }
 
     /** A settled error is a message on screen, and a message holds as still as anything else. */
     @Test
     fun `a failed stream is a still screen`() {
-        assertEquals(
-            IdleScene.STILL,
-            idleScene(
-                playing = true,
-                playWhenReady = true,
-                hasPicture = true,
-                failed = true,
-                videoFillsPanel = true,
-            ),
-        )
+        assertEquals(IdleScene.STILL, idleScene(playing = true, hasPicture = true, failed = true))
     }
 
     // ------------------------------------------------------------------ arming
 
     @Test
-    fun `the guard is off when the setting is off, in picture-in-picture, and over moving video`() {
+    fun `the guard is off when the setting is off, in picture-in-picture, and over a playing picture`() {
         assertTrue(screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = false))
-        // The radio protects itself with Studio's shifting background (ADR-030), so it is never
-        // handed to the screensaver.
-        assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
         assertTrue(!screensaverApplies(enabled = false, scene = IdleScene.STILL, inPip = false))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = true))
         assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.MOVING, inPip = false))
-    }
-
-    @Test
-    fun `the task list counts down only on the radio, and only when both switches are on`() {
-        assertTrue(radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = false, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = false, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.AUDIO_ONLY, inPip = true))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.STILL, inPip = false))
-        assertTrue(!radioTasksApply(enabled = true, tasks = true, scene = IdleScene.MOVING, inPip = false))
     }
 
     @Test

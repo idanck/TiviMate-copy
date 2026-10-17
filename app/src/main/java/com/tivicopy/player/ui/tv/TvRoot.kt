@@ -48,7 +48,6 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.VodItem
-import com.tivicopy.player.data.tasks.TaskItem
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
@@ -133,23 +132,6 @@ enum class TvOverlay {
         get() = this == GUIDE || this == HOME
 
     /**
-     * Whether the live picture is what the screen *is* while this overlay is up.
-     *
-     * Not the same question as [isPassthrough], which is about the remote, even though today the
-     * two answers coincide. The guide keeps the picture playing but shrinks it into a preview
-     * beside a grid that does not move for hours: a still screen with a moving stamp on it, and it
-     * wears into a panel exactly like any other still (FR-UI-31). Home is the same case, though it
-     * used to be counted as moving because its banner is the picture at full size (ADR-020): the
-     * top bar, the side menu's strip, the caption and the rails over it hold still for as long as
-     * the television sits there, and one press of Down scrolls the picture away and hands the
-     * whole panel to the rails. Counting it as moving meant the screensaver never came on over
-     * the screen a television rests on most (ADR-039). Read by
-     * [com.tivicopy.player.ui.common.idleScene].
-     */
-    val videoFillsPanel: Boolean
-        get() = isPassthrough
-
-    /**
      * Whether this overlay reaches the edges of the panel itself, rather than sitting inside
      * [TV_CONTENT_INSET]. A full-bleed banner cannot start 24dp from the edge, so the home screen
      * takes the inset over as its own content padding (ADR-020).
@@ -188,8 +170,6 @@ fun TvRoot(
     onSettingsSection: (SettingsSection) -> Unit,
     numericEntry: String,
     modifier: Modifier = Modifier,
-    /** The task list for the radio screen, already gated on idleness by the activity (ADR-030). */
-    radioTasks: List<TaskItem> = emptyList(),
 ) {
     val state by vm.state.collectAsState()
     val status by vm.playbackStatus.collectAsState()
@@ -312,7 +292,6 @@ fun TvRoot(
                 takeDpadFocus = overlay.leavesDpadToShell && !failed,
                 // Catch-up off a radio station reaches this screen too, and is not live.
                 live = state.nowPlaying.isLive(),
-                tasks = radioTasks,
                 onFavourite = state.nowPlaying.audioOnlyChannel()?.let { station ->
                     { vm.setFavourite(station, !station.favourite) }
                 },

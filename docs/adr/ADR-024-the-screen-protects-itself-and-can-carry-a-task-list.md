@@ -6,6 +6,8 @@ Accepted. Adds FR-UI-31 and FR-UI-32, and amends FR-UI-30, whose "nothing animat
 screen is idle" this is the single deliberate exception to. Amended by ADR-030: the radio is no
 longer handed to the screensaver — its Studio screen protects itself — and the task list moved
 onto the radio screen. Amended by ADR-039: the television's home screen is a still screen.
+Amended by ADR-040, which supersedes both: the screensaver takes every screen except a playing
+picture, under any overlay, and the task list is back in the screensaver.
 
 ## Context
 

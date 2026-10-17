@@ -440,11 +440,11 @@
     <string name="settings_watch_next">Publish to Continue watching</string>
     <string name="settings_watch_next_sub">Offers recently watched channels on the Google TV home screen</string>
     <string name="settings_screensaver">Screensaver</string>
-    <string name="settings_screensaver_sub">Replaces a still picture with a studio clock on black, so nothing wears into the panel</string>
+    <string name="settings_screensaver_sub">Replaces the screen with a studio clock on black whenever no channel or film is playing, so nothing wears into the panel</string>
     <string name="settings_screensaver_idle">Start the screensaver after</string>
     <string name="settings_minutes">%1$d min</string>
     <string name="settings_screensaver_tasks">Show my tasks on the radio screensaver</string>
-    <string name="settings_screensaver_tasks_sub">One open task at a time, over the station’s own colours</string>
+    <string name="settings_screensaver_tasks_sub">One open task at a time, under the clock while a station plays</string>
     <string name="settings_task_url">Task list address</string>
     <string name="settings_task_url_sub">A Markdown checklist (- [ ] …) or a JSON list. Empty means no tasks.</string>
     <string name="settings_task_refresh">Refresh the task list now</string>

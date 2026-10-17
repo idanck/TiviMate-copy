@@ -3,7 +3,9 @@
 **Status:** accepted. Amends FR-UI-31 (ADR-024, ADR-037): on the television, the home screen is
 handed to the screensaver after the idle period, with the picture playing behind its banner or
 without it. Moving video and the radio's own screen are still never replaced. Reported by the owner
-on 2026-10-17.
+on 2026-10-17. **Superseded by ADR-040** the same day: only a playing picture is left alone, under
+any overlay, so a channel playing behind home is left alone again and the radio's own screen is
+handed over.
 
 ## Context
 
