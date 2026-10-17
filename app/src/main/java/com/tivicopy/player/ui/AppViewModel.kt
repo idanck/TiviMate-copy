@@ -32,6 +32,7 @@ import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.data.sport.IsraeliSportChannels
+import com.tivicopy.player.ui.tv.SportLayout
 import com.tivicopy.player.data.xtream.isEpisode
 import com.tivicopy.player.data.xtream.isSeriesContainer
 import com.tivicopy.player.player.PlaybackStatus
@@ -869,13 +870,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * Opens Sport mode (ADR-041). The full-screen player stands down first — its decoder and its
      * connection are the panels' now — after writing down where an on-demand title had got to, so
      * that leaving with nothing chosen can put it back where it was.
+     *
+     * @param remembersPanels whether to open on the number of panels last chosen, as the phone
+     *   does; the television always has four
      */
-    fun enterSport() {
+    fun enterSport(remembersPanels: Boolean = false) {
         if (sport.active) return
         saveVodProgress()
         player.silence()
         player.setPlayWhenReady(false)
-        sport.begin()
+        sport.begin(if (remembersPanels) settings.sportPanels() else SportLayout.SLOTS)
         viewModelScope.launch {
             val choices = sportChoices()
             val restored = settings.sportSlots().map { id ->

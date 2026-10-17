@@ -520,4 +520,7 @@
     <string name="sport_panel_stream_closed">The provider closed the stream. The account may allow fewer connections than there are screens.</string>
     <string name="sport_panel_retry_hint">OK tries again</string>
     <string name="sport_sound_here">The sound is from this screen</string>
+    <string name="sport_add_hint_touch">Tap to pick a channel. Hold to change it.</string>
+    <string name="sport_panel_retry_hint_touch">Tap to try again</string>
+    <string name="sport_screens">%1$d screens</string>
 </resources>

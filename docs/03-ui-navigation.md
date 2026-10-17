@@ -161,7 +161,10 @@ opens the playback menu, and the arrows still zap and open the lists.
 This is our differentiator and must not be an afterthought.
 
 - Bottom navigation: Channels / Guide / Radio / Recordings / Settings (ADR-032). On-demand,
-  where a source has it, is reached through search.
+  where a source has it, is reached through search. Sport mode (ADR-041) has no tab either: the
+  ball in the top bar of Channels and Guide opens it, over everything, as the Now Playing screen
+  opens. A tap gives a panel the sound, a double tap fills the screen with it, a long press
+  changes its channel, and the bar chooses two panels or four.
 - Vertical channel list with sticky group headers and fast-scroll.
 - Gestures during playback: vertical swipe left = brightness, right = volume, horizontal
   swipe = seek (VOD/timeshift), double-tap sides = skip, pinch = aspect ratio.

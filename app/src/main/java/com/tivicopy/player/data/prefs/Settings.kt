@@ -540,6 +540,20 @@ class Settings(context: Context) {
         prefs.edit().putString(K_SPORT_SLOTS, ids.joinToString(",") { it?.toString().orEmpty() }).apply()
     }
 
+    /**
+     * How many panels Sport mode shows, two or four (ADR-041). The phone offers both; the
+     * television keeps four. Read straight from preferences, as [sportSlots] is.
+     */
+    fun sportPanels(): Int {
+        // A backup restored through JSON can bring a number back as another type.
+        val stored = runCatching { prefs.getInt(K_SPORT_PANELS, 4) }.getOrDefault(4)
+        return if (stored <= 2) 2 else 4
+    }
+
+    fun setSportPanels(count: Int) {
+        prefs.edit().putInt(K_SPORT_PANELS, if (count <= 2) 2 else 4).apply()
+    }
+
     private inline fun <reified E : Enum<E>> SharedPreferences.enum(key: String, fallback: E): E {
         val raw = getString(key, null) ?: return fallback
         return runCatching { enumValueOf<E>(raw) }.getOrDefault(fallback)
@@ -622,5 +636,6 @@ class Settings(context: Context) {
         const val K_NEWS_LAST_CHECK = "news_last_check"
         const val K_NEWS_DIGESTS = "news_last_digests"
         const val K_SPORT_SLOTS = "sport_slots"
+        const val K_SPORT_PANELS = "sport_panels"
     }
 }

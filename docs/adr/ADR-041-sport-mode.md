@@ -1,13 +1,14 @@
 # ADR-041 — Sport mode: four Israeli sports channels at once, and the sound follows the remote
 
 **Status:** accepted. First implementation of FR-PLB-24..26 (`docs/02` section 2.11), on the
-television only. Decided by the owner on 2026-10-17:
+television, and from 0.16.0 on the phone (decision 9). Decided by the owner on 2026-10-17:
 
 1. *Up to four sports channels at once. One panel has the focus, is drawn a little larger than the
    others, and is the one heard.*
 2. *Only Israeli sports channels.*
 3. *The sound follows the focus.*
 4. *The provider allows several connections at once.*
+5. *On the phone too, with a choice of two panels or four.*
 
 ## Context
 
@@ -91,6 +92,33 @@ playing panel as a picture being watched (ADR-040).
 **8. The grid is remembered.** The channels in the four panels are kept in preferences by id, and
 Sport mode opens on them. With nothing to restore, it opens the picker on the first panel.
 
+**9. The phone (0.16.0), with two panels or four.** The same `SportSession`, so the same rules:
+the panel in focus is drawn larger and is the only one heard, a channel already on screen moves
+rather than opening a second connection, and the panels let go whenever the app is out of sight.
+`PhoneSport` draws it over everything, as the Now Playing screen is drawn (ADR-011), opened from
+a ball in the top bar of Channels and Guide: the bottom bar's five places are taken (ADR-032).
+
+- *The hand.* A tap gives a panel the focus and the sound, picks a channel for an empty one, and
+  tries a failed one again. A double tap fills the screen with a panel and puts the grid back. A
+  long press opens the picker, a sheet from the foot of the screen like every phone menu. Back
+  puts a full panel back into the grid, then leaves; leaving plays the channel in focus in the
+  Now Playing screen, as the television carries it on full screen.
+- *The bar.* Back, the title, two panels or four, and pause for all. Held upright it has its own
+  place above the panels. Lying down it rides over them and steps aside four seconds after the
+  last touch; any touch brings it back.
+- *Two or four.* The session always holds four players, and only the first two or four are on
+  screen; the rest are empty and released. Going to two keeps the panel in focus and the next
+  ones in order, moved to the front, players and all, and lets go of the others. The choice is a
+  preference of its own, read as Sport mode opens. The television offers no choice and keeps four.
+- *Where the panels go* (`SportLayout`). Lying down, four are the television's grid and two stand
+  side by side, the one in focus taking 58% of the width. Held upright, they stand one above the
+  other across the full width: two share the height 58 to 42, and in a column of four the one in
+  focus takes 40% and the others 20% each. A two-by-two grid on an upright phone would make every
+  picture a quarter of its width.
+- The shared parts of a panel (the picture, an empty place, a failure, the caption, a picker
+  row) live in `ui/common/SportPanels.kt`. The television's and the phone's hints differ only in
+  saying OK or tap.
+
 ## Alternatives rejected
 
 - **Four `PlayerEngine` instances.** The engine owns the app's single media session, the floating
@@ -102,6 +130,9 @@ Sport mode opens on them. With nothing to restore, it opens the picker on the fi
   Every press would rearrange the screen, and an arrow would stop meaning a direction.
 - **Muting by turning the audio track off.** Explained in decision 4.
 - **Every sports channel, or every channel.** The owner asked for Israeli sports channels only.
+- **On the phone, a tab of its own.** The bottom bar is at its five (ADR-032).
+- **On the phone, always landscape.** Forcing the screen to turn would fight a phone held upright
+  for two channels, which stand well one above the other.
 
 ## Consequences
 
@@ -146,8 +177,11 @@ Sport mode opens on them. With nothing to restore, it opens the picker on the fi
   box killed.
 - The provider's connection limit is not checked. A refused connection shows in its own panel as
   the server's refusal, and a stream the provider closes says so (see the device report above).
-- Not in this version: the phone, saved layouts as named presets (FR-PLB-27, COULD), adding a
-  channel to Sport mode from the channel menu, and a QA scenario. The emulator's mock provider has
-  no Israeli sports channels to offer yet.
+- Not in this version: saved layouts as named presets (FR-PLB-27, COULD), a choice of two panels
+  on the television, adding a channel to Sport mode from the channel menu, and a QA scenario. The
+  emulator's mock provider has no Israeli sports channels to offer yet.
+- On an account allowing one connection, the phone is in the same place as the television: one
+  panel plays and the others say the provider closed their streams. The phone and a television on
+  the same account also take the connection from each other.
 - The classifier is a heuristic over names that live upstream, in the owner's daily playlist and at
   the provider. Its word lists are extended as real names turn out to need it.

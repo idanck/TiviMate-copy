@@ -488,4 +488,7 @@
     <string name="sport_panel_stream_closed">הספק סגר את השידור. ייתכן שהחשבון מתיר פחות חיבורים ממספר המסכים.</string>
     <string name="sport_panel_retry_hint">OK לניסיון נוסף</string>
     <string name="sport_sound_here">הסאונד מהמסך הזה</string>
+    <string name="sport_add_hint_touch">הקשה לבחירת ערוץ. לחיצה ארוכה מחליפה אותו.</string>
+    <string name="sport_panel_retry_hint_touch">הקשה לניסיון נוסף</string>
+    <string name="sport_screens">%1$d מסכים</string>
 </resources>

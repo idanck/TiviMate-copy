@@ -68,8 +68,8 @@ internal data class PhoneTab(val tab: MobileTab, val label: String, val icon: Im
 
 /**
  * `PTopBar`: back at the start when there is somewhere to go back to, the title in Karantina, and
- * search at the end. [title] is null where the screen underneath draws its own heading, so the
- * same words never sit twice, one above the other.
+ * Sport mode and search at the end. [title] is null where the screen underneath draws its own
+ * heading, so the same words never sit twice, one above the other.
  */
 @Composable
 internal fun PhoneTopBar(
@@ -77,6 +77,7 @@ internal fun PhoneTopBar(
     onBack: (() -> Unit)?,
     onSearch: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onSport: (() -> Unit)? = null,
 ) {
     val studio = StudioTheme.colors
     Row(
@@ -105,6 +106,16 @@ internal fun PhoneTopBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
         )
+        // Sport mode has no tab of its own: the five are taken (ADR-032, ADR-041).
+        if (onSport != null) {
+            IconButton(onClick = onSport) {
+                Icon(
+                    imageVector = StudioIcons.Sport,
+                    contentDescription = stringResource(R.string.nav_sport),
+                    tint = studio.ink,
+                )
+            }
+        }
         if (onSearch != null) {
             IconButton(onClick = onSearch) {
                 Icon(
