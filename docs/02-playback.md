@@ -114,9 +114,11 @@ Not required for MVP.
 - Guard rails: warn when the device reports insufficient concurrent decoder instances,
   and when the provider's connection limit is likely to be hit.
 - Layout must be saveable and restorable as a named preset — **COULD**, differentiator.
-- **Implemented on the television as Sport mode (ADR-041):** Israeli sports channels only, a
-  two-by-two grid whose lines move toward the panels not in focus, and the sound follows the
-  remote. Presets, the phone and a connection-limit warning are not built yet.
+- **Implemented as Sport mode (ADR-041):** Israeli sports channels only, and the sound follows
+  the panel in focus. On the television, a two-by-two grid whose lines move toward the panels not
+  in focus. On the phone, two panels or four, chosen in Sport mode's own bar: lying down they
+  follow the television's grid, two side by side; held upright they stand one above the other.
+  Presets and a connection-limit warning are not built yet.
 
 ## 2.12 VOD and series
 

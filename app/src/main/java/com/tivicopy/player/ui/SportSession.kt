@@ -12,13 +12,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Sport mode's state (ADR-041): four panels, which one has the remote, and whether it fills the
- * screen.
+ * Sport mode's state (ADR-041): two or four panels, which one has the remote, and whether it fills
+ * the screen.
  *
  * Held by [AppViewModel] and driven from two places: the screen moves the focus and picks
  * channels, and the activity owns Back, the channel keys and the lifecycle, as it does for every
- * other screen on the television. Which channels were on screen outlives the session, in the
- * settings, so Sport mode opens on the grid it was left with.
+ * other screen on the television. Which channels were on screen, and how many panels there were,
+ * outlive the session, in the settings, so Sport mode opens on the grid it was left with.
+ *
+ * There are always [SportLayout.SLOTS] slots, each with its own player; only the first [count]
+ * are on screen, and the rest are kept empty and released.
  *
  * The sound follows the remote: whichever panel is in focus is the one heard, and moving the focus
  * moves the sound with it. An empty panel in focus is silence.
@@ -48,6 +51,11 @@ class SportSession(
         List(SportLayout.SLOTS) { Slot(null, PanelPlayer(context.applicationContext, settings, main, ::refresh)) },
     )
     val slots: StateFlow<List<Slot>> = _slots
+
+    private val _count = MutableStateFlow(SportLayout.SLOTS)
+
+    /** How many panels are on screen: two or four. The phone chooses; the television keeps four. */
+    val count: StateFlow<Int> = _count
 
     private val _focused = MutableStateFlow(0)
 
@@ -81,8 +89,12 @@ class SportSession(
     /** Set while the activity is stopped: the panels are released, the channels remembered. */
     private var suspended = false
 
-    /** Opens Sport mode on an empty grid, while the channels are read. */
-    fun begin() {
+    /**
+     * Opens Sport mode on an empty grid of [panels], while the channels are read. The phone passes
+     * the number it was left with; the television, which offers no choice, always four — so a
+     * backup restored from a phone cannot leave it on two with no way back.
+     */
+    fun begin(panels: Int = SportLayout.SLOTS) {
         if (active) return
         active = true
         suspended = false
@@ -91,6 +103,7 @@ class SportSession(
         _choices.value = null
         _focused.value = 0
         _paused.value = false
+        _count.value = SportLayout.panels(panels)
         _slots.value = _slots.value.map { slot ->
             slot.panel.release()
             slot.panel.setPaused(false)
@@ -109,8 +122,9 @@ class SportSession(
         // Something was already chosen while the list was being read; that choice stands.
         if (_slots.value.any { it.channel != null }) return
         val seen = HashSet<Long>()
+        val count = _count.value
         _slots.value = _slots.value.mapIndexed { i, slot ->
-            val channel = restored.getOrNull(i)?.takeIf { seen.add(it.id) }
+            val channel = restored.getOrNull(i)?.takeIf { i < count && seen.add(it.id) }
             if (channel != null && !suspended) slot.panel.play(channel, profileFor(channel))
             Slot(channel, slot.panel)
         }
@@ -131,11 +145,14 @@ class SportSession(
         refresh()
     }
 
-    /** The channel in the panel with the remote, which is what plays on when Sport mode is left. */
-    fun focusedChannel(): Channel? = _slots.value.getOrNull(_focused.value)?.channel
+    /**
+     * The channel in the panel with the remote, which is what plays on when Sport mode is left;
+     * none while Sport mode is not the screen, whatever the panels last showed.
+     */
+    fun focusedChannel(): Channel? = if (!active) null else _slots.value.getOrNull(_focused.value)?.channel
 
     fun focus(slot: Int) {
-        if (slot !in _slots.value.indices || _focused.value == slot) return
+        if (slot !in 0 until _count.value || _focused.value == slot) return
         _focused.value = slot
         applyAudible()
     }
@@ -146,7 +163,39 @@ class SportSession(
     }
 
     fun openPicker(slot: Int) {
-        if (active && slot in _slots.value.indices) _picking.value = slot
+        if (active && slot in 0 until _count.value) _picking.value = slot
+    }
+
+    /**
+     * Two panels or four. Growing adds empty panels. Shrinking keeps the panel with the remote
+     * and then the others in order, as many as fit, moved to the front in the order they had; the
+     * rest stop and let go of their connections.
+     */
+    fun setCount(value: Int) {
+        val next = SportLayout.panels(value)
+        if (!active || next == _count.value) return
+        settings.setSportPanels(next)
+        _picking.value = null
+        _expanded.value = false
+        if (next > _count.value) {
+            _count.value = next
+            refresh()
+            return
+        }
+        val current = _slots.value
+        val focused = _focused.value
+        val filled = current.indices.filter { current[it].channel != null }
+        val keep = (filled.filter { it == focused } + filled.filter { it != focused })
+            .take(next)
+            .sorted()
+        val dropped = current.indices.filterNot { it in keep }
+        dropped.forEach { current[it].panel.release() }
+        _slots.value = keep.map { current[it] } + dropped.map { Slot(null, current[it].panel) }
+        _count.value = next
+        _focused.value = keep.indexOf(focused).coerceAtLeast(0)
+        applyAudible()
+        persist()
+        refresh()
     }
 
     fun closePicker() {
@@ -159,7 +208,7 @@ class SportSession(
      */
     fun assign(slot: Int, channel: Channel) {
         val current = _slots.value
-        if (!active || slot !in current.indices) return
+        if (!active || slot !in 0 until _count.value) return
         val from = current.indexOfFirst { it.channel?.id == channel.id }
         val next = current.toMutableList()
         when {

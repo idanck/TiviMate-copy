@@ -121,6 +121,9 @@ class MainActivity : ComponentActivity() {
     private var playerOpen by mutableStateOf(false)
     private var inPip by mutableStateOf(false)
 
+    /** Whether the phone's Sport mode is the screen (ADR-041); the television's is [overlay]. */
+    private var sportOpen by mutableStateOf(false)
+
     /** Set when [onStop] paused a stream nothing was showing, so [onStart] can resume it. */
     private var pausedInBackground = false
 
@@ -231,7 +234,10 @@ class MainActivity : ComponentActivity() {
         deepLinkConsumed = true
         overlay = TvOverlay.NONE
         lastBrowseOverlay = TvOverlay.HOME
-        if (!isTelevision) playerOpen = true
+        if (!isTelevision) {
+            sportOpen = false
+            playerOpen = true
+        }
     }
 
     /**
@@ -263,6 +269,7 @@ class MainActivity : ComponentActivity() {
         // that inside a PiP window without these left the browse shell squeezed into it,
         // with the video track disabled underneath.
         playerOpen = savedInstanceState?.getBoolean(KEY_PLAYER_OPEN) ?: false
+        sportOpen = savedInstanceState?.getBoolean(KEY_SPORT_OPEN) ?: false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) inPip = isInPictureInPictureMode
         if (inPip) {
             playerOpen = true
@@ -294,8 +301,8 @@ class MainActivity : ComponentActivity() {
             // The screen stays awake for watching, not for reading: browsing is full screen
             // now with no video on it, and pinning the display through a long look at the
             // guide is battery spent on nothing.
-            LaunchedEffect(playerOpen, inPip) {
-                if (isTelevision || playerOpen || inPip) {
+            LaunchedEffect(playerOpen, inPip, sportOpen) {
+                if (isTelevision || playerOpen || inPip || sportOpen) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -327,7 +334,10 @@ class MainActivity : ComponentActivity() {
                         else -> Unit
                     }
                 }
-                val resumed = vm.resumeStartChannel()
+                // Not into the phone's Sport mode, restored after the process was let go: the
+                // channel would play on the full-screen player over the panels, on a connection
+                // of its own, with the player screen open, unseen, underneath them (ADR-041).
+                val resumed = if (!isTelevision && sportOpen) false else vm.resumeStartChannel()
                 // The phone browses full screen, so a resumed channel opens the player screen —
                 // otherwise it would be audible behind the channel list with no video anywhere.
                 if (!isTelevision && resumed) playerOpen = true
@@ -341,7 +351,8 @@ class MainActivity : ComponentActivity() {
             // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
             // protecting (ADR-040); the countdown below decides when.
             val sportPlaying by vm.sport.anyPlaying.collectAsState()
-            val scene = if (isTelevision && overlay == TvOverlay.SPORT) {
+            val inSport = if (isTelevision) overlay == TvOverlay.SPORT else sportOpen
+            val scene = if (inSport) {
                 // Sport mode's panels are pictures being watched, though the full-screen player
                 // stands silent underneath them (ADR-041).
                 if (sportPlaying) IdleScene.MOVING else IdleScene.STILL
@@ -448,6 +459,8 @@ class MainActivity : ComponentActivity() {
                                     onSettingsSection = { settingsSection = it },
                                     playerOpen = playerOpen,
                                     onPlayerOpenChange = { playerOpen = it },
+                                    sportOpen = sportOpen,
+                                    onSportOpenChange = { sportOpen = it },
                                     inPip = inPip,
                                     numericEntry = numericEntry,
                                     onBrightness = ::adjustBrightness,
@@ -699,6 +712,8 @@ class MainActivity : ComponentActivity() {
      * taken its own keys before the activity is asked.
      */
     private fun onPhoneKeyDown(keyCode: Int): Boolean {
+        // Sport mode's keys are the television's (ADR-041), and they act on its panels.
+        if (sportOpen && !inPip) return onSportKeyDown(keyCode)
         if (!playerOpen || inPip) return false
         when (keyCode) {
             in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
@@ -905,7 +920,7 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         // Sport mode has no one picture for a floating window to keep showing (ADR-041). Its
         // panels go quiet now, rather than over the launcher, and [onStop] lets them go.
-        if (isTelevision && overlay == TvOverlay.SPORT) {
+        if (vm.sport.active) {
             vm.sport.silence()
             return
         }
@@ -1151,6 +1166,7 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_PLAYER_OPEN, playerOpen)
+        outState.putBoolean(KEY_SPORT_OPEN, sportOpen)
     }
 
     private companion object {
@@ -1173,5 +1189,6 @@ class MainActivity : ComponentActivity() {
         const val ACTION_PIP_PLAY_PAUSE = "com.tivicopy.player.PIP_PLAY_PAUSE"
         const val PIP_REQUEST_PLAY_PAUSE = 1
         const val KEY_PLAYER_OPEN = "player_open"
+        const val KEY_SPORT_OPEN = "sport_open"
     }
 }

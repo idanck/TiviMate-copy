@@ -72,6 +72,8 @@ fun MobileRoot(
     onSettingsSection: (SettingsSection) -> Unit,
     playerOpen: Boolean,
     onPlayerOpenChange: (Boolean) -> Unit,
+    sportOpen: Boolean,
+    onSportOpenChange: (Boolean) -> Unit,
     inPip: Boolean,
     numericEntry: String,
     onBrightness: (Float) -> Unit,
@@ -150,6 +152,12 @@ fun MobileRoot(
         ServiceLocator.player.setVideoOutputWanted(playerOpen || inPip)
     }
 
+    // Sport mode (ADR-041) opens and closes with its screen, as the television's does with its
+    // overlay. Leaving through its own Back has already closed the session by the time this runs.
+    LaunchedEffect(sportOpen) {
+        if (sportOpen) vm.enterSport(remembersPanels = true) else vm.closeSport()
+    }
+
     // In the PiP window the app is its video and nothing else: the browse chrome would be
     // unreadable at that size, and Android snapshots whatever happens to be composed here.
     if (inPip) {
@@ -216,6 +224,16 @@ fun MobileRoot(
     // chosen channel is never left audible behind a full-screen list (ADR-011).
     val openPlayer: () -> Unit = { onPlayerOpenChange(true) }
 
+    // Leaving Sport mode plays the channel in focus, and so shows it, as the television carries it
+    // on full screen. With nothing chosen, whatever played before comes back as it was: playing
+    // under the mini player, or paused there.
+    val leaveSport: () -> Unit = {
+        val chosen = vm.sport.focusedChannel()
+        vm.exitSport(restartPaused = false)
+        onSportOpenChange(false)
+        if (chosen != null) openPlayer()
+    }
+
     // Registered from composition, so it takes precedence over the activity's exit handler for
     // exactly as long as there is somewhere to go back to. The player screen registers its own
     // handlers; composed after this one, they win while it is open.
@@ -243,11 +261,14 @@ fun MobileRoot(
                     tab == MobileTab.RADIO -> stringResource(R.string.nav_radio)
                     else -> null
                 }
+                // Sport mode is offered where the television's channels are browsed, not over radio.
+                val sportable = !showAddSource && !searching && tab in setOf(MobileTab.LIVE, MobileTab.GUIDE)
                 if (canGoBack || searchable || title != null) {
                     PhoneTopBar(
                         title = title,
                         onBack = if (canGoBack) goBack else null,
                         onSearch = if (searchable) ({ searching = true }) else null,
+                        onSport = if (sportable) ({ onPlayerOpenChange(false); onSportOpenChange(true) }) else null,
                     )
                 }
             },
@@ -393,6 +414,16 @@ fun MobileRoot(
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
+        }
+
+        // Over the player screen too, though the two are never open together: opening Sport mode
+        // closes it, and leaving opens it.
+        if (sportOpen) {
+            PhoneSport(
+                vm = vm,
+                onLeave = leaveSport,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
 
         details?.let { (channel, programme) ->
