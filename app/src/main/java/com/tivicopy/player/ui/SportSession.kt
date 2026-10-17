@@ -45,18 +45,7 @@ class SportSession(
     val anyPlaying: StateFlow<Boolean> = _anyPlaying
 
     private val _slots = MutableStateFlow(
-        List(SportLayout.SLOTS) {
-            Slot(
-                null,
-                PanelPlayer(
-                    context.applicationContext,
-                    settings,
-                    main,
-                    onChanged = ::refresh,
-                    onGaveUp = ::retryStarved,
-                ),
-            )
-        },
+        List(SportLayout.SLOTS) { Slot(null, PanelPlayer(context.applicationContext, settings, main, ::refresh)) },
     )
     val slots: StateFlow<List<Slot>> = _slots
 
@@ -92,20 +81,11 @@ class SportSession(
     /** Set while the activity is stopped: the panels are released, the channels remembered. */
     private var suspended = false
 
-    /**
-     * The panel [startFocusedFirst] started first, while the others are held back for it; null
-     * when nothing is held back.
-     */
-    private var head: PanelPlayer? = null
-
-    private val startWaitingTask = Runnable { startWaiting() }
-
     /** Opens Sport mode on an empty grid, while the channels are read. */
     fun begin() {
         if (active) return
         active = true
         suspended = false
-        cancelWaiting()
         _expanded.value = false
         _picking.value = null
         _choices.value = null
@@ -130,13 +110,14 @@ class SportSession(
         if (_slots.value.any { it.channel != null }) return
         val seen = HashSet<Long>()
         _slots.value = _slots.value.mapIndexed { i, slot ->
-            Slot(restored.getOrNull(i)?.takeIf { seen.add(it.id) }, slot.panel)
+            val channel = restored.getOrNull(i)?.takeIf { seen.add(it.id) }
+            if (channel != null && !suspended) slot.panel.play(channel, profileFor(channel))
+            Slot(channel, slot.panel)
         }
         val first = _slots.value.indexOfFirst { it.channel != null }
         _focused.value = first.coerceAtLeast(0)
         if (first < 0 && choices.isNotEmpty()) _picking.value = 0
         applyAudible()
-        if (!suspended) startFocusedFirst()
     }
 
     /** Leaves Sport mode: every panel stops and lets go of its decoders and its connection. */
@@ -144,7 +125,6 @@ class SportSession(
         if (!active) return
         active = false
         suspended = false
-        cancelWaiting()
         _slots.value.forEach { it.panel.release() }
         _expanded.value = false
         _picking.value = null
@@ -158,9 +138,6 @@ class SportSession(
         if (slot !in _slots.value.indices || _focused.value == slot) return
         _focused.value = slot
         applyAudible()
-        // The picture being watched and heard comes first: a panel held back for the first one,
-        // or stopped for want of a decoder, starts the moment the viewer turns to it.
-        if (active && !suspended) startIfIdle(_slots.value[slot])
     }
 
     /** Fills the screen with the panel in focus, or puts the grid back. An empty panel stays put. */
@@ -190,8 +167,6 @@ class SportSession(
             from >= 0 -> {
                 next[slot] = current[from]
                 next[from] = current[slot]
-                // Either may still be held back by [startFocusedFirst]: chosen now, it starts now.
-                if (!suspended) listOf(next[slot], next[from]).forEach(::startIfIdle)
             }
             else -> {
                 val panel = current[slot].panel
@@ -217,17 +192,6 @@ class SportSession(
         applyAudible()
         persist()
         refresh()
-        retryStarved()
-    }
-
-    /**
-     * A video decoder came free — a panel was emptied, or gave up on its channel: every panel that
-     * went without one tries again. Those in the background are offered hardware decoders only, so
-     * the ones that lose the race stop again at once rather than starting a software decoder.
-     */
-    private fun retryStarved() {
-        if (!active || suspended) return
-        _slots.value.filter { it.panel.status.value.starved }.forEach(::startIfIdle)
     }
 
     /**
@@ -283,7 +247,6 @@ class SportSession(
     fun suspend() {
         if (!active || suspended) return
         suspended = true
-        cancelWaiting()
         _slots.value.forEach { it.panel.release() }
         refresh()
     }
@@ -295,83 +258,23 @@ class SportSession(
     fun resume(allowed: (Channel) -> Boolean) {
         if (!active || !suspended) return
         suspended = false
-        _slots.value = _slots.value.map { slot -> Slot(slot.channel?.takeIf(allowed), slot.panel) }
-        applyAudible()
-        startFocusedFirst()
-    }
-
-    /**
-     * Starts the panel with the remote first, and the rest once it has its video decoder, is ready
-     * or has failed — or after [FOCUSED_HEAD_START_MS], whichever is sooner.
-     *
-     * A television box may hold fewer hardware video decoders than there are panels, and they go
-     * to whichever streams reach them first. Started together, the one the viewer is looking at
-     * and listening to was as likely as any to be the panel left without one (device report,
-     * 2026-10-17: the picture that kept moving was not necessarily the one in focus).
-     */
-    private fun startFocusedFirst() {
-        cancelWaiting()
-        val target = _focused.value
-        val slots = _slots.value
-        val first = slots.getOrNull(target)?.takeIf { it.channel != null }
-        if (first != null) startIfIdle(first)
-        val rest = slots.filterIndexed { i, slot -> i != target && slot.channel != null && slot.panel.player.value == null }
-        if (rest.isEmpty()) return
-        // Nothing to wait for: an empty panel in focus, or one that settled as it started.
-        if (first == null || settled(first.panel)) {
-            startWaiting()
-            return
+        _slots.value = _slots.value.map { slot ->
+            val channel = slot.channel?.takeIf(allowed)
+            if (channel != null) slot.panel.play(channel, profileFor(channel))
+            Slot(channel, slot.panel)
         }
-        head = first.panel
-        rest.forEach { it.panel.markPending() }
-        main.postDelayed(startWaitingTask, FOCUSED_HEAD_START_MS)
-    }
-
-    /**
-     * Whether [panel] no longer needs a head start: it has its decoder, is ready, has failed, or
-     * is not playing at all any more (its panel was emptied).
-     */
-    private fun settled(panel: PanelPlayer): Boolean =
-        panel.holdsVideoDecoder || panel.isReady || panel.status.value.failed || panel.player.value == null
-
-    /** Starts every panel with a channel and no player: those [startFocusedFirst] held back. */
-    private fun startWaiting() {
-        cancelWaiting()
-        if (!active || suspended) return
-        _slots.value.forEach(::startIfIdle)
-    }
-
-    private fun startIfIdle(slot: Slot) {
-        val channel = slot.channel ?: return
-        if (slot.panel.player.value == null) slot.panel.play(channel, profileFor(channel))
-    }
-
-    private fun cancelWaiting() {
-        main.removeCallbacks(startWaitingTask)
-        head = null
+        applyAudible()
     }
 
     /**
      * Silences every panel but the one in focus, then lets that one speak — in that order, so the
      * one about to be heard never asks for the sound while another still holds it.
-     *
-     * The same goes for the software video decoder: only the panel in focus may fall back to one
-     * ([PanelPlayer.setSoftwareAllowed]). The others are offered hardware decoders only, and say
-     * so when there is none left, rather than freezing on a decoder that cannot keep up.
      */
     private fun applyAudible() {
         val target = _focused.value
         val slots = _slots.value
-        slots.forEachIndexed { i, slot ->
-            if (i != target) {
-                slot.panel.setAudible(false)
-                slot.panel.setSoftwareAllowed(false)
-            }
-        }
-        slots.getOrNull(target)?.panel?.let {
-            it.setSoftwareAllowed(true)
-            it.setAudible(true)
-        }
+        slots.forEachIndexed { i, slot -> if (i != target) slot.panel.setAudible(false) }
+        slots.getOrNull(target)?.panel?.setAudible(true)
     }
 
     private fun persist() {
@@ -380,14 +283,5 @@ class SportSession(
 
     private fun refresh() {
         _anyPlaying.value = active && !suspended && _slots.value.any { it.panel.status.value.playing }
-        head?.let { if (settled(it)) startWaiting() }
-    }
-
-    private companion object {
-        /**
-         * The longest the other panels wait for the one in focus (see [startFocusedFirst]). Only a
-         * backstop: they go as soon as it has its decoder, which is usually well inside this.
-         */
-        const val FOCUSED_HEAD_START_MS = 8_000L
     }
 }
