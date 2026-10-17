@@ -38,6 +38,13 @@ class SelectiveRenderersFactory(
      * so a second would fail outright. Decoded to PCM, four play at once and mute on request.
      */
     private val encodedAudioPassthrough: Boolean = true,
+    /**
+     * Has the last word on every list of video decoders the player is offered, and sees each one
+     * with Media3's own verdict on which of them run on the CPU ([MediaCodecInfo.softwareOnly]).
+     * Sport mode's panels use it to keep a panel in the background off software decoding (ADR-041).
+     * Called on the playback thread.
+     */
+    private val videoDecoderFilter: ((List<MediaCodecInfo>) -> List<MediaCodecInfo>)? = null,
 ) : DefaultRenderersFactory(context) {
 
     init {
@@ -60,7 +67,7 @@ class SelectiveRenderersFactory(
         super.buildVideoRenderers(
             context,
             extensionRendererMode,
-            selectorFor(videoMode, mediaCodecSelector),
+            filtered(selectorFor(videoMode, mediaCodecSelector)),
             enableDecoderFallback,
             eventHandler,
             eventListener,
@@ -109,6 +116,13 @@ class SelectiveRenderersFactory(
             .setEnableFloatOutput(enableFloatOutput)
             .setAudioProcessors(arrayOf<AudioProcessor>(TeeAudioProcessor(AudioSpectrum.Sink())))
             .build()
+    }
+
+    private fun filtered(base: MediaCodecSelector): MediaCodecSelector {
+        val filter = videoDecoderFilter ?: return base
+        return MediaCodecSelector { mimeType, secure, tunneling ->
+            filter(base.getDecoderInfos(mimeType, secure, tunneling))
+        }
     }
 
     private fun selectorFor(mode: DecoderMode, base: MediaCodecSelector): MediaCodecSelector =

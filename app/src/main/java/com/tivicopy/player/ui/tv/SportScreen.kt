@@ -317,9 +317,10 @@ private fun PanelFailure(status: PanelStatus, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val error = status.error
     val message = when {
-        // Almost always the device's limit on pictures decoded at once (ADR-041), and that is
-        // the thing worth saying: the channel itself is very likely fine.
-        error?.kind == AppError.Kind.DecoderFailed -> stringResource(R.string.sport_panel_device_limit)
+        // Every hardware decoder taken by the other panels (ADR-041): the thing worth saying is
+        // the device's limit, because the channel itself is very likely fine. A decoder that
+        // failed with no other panel decoding says what the full-screen player would.
+        status.starved -> stringResource(R.string.sport_panel_device_limit)
         else -> (error ?: AppError(AppError.Kind.Unknown)).describe(context)
     }
     Column(

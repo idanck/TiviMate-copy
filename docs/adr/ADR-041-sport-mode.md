@@ -110,6 +110,35 @@ Sport mode opens on them. With nothing to restore, it opens the picker on the fi
   A panel whose decoder will not start says that the device cannot play another channel at the
   same time, instead of a generic error, and the other panels play on. This needs checking on the
   owner's devices.
+- **First device report (2026-10-17):** only one of the four panels kept moving, and not
+  necessarily the one in focus; the others stood on a frozen frame and said nothing. The likeliest
+  reading is that the box holds fewer hardware video decoders than there are panels. A panel that
+  could not get one fell through to a software decoder, which cannot keep up with live HD on a
+  television box. These changes followed, in 0.15.1:
+  - a panel in the background is offered hardware video decoders only (`SelectiveRenderersFactory`'s
+    `videoDecoderFilter`). When they are all taken, it fails at once and says the device cannot
+    play another channel at the same time, instead of freezing on a software decoder. The panel in
+    focus keeps the software fallback, so the picture being watched and heard always gets a
+    decoder. A panel the remote leaves while it is on software starts again on hardware, or stops.
+    A channel set to software decoding on purpose, and a stream the device has no hardware decoder
+    for at all, keep software wherever they are. The decision is made as each decoder is chosen,
+    from the list Media3 offers for that stream, not guessed afterwards;
+  - a stopped panel starts again when the remote turns to it, when a panel is emptied, and when
+    another panel gives up on its channel. OK on it tries again too;
+  - the panel in focus starts first, and the rest start once it has its decoder, is ready or has
+    failed (eight seconds at most). Held panels show the loader meanwhile;
+  - every panel writes the decoder it got, whether it is software, a running count of dropped
+    frames and its errors to the log (`adb logcat -s SportPanel`), which is what settles the
+    question per device.
+
+  Not confirmed on the device yet. If a box turns out to decode only one or two pictures at once,
+  the next decision is the owner's: fewer panels on that box, or panels that hand the decoder to
+  the one in focus and hold a still frame meanwhile. Until then, a focused channel slow enough to
+  start after the eight-second backstop can find the hardware decoders taken by the panels
+  behind it; it then plays on software, which may stutter. Moving the remote never takes a
+  hardware decoder away from another panel. A stream that every hardware decoder rejects for a
+  reason of its own reads as the device's limit while its panel is in the background, and plays
+  on software once the remote turns to it.
 - Memory: each panel holds a few seconds of stream and at most 24 MB of buffer. The full-screen
   player's defaults allow well over 100 MB of video, and four of those would get a two-gigabyte
   box killed.
