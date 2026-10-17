@@ -42,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
@@ -63,6 +64,9 @@ import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.Motion
+import com.tivicopy.player.ui.common.SurfacePresence
+import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.screenEntrance
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
@@ -115,6 +119,14 @@ enum class TvOverlay {
     val isPassthrough: Boolean
         get() = this == NONE || this == INFO || this == MINI_GUIDE ||
             this == TRANSPORT || this == PLAYBACK_MENU
+
+    /**
+     * Whether this is a browse screen: a surface drawn in [OverlayScaffold], under the side menu
+     * and Studio's top bar, on a scrim or a backdrop of its own. Everything that is neither over
+     * the video ([isPassthrough]) nor in place of it ([isPanels]).
+     */
+    val isBrowse: Boolean
+        get() = !isPassthrough && !isPanels
 
     /**
      * Whether this overlay owns the D-pad.
@@ -234,6 +246,10 @@ fun TvRoot(
             vm.openRadio()
             wasRadio = true
         } else if (wasRadio) {
+            // On its way to the video the list is still drawn while it fades (ADR-043), and the
+            // stations stay in it until it has gone; another browse screen cuts it, and takes
+            // the channels at once.
+            if (overlay.isPassthrough) delay(Motion.EXIT.toLong())
             vm.closeRadio()
             wasRadio = false
         }
@@ -389,8 +405,18 @@ fun TvRoot(
             )
         }
 
-        // The info card auto-dismisses; everything else waits for Back.
-        if (overlay == TvOverlay.INFO) {
+        // The info card auto-dismisses; everything else waits for Back. Everything drawn over
+        // playing video fades and rises into place rather than appearing between two frames, and
+        // fades out rather than vanishing between two (`ui/common/Motion.kt`, ADR-043).
+        SurfacePresence(
+            visible = overlay == TvOverlay.INFO,
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                // Full width and flush to the foot of the screen: the card is a lower third
+                // now, and its own gradient is what holds the text, so an inset around it
+                // would put a band of untouched video under the words.
+                .fillMaxWidth(),
+        ) {
             ChannelInfoCard(
                 channel = state.currentChannel,
                 now = state.now,
@@ -406,15 +432,7 @@ fun TvRoot(
                 // set of them a few centimetres below. The same rule the home banner follows.
                 showIdentity = !audioOnly,
                 opacity = prefs.overlayOpacity,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    // Full width and flush to the foot of the screen: the card is a lower third
-                    // now, and its own gradient is what holds the text, so an inset around it
-                    // would put a band of untouched video under the words.
-                    .fillMaxWidth()
-                    // Everything that arrives over playing video fades and rises into place
-                    // rather than appearing between two frames (`ui/common/Motion.kt`).
-                    .screenEntrance(Unit),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
@@ -433,19 +451,22 @@ fun TvRoot(
 
         // The filmstrip is drawn over playing video with no scrim of its own, which is what makes
         // it a way to change channel rather than a screen to visit.
-        if (overlay == TvOverlay.MINI_GUIDE) {
+        SurfacePresence(
+            visible = overlay == TvOverlay.MINI_GUIDE,
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+        ) {
             ChannelFilmstrip(
                 vm = vm,
                 onPlay = { channel -> vm.play(channel) },
                 opacity = prefs.overlayOpacity,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .screenEntrance(Unit),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
 
-        if (overlay == TvOverlay.TRANSPORT) {
+        SurfacePresence(
+            visible = overlay == TvOverlay.TRANSPORT,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
             TransportBar(
                 vm = vm,
                 onOpenGuide = { onOpenFromVideo(TvOverlay.GUIDE) },
@@ -456,11 +477,14 @@ fun TvRoot(
                     details = channel to programme
                     onOverlayChange(TvOverlay.NONE)
                 },
-                modifier = Modifier.align(Alignment.BottomCenter).screenEntrance(Unit),
             )
         }
 
-        if (overlay == TvOverlay.PLAYBACK_MENU) {
+        // `PlayerMenu`: a drawer against the end edge of the screen, full height.
+        SurfacePresence(
+            visible = overlay == TvOverlay.PLAYBACK_MENU,
+            modifier = Modifier.align(Alignment.CenterEnd),
+        ) {
             PlaybackMenu(
                 vm = vm,
                 onDismiss = { onOverlayChange(TvOverlay.NONE) },
@@ -468,30 +492,38 @@ fun TvRoot(
                     details = channel to programme
                     onOverlayChange(TvOverlay.NONE)
                 },
-                // `PlayerMenu`: a drawer against the end edge of the screen, full height.
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .screenEntrance(Unit),
             )
         }
 
         if (overlay.isPanels) {
             // Opaque and full-bleed, over everything above: the panels are the whole screen.
             SportScreen(vm = vm, modifier = Modifier.fillMaxSize())
-        } else if (!overlay.isPassthrough) {
+        }
+
+        // The browse screen on its way out is still drawn while it fades (ADR-043): the scaffold
+        // goes on showing the last browse screen until its exit has finished, and only then goes.
+        // Not a `MutableState`, on purpose: it has to change in the same composition as
+        // `overlay` does, or the screen just left would be drawn once more on the way to the next.
+        val lastBrowse = remember { arrayOf(overlay) }
+        if (overlay.isBrowse) lastBrowse[0] = overlay
+        val browse = lastBrowse[0]
+        // A fade alone, no rise: the content inside rises on its own as it arrives.
+        SurfacePresence(visible = overlay.isBrowse, rise = 0.dp) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
                 // The guide paints its own panes and leaves the preview slot bare; the home
                 // screen paints a gradient over a full-screen picture. A scrim under either would
                 // be drawn straight over the live picture the whole layout exists to keep visible.
-                scrim = !overlay.paintsOwnBackdrop,
-                inset = !overlay.fullBleed,
-                // Replayed whenever the overlay changes, which is what makes one browse surface
-                // replacing another read as a transition. Deliberately not a cross-fade: that
-                // would keep both screens composed, and two channel lists querying, two guides
-                // fetching and two screens asking for focus is a worse bargain than a fade-in.
-                entranceKey = overlay,
-                topBar = !overlay.drawsOwnTopBar,
+                scrim = !browse.paintsOwnBackdrop,
+                inset = !browse.fullBleed,
+                // Replayed whenever the browse screen changes, which is what makes one browse
+                // surface replacing another read as a transition. Deliberately not a cross-fade:
+                // that would keep both screens composed, and two channel lists querying, two
+                // guides fetching and two screens asking for focus is a worse bargain than a
+                // fade-in (ADR-021). The screen it replaces is cut; only a screen leaving for the
+                // video fades out, and it is the one screen composed while it does (ADR-043).
+                entranceKey = browse,
+                topBar = !browse.drawsOwnTopBar,
                 // One menu for every browse screen, the one home has always had (ADR-035). It is
                 // drawn by the scaffold rather than by each screen so it is the same instance from
                 // one screen to the next: it does not fade out and back in with the screen under
@@ -503,13 +535,13 @@ fun TvRoot(
                 // the screen, which is exactly while its controls are noting themselves.
                 sideMenu = {
                     SideMenu(
-                        current = overlay,
+                        current = browse,
                         onOpen = onOverlayChange,
-                        onTowardContent = if (overlay == TvOverlay.HOME) homeFocus::restore else null,
+                        onTowardContent = if (browse == TvOverlay.HOME) homeFocus::restore else null,
                     )
                 },
             ) {
-                when (overlay) {
+                when (browse) {
                     // The television's root surface (ADR-016). Added here in the same edit as the
                     // enum value on purpose: the `else -> Unit` at the bottom of this `when` means
                     // a forgotten branch compiles and renders an empty scaffold over the video.
@@ -700,19 +732,18 @@ private fun OverlayScaffold(
         // takes its own, so none of the three changes size from one screen to the next.
         val panelMetrics = tvMetricsFor(maxWidth.value, maxHeight.value)
         val startRoom = if (sideMenu != null) sideMenuInset(panelMetrics) else TV_CONTENT_INSET
+        // The scrim is the panel's, not the screen's: it stays put while one browse screen
+        // replaces another, and crosses rather than cuts when the next screen wants a different
+        // one (home paints its own backdrop; the list beside it wants the panel's). The entrance
+        // is the content's alone, below. Keyed on this whole column, as it was, it took the scrim
+        // with it: every change of screen dropped the backdrop to nothing for a frame and faded
+        // it back in over the live picture, which read as the video blinking through (ADR-043).
+        // Arriving from the video, the scaffold as a whole fades in with it (`SurfacePresence`).
+        val backdrop = MaterialTheme.colorScheme.background
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                // Outermost, so the scrim and the surface fade in together rather than the scrim
-                // snapping on under a fading screen.
-                .screenEntrance(entranceKey)
-                .then(
-                    if (scrim) {
-                        Modifier.background(MaterialTheme.colorScheme.background.copy(alpha = opacity))
-                    } else {
-                        Modifier
-                    },
-                ),
+                .background(animatedColour(backdrop.copy(alpha = if (scrim) opacity else 0f))),
         ) {
             if (topBar) {
                 CompositionLocalProvider(LocalTvMetrics provides panelMetrics) {
@@ -724,6 +755,10 @@ private fun OverlayScaffold(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    // The arrival (`ui/common/Motion.kt`), replayed as one browse screen replaces
+                    // another. The bar above and the menu beside are the same from one screen to
+                    // the next, so neither goes with it.
+                    .screenEntrance(entranceKey)
                     .then(
                         if (inset) {
                             Modifier.padding(
