@@ -121,7 +121,7 @@ internal fun SideMenu(
     // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline. On demand
     // is not among them, as on the phone (ADR-032): search reaches it where a source has any.
     // Sport mode follows the radio (ADR-041). It is the one entry whose screen draws no menu of
-    // its own: four pictures fill it, and Back is the way out.
+    // its own: its pictures fill it, and Back is the way out.
     val destinations = listOf(
         MenuDestination(stringResource(R.string.nav_home), StudioIcons.Home, TvOverlay.HOME),
         MenuDestination(stringResource(R.string.nav_live), StudioIcons.Tv, TvOverlay.CHANNELS),

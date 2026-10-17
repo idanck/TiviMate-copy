@@ -165,7 +165,7 @@ This is our differentiator and must not be an afterthought.
   where a source has it, is reached through search. Sport mode (ADR-041) has no tab either: the
   ball in the top bar of Channels and Guide opens it, over everything, as the Now Playing screen
   opens. A tap gives a panel the sound, a double tap fills the screen with it, a long press
-  changes its channel, and the bar chooses two panels or four. News mode (ADR-042) opens from the
+  changes its channel. Both modes have two panels. News mode (ADR-042) opens from the
   newspaper beside it: two panels, either of which may show the headlines.
 - Vertical channel list with sticky group headers and fast-scroll.
 - Gestures during playback: vertical swipe left = brightness, right = volume, horizontal

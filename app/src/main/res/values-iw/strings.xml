@@ -491,7 +491,6 @@
     <string name="sport_sound_here">הסאונד מהמסך הזה</string>
     <string name="sport_add_hint_touch">הקשה לבחירת ערוץ. לחיצה ארוכה מחליפה אותו.</string>
     <string name="sport_panel_retry_hint_touch">הקשה לניסיון נוסף</string>
-    <string name="sport_screens">%1$d מסכים</string>
     <string name="news_pick_subtitle">ערוצי חדשות ישראליים, או המבזקים</string>
     <string name="news_pick_none">לא נמצאו ערוצי חדשות ישראליים ברשימות שלך.</string>
     <string name="news_flashes">מבזקים</string>

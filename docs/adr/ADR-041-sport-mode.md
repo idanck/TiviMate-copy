@@ -1,7 +1,8 @@
 # ADR-041 — Sport mode: four Israeli sports channels at once, and the sound follows the remote
 
 **Status:** accepted. First implementation of FR-PLB-24..26 (`docs/02` section 2.11), on the
-television, and from 0.16.0 on the phone (decision 9). Decided by the owner on 2026-10-17:
+television, and from 0.16.0 on the phone (decision 9). Two panels only from 0.17.1 (decision 10).
+Decided by the owner on 2026-10-17:
 
 1. *Up to four sports channels at once. One panel has the focus, is drawn a little larger than the
    others, and is the one heard.*
@@ -9,6 +10,7 @@ television, and from 0.16.0 on the phone (decision 9). Decided by the owner on 2
 3. *The sound follows the focus.*
 4. *The provider allows several connections at once.*
 5. *On the phone too, with a choice of two panels or four.*
+6. *Later the same day: two screens only, on the phone and the television, instead of four.*
 
 ## Context
 
@@ -118,6 +120,15 @@ a ball in the top bar of Channels and Guide: the bottom bar's five places are ta
 - The shared parts of a panel (the picture, an empty place, a failure, the caption, a picker
   row) live in `ui/common/SportPanels.kt`. The television's and the phone's hints differ only in
   saying OK or tap.
+
+**10. Two panels only (0.17.1).** The owner cut Sport mode to two panels on both shells, as News
+mode has (ADR-042). Both open on `SportLayout`'s two: side by side on a television and a phone
+lying down, the one in focus taking 58% of the width, and one above the other on a phone held
+upright. The phone's choice of two or four, and the preference that remembered it, are gone. A
+grid remembered from four panels comes back with its first two. `SportLayout` still lays out
+four, and the session still holds four players, so going back would be a change of one number
+in `AppViewModel.enterSport`; the extra two players hold no decoder and no connection until
+they play.
 
 ## Alternatives rejected
 

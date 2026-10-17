@@ -87,7 +87,7 @@ enum class TvOverlay {
     PLAYBACK_MENU,
 
     /**
-     * Sport mode (ADR-041): up to four channels at once, each in a panel of its own. Not drawn
+     * Sport mode (ADR-041): two channels at once, each in a panel of its own. Not drawn
      * over the video at all — the full-screen player stands down while it is up — so it is neither
      * passthrough nor a browse screen, and [TvRoot] draws it in place of both.
      */
