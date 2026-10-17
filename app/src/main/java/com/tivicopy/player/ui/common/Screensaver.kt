@@ -163,6 +163,16 @@ fun idleScene(
 fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120) * 60_000L
 
 /**
+ * When the screensaver is due, on the clock [lastInteractionAt] and [stillSince] are read from:
+ * the idle period after the later of the last key press and the moment the screen turned still
+ * (ADR-040, decision 3). Measured from the key press alone, a picture watched for longer than the
+ * idle period was handed over the instant it stalled, since the countdown it then armed had
+ * already run out.
+ */
+fun screensaverDueAt(lastInteractionAt: Long, stillSince: Long, idleMinutes: Int): Long =
+    maxOf(lastInteractionAt, stillSince) + screensaverDelayMillis(idleMinutes)
+
+/**
  * Whether the screensaver has anything to do at all right now.
  *
  * Separate from the countdown itself so the caller can arm one timer and forget it: this answers

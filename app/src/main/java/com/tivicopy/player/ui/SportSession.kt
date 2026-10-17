@@ -7,6 +7,7 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.net.RequestProfile
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.player.PanelPlayer
+import com.tivicopy.player.player.PanelStatus
 import com.tivicopy.player.ui.tv.SportLayout
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -425,7 +426,7 @@ class SportSession(
         // unless the panels are paused, when the picture beside them is a still frame, as a paused
         // grid is in Sport mode.
         _anyPlaying.value = active && !suspended && !_paused.value &&
-            _slots.value.take(_count.value).any { it.flashes || it.panel.status.value.playing }
+            _slots.value.take(_count.value).any { showsPicture(it.channel != null, it.flashes, it.panel.status.value) }
     }
 
     companion object {
@@ -439,5 +440,16 @@ class SportSession(
          */
         fun audibleSlot(slots: List<Slot>, focused: Int): Int =
             if (slots.getOrNull(focused)?.flashes == true) slots.indexOfFirst { it.channel != null } else focused
+
+        /**
+         * Whether a panel is a picture being watched, for the screensaver (ADR-040, decision 3):
+         * the headlines, or a channel that has not failed. A channel connecting, rebuffering or
+         * trying its next address is counted in, not only one whose decoder is running this
+         * instant: a live stream stalls for a second now and then, and a panel that was taken for
+         * a still screen at each stall handed the grid to the screensaver mid-match. A panel the
+         * provider closed, or that cannot get a decoder, stands on a frozen frame and is not.
+         */
+        fun showsPicture(hasChannel: Boolean, flashes: Boolean, status: PanelStatus): Boolean =
+            flashes || (hasChannel && !status.failed)
     }
 }

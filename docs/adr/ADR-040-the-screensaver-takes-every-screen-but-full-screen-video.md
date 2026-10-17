@@ -55,6 +55,25 @@ screensaver's clock instead, under the station's "now playing" line, one task at
 It is shown only while a station is behind the screensaver, never over a paused film. This is
 where ADR-024 first put it.
 
+**3. The countdown runs from the moment the screen turns still (0.17.4).** The owner's report:
+the screensaver came on over Sport mode's grid, which is two pictures being watched. Two causes,
+both in how "still" was measured rather than in the rule:
+
+- `SportSession` counted a panel as playing only while its decoder was running that instant. A
+  live stream stalls for a second now and then, and on the owner's one-connection account a panel
+  the provider closed reconnects on its own; at each of those moments no panel was "playing", so
+  the grid was a still screen. Now a panel is a picture being watched for as long as it has a
+  channel that has not failed (`SportSession.showsPicture`): connecting, rebuffering and trying
+  the next address count in; a panel the provider closed, or that cannot get a decoder, stands on
+  a frozen frame and does not. The headlines count as before.
+- The countdown was armed from the last key press alone. A viewer who had watched for longer
+  than the idle period without touching the remote had a countdown that was already over, so the
+  first moment the screen read as still handed it over at once. `screensaverDueAt` now runs the
+  idle period from the later of the last key press and the moment the screen turned still
+  (`stillSince` in the activity, stamped whenever the scene stops applying). This holds for the
+  full-screen player too: a film that fails after an hour is left on its last frame for the idle
+  period, then taken, instead of being taken at once.
+
 ## Alternatives rejected
 
 - **Keep ADR-030's exception for the radio.** The owner's rule names one exception, and it is not
@@ -72,6 +91,8 @@ where ADR-024 first put it.
   has the bottom of the screen.
 - The task list refreshes when the screensaver arms with a station behind it, and is rate-limited
   as before.
+- `ScreensaverTest` pins the countdown's start as well (decision 3), and `SportSessionTest` pins
+  which panels are a picture being watched.
 - `ScreensaverTest` pins the rule. A channel playing full screen is left alone. Still screens are:
   a channel under a guide or a menu, the home screen, a paused film, a station on its own screen,
   nothing playing, and an error. The test also pins which overlays leave the picture as the screen.
