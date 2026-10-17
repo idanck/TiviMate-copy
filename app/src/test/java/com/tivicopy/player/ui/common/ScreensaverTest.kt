@@ -135,6 +135,26 @@ class ScreensaverTest {
         assertEquals(120L * 60_000L, screensaverDelayMillis(9_999))
     }
 
+    /**
+     * ADR-040, decision 3: the countdown runs from the later of the last key press and the screen
+     * turning still. A match watched for an hour and then stalling for a second is not handed
+     * over at the stall.
+     */
+    @Test
+    fun `a screen that turned still after the last key press is left alone for the idle period`() {
+        val pressed = 1_000_000L
+        val stalled = pressed + 3_600_000L
+        assertEquals(stalled + 600_000L, screensaverDueAt(pressed, stalled, 10))
+    }
+
+    /** A key press on a screen that was already still restarts the countdown from the press. */
+    @Test
+    fun `a key press on a still screen restarts the countdown`() {
+        val still = 1_000_000L
+        val pressed = still + 120_000L
+        assertEquals(pressed + 600_000L, screensaverDueAt(pressed, still, 10))
+    }
+
     // ------------------------------------------------------------------- drift
 
     @Test

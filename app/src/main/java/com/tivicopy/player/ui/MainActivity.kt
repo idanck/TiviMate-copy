@@ -32,6 +32,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,7 +63,7 @@ import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.IdleScene
 import com.tivicopy.player.ui.common.idleScene
 import com.tivicopy.player.ui.common.screensaverApplies
-import com.tivicopy.player.ui.common.screensaverDelayMillis
+import com.tivicopy.player.ui.common.screensaverDueAt
 import com.tivicopy.player.ui.mobile.MobileRoot
 import com.tivicopy.player.ui.mobile.PlayerScreen
 import com.tivicopy.player.ui.settings.SettingsSection
@@ -370,15 +371,23 @@ class MainActivity : ComponentActivity() {
                 videoFillsPanel = if (isTelevision) overlay.videoFillsPanel else playerOpen,
             )
             val applies = screensaverApplies(prefs.screensaverEnabled, scene, inPip)
+            // The last moment the screen was not a still one, so the moment it turned still
+            // (ADR-040, decision 3). Read inside the effect below rather than keyed on: a screen
+            // turning still restarts the countdown through `applies`, and the stamp itself never
+            // restarts anything.
+            val stillSince = remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
             // One timer, armed and slept through, rather than a clock ticking every second: a
             // key press moves `lastInteractionAt`, which restarts this effect, so an idle
-            // television costs one suspended coroutine and nothing else.
+            // television costs one suspended coroutine and nothing else. The countdown runs from
+            // the later of the last key press and the screen turning still: a picture watched
+            // for longer than the idle period used to be handed over the instant it stalled.
             LaunchedEffect(applies, lastInteractionAt, prefs.screensaverIdleMinutes) {
                 if (!applies) {
                     screensaverOn = false
+                    stillSince.longValue = SystemClock.elapsedRealtime()
                     return@LaunchedEffect
                 }
-                val due = lastInteractionAt + screensaverDelayMillis(prefs.screensaverIdleMinutes)
+                val due = screensaverDueAt(lastInteractionAt, stillSince.longValue, prefs.screensaverIdleMinutes)
                 val wait = due - SystemClock.elapsedRealtime()
                 if (wait > 0) delay(wait)
                 screensaverOn = true
