@@ -82,6 +82,11 @@ object StudioIcons {
     val Music: ImageVector by lazy { glyph("music", "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0zM20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0z") }
     val Movie: ImageVector by lazy { glyph("movie", "M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8l1.5-4h13L20 8M9.5 4L8 8M15.5 4L14 8") }
     val Fullscreen: ImageVector by lazy { glyph("fullscreen", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5") }
+    /**
+     * Changing what a Sport or News mode panel shows (ADR-041 decision 11): two arrows passing each
+     * other, drawn to the set's rule. Not on the canvas's board, which predates the mode.
+     */
+    val Swap: ImageVector by lazy { glyph("swap", "M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4") }
     val Storage: ImageVector by lazy { glyph("storage", "M4 4h16v7H4zM4 13h16v7H4zM8 7.5h3M8 16.5h3") }
 }
 

@@ -479,7 +479,12 @@
 
     <!-- Sport mode (ADR-041) -->
     <string name="sport_add_channel">הוספת ערוץ</string>
-    <string name="sport_add_hint">OK לבחירת ערוץ. לחיצה ארוכה מחליפה אותו.</string>
+    <string name="sport_add_hint">OK לבחירת ערוץ.</string>
+    <string name="sport_menu_subtitle">OK לבחירה</string>
+    <string name="sport_menu_fullscreen">מסך מלא</string>
+    <string name="sport_menu_grid">חזרה לשני המסכים</string>
+    <string name="sport_menu_change">החלפת ערוץ</string>
+    <string name="news_menu_change">החלפת ערוץ או מבזקים</string>
     <string name="sport_pick_title">ערוץ למסך הזה</string>
     <string name="sport_pick_subtitle">ערוצי ספורט ישראליים</string>
     <string name="sport_pick_remove">הסרה מהמסך</string>

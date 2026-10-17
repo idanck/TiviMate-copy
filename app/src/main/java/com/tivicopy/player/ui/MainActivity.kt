@@ -832,6 +832,7 @@ class MainActivity : ComponentActivity() {
         val sport = vm.sport
         when {
             sport.picking.value != null -> sport.closePicker()
+            sport.menu.value != null -> sport.closeMenu()
             sport.expanded.value -> sport.setExpanded(false)
             else -> {
                 vm.exitSport()

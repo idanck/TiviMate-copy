@@ -94,6 +94,14 @@ class SportSession(
     /** The panel the channel picker is choosing for; null while it is closed. */
     val picking: StateFlow<Int?> = _picking
 
+    private val _menu = MutableStateFlow<Int?>(null)
+
+    /**
+     * The panel whose menu is open on the television (full screen, change the channel, remove;
+     * ADR-041 decision 11); null while none is. The phone reaches the same things by touch.
+     */
+    val menu: StateFlow<Int?> = _menu
+
     private val _choices = MutableStateFlow<List<Channel>?>(null)
 
     /** The channels on offer, in playlist order; null while they are still being read. */
@@ -193,6 +201,7 @@ class SportSession(
         _slots.value.forEach { it.panel.release() }
         _expanded.value = false
         _picking.value = null
+        _menu.value = null
         refresh()
     }
 
@@ -223,11 +232,24 @@ class SportSession(
     }
 
     fun openPicker(slot: Int) {
-        if (active && slot in 0 until _count.value) _picking.value = slot
+        if (active && slot in 0 until _count.value) {
+            _menu.value = null
+            _picking.value = slot
+        }
     }
 
     fun closePicker() {
         _picking.value = null
+    }
+
+    /** Opens the panel menu for [slot] on the television; a panel with nothing in it has none. */
+    fun openMenu(slot: Int) {
+        val entry = _slots.value.getOrNull(slot) ?: return
+        if (active && slot < _count.value && (entry.channel != null || entry.flashes)) _menu.value = slot
+    }
+
+    fun closeMenu() {
+        _menu.value = null
     }
 
     /**
@@ -294,6 +316,7 @@ class SportSession(
         entry.panel.release()
         _slots.value = current.toMutableList().also { it[slot] = Slot(null, entry.panel) }
         _picking.value = null
+        _menu.value = null
         if (_focused.value == slot) _expanded.value = false
         applyAudible()
         persist()

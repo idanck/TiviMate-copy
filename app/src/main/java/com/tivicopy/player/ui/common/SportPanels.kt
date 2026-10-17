@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -165,7 +167,9 @@ internal fun PanelFailure(status: PanelStatus, hint: String, modifier: Modifier 
 /**
  * Along the foot of a panel: the channel, the programme on air if the guide knows it, and the
  * sound mark on the panel being heard. Full screen it shows for a moment and then leaves the
- * picture alone, as the info card does.
+ * picture alone, as the info card does. On the phone, [onChange] puts a button at its end that
+ * opens the picker for the panel (ADR-041 decision 11); the television's panel has a menu of its
+ * own on OK and passes none.
  */
 @Composable
 internal fun PanelCaption(
@@ -175,6 +179,7 @@ internal fun PanelCaption(
     paused: Boolean,
     expanded: Boolean,
     modifier: Modifier = Modifier,
+    onChange: (() -> Unit)? = null,
 ) {
     val studio = StudioTheme.colors
     val onAir = rememberOnAir(vm, channel)
@@ -232,6 +237,36 @@ internal fun PanelCaption(
                 modifier = Modifier.size(22.dp),
             )
         }
+        if (onChange != null) {
+            PanelChangeButton(onClick = onChange)
+        }
+    }
+}
+
+/**
+ * The phone's way to change what a panel shows (ADR-041 decision 11): a round button with the
+ * swap glyph, at the end of a picture's caption and in the corner of the headlines. It is drawn
+ * over the panel, so a tap on it reaches the picker and not the panel's own tap.
+ */
+@Composable
+internal fun PanelChangeButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = stringResource(R.string.sport_menu_change),
+) {
+    val studio = StudioTheme.colors
+    IconButton(
+        onClick = onClick,
+        modifier = modifier
+            .size(CHANGE_BUTTON_SIZE)
+            .background(studio.ground.copy(alpha = CHANGE_BUTTON_ALPHA), CircleShape),
+    ) {
+        Icon(
+            imageVector = StudioIcons.Swap,
+            contentDescription = label,
+            tint = studio.ink,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 
@@ -290,7 +325,7 @@ internal fun FlashesPanel(live: Boolean, modifier: Modifier = Modifier) {
             )
         } else {
             // The screensaver's column is drawn for a 380dp column at its scale of one; a panel
-            // reads best a little wider than that, so it takes its scale from a wider one.
+            // is read from nearer, so it takes its scale from a wider one (`FLASH_PANEL_WIDTH_DP`).
             val scale = (maxWidth.value / FLASH_PANEL_WIDTH_DP).coerceIn(FLASH_MIN_SCALE, FLASH_MAX_SCALE)
             val units = SaverUnits(scale, LocalDensity.current)
             FlashColumn(
@@ -341,11 +376,19 @@ internal fun SportPickerRow(
     }
 }
 
-/** The panel width at which the headlines are drawn at the screensaver's own size. */
-private const val FLASH_PANEL_WIDTH_DP = 460f
-private const val FLASH_MIN_SCALE = 0.75f
-private const val FLASH_MAX_SCALE = 1.25f
+/**
+ * The panel width at which the headlines are drawn at the screensaver's own size. A panel is read
+ * from nearer than a screensaver, so it takes its scale from a wider one than the column's 380dp:
+ * on a television the larger panel (58% of 960dp) lands at about one, the smaller at the floor.
+ * Was 460dp with a ceiling of 1.25 until 0.17.3, which the owner found a little large.
+ */
+private const val FLASH_PANEL_WIDTH_DP = 560f
+private const val FLASH_MIN_SCALE = 0.7f
+private const val FLASH_MAX_SCALE = 1.1f
 private const val FLASH_SIDE_DP = 18f
+
+private val CHANGE_BUTTON_SIZE = 36.dp
+private const val CHANGE_BUTTON_ALPHA = 0.55f
 
 private const val CAPTION_SCRIM_ALPHA = 0.85f
 private const val FAILURE_PLATE_ALPHA = 0.8f

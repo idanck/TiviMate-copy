@@ -2,7 +2,8 @@
 
 **Status:** accepted. First implementation of FR-PLB-24..26 (`docs/02` section 2.11), on the
 television, and from 0.16.0 on the phone (decision 9). Two panels only from 0.17.1 (decision 10).
-Decided by the owner on 2026-10-17:
+A panel's menu on OK, and a swap button on the phone, from 0.17.3 (decision 11). Decided by the
+owner on 2026-10-17:
 
 1. *Up to four sports channels at once. One panel has the focus, is drawn a little larger than the
    others, and is the one heard.*
@@ -11,6 +12,7 @@ Decided by the owner on 2026-10-17:
 4. *The provider allows several connections at once.*
 5. *On the phone too, with a choice of two panels or four.*
 6. *Later the same day: two screens only, on the phone and the television, instead of four.*
+7. *What is missing is a way to change the channels once they have been chosen.*
 
 ## Context
 
@@ -67,16 +69,16 @@ passed-through stream at a time.
 | Key | In the grid | On a panel filling the screen |
 |---|---|---|
 | Arrows | Move the remote, and the sound, to the neighbouring panel | Nothing |
-| OK | Fills the screen with the panel; on an empty panel opens the picker; on a failed one tries again | Back to the grid |
+| OK | Opens the panel's menu (decision 11): full screen, change the channel, remove; on an empty panel opens the picker; on a failed one tries again | The same menu, with "back to both screens" in place of full screen |
 | Long OK, Menu | The channel picker for that panel | The channel picker |
 | CH+ / CH− | The next or previous Israeli sports channel in the panel with the remote, stepping over channels already on screen | The same |
 | Play/pause | Pauses or resumes every panel | The same |
 | Digits | Swallowed: they tune the full-screen player | The same |
 | Back | Leaves Sport mode, and the channel with the remote plays on full screen | Back to the grid |
 
-With the picker open, Back closes it. A channel already on screen in another panel is marked in
-the picker, and choosing it swaps the two panels, players and all, rather than opening a second
-connection to the same stream.
+With the picker or the menu open, Back closes it. A channel already on screen in another panel is
+marked in the picker, and choosing it swaps the two panels, players and all, rather than opening a
+second connection to the same stream.
 
 **6. The full-screen player stands down.** Entering Sport mode stops `PlayerEngine`, after saving an
 on-demand title's position, and `TvRoot` stops composing its surface. Leaving with Back plays the
@@ -130,6 +132,28 @@ four, and the session still holds four players, so going back would be a change 
 in `AppViewModel.enterSport`; the extra two players hold no decoder and no connection until
 they play.
 
+**11. Changing a channel is on screen (0.17.3).** Until this, a panel already showing a channel
+could only be changed by a long OK, the Menu key or the channel keys on the television, and by a
+long press on the phone. None of those is written anywhere on the screen, the Google TV Streamer's
+remote has neither a Menu key nor channel keys, and a long press of OK is not something every
+remote reports (`FocusableRow`), so the owner found no way to change a channel once two were
+chosen. Now:
+
+- *On the television*, OK on a panel showing a channel or the headlines opens the panel's menu, a
+  drawer against the end edge like the picker: full screen (or back to both screens, when the
+  panel fills it), change the channel (in News mode, the channel or the headlines), and remove
+  from this screen. The remote lands on the first row, so OK twice is what OK once was. Back
+  closes the menu; the long OK, the Menu key and the channel keys still work as before. An empty
+  panel's OK still opens the picker straight away, and a failed one's still tries again.
+- *On the phone*, a round swap button sits at the end of a picture's caption and in the lower
+  corner of the headlines, and opens the picker for that panel. A long press still does the same.
+  Full screen, the caption leaves the picture after a few seconds and the button with it; a long
+  press, or a double tap back to the grid, still reaches the picker.
+
+The menu is in `SportSession` (`menu`, `openMenu`, `closeMenu`), beside the picker's state, so the
+activity's Back can close it as it closes the picker. The glyph is `StudioIcons.Swap`, drawn to
+the set's rule (ADR-033).
+
 ## Alternatives rejected
 
 - **Four `PlayerEngine` instances.** The engine owns the app's single media session, the floating
@@ -144,6 +168,11 @@ they play.
 - **On the phone, a tab of its own.** The bottom bar is at its five (ADR-032).
 - **On the phone, always landscape.** Forcing the screen to turn would fight a phone held upright
   for two channels, which stand well one above the other.
+- **A written hint on the panel instead of a menu (decision 11).** "Long OK changes the channel"
+  in the caption would only point at a press some remotes do not report; the menu works on every
+  remote that has OK.
+- **OK still filling the screen, with the menu on a long OK (decision 11).** That is the
+  arrangement that was not found; a change the owner cannot reach is no change.
 
 ## Consequences
 
