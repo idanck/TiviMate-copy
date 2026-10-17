@@ -82,9 +82,10 @@ television that still overscans, content near the edge can be cropped. See `docs
 10. **Transport bar and playback menu** — controls over playing video, on OK and a long OK. See
    section 3.4 and section 3.6.
 
-The side menu is the television's one navigation: Home, Channels, Guide, Radio, Sport and
-Recordings, then Search and Settings under a hairline. Sport opens Sport mode (ADR-041), the one
-screen the menu does not appear on: four pictures fill it, and Back leaves it. It is the ten-foot answer to the phone's bottom bar, and it
+The side menu is the television's one navigation: Home, Channels, Guide, Radio, Sport, News and
+Recordings, then Search and Settings under a hairline. Sport opens Sport mode (ADR-041) and News
+opens News mode (ADR-042), the two screens the menu does not appear on: their panels fill the
+screen, and Back leaves. It is the ten-foot answer to the phone's bottom bar, and it
 is on every browse screen — home, channels, radio, guide, search, on demand, recordings, settings
 and adding a source — as one strip in one place, with the screen you are on lit, under Studio's
 top bar (ADR-035). Choosing an entry hands the remote to the screen it opened.
@@ -164,7 +165,8 @@ This is our differentiator and must not be an afterthought.
   where a source has it, is reached through search. Sport mode (ADR-041) has no tab either: the
   ball in the top bar of Channels and Guide opens it, over everything, as the Now Playing screen
   opens. A tap gives a panel the sound, a double tap fills the screen with it, a long press
-  changes its channel, and the bar chooses two panels or four.
+  changes its channel, and the bar chooses two panels or four. News mode (ADR-042) opens from the
+  newspaper beside it: two panels, either of which may show the headlines.
 - Vertical channel list with sticky group headers and fast-scroll.
 - Gestures during playback: vertical swipe left = brightness, right = volume, horizontal
   swipe = seek (VOD/timeshift), double-tap sides = skip, pinch = aspect ratio.

@@ -54,11 +54,13 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.SportSession
 import com.tivicopy.player.ui.common.EmptyPanel
+import com.tivicopy.player.ui.common.FlashesPanel
 import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.Loader
 import com.tivicopy.player.ui.common.PanelCaption
 import com.tivicopy.player.ui.common.PanelFailure
 import com.tivicopy.player.ui.common.PanelVideo
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.SportPickerRow
 import com.tivicopy.player.ui.common.StudioChip
 import com.tivicopy.player.ui.common.StudioIcons
@@ -82,6 +84,10 @@ import kotlinx.coroutines.delay
  *
  * Lying down, the panels follow the television's grid and the bar rides over them, stepping aside a
  * few seconds after the last touch. Held upright, they stand one above the other under the bar.
+ *
+ * News mode (ADR-042) is this screen too: two panels, no choice of how many, and the headlines on
+ * offer in the picker beside the news channels. A tap on the headlines gives them the focus and
+ * leaves the sound with the picture beside them.
  */
 @Composable
 internal fun PhoneSport(
@@ -97,6 +103,9 @@ internal fun PhoneSport(
     val choices by session.choices.collectAsState()
     val paused by session.paused.collectAsState()
     val count by session.count.collectAsState()
+    val mode by session.mode.collectAsState()
+    val news = mode == SportSession.Mode.NEWS
+    val heard = SportSession.audibleSlot(slots, focused)
     val studio = StudioTheme.colors
 
     val configuration = LocalConfiguration.current
@@ -138,6 +147,7 @@ internal fun PhoneSport(
         Column(modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
             if (!landscape) {
                 SportBar(
+                    news = news,
                     count = count,
                     paused = paused,
                     onLeave = onLeave,
@@ -157,17 +167,19 @@ internal fun PhoneSport(
                                     vm = vm,
                                     slot = slot,
                                     inFocus = index == focused,
+                                    audible = index == heard,
                                     expanded = expanded,
                                     paused = paused,
                                     onTap = {
                                         session.focus(index)
                                         when {
+                                            slot.flashes -> Unit
                                             slot.channel == null -> session.openPicker(index)
                                             slot.panel.status.value.failed -> session.retry(index)
                                         }
                                     },
                                     onDoubleTap = {
-                                        if (slot.channel != null) {
+                                        if (slot.channel != null || slot.flashes) {
                                             session.focus(index)
                                             session.setExpanded(!session.expanded.value)
                                         }
@@ -199,6 +211,7 @@ internal fun PhoneSport(
                 }
                 if (landscape && barShown) {
                     SportBar(
+                        news = news,
                         count = count,
                         paused = paused,
                         onLeave = onLeave,
@@ -215,9 +228,11 @@ internal fun PhoneSport(
         picking?.let { slot ->
             PhoneSportPicker(
                 slot = slot,
-                slots = slots,
+                slots = slots.take(count),
                 choices = choices,
+                news = news,
                 onPick = { channel -> session.assign(slot, channel) },
+                onFlashes = { session.showFlashes(slot) },
                 onClear = { session.clear(slot) },
                 onDismiss = session::closePicker,
             )
@@ -225,9 +240,12 @@ internal fun PhoneSport(
     }
 }
 
-/** Sport mode's bar: back, the title, two panels or four, and pause or play for all of them. */
+/**
+ * The bar: back, the title, two panels or four in Sport mode, and pause or play for all of them.
+ */
 @Composable
 private fun SportBar(
+    news: Boolean,
     count: Int,
     paused: Boolean,
     onLeave: () -> Unit,
@@ -252,23 +270,26 @@ private fun SportBar(
             )
         }
         Text(
-            text = stringResource(R.string.nav_sport),
+            text = stringResource(if (news) R.string.nav_news else R.string.nav_sport),
             style = StudioTheme.type.titleSmall,
             color = studio.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
-        Row(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            listOf(SportLayout.PAIR, SportLayout.SLOTS).forEach { n ->
-                StudioChip(
-                    label = stringResource(R.string.sport_screens, n),
-                    selected = count == n,
-                    onClick = { onCount(n) },
-                )
+        // News mode always has two: one picture and the headlines, or two pictures.
+        if (!news) {
+            Row(
+                modifier = Modifier.selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                listOf(SportLayout.PAIR, SportLayout.SLOTS).forEach { n ->
+                    StudioChip(
+                        label = stringResource(R.string.sport_screens, n),
+                        selected = count == n,
+                        onClick = { onCount(n) },
+                    )
+                }
             }
         }
         IconButton(onClick = onTogglePause) {
@@ -281,12 +302,16 @@ private fun SportBar(
     }
 }
 
-/** One panel, reached by a finger: the picture, what it is, and whether it is the one heard. */
+/**
+ * One panel, reached by a finger: the picture, what it is, and whether it is the one heard; News
+ * mode's headlines; or an empty place.
+ */
 @Composable
 private fun PhoneSportPanel(
     vm: AppViewModel,
     slot: SportSession.Slot,
     inFocus: Boolean,
+    audible: Boolean,
     expanded: Boolean,
     paused: Boolean,
     onTap: () -> Unit,
@@ -302,13 +327,16 @@ private fun PhoneSportPanel(
     val tap by rememberUpdatedState(onTap)
     val doubleTap by rememberUpdatedState(onDoubleTap)
     val longPress by rememberUpdatedState(onLongPress)
-    val label = channel?.displayName ?: stringResource(R.string.sport_add_channel)
-    // The panel being heard wears the cue, crossed in at one width rather than widened (ADR-025).
+    val label = when {
+        slot.flashes -> stringResource(R.string.news_flashes)
+        else -> channel?.displayName ?: stringResource(R.string.sport_add_channel)
+    }
+    // The panel in focus wears the cue, crossed in at one width rather than widened (ADR-025).
     val ring = animatedColour(if (inFocus) studio.cue else studio.cue.copy(alpha = 0f))
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (channel == null) studio.card else Color.Black)
+            .background(if (channel == null && !slot.flashes) studio.card else Color.Black)
             .pointerInput(Unit) {
                 detectTapGestures(
                     onTap = { tap() },
@@ -322,7 +350,10 @@ private fun PhoneSportPanel(
                 onLongClick { longPress(); true }
             },
     ) {
-        if (channel == null) {
+        if (slot.flashes) {
+            val live by vm.sport.live.collectAsState()
+            FlashesPanel(live = live, modifier = Modifier.fillMaxSize())
+        } else if (channel == null) {
             EmptyPanel(
                 hint = stringResource(R.string.sport_add_hint_touch),
                 modifier = Modifier.align(Alignment.Center),
@@ -341,7 +372,7 @@ private fun PhoneSportPanel(
             PanelCaption(
                 vm = vm,
                 channel = channel,
-                audible = inFocus,
+                audible = audible,
                 paused = paused,
                 expanded = expanded,
                 modifier = Modifier.align(Alignment.BottomStart),
@@ -355,68 +386,90 @@ private fun PhoneSportPanel(
 
 /**
  * The channel picker, as a sheet from the foot of the screen like every phone menu. Israeli sports
- * channels only; a channel already in another panel says so, and choosing it swaps the two.
+ * channels only, or in News mode the headlines and Israeli news channels; a channel already in
+ * another panel says so, and choosing it swaps the two, as choosing the headlines does.
  */
 @Composable
 private fun PhoneSportPicker(
     slot: Int,
     slots: List<SportSession.Slot>,
     choices: List<Channel>?,
+    news: Boolean,
     onPick: (Channel) -> Unit,
+    onFlashes: () -> Unit,
     onClear: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val studio = StudioTheme.colors
     val current = slots.getOrNull(slot)?.channel
+    val showsFlashes = slots.getOrNull(slot)?.flashes == true
     val elsewhere = slots.mapIndexedNotNull { i, s -> s.channel?.id?.takeIf { i != slot } }.toSet()
+    val flashesElsewhere = slots.withIndex().any { (i, s) -> i != slot && s.flashes }
+    val list = choices.orEmpty()
+    val clearRow = current != null || showsFlashes
     StudioSheet(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.sport_pick_title),
-        caption = stringResource(R.string.sport_pick_subtitle),
+        caption = stringResource(if (news) R.string.news_pick_subtitle else R.string.sport_pick_subtitle),
     ) {
-        when {
-            choices == null -> Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) { Loader(size = 28.dp) }
-
-            choices.isEmpty() -> Text(
-                text = stringResource(R.string.sport_pick_none),
-                style = StudioTheme.type.body,
-                color = studio.ink2,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            )
-
-            else -> {
-                val listState = rememberLazyListState()
-                // Opens on the channel the panel already shows, if it has one, counting the
-                // row that empties the panel above the list.
-                val shown = choices.indexOfFirst { it.id == current?.id }
-                LaunchedEffect(slot) {
-                    if (shown >= 0) listState.scrollToItem(shown + 1)
+        val listState = rememberLazyListState()
+        // Opens on the channel the panel already shows, if it has one, counting the rows above
+        // the channels: the one that empties the panel, and News mode's headlines.
+        val shown = list.indexOfFirst { it.id == current?.id }
+        val leading = (if (clearRow) 1 else 0) + (if (news) 1 else 0)
+        LaunchedEffect(slot) {
+            if (shown >= 0) listState.scrollToItem(shown + leading)
+        }
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            if (clearRow) {
+                item(key = "clear") {
+                    ListRow(
+                        label = stringResource(R.string.sport_pick_remove),
+                        icon = StudioIcons.Close,
+                        onClick = onClear,
+                    )
                 }
-                LazyColumn(
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (current != null) {
-                        item(key = "clear") {
-                            ListRow(
-                                label = stringResource(R.string.sport_pick_remove),
-                                icon = StudioIcons.Close,
-                                onClick = onClear,
-                            )
-                        }
-                    }
-                    items(choices, key = { it.id }) { channel ->
-                        SportPickerRow(
-                            channel = channel,
-                            selected = channel.id == current?.id,
-                            onScreenElsewhere = channel.id in elsewhere,
-                            onClick = { onPick(channel) },
-                        )
-                    }
+            }
+            if (news) {
+                item(key = "flashes") {
+                    ListRow(
+                        label = stringResource(R.string.news_flashes),
+                        icon = StudioIcons.News,
+                        onClick = onFlashes,
+                        selected = showsFlashes,
+                        trail = RowTrail.VALUE,
+                        value = if (flashesElsewhere) stringResource(R.string.sport_pick_on_screen) else null,
+                    )
+                }
+            }
+            when {
+                choices == null -> item(key = "loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Loader(size = 28.dp) }
+                }
+
+                list.isEmpty() -> item(key = "none") {
+                    Text(
+                        text = stringResource(if (news) R.string.news_pick_none else R.string.sport_pick_none),
+                        style = StudioTheme.type.body,
+                        color = studio.ink2,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+
+                else -> items(list, key = { it.id }) { channel ->
+                    SportPickerRow(
+                        channel = channel,
+                        selected = channel.id == current?.id,
+                        onScreenElsewhere = channel.id in elsewhere,
+                        onClick = { onPick(channel) },
+                    )
                 }
             }
         }

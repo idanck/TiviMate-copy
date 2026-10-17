@@ -31,6 +31,7 @@ import com.tivicopy.player.data.prefs.PinAttemptLimiter
 import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
+import com.tivicopy.player.data.news.IsraeliNewsChannels
 import com.tivicopy.player.data.sport.IsraeliSportChannels
 import com.tivicopy.player.ui.tv.SportLayout
 import com.tivicopy.player.data.xtream.isEpisode
@@ -202,7 +203,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private val pinLimiter = PinAttemptLimiter()
 
-    /** Sport mode's four panels (ADR-041), beside the full-screen player they stand in for. */
+    /** Sport mode's and News mode's panels (ADR-041, ADR-042), beside the full-screen player they stand in for. */
     val sport = SportSession(app, settings, ::profileFor)
 
     init {
@@ -864,38 +865,55 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         vodPlayGeneration++
     }
 
-    // ------------------------------------------------------------------ sport
+    // ------------------------------------------------------------------ sport and news
 
     /**
-     * Opens Sport mode (ADR-041). The full-screen player stands down first — its decoder and its
-     * connection are the panels' now — after writing down where an on-demand title had got to, so
-     * that leaving with nothing chosen can put it back where it was.
+     * Opens Sport mode (ADR-041).
      *
      * @param remembersPanels whether to open on the number of panels last chosen, as the phone
      *   does; the television always has four
      */
-    fun enterSport(remembersPanels: Boolean = false) {
-        if (sport.active) return
-        playingBeforeSport = playbackStatus.value.playWhenReady
-        saveVodProgress()
-        player.silence()
-        player.setPlayWhenReady(false)
-        sport.begin(if (remembersPanels) settings.sportPanels() else SportLayout.SLOTS)
+    fun enterSport(remembersPanels: Boolean = false) =
+        enterPanels(SportSession.Mode.SPORT, if (remembersPanels) settings.sportPanels() else SportLayout.SLOTS)
+
+    /** Opens News mode (ADR-042): two panels, one of which may show the headlines. */
+    fun enterNews() = enterPanels(SportSession.Mode.NEWS, SportLayout.PAIR)
+
+    /**
+     * The full-screen player stands down first — its decoder and its connection are the panels'
+     * now — after writing down where an on-demand title had got to, so that leaving with nothing
+     * chosen can put it back where it was. From one mode straight into the other, the first
+     * closes and the player stays down: what played before either is still what comes back.
+     */
+    private fun enterPanels(mode: SportSession.Mode, panels: Int) {
+        if (sport.active) {
+            if (sport.mode.value == mode) return
+            sport.close()
+        } else {
+            playingBeforeSport = playbackStatus.value.playWhenReady
+            saveVodProgress()
+            player.silence()
+            player.setPlayWhenReady(false)
+        }
+        val opening = sport.begin(mode, panels)
         viewModelScope.launch {
-            val choices = sportChoices()
-            val restored = settings.sportSlots().map { id ->
+            val news = mode == SportSession.Mode.NEWS
+            val choices = panelChoices(mode)
+            val stored = if (news) settings.newsSlots() else settings.sportSlots()
+            val restored = stored.map { id ->
                 id?.let { wanted -> choices.firstOrNull { it.id == wanted } }
             }
-            sport.offer(choices, restored)
+            val flashesAt = if (news) stored.indexOf(SportSession.FLASHES_ID) else -1
+            sport.offer(opening, choices, restored, flashesAt)
         }
     }
 
-    /** Whether the full-screen player was playing, rather than paused, as Sport mode opened. */
+    /** Whether the full-screen player was playing, rather than paused, as Sport or News mode opened. */
     private var playingBeforeSport = false
 
     /**
-     * Leaves Sport mode for the full-screen player, which carries on with the channel the remote
-     * was on — or, with nothing chosen, with whatever was playing before Sport mode opened.
+     * Leaves Sport or News mode for the full-screen player, which carries on with the channel being
+     * heard — or, with nothing chosen, with whatever was playing before the mode opened.
      *
      * @param restartPaused whether something that was paused then starts again too. The
      *   television does, where it is in front of the viewer; the phone leaves it paused under the
@@ -911,19 +929,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Sport mode left some other way — a launcher card, which decides for itself what plays. */
+    /** Sport or News mode left some other way — a launcher card, which decides for itself what plays. */
     fun closeSport() = sport.close()
 
     /** Back from the background: the panels start again, any the parental lock now covers aside. */
     fun resumeSport() = sport.resume { channel -> !channelNeedsPin(channel) }
 
     /**
-     * Every channel Sport mode may show: the Israeli sports channels of every playlist but the
-     * bundled radio, in playlist order ([IsraeliSportChannels]). Hidden channels and hidden groups
-     * stay hidden, and a channel behind the parental PIN is left out rather than asked for in each
-     * of four panels.
+     * Every channel [mode] may show: the Israeli sports channels ([IsraeliSportChannels]) or news
+     * channels ([IsraeliNewsChannels]) of every playlist but the bundled radio, in playlist order.
+     * Hidden channels and hidden groups stay hidden, and a channel behind the parental PIN is left
+     * out rather than asked for in each of the panels.
      */
-    private suspend fun sportChoices(): List<Channel> = withContext(Dispatchers.IO) {
+    private suspend fun panelChoices(mode: SportSession.Mode): List<Channel> = withContext(Dispatchers.IO) {
         val s = settings.state.value
         val unlocked = _parentalUnlocked.value
         dao.playlists()
@@ -933,10 +951,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 dao.channels(playlist.id).filter { channel ->
                     val group = channel.groupId?.let { groups[it] }
                     val names = listOfNotNull(channel.name, channel.customName)
-                    val isSport = names.any { name ->
-                        IsraeliSportChannels.isIsraeliSport(name, group?.name, channel.tvgId)
+                    val offered = names.any { name ->
+                        when (mode) {
+                            SportSession.Mode.SPORT ->
+                                IsraeliSportChannels.isIsraeliSport(name, group?.name, channel.tvgId)
+                            SportSession.Mode.NEWS ->
+                                IsraeliNewsChannels.isIsraeliNews(name, group?.name, channel.tvgId)
+                        }
                     }
-                    isSport && !ParentalGate.channelNeedsPin(
+                    offered && !ParentalGate.channelNeedsPin(
                         channelLocked = channel.locked,
                         groupLocked = group?.locked == true,
                         pinSet = s.parentalPinHash.isNotBlank(),

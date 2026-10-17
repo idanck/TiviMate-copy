@@ -35,6 +35,7 @@
     <string name="nav_live">ערוצים</string>
     <string name="nav_radio">רדיו</string>
     <string name="nav_sport">ספורט</string>
+    <string name="nav_news">חדשות</string>
     <string name="nav_guide">מדריך</string>
     <string name="nav_vod">VOD</string>
     <string name="nav_recordings">הקלטות</string>
@@ -491,4 +492,8 @@
     <string name="sport_add_hint_touch">הקשה לבחירת ערוץ. לחיצה ארוכה מחליפה אותו.</string>
     <string name="sport_panel_retry_hint_touch">הקשה לניסיון נוסף</string>
     <string name="sport_screens">%1$d מסכים</string>
+    <string name="news_pick_subtitle">ערוצי חדשות ישראליים, או המבזקים</string>
+    <string name="news_pick_none">לא נמצאו ערוצי חדשות ישראליים ברשימות שלך.</string>
+    <string name="news_flashes">מבזקים</string>
+    <string name="news_flashes_none">אין מבזקים עדיין. את המקורות שלהם בוחרים בהגדרות, תחת שומר מסך.</string>
 </resources>

@@ -51,7 +51,9 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.SportSession
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.ListRow
+import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.EmptyPanel
+import com.tivicopy.player.ui.common.FlashesPanel
 import com.tivicopy.player.ui.common.Loader
 import com.tivicopy.player.ui.common.PanelCaption
 import com.tivicopy.player.ui.common.PanelFailure
@@ -77,6 +79,10 @@ import com.tivicopy.player.ui.theme.StudioTheme
  * Drawn over everything, opaque, with no side menu and no top bar: four pictures are the whole
  * screen. The full-screen player's own surface is not composed underneath — two video surfaces
  * covering the same pixels have no defined order, and its last frame could end up on top.
+ *
+ * News mode (ADR-042) is this screen too, with two panels: one of them may show the headlines,
+ * chosen in the picker like a channel. OK fills the screen with the headlines as with a picture;
+ * with them in focus the sound stays with the channel beside them.
  */
 @Composable
 internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
@@ -88,7 +94,9 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val choices by session.choices.collectAsState()
     val paused by session.paused.collectAsState()
     val count by session.count.collectAsState()
+    val mode by session.mode.collectAsState()
     val prefs by vm.settingsState.collectAsState()
+    val heard = SportSession.audibleSlot(slots, focused)
     val requesters = remember { List(SportLayout.SLOTS) { FocusRequester() } }
 
     // The remote goes to the panel in focus whenever nothing else holds it: on arrival, as the
@@ -115,7 +123,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                         SportPanel(
                             vm = vm,
                             slot = slot,
-                            inFocus = index == focused,
+                            audible = index == heard,
                             expanded = expanded,
                             paused = paused,
                             canTakeFocus = picking == null && (!expanded || index == focused),
@@ -123,6 +131,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                             onFocused = { session.focus(index) },
                             onOk = {
                                 when {
+                                    slot.flashes -> session.setExpanded(!session.expanded.value)
                                     slot.channel == null -> session.openPicker(index)
                                     slot.panel.status.value.failed -> session.retry(index)
                                     else -> session.setExpanded(!session.expanded.value)
@@ -147,10 +156,12 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
         picking?.let { slot ->
             SportPicker(
                 slot = slot,
-                slots = slots,
+                slots = slots.take(count),
                 choices = choices,
+                news = mode == SportSession.Mode.NEWS,
                 opacity = prefs.overlayOpacity,
                 onPick = { channel -> session.assign(slot, channel) },
+                onFlashes = { session.showFlashes(slot) },
                 onClear = { session.clear(slot) },
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
@@ -158,13 +169,16 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     }
 }
 
-/** One panel: the picture, what it is, and whether it is the one heard; or an empty place. */
+/**
+ * One panel: the picture, what it is, and whether it is the one heard; News mode's headlines; or
+ * an empty place.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SportPanel(
     vm: AppViewModel,
     slot: SportSession.Slot,
-    inFocus: Boolean,
+    audible: Boolean,
     expanded: Boolean,
     paused: Boolean,
     /** Off for the panels hidden behind a full-screen one, and for all four while picking. */
@@ -180,11 +194,14 @@ private fun SportPanel(
     val status by slot.panel.status.collectAsState()
     var hasFocus by remember { mutableStateOf(false) }
     val interaction = remember { MutableInteractionSource() }
-    val label = channel?.displayName ?: stringResource(R.string.sport_add_channel)
+    val label = when {
+        slot.flashes -> stringResource(R.string.news_flashes)
+        else -> channel?.displayName ?: stringResource(R.string.sport_add_channel)
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (channel == null) studio.card else Color.Black)
+            .background(if (channel == null && !slot.flashes) studio.card else Color.Black)
             .focusRequester(requester)
             .focusProperties { canFocus = canTakeFocus }
             .onFocusChanged {
@@ -214,7 +231,10 @@ private fun SportPanel(
             // Square, because a video surface ignores the clip a rounded corner would ask for.
             .focusSurface(focused = hasFocus, shape = RectangleShape, fill = FocusFill.NONE, ringWidth = RING_WIDTH),
     ) {
-        if (channel == null) {
+        if (slot.flashes) {
+            val live by vm.sport.live.collectAsState()
+            FlashesPanel(live = live, modifier = Modifier.fillMaxSize())
+        } else if (channel == null) {
             EmptyPanel(
                 hint = stringResource(R.string.sport_add_hint),
                 modifier = Modifier.align(Alignment.Center),
@@ -233,7 +253,7 @@ private fun SportPanel(
             PanelCaption(
                 vm = vm,
                 channel = channel,
-                audible = inFocus,
+                audible = audible,
                 paused = paused,
                 expanded = expanded,
                 modifier = Modifier.align(Alignment.BottomStart),
@@ -244,24 +264,49 @@ private fun SportPanel(
 
 /**
  * The channel picker: a drawer against the end edge, as the playback menu is, over a grid that
- * keeps playing beside it. Israeli sports channels only (ADR-041). A channel already in another
- * panel says so, and choosing it swaps the two panels rather than opening a second connection.
+ * keeps playing beside it. Israeli sports channels only (ADR-041), or in News mode Israeli news
+ * channels, after the headlines (ADR-042). A channel already in another panel says so, and
+ * choosing it swaps the two panels rather than opening a second connection; the headlines move
+ * the same way.
  */
 @Composable
 private fun SportPicker(
     slot: Int,
     slots: List<SportSession.Slot>,
     choices: List<Channel>?,
+    news: Boolean,
     opacity: Float,
     onPick: (Channel) -> Unit,
+    onFlashes: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
     val current = slots.getOrNull(slot)?.channel
+    val showsFlashes = slots.getOrNull(slot)?.flashes == true
     val elsewhere = slots.mapIndexedNotNull { i, s -> s.channel?.id?.takeIf { i != slot } }.toSet()
+    val flashesElsewhere = slots.withIndex().any { (i, s) -> i != slot && s.flashes }
+    val list = choices.orEmpty()
     val target = remember { FocusRequester() }
     val listState = rememberLazyListState()
+
+    // The rows in order, by key, and the one the remote lands on: the channel the panel shows,
+    // the headlines if it shows them, or else the first channel — the headlines when there is none.
+    val clearRow = current != null || showsFlashes
+    val keys = buildList {
+        if (clearRow) add(CLEAR_KEY)
+        if (news) add(FLASHES_KEY)
+        list.forEach { add(channelKey(it)) }
+    }
+    val landOn = when {
+        current != null && list.any { it.id == current.id } -> channelKey(current)
+        showsFlashes -> FLASHES_KEY
+        list.isNotEmpty() -> channelKey(list.first())
+        news -> FLASHES_KEY
+        else -> null
+    }
+    val landIndex = landOn?.let { keys.indexOf(it) } ?: -1
+
     Column(
         modifier = modifier
             .width(PICKER_WIDTH)
@@ -277,63 +322,80 @@ private fun SportPicker(
             modifier = Modifier.padding(horizontal = 12.dp),
         )
         Text(
-            text = stringResource(R.string.sport_pick_subtitle),
+            text = stringResource(if (news) R.string.news_pick_subtitle else R.string.sport_pick_subtitle),
             style = StudioTheme.type.caption,
             color = studio.ink2,
             modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp),
         )
-        when {
-            choices == null -> Box(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.Center,
-            ) { Loader(size = 28.dp) }
-
-            choices.isEmpty() -> Text(
-                text = stringResource(R.string.sport_pick_none),
-                style = StudioTheme.type.body,
-                color = studio.ink2,
-                modifier = Modifier.padding(horizontal = 12.dp),
-            )
-
-            else -> {
-                // The remote lands on the channel the panel already shows, or on the first one.
-                val landOn = current?.id?.takeIf { id -> choices.any { it.id == id } } ?: choices.first().id
-                val clearRows = if (current != null) 1 else 0
-                val landIndex = choices.indexOfFirst { it.id == landOn } + clearRows
-                LaunchedEffect(slot, landOn) {
-                    listState.scrollToItem(landIndex)
-                    withFrameNanos { }
-                    withFrameNanos { }
-                    runCatching { target.requestFocus() }
+        LaunchedEffect(slot, landOn, landIndex) {
+            if (landIndex < 0) return@LaunchedEffect
+            listState.scrollToItem(landIndex)
+            withFrameNanos { }
+            withFrameNanos { }
+            runCatching { target.requestFocus() }
+        }
+        LazyColumn(
+            state = listState,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.weight(1f),
+        ) {
+            if (clearRow) {
+                item(key = CLEAR_KEY) {
+                    ListRow(
+                        label = stringResource(R.string.sport_pick_remove),
+                        icon = StudioIcons.Close,
+                        onClick = onClear,
+                    )
                 }
-                LazyColumn(
-                    state = listState,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    if (current != null) {
-                        item(key = "clear") {
-                            ListRow(
-                                label = stringResource(R.string.sport_pick_remove),
-                                icon = StudioIcons.Close,
-                                onClick = onClear,
-                            )
-                        }
-                    }
-                    items(choices, key = { it.id }) { channel ->
-                        SportPickerRow(
-                            channel = channel,
-                            selected = channel.id == current?.id,
-                            onScreenElsewhere = channel.id in elsewhere,
-                            focusRequester = if (channel.id == landOn) target else null,
-                            onClick = { onPick(channel) },
-                        )
-                    }
+            }
+            if (news) {
+                item(key = FLASHES_KEY) {
+                    ListRow(
+                        label = stringResource(R.string.news_flashes),
+                        icon = StudioIcons.News,
+                        onClick = onFlashes,
+                        selected = showsFlashes,
+                        trail = RowTrail.VALUE,
+                        value = if (flashesElsewhere) stringResource(R.string.sport_pick_on_screen) else null,
+                        focusRequester = if (landOn == FLASHES_KEY) target else null,
+                    )
+                }
+            }
+            when {
+                choices == null -> item(key = "loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { Loader(size = 28.dp) }
+                }
+
+                list.isEmpty() -> item(key = "none") {
+                    Text(
+                        text = stringResource(if (news) R.string.news_pick_none else R.string.sport_pick_none),
+                        style = StudioTheme.type.body,
+                        color = studio.ink2,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+
+                else -> items(list, key = { it.id }) { channel ->
+                    SportPickerRow(
+                        channel = channel,
+                        selected = channel.id == current?.id,
+                        onScreenElsewhere = channel.id in elsewhere,
+                        focusRequester = if (landOn == channelKey(channel)) target else null,
+                        onClick = { onPick(channel) },
+                    )
                 }
             }
         }
     }
 }
+
+private const val CLEAR_KEY = "clear"
+private const val FLASHES_KEY = "flashes"
+
+private fun channelKey(channel: Channel): String = "channel:${channel.id}"
 
 /** The black line between panels. */
 private val PANEL_GAP = 4.dp

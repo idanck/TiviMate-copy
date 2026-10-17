@@ -91,7 +91,17 @@ enum class TvOverlay {
      * over the video at all — the full-screen player stands down while it is up — so it is neither
      * passthrough nor a browse screen, and [TvRoot] draws it in place of both.
      */
-    SPORT;
+    SPORT,
+
+    /**
+     * News mode (ADR-042): two Israeli news channels, or one and the headlines. Sport mode's
+     * screen and session in every respect but what they offer; see [isPanels].
+     */
+    NEWS;
+
+    /** Whether this is one of the modes of several panels at once, which own playback while up. */
+    val isPanels: Boolean
+        get() = this == SPORT || this == NEWS
 
     /**
      * Whether the video is still the screen while this overlay is up.
@@ -229,12 +239,17 @@ fun TvRoot(
         }
     }
 
-    // Sport mode owns playback while it is up (ADR-041): the full-screen player stands down as it
-    // opens, and the panels let go as it closes, whichever way it was left. Closed on every other
-    // overlay rather than tracked with a flag like the radio's above: a recreation composes this
-    // afresh with the panels still running in the view model, and they must not play on unseen.
+    // Sport and News modes own playback while they are up (ADR-041, ADR-042): the full-screen
+    // player stands down as one opens, and the panels let go as it closes, whichever way it was
+    // left. Closed on every other overlay rather than tracked with a flag like the radio's above:
+    // a recreation composes this afresh with the panels still running in the view model, and they
+    // must not play on unseen.
     LaunchedEffect(overlay) {
-        if (overlay == TvOverlay.SPORT) vm.enterSport() else vm.closeSport()
+        when (overlay) {
+            TvOverlay.SPORT -> vm.enterSport()
+            TvOverlay.NEWS -> vm.enterNews()
+            else -> vm.closeSport()
+        }
     }
 
     LaunchedEffect(details?.first?.id) {
@@ -287,7 +302,7 @@ fun TvRoot(
         // and two surfaces covering the same pixels have no defined order — this one's last frame
         // could sit on top of the panels. The full-screen player is silent while it is up, and is
         // attached again as it is left.
-        if (overlay != TvOverlay.SPORT) {
+        if (!overlay.isPanels) {
             PlayerSurface(
                 engine = ServiceLocator.player,
                 aspectMode = prefs.aspectMode,
@@ -317,7 +332,7 @@ fun TvRoot(
         // Not under Sport mode (ADR-041), whose opaque grid would hide it anyway: its play button
         // is focusable, and the remote's search for the next panel goes by position, not by what
         // is drawn on top — an arrow could land on a button nobody can see.
-        val sport = overlay == TvOverlay.SPORT
+        val sport = overlay.isPanels
         if (audioOnly && !sport) {
             AudioOnlyNowPlaying(
                 channel = state.nowPlaying.audioOnlyChannel(),
@@ -460,8 +475,8 @@ fun TvRoot(
             )
         }
 
-        if (overlay == TvOverlay.SPORT) {
-            // Opaque and full-bleed, over everything above: four pictures are the whole screen.
+        if (overlay.isPanels) {
+            // Opaque and full-bleed, over everything above: the panels are the whole screen.
             SportScreen(vm = vm, modifier = Modifier.fillMaxSize())
         } else if (!overlay.isPassthrough) {
             OverlayScaffold(

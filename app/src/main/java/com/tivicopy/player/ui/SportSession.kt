@@ -12,8 +12,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Sport mode's state (ADR-041): two or four panels, which one has the remote, and whether it fills
- * the screen.
+ * Sport mode's state (ADR-041), and News mode's (ADR-042): two or four panels, which one has the
+ * remote, and whether it fills the screen.
+ *
+ * The two modes share one session because they are never on screen together: [mode] says which
+ * one it is, and decides which channels are offered, where the grid is remembered, and whether a
+ * panel may show the headlines instead of a channel — News mode's [Slot.flashes].
  *
  * Held by [AppViewModel] and driven from two places: the screen moves the focus and picks
  * channels, and the activity owns Back, the channel keys and the lifecycle, as it does for every
@@ -24,7 +28,8 @@ import kotlinx.coroutines.flow.StateFlow
  * are on screen, and the rest are kept empty and released.
  *
  * The sound follows the remote: whichever panel is in focus is the one heard, and moving the focus
- * moves the sound with it. An empty panel in focus is silence.
+ * moves the sound with it. An empty panel in focus is silence; the headlines in focus leave the
+ * sound with the picture beside them ([audibleSlot]).
  */
 class SportSession(
     context: Context,
@@ -33,12 +38,16 @@ class SportSession(
     private val profileFor: (Channel) -> RequestProfile,
 ) {
 
+    /** Which of the two modes the session is: they differ in what they offer, not in how. */
+    enum class Mode { SPORT, NEWS }
+
     /**
      * One panel: the channel it shows, if any, and the player showing it. The player belongs to the
      * channel rather than to the place, so two panels that swap channels swap players too, and
-     * nothing reconnects.
+     * nothing reconnects. In News mode a panel may show the headlines instead ([flashes]): no
+     * channel, its player released, and no connection of its own.
      */
-    class Slot(val channel: Channel?, val panel: PanelPlayer)
+    class Slot(val channel: Channel?, val panel: PanelPlayer, val flashes: Boolean = false)
 
     private val main = Handler(Looper.getMainLooper())
 
@@ -47,10 +56,23 @@ class SportSession(
     /** Whether any panel is showing a running picture: what the screensaver asks (ADR-040). */
     val anyPlaying: StateFlow<Boolean> = _anyPlaying
 
+    private val _live = MutableStateFlow(false)
+
+    /**
+     * Whether a mode is the screen and in front of the viewer: what keeps News mode's headlines
+     * fetching, and nothing while the app is out of sight.
+     */
+    val live: StateFlow<Boolean> = _live
+
     private val _slots = MutableStateFlow(
         List(SportLayout.SLOTS) { Slot(null, PanelPlayer(context.applicationContext, settings, main, ::refresh)) },
     )
     val slots: StateFlow<List<Slot>> = _slots
+
+    private val _mode = MutableStateFlow(Mode.SPORT)
+
+    /** Sport mode or News mode; the one last begun while neither is on screen. */
+    val mode: StateFlow<Mode> = _mode
 
     private val _count = MutableStateFlow(SportLayout.SLOTS)
 
@@ -90,13 +112,22 @@ class SportSession(
     private var suspended = false
 
     /**
-     * Opens Sport mode on an empty grid of [panels], while the channels are read. The phone passes
-     * the number it was left with; the television, which offers no choice, always four — so a
-     * backup restored from a phone cannot leave it on two with no way back.
+     * Counts the openings, so the channels read for one are never offered to the next — Sport mode
+     * left and News mode opened before Sport mode's list came back.
      */
-    fun begin(panels: Int = SportLayout.SLOTS) {
-        if (active) return
+    private var epoch = 0
+
+    /**
+     * Opens [mode] on an empty grid of [panels], while the channels are read, and returns the
+     * opening's number for [offer]. Sport mode on the phone passes the number it was left with;
+     * on the television, which offers no choice, always four — so a backup restored from a phone
+     * cannot leave it on two with no way back. News mode always has two.
+     */
+    fun begin(mode: Mode, panels: Int): Int {
+        if (active) return epoch
         active = true
+        epoch++
+        _mode.value = mode
         suspended = false
         _expanded.value = false
         _picking.value = null
@@ -110,28 +141,49 @@ class SportSession(
             Slot(null, slot.panel)
         }
         refresh()
+        return epoch
     }
 
     /**
-     * The channels Sport mode may show, and the ones it showed last time, by panel. The grid comes
-     * back as it was left; a grid with nothing to come back to opens the picker on the first panel.
+     * The channels the mode may show, and the ones it showed last time, by panel, with the panel
+     * that showed the headlines at [flashesAt] (News mode; -1 for none). The grid comes back as it
+     * was left. A grid with nothing to come back to opens the picker on the first panel — and in
+     * News mode puts the headlines in the second, the one panel that needs no connection.
+     *
+     * @param opening what [begin] returned; an offer for an earlier opening is ignored
      */
-    fun offer(choices: List<Channel>, restored: List<Channel?>) {
-        if (!active) return
+    fun offer(opening: Int, choices: List<Channel>, restored: List<Channel?>, flashesAt: Int = -1) {
+        if (!active || opening != epoch) return
         _choices.value = choices
         // Something was already chosen while the list was being read; that choice stands.
-        if (_slots.value.any { it.channel != null }) return
+        if (_slots.value.any { it.channel != null || it.flashes }) return
         val seen = HashSet<Long>()
         val count = _count.value
-        _slots.value = _slots.value.mapIndexed { i, slot ->
-            val channel = restored.getOrNull(i)?.takeIf { i < count && seen.add(it.id) }
-            if (channel != null && !suspended) slot.panel.play(channel, profileFor(channel))
-            Slot(channel, slot.panel)
+        val news = _mode.value == Mode.NEWS
+        val nothingBack = restored.take(count).none { it != null } && flashesAt !in 0 until count
+        val headlines = when {
+            !news -> -1
+            nothingBack -> 1
+            else -> flashesAt
         }
+        _slots.value = _slots.value.mapIndexed { i, slot ->
+            val flashes = i == headlines && i < count
+            val channel = restored.getOrNull(i)?.takeIf { !flashes && i < count && seen.add(it.id) }
+            if (channel != null && !suspended) slot.panel.play(channel, profileFor(channel))
+            Slot(channel, slot.panel, flashes)
+        }
+        // The remote goes to the first channel; with none, to the first empty panel, where the
+        // picker opens — never onto the headlines, which a first choice would replace.
         val first = _slots.value.indexOfFirst { it.channel != null }
-        _focused.value = first.coerceAtLeast(0)
-        if (first < 0 && choices.isNotEmpty()) _picking.value = 0
+        val empty = _slots.value.take(count).indexOfFirst { it.channel == null && !it.flashes }
+        _focused.value = when {
+            first >= 0 -> first
+            empty >= 0 -> empty
+            else -> 0
+        }
+        if (first < 0 && empty >= 0 && choices.isNotEmpty()) _picking.value = empty
         applyAudible()
+        refresh()
     }
 
     /** Leaves Sport mode: every panel stops and lets go of its decoders and its connection. */
@@ -146,10 +198,15 @@ class SportSession(
     }
 
     /**
-     * The channel in the panel with the remote, which is what plays on when Sport mode is left;
-     * none while Sport mode is not the screen, whatever the panels last showed.
+     * The channel being heard — the panel with the remote's, or beside the headlines the picture's
+     * ([audibleSlot]) — which is what plays on when the mode is left; none while neither mode is
+     * the screen, whatever the panels last showed.
      */
-    fun focusedChannel(): Channel? = if (!active) null else _slots.value.getOrNull(_focused.value)?.channel
+    fun focusedChannel(): Channel? {
+        if (!active) return null
+        val slots = _slots.value
+        return slots.getOrNull(audibleSlot(slots, _focused.value))?.channel
+    }
 
     fun focus(slot: Int) {
         if (slot !in 0 until _count.value || _focused.value == slot) return
@@ -157,9 +214,13 @@ class SportSession(
         applyAudible()
     }
 
-    /** Fills the screen with the panel in focus, or puts the grid back. An empty panel stays put. */
+    /**
+     * Fills the screen with the panel in focus — a channel, or the headlines — or puts the grid
+     * back. An empty panel stays put.
+     */
     fun setExpanded(value: Boolean) {
-        _expanded.value = value && focusedChannel() != null
+        val shown = focusedChannel() != null || (active && _slots.value.getOrNull(_focused.value)?.flashes == true)
+        _expanded.value = value && shown
     }
 
     fun openPicker(slot: Int) {
@@ -173,7 +234,7 @@ class SportSession(
      */
     fun setCount(value: Int) {
         val next = SportLayout.panels(value)
-        if (!active || next == _count.value) return
+        if (!active || _mode.value != Mode.SPORT || next == _count.value) return
         settings.setSportPanels(next)
         _picking.value = null
         _expanded.value = false
@@ -230,6 +291,35 @@ class SportSession(
         persist()
     }
 
+    /**
+     * News mode's headlines in [slot] instead of a channel; its player stops and lets go of its
+     * connection. There is one panel of headlines at most: if another panel has them, the two
+     * swap, players and all, as two channels do in [assign].
+     */
+    fun showFlashes(slot: Int) {
+        val current = _slots.value
+        if (!active || _mode.value != Mode.NEWS || slot !in 0 until _count.value) return
+        val from = current.indexOfFirst { it.flashes }
+        val next = current.toMutableList()
+        when {
+            from == slot -> Unit
+            from >= 0 -> {
+                next[slot] = current[from]
+                next[from] = current[slot]
+            }
+            else -> {
+                current[slot].panel.release()
+                next[slot] = Slot(null, current[slot].panel, flashes = true)
+            }
+        }
+        _slots.value = next
+        _picking.value = null
+        _focused.value = slot
+        applyAudible()
+        persist()
+        refresh()
+    }
+
     /** Empties [slot]; its player stops and lets go of its connection. */
     fun clear(slot: Int) {
         val current = _slots.value
@@ -252,6 +342,8 @@ class SportSession(
         if (!active || choices.isEmpty() || _picking.value != null || delta == 0) return
         val slot = _focused.value
         val current = _slots.value
+        // The headlines have no channel to step from, and stepping would take their place.
+        if (current.getOrNull(slot)?.flashes == true) return
         val elsewhere = current.filterIndexed { i, _ -> i != slot }.mapNotNull { it.channel?.id }.toSet()
         val at = choices.indexOfFirst { it.id == current[slot].channel?.id }
         // From an empty panel, up starts at the top of the list and down at the bottom.
@@ -282,6 +374,7 @@ class SportSession(
         val value = !_paused.value
         _paused.value = value
         _slots.value.forEach { it.panel.setPaused(value) }
+        refresh()
     }
 
     /** Every panel quiet at once, ahead of [suspend] or [close]; see [PanelPlayer.silence]. */
@@ -310,27 +403,51 @@ class SportSession(
         _slots.value = _slots.value.map { slot ->
             val channel = slot.channel?.takeIf(allowed)
             if (channel != null) slot.panel.play(channel, profileFor(channel))
-            Slot(channel, slot.panel)
+            Slot(channel, slot.panel, slot.flashes)
         }
         applyAudible()
+        refresh()
     }
 
     /**
-     * Silences every panel but the one in focus, then lets that one speak — in that order, so the
-     * one about to be heard never asks for the sound while another still holds it.
+     * Silences every panel but the one to be heard ([audibleSlot]), then lets that one speak — in
+     * that order, so the one about to be heard never asks for the sound while another still holds
+     * it.
      */
     private fun applyAudible() {
-        val target = _focused.value
         val slots = _slots.value
+        val target = audibleSlot(slots, _focused.value)
         slots.forEachIndexed { i, slot -> if (i != target) slot.panel.setAudible(false) }
         slots.getOrNull(target)?.panel?.setAudible(true)
     }
 
     private fun persist() {
-        settings.setSportSlots(_slots.value.map { it.channel?.id })
+        val ids = _slots.value.map { if (it.flashes) FLASHES_ID else it.channel?.id }
+        when (_mode.value) {
+            Mode.SPORT -> settings.setSportSlots(ids)
+            Mode.NEWS -> settings.setNewsSlots(ids)
+        }
     }
 
     private fun refresh() {
-        _anyPlaying.value = active && !suspended && _slots.value.any { it.panel.status.value.playing }
+        _live.value = active && !suspended
+        // The headlines move too, so a grid that shows them is not a still screen (ADR-040) —
+        // unless the panels are paused, when the picture beside them is a still frame, as a paused
+        // grid is in Sport mode.
+        _anyPlaying.value = active && !suspended && !_paused.value &&
+            _slots.value.take(_count.value).any { it.flashes || it.panel.status.value.playing }
+    }
+
+    companion object {
+        /** What News mode's remembered grid says for the panel of headlines. */
+        const val FLASHES_ID = -1L
+
+        /**
+         * The panel to be heard: the one in focus, unless it shows the headlines, which have no
+         * sound — then the first panel with a channel, so the picture beside them goes on being
+         * heard. -1 for none.
+         */
+        fun audibleSlot(slots: List<Slot>, focused: Int): Int =
+            if (slots.getOrNull(focused)?.flashes == true) slots.indexOfFirst { it.channel != null } else focused
     }
 }

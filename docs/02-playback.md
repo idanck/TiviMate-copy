@@ -119,6 +119,9 @@ Not required for MVP.
   in focus. On the phone, two panels or four, chosen in Sport mode's own bar: lying down they
   follow the television's grid, two side by side; held upright they stand one above the other.
   Presets and a connection-limit warning are not built yet.
+- **News mode (ADR-042):** the same screen with two panels of Israeli news channels, either of
+  which may show the screensaver's headlines instead of a channel. With the headlines in focus,
+  the sound stays with the picture beside them.
 
 ## 2.12 VOD and series
 
