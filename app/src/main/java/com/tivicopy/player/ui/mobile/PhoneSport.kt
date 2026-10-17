@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -62,7 +61,6 @@ import com.tivicopy.player.ui.common.PanelFailure
 import com.tivicopy.player.ui.common.PanelVideo
 import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.SportPickerRow
-import com.tivicopy.player.ui.common.StudioChip
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.StudioSheet
 import com.tivicopy.player.ui.common.animatedColour
@@ -72,21 +70,22 @@ import com.tivicopy.player.ui.tv.SportLayout
 import kotlinx.coroutines.delay
 
 /**
- * Sport mode on the phone (ADR-041): two or four Israeli sports channels at once, over everything,
- * the way the player screen is.
+ * Sport mode on the phone (ADR-041): two Israeli sports channels at once, over everything, the
+ * way the player screen is.
  *
  * The same session as the television's, so the same rules: the panel in focus is drawn larger and
  * is the only one heard, a channel already on screen moves rather than opening a second connection,
  * and leaving plays the channel in focus in the player screen. What differs is the hand. A tap
  * gives a panel the focus and the sound, or picks a channel for an empty one; a double tap fills
  * the screen with a panel and puts the grid back; a long press changes its channel. The bar on top
- * leaves, chooses two panels or four, and pauses them all.
+ * leaves and pauses them both.
  *
- * Lying down, the panels follow the television's grid and the bar rides over them, stepping aside a
- * few seconds after the last touch. Held upright, they stand one above the other under the bar.
+ * Lying down, the panels stand side by side, as on the television, and the bar rides over them,
+ * stepping aside a few seconds after the last touch. Held upright, they stand one above the other
+ * under the bar.
  *
- * News mode (ADR-042) is this screen too: two panels, no choice of how many, and the headlines on
- * offer in the picker beside the news channels. A tap on the headlines gives them the focus and
+ * News mode (ADR-042) is this screen too, with the headlines on offer in the picker beside the
+ * news channels. A tap on the headlines gives them the focus and
  * leaves the sound with the picture beside them.
  */
 @Composable
@@ -148,10 +147,8 @@ internal fun PhoneSport(
             if (!landscape) {
                 SportBar(
                     news = news,
-                    count = count,
                     paused = paused,
                     onLeave = onLeave,
-                    onCount = session::setCount,
                     onTogglePause = session::togglePause,
                 )
             }
@@ -212,10 +209,8 @@ internal fun PhoneSport(
                 if (landscape && barShown) {
                     SportBar(
                         news = news,
-                        count = count,
                         paused = paused,
                         onLeave = onLeave,
-                        onCount = session::setCount,
                         onTogglePause = session::togglePause,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -241,15 +236,13 @@ internal fun PhoneSport(
 }
 
 /**
- * The bar: back, the title, two panels or four in Sport mode, and pause or play for all of them.
+ * The bar: back, the title, and pause or play for both panels.
  */
 @Composable
 private fun SportBar(
     news: Boolean,
-    count: Int,
     paused: Boolean,
     onLeave: () -> Unit,
-    onCount: (Int) -> Unit,
     onTogglePause: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -277,21 +270,6 @@ private fun SportBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
-        // News mode always has two: one picture and the headlines, or two pictures.
-        if (!news) {
-            Row(
-                modifier = Modifier.selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                listOf(SportLayout.PAIR, SportLayout.SLOTS).forEach { n ->
-                    StudioChip(
-                        label = stringResource(R.string.sport_screens, n),
-                        selected = count == n,
-                        onClick = { onCount(n) },
-                    )
-                }
-            }
-        }
         IconButton(onClick = onTogglePause) {
             Icon(
                 imageVector = if (paused) StudioIcons.Play else StudioIcons.Pause,

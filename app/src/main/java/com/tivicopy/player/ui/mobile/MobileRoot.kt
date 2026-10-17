@@ -158,7 +158,7 @@ fun MobileRoot(
     // closed the session by the time this runs.
     LaunchedEffect(panelsOpen) {
         when (panelsOpen) {
-            SportSession.Mode.SPORT -> vm.enterSport(remembersPanels = true)
+            SportSession.Mode.SPORT -> vm.enterSport()
             SportSession.Mode.NEWS -> vm.enterNews()
             null -> vm.closeSport()
         }

@@ -867,14 +867,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ------------------------------------------------------------------ sport and news
 
-    /**
-     * Opens Sport mode (ADR-041).
-     *
-     * @param remembersPanels whether to open on the number of panels last chosen, as the phone
-     *   does; the television always has four
-     */
-    fun enterSport(remembersPanels: Boolean = false) =
-        enterPanels(SportSession.Mode.SPORT, if (remembersPanels) settings.sportPanels() else SportLayout.SLOTS)
+    /** Opens Sport mode (ADR-041): two panels, on the television and the phone alike (decision 10). */
+    fun enterSport() = enterPanels(SportSession.Mode.SPORT, SportLayout.PAIR)
 
     /** Opens News mode (ADR-042): two panels, one of which may show the headlines. */
     fun enterNews() = enterPanels(SportSession.Mode.NEWS, SportLayout.PAIR)

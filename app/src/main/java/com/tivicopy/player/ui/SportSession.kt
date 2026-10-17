@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Sport mode's state (ADR-041), and News mode's (ADR-042): two or four panels, which one has the
- * remote, and whether it fills the screen.
+ * Sport mode's state (ADR-041), and News mode's (ADR-042): two panels, which one has the remote,
+ * and whether it fills the screen.
  *
  * The two modes share one session because they are never on screen together: [mode] says which
  * one it is, and decides which channels are offered, where the grid is remembered, and whether a
@@ -21,8 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * Held by [AppViewModel] and driven from two places: the screen moves the focus and picks
  * channels, and the activity owns Back, the channel keys and the lifecycle, as it does for every
- * other screen on the television. Which channels were on screen, and how many panels there were,
- * outlive the session, in the settings, so Sport mode opens on the grid it was left with.
+ * other screen on the television. Which channels were on screen outlives the session, in the
+ * settings, so each mode opens on the grid it was left with.
  *
  * There are always [SportLayout.SLOTS] slots, each with its own player; only the first [count]
  * are on screen, and the rest are kept empty and released.
@@ -76,7 +76,7 @@ class SportSession(
 
     private val _count = MutableStateFlow(SportLayout.SLOTS)
 
-    /** How many panels are on screen: two or four. The phone chooses; the television keeps four. */
+    /** How many panels are on screen: two, in both modes and on both shells (ADR-041, decision 10). */
     val count: StateFlow<Int> = _count
 
     private val _focused = MutableStateFlow(0)
@@ -119,9 +119,8 @@ class SportSession(
 
     /**
      * Opens [mode] on an empty grid of [panels], while the channels are read, and returns the
-     * opening's number for [offer]. Sport mode on the phone passes the number it was left with;
-     * on the television, which offers no choice, always four — so a backup restored from a phone
-     * cannot leave it on two with no way back. News mode always has two.
+     * opening's number for [offer]. Both modes have two panels (ADR-041, decision 10); the grid
+     * itself can lay out four, and [panels] says how many to use.
      */
     fun begin(mode: Mode, panels: Int): Int {
         if (active) return epoch
@@ -225,38 +224,6 @@ class SportSession(
 
     fun openPicker(slot: Int) {
         if (active && slot in 0 until _count.value) _picking.value = slot
-    }
-
-    /**
-     * Two panels or four. Growing adds empty panels. Shrinking keeps the panel with the remote
-     * and then the others in order, as many as fit, moved to the front in the order they had; the
-     * rest stop and let go of their connections.
-     */
-    fun setCount(value: Int) {
-        val next = SportLayout.panels(value)
-        if (!active || _mode.value != Mode.SPORT || next == _count.value) return
-        settings.setSportPanels(next)
-        _picking.value = null
-        _expanded.value = false
-        if (next > _count.value) {
-            _count.value = next
-            refresh()
-            return
-        }
-        val current = _slots.value
-        val focused = _focused.value
-        val filled = current.indices.filter { current[it].channel != null }
-        val keep = (filled.filter { it == focused } + filled.filter { it != focused })
-            .take(next)
-            .sorted()
-        val dropped = current.indices.filterNot { it in keep }
-        dropped.forEach { current[it].panel.release() }
-        _slots.value = keep.map { current[it] } + dropped.map { Slot(null, current[it].panel) }
-        _count.value = next
-        _focused.value = keep.indexOf(focused).coerceAtLeast(0)
-        applyAudible()
-        persist()
-        refresh()
     }
 
     fun closePicker() {

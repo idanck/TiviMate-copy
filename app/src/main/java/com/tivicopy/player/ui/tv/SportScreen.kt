@@ -66,17 +66,17 @@ import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
- * Sport mode (ADR-041): up to four Israeli sports channels at once, two by two.
+ * Sport mode (ADR-041): two Israeli sports channels at once, side by side (decision 10).
  *
  * The panel with the remote is drawn larger than the others and is the only one heard; the arrows
  * move the remote, and the sound moves with it. OK on a panel fills the screen with it and OK or
- * Back puts the grid back, the other three playing on behind it all along. A long OK or the Menu
+ * Back puts the grid back, the other panel playing on behind it all along. A long OK or the Menu
  * key opens the channel picker for that panel, as OK does on an empty one. The channel keys step
  * the panel with the remote through the channels on offer; Back from the grid leaves Sport mode,
  * and the channel with the remote carries on full screen. Back, the channel keys and play/pause
  * are the activity's, as on every other television screen; the arrows and OK are this screen's.
  *
- * Drawn over everything, opaque, with no side menu and no top bar: four pictures are the whole
+ * Drawn over everything, opaque, with no side menu and no top bar: the pictures are the whole
  * screen. The full-screen player's own surface is not composed underneath — two video surfaces
  * covering the same pixels have no defined order, and its last frame could end up on top.
  *
@@ -181,7 +181,7 @@ private fun SportPanel(
     audible: Boolean,
     expanded: Boolean,
     paused: Boolean,
-    /** Off for the panels hidden behind a full-screen one, and for all four while picking. */
+    /** Off for a panel hidden behind a full-screen one, and for every panel while picking. */
     canTakeFocus: Boolean,
     requester: FocusRequester,
     onFocused: () -> Unit,
