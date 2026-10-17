@@ -57,6 +57,7 @@ import com.tivicopy.player.ui.common.FlashesPanel
 import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.Loader
 import com.tivicopy.player.ui.common.PanelCaption
+import com.tivicopy.player.ui.common.PanelChangeButton
 import com.tivicopy.player.ui.common.PanelFailure
 import com.tivicopy.player.ui.common.PanelVideo
 import com.tivicopy.player.ui.common.RowTrail
@@ -77,8 +78,8 @@ import kotlinx.coroutines.delay
  * is the only one heard, a channel already on screen moves rather than opening a second connection,
  * and leaving plays the channel in focus in the player screen. What differs is the hand. A tap
  * gives a panel the focus and the sound, or picks a channel for an empty one; a double tap fills
- * the screen with a panel and puts the grid back; a long press changes its channel. The bar on top
- * leaves and pauses them both.
+ * the screen with a panel and puts the grid back; the swap button on a panel, or a long press on
+ * it, changes its channel (ADR-041 decision 11). The bar on top leaves and pauses them both.
  *
  * Lying down, the panels stand side by side, as on the television, and the bar rides over them,
  * stepping aside a few seconds after the last touch. Held upright, they stand one above the other
@@ -182,6 +183,10 @@ internal fun PhoneSport(
                                         }
                                     },
                                     onLongPress = {
+                                        session.focus(index)
+                                        session.openPicker(index)
+                                    },
+                                    onChange = {
                                         session.focus(index)
                                         session.openPicker(index)
                                     },
@@ -295,6 +300,8 @@ private fun PhoneSportPanel(
     onTap: () -> Unit,
     onDoubleTap: () -> Unit,
     onLongPress: () -> Unit,
+    /** The swap button: the picker for this panel, for a finger that does not know to hold. */
+    onChange: () -> Unit,
 ) {
     val studio = StudioTheme.colors
     val channel = slot.channel
@@ -331,6 +338,11 @@ private fun PhoneSportPanel(
         if (slot.flashes) {
             val live by vm.sport.live.collectAsState()
             FlashesPanel(live = live, modifier = Modifier.fillMaxSize())
+            PanelChangeButton(
+                onClick = onChange,
+                label = stringResource(R.string.news_menu_change),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(10.dp),
+            )
         } else if (channel == null) {
             EmptyPanel(
                 hint = stringResource(R.string.sport_add_hint_touch),
@@ -354,6 +366,7 @@ private fun PhoneSportPanel(
                 paused = paused,
                 expanded = expanded,
                 modifier = Modifier.align(Alignment.BottomStart),
+                onChange = onChange,
             )
         }
         // Last, so it is drawn over the picture; square, because a video surface ignores the clip

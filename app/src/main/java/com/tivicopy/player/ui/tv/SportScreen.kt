@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
@@ -69,20 +70,22 @@ import com.tivicopy.player.ui.theme.StudioTheme
  * Sport mode (ADR-041): two Israeli sports channels at once, side by side (decision 10).
  *
  * The panel with the remote is drawn larger than the others and is the only one heard; the arrows
- * move the remote, and the sound moves with it. OK on a panel fills the screen with it and OK or
- * Back puts the grid back, the other panel playing on behind it all along. A long OK or the Menu
- * key opens the channel picker for that panel, as OK does on an empty one. The channel keys step
- * the panel with the remote through the channels on offer; Back from the grid leaves Sport mode,
- * and the channel with the remote carries on full screen. Back, the channel keys and play/pause
- * are the activity's, as on every other television screen; the arrows and OK are this screen's.
+ * move the remote, and the sound moves with it. OK on a panel opens its menu (decision 11): fill
+ * the screen with it, or put the grid back, the other panel playing on behind it all along; change
+ * its channel; remove it. On an empty panel OK opens the channel picker straight away, and on a
+ * failed one it tries again. A long OK or the Menu key still opens the picker directly. The
+ * channel keys step the panel with the remote through the channels on offer; Back from the grid
+ * leaves Sport mode, and the channel with the remote carries on full screen. Back, the channel
+ * keys and play/pause are the activity's, as on every other television screen; the arrows and OK
+ * are this screen's.
  *
  * Drawn over everything, opaque, with no side menu and no top bar: the pictures are the whole
  * screen. The full-screen player's own surface is not composed underneath — two video surfaces
  * covering the same pixels have no defined order, and its last frame could end up on top.
  *
  * News mode (ADR-042) is this screen too, with two panels: one of them may show the headlines,
- * chosen in the picker like a channel. OK fills the screen with the headlines as with a picture;
- * with them in focus the sound stays with the channel beside them.
+ * chosen in the picker like a channel. The headlines have the same menu as a picture; with them in
+ * focus the sound stays with the channel beside them.
  */
 @Composable
 internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
@@ -91,6 +94,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val focused by session.focused.collectAsState()
     val expanded by session.expanded.collectAsState()
     val picking by session.picking.collectAsState()
+    val menu by session.menu.collectAsState()
     val choices by session.choices.collectAsState()
     val paused by session.paused.collectAsState()
     val count by session.count.collectAsState()
@@ -98,14 +102,15 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val prefs by vm.settingsState.collectAsState()
     val heard = SportSession.audibleSlot(slots, focused)
     val requesters = remember { List(SportLayout.SLOTS) { FocusRequester() } }
+    val drawerOpen = picking != null || menu != null
 
     // The remote goes to the panel in focus whenever nothing else holds it: on arrival, as the
-    // picker closes, and when the session moves it — a remembered grid whose first channel is not
-    // in the first panel, a channel just placed. A move the remote made itself lands here too, on
-    // the panel that already has it, and changes nothing. Two frames: one for the grid to compose,
-    // one for it to be laid out.
-    LaunchedEffect(picking, focused) {
-        if (picking != null) return@LaunchedEffect
+    // picker or the menu closes, and when the session moves it — a remembered grid whose first
+    // channel is not in the first panel, a channel just placed. A move the remote made itself lands
+    // here too, on the panel that already has it, and changes nothing. Two frames: one for the grid
+    // to compose, one for it to be laid out.
+    LaunchedEffect(drawerOpen, focused) {
+        if (drawerOpen) return@LaunchedEffect
         withFrameNanos { }
         withFrameNanos { }
         runCatching { requesters[session.focused.value].requestFocus() }
@@ -126,15 +131,15 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                             audible = index == heard,
                             expanded = expanded,
                             paused = paused,
-                            canTakeFocus = picking == null && (!expanded || index == focused),
+                            canTakeFocus = !drawerOpen && (!expanded || index == focused),
                             requester = requesters[index],
                             onFocused = { session.focus(index) },
                             onOk = {
                                 when {
-                                    slot.flashes -> session.setExpanded(!session.expanded.value)
+                                    slot.flashes -> session.openMenu(index)
                                     slot.channel == null -> session.openPicker(index)
                                     slot.panel.status.value.failed -> session.retry(index)
-                                    else -> session.setExpanded(!session.expanded.value)
+                                    else -> session.openMenu(index)
                                 }
                             },
                             onMenu = { session.openPicker(index) },
@@ -151,6 +156,24 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 // Relative, so the first panel is at the top right in Hebrew.
                 placeables.forEachIndexed { i, placeable -> placeable.placeRelative(cells[i].x, cells[i].y) }
             }
+        }
+
+        menu?.let { slot ->
+            SportPanelMenu(
+                slot = slot,
+                slots = slots.take(count),
+                expanded = expanded,
+                news = mode == SportSession.Mode.NEWS,
+                opacity = prefs.overlayOpacity,
+                onExpand = {
+                    session.closeMenu()
+                    session.focus(slot)
+                    session.setExpanded(!session.expanded.value)
+                },
+                onChange = { session.openPicker(slot) },
+                onClear = { session.clear(slot) },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            )
         }
 
         picking?.let { slot ->
@@ -259,6 +282,77 @@ private fun SportPanel(
                 modifier = Modifier.align(Alignment.BottomStart),
             )
         }
+    }
+}
+
+/**
+ * A panel's menu (ADR-041 decision 11): the same drawer as the picker, with the three things a
+ * panel already showing something can do. Fill the screen with it, or put the grid back; change
+ * what it shows, which opens the picker in its place; remove it. The remote lands on the first row,
+ * so OK twice is still full screen.
+ */
+@Composable
+private fun SportPanelMenu(
+    slot: Int,
+    slots: List<SportSession.Slot>,
+    expanded: Boolean,
+    news: Boolean,
+    opacity: Float,
+    onExpand: () -> Unit,
+    onChange: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val studio = StudioTheme.colors
+    val entry = slots.getOrNull(slot)
+    val title = when {
+        entry?.flashes == true -> stringResource(R.string.news_flashes)
+        else -> entry?.channel?.displayName ?: stringResource(R.string.sport_add_channel)
+    }
+    val first = remember { FocusRequester() }
+    LaunchedEffect(slot) {
+        withFrameNanos { }
+        withFrameNanos { }
+        runCatching { first.requestFocus() }
+    }
+    Column(
+        modifier = modifier
+            .width(PICKER_WIDTH)
+            .fillMaxHeight()
+            .background(studio.drawer.copy(alpha = opacity.coerceAtLeast(MENU_MIN_OPACITY)))
+            .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        Text(
+            text = title,
+            style = StudioTheme.type.titleSmall,
+            color = studio.ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+        Text(
+            text = stringResource(R.string.sport_menu_subtitle),
+            style = StudioTheme.type.caption,
+            color = studio.ink2,
+            modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp),
+        )
+        ListRow(
+            label = stringResource(if (expanded) R.string.sport_menu_grid else R.string.sport_menu_fullscreen),
+            icon = if (expanded) StudioIcons.Grid else StudioIcons.Fullscreen,
+            onClick = onExpand,
+            focusRequester = first,
+        )
+        ListRow(
+            label = stringResource(if (news) R.string.news_menu_change else R.string.sport_menu_change),
+            icon = StudioIcons.Swap,
+            onClick = onChange,
+        )
+        ListRow(
+            label = stringResource(R.string.sport_pick_remove),
+            icon = StudioIcons.Close,
+            onClick = onClear,
+        )
     }
 }
 

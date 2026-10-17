@@ -511,7 +511,12 @@
 
     <!-- Sport mode (ADR-041) -->
     <string name="sport_add_channel">Add a channel</string>
-    <string name="sport_add_hint">OK picks a channel. A long OK changes it.</string>
+    <string name="sport_add_hint">OK picks a channel.</string>
+    <string name="sport_menu_subtitle">OK chooses</string>
+    <string name="sport_menu_fullscreen">Full screen</string>
+    <string name="sport_menu_grid">Back to both screens</string>
+    <string name="sport_menu_change">Change channel</string>
+    <string name="news_menu_change">Change channel or headlines</string>
     <string name="sport_pick_title">Channel for this screen</string>
     <string name="sport_pick_subtitle">Israeli sports channels</string>
     <string name="sport_pick_remove">Remove from this screen</string>
