@@ -135,14 +135,19 @@ enum class TvOverlay {
     /**
      * Whether the live picture is what the screen *is* while this overlay is up.
      *
-     * Not the same question as [isPassthrough], which is about the remote: the home screen leaves
-     * the picture filling the panel behind its banner, and the guide keeps it playing but shrinks
-     * it into a preview beside a grid that does not move for hours. The first is a moving screen;
-     * the second is a still one with a moving stamp on it, and it wears into a panel exactly like
-     * any other still (FR-UI-31). Read by [com.tivicopy.player.ui.common.idleScene].
+     * Not the same question as [isPassthrough], which is about the remote, even though today the
+     * two answers coincide. The guide keeps the picture playing but shrinks it into a preview
+     * beside a grid that does not move for hours: a still screen with a moving stamp on it, and it
+     * wears into a panel exactly like any other still (FR-UI-31). Home is the same case, though it
+     * used to be counted as moving because its banner is the picture at full size (ADR-020): the
+     * top bar, the side menu's strip, the caption and the rails over it hold still for as long as
+     * the television sits there, and one press of Down scrolls the picture away and hands the
+     * whole panel to the rails. Counting it as moving meant the screensaver never came on over
+     * the screen a television rests on most (ADR-039). Read by
+     * [com.tivicopy.player.ui.common.idleScene].
      */
     val videoFillsPanel: Boolean
-        get() = isPassthrough || this == HOME
+        get() = isPassthrough
 
     /**
      * Whether this overlay reaches the edges of the panel itself, rather than sitting inside

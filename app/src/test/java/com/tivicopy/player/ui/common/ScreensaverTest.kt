@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.common
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.tv.TvOverlay
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import kotlin.math.abs
@@ -52,6 +53,53 @@ class ScreensaverTest {
                 failed = false,
                 videoFillsPanel = false,
             ),
+        )
+    }
+
+    /**
+     * The television's home screen, as the shell reports it. Its banner is the live picture at
+     * full size, which is why it used to count as moving video — and why the screensaver never
+     * came on over the screen a television is most often left on (ADR-039). Its rails and
+     * furniture hold still over that picture, so it is a still screen like the guide.
+     */
+    @Test
+    fun `the home screen is a still screen, with the picture playing behind its banner`() {
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(
+                playing = true,
+                playWhenReady = true,
+                hasPicture = true,
+                failed = false,
+                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
+            ),
+        )
+        // A station behind home is a station under a menu (ADR-037), not the radio's own screen.
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(
+                playing = true,
+                playWhenReady = true,
+                hasPicture = false,
+                failed = false,
+                videoFillsPanel = TvOverlay.HOME.videoFillsPanel,
+            ),
+        )
+    }
+
+    /** What still counts as the picture being the screen: the bare video and what rides over it. */
+    @Test
+    fun `only the bare video and its passthrough overlays leave the picture as the screen`() {
+        val filling = TvOverlay.entries.filter { it.videoFillsPanel }.toSet()
+        assertEquals(
+            setOf(
+                TvOverlay.NONE,
+                TvOverlay.INFO,
+                TvOverlay.MINI_GUIDE,
+                TvOverlay.TRANSPORT,
+                TvOverlay.PLAYBACK_MENU,
+            ),
+            filling,
         )
     }
 
