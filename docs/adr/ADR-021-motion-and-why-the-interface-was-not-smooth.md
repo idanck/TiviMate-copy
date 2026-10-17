@@ -1,6 +1,8 @@
 # ADR-021 — Motion, and why the interface was not smooth
 
-**Status:** accepted
+**Status:** accepted. Extended by ADR-043, which gives every surface an exit to match its
+entrance and keeps the scaffold's scrim out of the entrance that is replayed between browse
+screens.
 
 ## Context
 
