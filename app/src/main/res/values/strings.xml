@@ -517,6 +517,7 @@
     <string name="sport_pick_on_screen">On screen</string>
     <string name="sport_pick_none">No Israeli sports channels were found in your playlists.</string>
     <string name="sport_panel_device_limit">This device cannot play another channel at the same time.</string>
+    <string name="sport_panel_stream_closed">The provider closed the stream. The account may allow fewer connections than there are screens.</string>
     <string name="sport_panel_retry_hint">OK tries again</string>
     <string name="sport_sound_here">The sound is from this screen</string>
 </resources>

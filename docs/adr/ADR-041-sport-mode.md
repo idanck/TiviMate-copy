@@ -110,11 +110,42 @@ Sport mode opens on them. With nothing to restore, it opens the picker on the fi
   A panel whose decoder will not start says that the device cannot play another channel at the
   same time, instead of a generic error, and the other panels play on. This needs checking on the
   owner's devices.
+- **First device report (2026-10-17), and its cause.** On the Google TV Streamer, only one of
+  the four panels kept playing, and not necessarily the one in focus. The other three stood on a
+  frozen frame with no message. The device's own media records settled it:
+  - all four panels got the hardware decoder (`c2.mtk.avc.decoder`, declared for four instances
+    and 4K60), and none dropped frames, so decoding was not the limit;
+  - three of the four audio tracks reached the end of their stream 1.6, 3.4 and 14 seconds after
+    starting, and the fourth, the last to connect, played on. A live stream that ends was closed
+    by the server;
+  - the provider's account API reports `max_connections = 1`;
+  - a direct test from the same home network, two streams of the account open at once, saw the
+    first closed two to three seconds after the second opened, whatever user agent either sent.
+    The account offers only the `ts` output, not HLS.
+
+  So the account allows one stream at a time, and the provider closes the older streams when a
+  newer one opens. The decision that the provider allows several connections (decision 4 above)
+  does not hold for the account as it stands; Sport mode needs one connection per panel.
+
+  The player treated a stream that ends as a channel that finished, not as a failure, so the
+  panel froze without a word. From 0.15.1 a panel whose live stream ends tries the channel's next
+  address, if it has one, and then the same one once more, since a clean close can also be a
+  server restarting. If the stream closes again, the panel stops, lets go of its player, and says
+  the provider closed it and that the account may allow fewer connections than there are screens.
+  OK tries again. It does not keep reconnecting by itself: past the limit, each reconnect closes
+  another panel's stream, and the panels would take the one connection from each other in turn.
+  A stream that had played steadily for a minute earns its one automatic retry back.
+
+  The full-screen player has the same blind spot, a live stream that ends leaves it on its last
+  frame, and is not changed here.
+
+  Open, for the owner: more connections on the account, or Sport mode reading the account's limit
+  as it opens and starting only that many panels.
 - Memory: each panel holds a few seconds of stream and at most 24 MB of buffer. The full-screen
   player's defaults allow well over 100 MB of video, and four of those would get a two-gigabyte
   box killed.
-- The provider's connection limit is not checked. The owner's account allows several connections
-  at once. A refused connection shows in its own panel as the server's refusal.
+- The provider's connection limit is not checked. A refused connection shows in its own panel as
+  the server's refusal, and a stream the provider closes says so (see the device report above).
 - Not in this version: the phone, saved layouts as named presets (FR-PLB-27, COULD), adding a
   channel to Sport mode from the channel menu, and a QA scenario. The emulator's mock provider has
   no Israeli sports channels to offer yet.

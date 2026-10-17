@@ -485,6 +485,7 @@
     <string name="sport_pick_on_screen">כבר על המסך</string>
     <string name="sport_pick_none">לא נמצאו ערוצי ספורט ישראליים ברשימות שלך.</string>
     <string name="sport_panel_device_limit">המכשיר לא מצליח לנגן עוד ערוץ במקביל.</string>
+    <string name="sport_panel_stream_closed">הספק סגר את השידור. ייתכן שהחשבון מתיר פחות חיבורים ממספר המסכים.</string>
     <string name="sport_panel_retry_hint">OK לניסיון נוסף</string>
     <string name="sport_sound_here">הסאונד מהמסך הזה</string>
 </resources>
