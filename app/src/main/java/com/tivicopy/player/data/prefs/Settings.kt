@@ -530,14 +530,23 @@ class Settings(context: Context) {
      * screen observes it, and every write would otherwise recompose every screen that reads the
      * settings.
      */
-    fun sportSlots(): List<Long?> =
-        prefs.getString(K_SPORT_SLOTS, null)
+    fun sportSlots(): List<Long?> = slotIds(K_SPORT_SLOTS)
+
+    fun setSportSlots(ids: List<Long?>) = setSlotIds(K_SPORT_SLOTS, ids)
+
+    /** News mode's grid, as [sportSlots] is Sport mode's; -1 marks the panel of headlines (ADR-042). */
+    fun newsSlots(): List<Long?> = slotIds(K_NEWS_SLOTS)
+
+    fun setNewsSlots(ids: List<Long?>) = setSlotIds(K_NEWS_SLOTS, ids)
+
+    private fun slotIds(key: String): List<Long?> =
+        prefs.getString(key, null)
             ?.split(',')
             ?.map { it.trim().toLongOrNull() }
             .orEmpty()
 
-    fun setSportSlots(ids: List<Long?>) {
-        prefs.edit().putString(K_SPORT_SLOTS, ids.joinToString(",") { it?.toString().orEmpty() }).apply()
+    private fun setSlotIds(key: String, ids: List<Long?>) {
+        prefs.edit().putString(key, ids.joinToString(",") { it?.toString().orEmpty() }).apply()
     }
 
     /**
@@ -637,5 +646,6 @@ class Settings(context: Context) {
         const val K_NEWS_DIGESTS = "news_last_digests"
         const val K_SPORT_SLOTS = "sport_slots"
         const val K_SPORT_PANELS = "sport_panels"
+        const val K_NEWS_SLOTS = "news_slots"
     }
 }

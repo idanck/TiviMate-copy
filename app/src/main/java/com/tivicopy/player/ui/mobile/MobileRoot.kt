@@ -34,6 +34,7 @@ import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.NowPlayingInfo
+import com.tivicopy.player.ui.SportSession
 import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.screens.AddSourceScreen
 import com.tivicopy.player.ui.screens.ChannelListScreen
@@ -72,8 +73,8 @@ fun MobileRoot(
     onSettingsSection: (SettingsSection) -> Unit,
     playerOpen: Boolean,
     onPlayerOpenChange: (Boolean) -> Unit,
-    sportOpen: Boolean,
-    onSportOpenChange: (Boolean) -> Unit,
+    panelsOpen: SportSession.Mode?,
+    onPanelsOpenChange: (SportSession.Mode?) -> Unit,
     inPip: Boolean,
     numericEntry: String,
     onBrightness: (Float) -> Unit,
@@ -152,10 +153,15 @@ fun MobileRoot(
         ServiceLocator.player.setVideoOutputWanted(playerOpen || inPip)
     }
 
-    // Sport mode (ADR-041) opens and closes with its screen, as the television's does with its
-    // overlay. Leaving through its own Back has already closed the session by the time this runs.
-    LaunchedEffect(sportOpen) {
-        if (sportOpen) vm.enterSport(remembersPanels = true) else vm.closeSport()
+    // Sport and News modes (ADR-041, ADR-042) open and close with their screen, as the
+    // television's do with their overlays. Leaving through the screen's own Back has already
+    // closed the session by the time this runs.
+    LaunchedEffect(panelsOpen) {
+        when (panelsOpen) {
+            SportSession.Mode.SPORT -> vm.enterSport(remembersPanels = true)
+            SportSession.Mode.NEWS -> vm.enterNews()
+            null -> vm.closeSport()
+        }
     }
 
     // In the PiP window the app is its video and nothing else: the browse chrome would be
@@ -224,14 +230,18 @@ fun MobileRoot(
     // chosen channel is never left audible behind a full-screen list (ADR-011).
     val openPlayer: () -> Unit = { onPlayerOpenChange(true) }
 
-    // Leaving Sport mode plays the channel in focus, and so shows it, as the television carries it
-    // on full screen. With nothing chosen, whatever played before comes back as it was: playing
-    // under the mini player, or paused there.
-    val leaveSport: () -> Unit = {
+    // Leaving Sport or News mode plays the channel being heard, and so shows it, as the television
+    // carries it on full screen. With nothing chosen, whatever played before comes back as it was:
+    // playing under the mini player, or paused there.
+    val leavePanels: () -> Unit = {
         val chosen = vm.sport.focusedChannel()
         vm.exitSport(restartPaused = false)
-        onSportOpenChange(false)
+        onPanelsOpenChange(null)
         if (chosen != null) openPlayer()
+    }
+    val openPanels: (SportSession.Mode) -> Unit = { mode ->
+        onPlayerOpenChange(false)
+        onPanelsOpenChange(mode)
     }
 
     // Registered from composition, so it takes precedence over the activity's exit handler for
@@ -261,14 +271,16 @@ fun MobileRoot(
                     tab == MobileTab.RADIO -> stringResource(R.string.nav_radio)
                     else -> null
                 }
-                // Sport mode is offered where the television's channels are browsed, not over radio.
+                // Sport and News modes are offered where the television's channels are browsed, not
+                // over radio.
                 val sportable = !showAddSource && !searching && tab in setOf(MobileTab.LIVE, MobileTab.GUIDE)
                 if (canGoBack || searchable || title != null) {
                     PhoneTopBar(
                         title = title,
                         onBack = if (canGoBack) goBack else null,
                         onSearch = if (searchable) ({ searching = true }) else null,
-                        onSport = if (sportable) ({ onPlayerOpenChange(false); onSportOpenChange(true) }) else null,
+                        onSport = if (sportable) ({ openPanels(SportSession.Mode.SPORT) }) else null,
+                        onNews = if (sportable) ({ openPanels(SportSession.Mode.NEWS) }) else null,
                     )
                 }
             },
@@ -416,12 +428,12 @@ fun MobileRoot(
             }
         }
 
-        // Over the player screen too, though the two are never open together: opening Sport mode
-        // closes it, and leaving opens it.
-        if (sportOpen) {
+        // Over the player screen too, though the two are never open together: opening Sport or
+        // News mode closes it, and leaving opens it.
+        if (panelsOpen != null) {
             PhoneSport(
                 vm = vm,
-                onLeave = leaveSport,
+                onLeave = leavePanels,
                 modifier = Modifier.fillMaxSize(),
             )
         }

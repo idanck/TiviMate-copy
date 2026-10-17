@@ -121,8 +121,11 @@ class MainActivity : ComponentActivity() {
     private var playerOpen by mutableStateOf(false)
     private var inPip by mutableStateOf(false)
 
-    /** Whether the phone's Sport mode is the screen (ADR-041); the television's is [overlay]. */
-    private var sportOpen by mutableStateOf(false)
+    /**
+     * Which of the phone's modes of several panels is the screen, Sport (ADR-041) or News
+     * (ADR-042); null for neither. The television's are [overlay].
+     */
+    private var panelsOpen by mutableStateOf<SportSession.Mode?>(null)
 
     /** Set when [onStop] paused a stream nothing was showing, so [onStart] can resume it. */
     private var pausedInBackground = false
@@ -235,7 +238,7 @@ class MainActivity : ComponentActivity() {
         overlay = TvOverlay.NONE
         lastBrowseOverlay = TvOverlay.HOME
         if (!isTelevision) {
-            sportOpen = false
+            panelsOpen = null
             playerOpen = true
         }
     }
@@ -269,7 +272,8 @@ class MainActivity : ComponentActivity() {
         // that inside a PiP window without these left the browse shell squeezed into it,
         // with the video track disabled underneath.
         playerOpen = savedInstanceState?.getBoolean(KEY_PLAYER_OPEN) ?: false
-        sportOpen = savedInstanceState?.getBoolean(KEY_SPORT_OPEN) ?: false
+        panelsOpen = savedInstanceState?.getString(KEY_PANELS_OPEN)
+            ?.let { name -> SportSession.Mode.entries.firstOrNull { it.name == name } }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) inPip = isInPictureInPictureMode
         if (inPip) {
             playerOpen = true
@@ -301,8 +305,8 @@ class MainActivity : ComponentActivity() {
             // The screen stays awake for watching, not for reading: browsing is full screen
             // now with no video on it, and pinning the display through a long look at the
             // guide is battery spent on nothing.
-            LaunchedEffect(playerOpen, inPip, sportOpen) {
-                if (isTelevision || playerOpen || inPip || sportOpen) {
+            LaunchedEffect(playerOpen, inPip, panelsOpen) {
+                if (isTelevision || playerOpen || inPip || panelsOpen != null) {
                     window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 } else {
                     window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -337,7 +341,7 @@ class MainActivity : ComponentActivity() {
                 // Not into the phone's Sport mode, restored after the process was let go: the
                 // channel would play on the full-screen player over the panels, on a connection
                 // of its own, with the player screen open, unseen, underneath them (ADR-041).
-                val resumed = if (!isTelevision && sportOpen) false else vm.resumeStartChannel()
+                val resumed = if (!isTelevision && panelsOpen != null) false else vm.resumeStartChannel()
                 // The phone browses full screen, so a resumed channel opens the player screen —
                 // otherwise it would be audible behind the channel list with no video anywhere.
                 if (!isTelevision && resumed) playerOpen = true
@@ -351,7 +355,7 @@ class MainActivity : ComponentActivity() {
             // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
             // protecting (ADR-040); the countdown below decides when.
             val sportPlaying by vm.sport.anyPlaying.collectAsState()
-            val inSport = if (isTelevision) overlay == TvOverlay.SPORT else sportOpen
+            val inSport = if (isTelevision) overlay.isPanels else panelsOpen != null
             val scene = if (inSport) {
                 // Sport mode's panels are pictures being watched, though the full-screen player
                 // stands silent underneath them (ADR-041).
@@ -459,8 +463,8 @@ class MainActivity : ComponentActivity() {
                                     onSettingsSection = { settingsSection = it },
                                     playerOpen = playerOpen,
                                     onPlayerOpenChange = { playerOpen = it },
-                                    sportOpen = sportOpen,
-                                    onSportOpenChange = { sportOpen = it },
+                                    panelsOpen = panelsOpen,
+                                    onPanelsOpenChange = { panelsOpen = it },
                                     inPip = inPip,
                                     numericEntry = numericEntry,
                                     onBrightness = ::adjustBrightness,
@@ -608,7 +612,7 @@ class MainActivity : ComponentActivity() {
         if (!isTelevision) return onPhoneKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
         // Sport mode has its own bindings (ADR-041); none of the full-screen player's below apply.
-        if (overlay == TvOverlay.SPORT) return onSportKeyDown(keyCode) || super.onKeyDown(keyCode, event)
+        if (overlay.isPanels) return onSportKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             numericEntry = (numericEntry + (keyCode - KeyEvent.KEYCODE_0)).take(4)
@@ -713,7 +717,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun onPhoneKeyDown(keyCode: Int): Boolean {
         // Sport mode's keys are the television's (ADR-041), and they act on its panels.
-        if (sportOpen && !inPip) return onSportKeyDown(keyCode)
+        if (panelsOpen != null && !inPip) return onSportKeyDown(keyCode)
         if (!playerOpen || inPip) return false
         when (keyCode) {
             in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 -> {
@@ -777,7 +781,7 @@ class MainActivity : ComponentActivity() {
             // Sport mode (ADR-041): the picker closes, a panel filling the screen goes back into
             // the grid, and the grid leaves for the full-screen player on the channel with the
             // remote.
-            overlay == TvOverlay.SPORT -> stepUpInSport()
+            overlay.isPanels -> stepUpInSport()
 
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT
@@ -1166,7 +1170,7 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_PLAYER_OPEN, playerOpen)
-        outState.putBoolean(KEY_SPORT_OPEN, sportOpen)
+        outState.putString(KEY_PANELS_OPEN, panelsOpen?.name)
     }
 
     private companion object {
@@ -1189,6 +1193,6 @@ class MainActivity : ComponentActivity() {
         const val ACTION_PIP_PLAY_PAUSE = "com.tivicopy.player.PIP_PLAY_PAUSE"
         const val PIP_REQUEST_PLAY_PAUSE = 1
         const val KEY_PLAYER_OPEN = "player_open"
-        const val KEY_SPORT_OPEN = "sport_open"
+        const val KEY_PANELS_OPEN = "panels_open"
     }
 }

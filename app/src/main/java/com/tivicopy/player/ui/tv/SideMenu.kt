@@ -128,6 +128,8 @@ internal fun SideMenu(
         MenuDestination(stringResource(R.string.nav_guide), StudioIcons.Guide, TvOverlay.GUIDE),
         MenuDestination(stringResource(R.string.nav_radio), StudioIcons.Radio, TvOverlay.RADIO),
         MenuDestination(stringResource(R.string.nav_sport), StudioIcons.Sport, TvOverlay.SPORT),
+        // News mode (ADR-042) follows Sport mode, and is the same kind of screen.
+        MenuDestination(stringResource(R.string.nav_news), StudioIcons.News, TvOverlay.NEWS),
         MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
     )
     val tools = listOf(

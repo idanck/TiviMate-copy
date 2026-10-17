@@ -55,6 +55,14 @@ object StudioIcons {
      * Not on the canvas's board, which predates the mode.
      */
     val Sport: ImageVector by lazy { glyph("sport", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM3 12h18M12 3v18M5.6 5.6a9 9 0 0 1 0 12.8M18.4 5.6a9 9 0 0 0 0 12.8") }
+
+    /**
+     * News mode's (ADR-042): a newspaper, a picture and lines of text on its page, its back page
+     * folded behind. Not on the canvas's board, which predates the mode.
+     */
+    val News: ImageVector by lazy {
+        glyph("news", "M4 5h13v13a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2zM17 9h3v9a2 2 0 0 1-2 2M7 9h3v3H7zM12.5 9H14M12.5 12H14M7 15.5h7")
+    }
     val Hide: ImageVector by lazy { glyph("hide", "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9 6-.3.9-1.2 2.4-2.6 3.7M6.6 7.7C4.6 9 3.4 10.9 3 12c.5 1.5 4 6 9 6 1.6 0 3-.4 4.2-1.1") }
     val Move: ImageVector by lazy { glyph("move", "M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4") }
     val Info: ImageVector by lazy { glyph("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM12 11v6M12 7.5v.5") }

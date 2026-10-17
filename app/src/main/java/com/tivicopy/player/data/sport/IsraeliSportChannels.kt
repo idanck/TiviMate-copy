@@ -12,7 +12,8 @@ import java.text.Normalizer
  *
  * - **Is it Israeli?** Its group is the Israeli one — `ישראל` in the owner's daily playlist, the
  *   provider's raw `ISRAËL| HEBREEW`, or any other group naming Israel or Hebrew — or the channel
- *   carries the provider's country tag (`|IL| SPORT 5`) or an Israeli guide id (`sport5.il`).
+ *   carries the provider's country tag (`|IL| SPORT 5`) or an Israeli guide id (`sport5.il`,
+ *   `il.sport-5`).
  * - **Is it sport?** Its name says so (`sport`, `ספורט`, which also catches Eurosport and
  *   `5SPORT`), it is ONE (`ONE`, `ONE 2`, `וואן`), it is one of Sport 5's channels that leave the
  *   word out (`5 LIVE`, `5 GOLD`, `5 STARS`, `5+`), its guide id names sport, or its Israeli group
@@ -58,25 +59,37 @@ object IsraeliSportChannels {
      * @param tvgId the guide id the playlist gave it, if any
      */
     fun isIsraeliSport(name: String, groupName: String?, tvgId: String? = null): Boolean {
+        if (!isIsraeli(name, groupName, tvgId)) return false
         val group = groupName?.let(::fold).orEmpty()
         val guideId = tvgId?.trim()?.lowercase().orEmpty()
-        val israeliGroup = ISRAELI_GROUP_MARKERS.any { it in group } ||
-            ISRAELI_TAG.containsMatchIn(groupName.orEmpty())
-        val israeli = israeliGroup || ISRAELI_TAG.containsMatchIn(name) || guideId.endsWith(".il")
-        if (!israeli) return false
-
         val folded = fold(name)
         return SPORT_WORDS.any { it in folded } ||
             (ONE.containsMatchIn(folded) && NOT_ONE.none { it in folded }) ||
             SPORT_FIVE.containsMatchIn(name) ||
             "sport" in guideId ||
-            (israeliGroup && SPORT_WORDS.any { it in group })
+            (israeliGroup(groupName) && SPORT_WORDS.any { it in group })
+    }
+
+    /**
+     * The first question on its own, which News mode asks too (ADR-042): the group is the
+     * Israeli one, or the channel carries the provider's country tag or an Israeli guide id.
+     */
+    internal fun isIsraeli(name: String, groupName: String?, tvgId: String?): Boolean {
+        val guideId = tvgId?.trim()?.lowercase().orEmpty()
+        // `sport5.il` from a provider's guide, `il.sport-5` from the owner's daily playlist.
+        return israeliGroup(groupName) || ISRAELI_TAG.containsMatchIn(name) ||
+            guideId.endsWith(".il") || guideId.startsWith("il.")
+    }
+
+    private fun israeliGroup(groupName: String?): Boolean {
+        val group = groupName?.let(::fold).orEmpty()
+        return ISRAELI_GROUP_MARKERS.any { it in group } || ISRAELI_TAG.containsMatchIn(groupName.orEmpty())
     }
 
     /**
      * Lower case, accents off, punctuation to spaces — and compatibility forms folded first, so
      * the superscript `ˢᴾᴼᴿᵀ` some providers decorate names with reads as `sport`.
      */
-    private fun fold(text: String): String =
+    internal fun fold(text: String): String =
         TextNormalizer.basic(Normalizer.normalize(text, Normalizer.Form.NFKC))
 }

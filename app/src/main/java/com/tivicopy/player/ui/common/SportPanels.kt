@@ -3,8 +3,10 @@ package com.tivicopy.player.ui.common
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -12,6 +14,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -31,17 +35,20 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.tivicopy.player.R
+import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.data.model.Channel
+import com.tivicopy.player.data.news.NewsDigests
+import com.tivicopy.player.data.news.NewsRepository
 import com.tivicopy.player.player.PanelStatus
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 
 /*
- * The parts of a Sport mode panel both shells draw the same way (ADR-041): the picture, an empty
- * place, a channel that will not play, the caption along the foot, and a row of the channel
- * picker. The television's grid (`ui/tv/SportScreen.kt`) and the phone's (`ui/mobile/PhoneSport.kt`)
+ * The parts of a Sport or News mode panel both shells draw the same way (ADR-041, ADR-042): the
+ * picture, an empty place, a channel that will not play, the caption along the foot, News mode's
+ * headlines, and a row of the channel picker. The television's grid (`ui/tv/SportScreen.kt`) and the phone's (`ui/mobile/PhoneSport.kt`)
  * differ in how a panel is reached — the remote's focus, or a finger — and in nothing drawn here.
  */
 
@@ -250,6 +257,52 @@ private fun rememberOnAir(vm: AppViewModel, channel: Channel): String? {
     return title
 }
 
+/**
+ * News mode's panel of headlines (ADR-042): the screensaver's own column (FR-UI-33), from the
+ * sources chosen for it in Settings, in its colours and at its speed, fitted to the panel. Read
+ * while the panel is up as the screensaver reads them while it is up: on the repository's own
+ * ten-minute limit, so a panel and a screensaver never fetch twice between them.
+ */
+@Composable
+internal fun FlashesPanel(modifier: Modifier = Modifier) {
+    val studio = StudioTheme.colors
+    val prefs by ServiceLocator.settings.state.collectAsState()
+    val digests by ServiceLocator.news.state.collectAsState()
+    LaunchedEffect(Unit) {
+        while (true) {
+            ServiceLocator.news.refresh(force = false)
+            delay(NewsRepository.CHECK_INTERVAL_MS)
+        }
+    }
+    val flashes = remember(prefs.newsSources, digests) {
+        NewsDigests.merge(prefs.newsSources, digests, System.currentTimeMillis())
+    }
+    BoxWithConstraints(modifier = modifier.background(studio.saverGround)) {
+        if (flashes.isEmpty()) {
+            Text(
+                text = stringResource(R.string.news_flashes_none),
+                style = StudioTheme.type.body,
+                color = studio.ink2,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(24.dp),
+            )
+        } else {
+            // The screensaver's column is drawn for a 380dp column at its scale of one; a panel
+            // reads best a little wider than that, so it takes its scale from a wider one.
+            val scale = (maxWidth.value / FLASH_PANEL_WIDTH_DP).coerceIn(FLASH_MIN_SCALE, FLASH_MAX_SCALE)
+            val units = SaverUnits(scale, LocalDensity.current)
+            FlashColumn(
+                flashes = flashes,
+                updatedUtc = digests.values.maxOfOrNull { it.fetchedUtc } ?: 0L,
+                colours = prefs.screensaverColours,
+                speed = prefs.flashSpeed,
+                units = units,
+                modifier = Modifier.fillMaxSize().padding(horizontal = units.dp(FLASH_SIDE_DP)),
+            )
+        }
+    }
+}
+
 /** One channel in the picker: its mark, its name, and whether it is already in another panel. */
 @Composable
 internal fun SportPickerRow(
@@ -285,6 +338,12 @@ internal fun SportPickerRow(
         }
     }
 }
+
+/** The panel width at which the headlines are drawn at the screensaver's own size. */
+private const val FLASH_PANEL_WIDTH_DP = 460f
+private const val FLASH_MIN_SCALE = 0.75f
+private const val FLASH_MAX_SCALE = 1.25f
+private const val FLASH_SIDE_DP = 18f
 
 private const val CAPTION_SCRIM_ALPHA = 0.85f
 private const val FAILURE_PLATE_ALPHA = 0.8f

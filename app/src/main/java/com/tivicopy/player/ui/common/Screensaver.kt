@@ -448,7 +448,7 @@ fun Screensaver(
  * length would push its text out of the ring it is centred in.
  */
 @Immutable
-private class SaverUnits(val scale: Float, private val density: Density) {
+internal class SaverUnits(val scale: Float, private val density: Density) {
     fun dp(value: Float): Dp = (value * scale).dp
     fun sp(value: Float): TextUnit = with(density) { (value * scale).dp.toSp() }
 }
@@ -725,10 +725,10 @@ private fun PausedBadge(units: SaverUnits) {
 /**
  * The headlines (FR-UI-33): one column the height of the screen, moving down without stopping,
  * newest at the top of each round, the round's header between one and the next, and the top and
- * bottom fading into the black.
+ * bottom fading into the black. News mode's panel of headlines is this column too (ADR-042).
  */
 @Composable
-private fun FlashColumn(
+internal fun FlashColumn(
     flashes: List<SourcedFlash>,
     updatedUtc: Long,
     colours: Boolean,
