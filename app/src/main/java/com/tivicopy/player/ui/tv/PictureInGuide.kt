@@ -3,6 +3,7 @@ package com.tivicopy.player.ui.tv
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -11,20 +12,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,10 +38,9 @@ import com.tivicopy.player.data.catchup.CatchupUrlBuilder
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.AppViewModel
-import com.tivicopy.player.ui.common.ChannelLogo
-import com.tivicopy.player.ui.common.FocusableRow
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.dockedGuideRowHeightFor
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.screens.GuideScreen
@@ -61,12 +57,19 @@ import com.tivicopy.player.ui.common.StudioIcons
  * plays is the whole point of a guide.
  *
  * Here the video is not covered at all. It is moved: [TvRoot] shrinks the one player surface into
- * the slot this layout reserves for it, so the picture keeps running, in view, while the rail and
- * the grid own the rest of the screen. Nothing re-tunes, because nothing is torn down — the same
- * surface simply measures smaller.
+ * the slot this layout reserves for it, so the picture keeps running, in view, while the grid owns
+ * the rest of the screen. Nothing re-tunes, because nothing is torn down — the same surface simply
+ * measures smaller.
  *
  * The panes are painted individually and the preview slot is left unpainted. A single full-screen
  * scrim would have been simpler and would have tinted the live picture with it.
+ *
+ * Two panes, not the three ADR-013 first described. The channel rail that used to stand beside
+ * the grid listed the same channels as the grid's own channel column, a hand's width apart, and
+ * tuned the same way the column does on OK; it cost the programmes a fifth of the panel's width.
+ * The Studio canvas (`Guide.dc.html`) draws the guide without it, and so does this. The picture is
+ * the canvas's size, 288×162dp, where it used to be 400×225 — on a 1080p panel, with the top bar
+ * and the strip above the rows, the larger picture left room for fewer than two of them.
  */
 @Composable
 fun PictureInGuide(
@@ -91,153 +94,88 @@ fun PictureInGuide(
     // Until the grid reports one, the panel describes what is on screen.
     var pick by remember { mutableStateOf<Pair<Channel, Programme>?>(null) }
 
-    Row(modifier = modifier.fillMaxSize()) {
-        ChannelRail(
-            vm = vm,
-            onPlay = onPlay,
-            modifier = Modifier
-                .width(metrics.groupColumnWidth)
-                .fillMaxHeight()
-                .background(pane),
+    Column(modifier = modifier.fillMaxSize()) {
+        // Studio's top bar (`canvas/Guide.dc.html`): the app's name and the clock, which the
+        // guide's own toolbar therefore no longer draws.
+        StudioTopBar(
+            startInset = 20.dp,
+            showClock = true,
+            scrim = false,
+            endInset = 20.dp,
+            modifier = Modifier.background(pane),
         )
-
-        Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
-            // Studio's top bar (`canvas/Guide.dc.html`): the app's name and the clock, which the
-            // guide's own toolbar therefore no longer draws.
-            StudioTopBar(
-                startInset = 20.dp,
-                showClock = true,
-                scrim = false,
-                endInset = 20.dp,
-                modifier = Modifier.background(pane),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // The focused programme first, at the start edge, as the canvas sets it; the
-                // picture at the end.
-                val panelChannel = pick?.first ?: state.currentChannel
-                GuideFocusPanel(
-                    channel = panelChannel,
-                    programme = if (pick != null) pick?.second else state.now,
-                    onWatch = { channel -> onPlay(channel) },
-                    onCatchup = { channel, programme -> vm.playCatchup(channel, programme) },
-                    onOpenProgramme = onOpenProgramme,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(pane)
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                )
-                // Deliberately unpainted: this box exists to be measured, and the live picture is
-                // drawn into the rectangle it reports. What is drawn in it lies over the picture:
-                // the tally along its top and whose picture it is.
-                Box(
-                    modifier = Modifier
-                        .width(PREVIEW_WIDTH)
-                        .fillMaxHeight()
-                        .padding(PREVIEW_MARGIN)
-                        .onGloballyPositioned { coordinates ->
-                            val origin = coordinates.positionInRoot()
-                            onDockBounds(
-                                Rect(
-                                    left = origin.x,
-                                    top = origin.y,
-                                    right = origin.x + coordinates.size.width,
-                                    bottom = origin.y + coordinates.size.height,
-                                ),
-                            )
-                        },
-                ) {
-                    val onAir = state.currentChannel
-                    if (onAir != null) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopCenter)
-                                .fillMaxWidth()
-                                .height(3.dp)
-                                .background(StudioTheme.colors.tally),
-                        )
-                        LiveBadge(
-                            label = stringResource(R.string.guide_on_screen, onAir.displayName),
-                            modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
-                        )
-                    }
-                }
-            }
-
-            GuideScreen(
-                vm = vm,
-                onPlay = onPlay,
+        Row(
+            modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT + PREVIEW_MARGIN * 2),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // The focused programme first, at the start edge, as the canvas sets it; the
+            // picture at the end.
+            val panelChannel = pick?.first ?: state.currentChannel
+            GuideFocusPanel(
+                channel = panelChannel,
+                programme = if (pick != null) pick?.second else state.now,
+                onWatch = { channel -> onPlay(channel) },
+                onCatchup = { channel, programme -> vm.playCatchup(channel, programme) },
                 onOpenProgramme = onOpenProgramme,
-                modifier = Modifier.fillMaxSize().background(pane),
-                onFocusProgramme = { channel, programme -> pick = channel to programme },
-                showClock = false,
-                landOn = landOn,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .background(pane)
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
             )
-        }
-    }
-}
-
-/**
- * The always-present channel column.
- *
- * Not the full channel-list screen: that one owns groups, filters and a now/next pane, and it is
- * reached on its own. This is the rail the guide keeps beside it so the channel being browsed and
- * the channel being watched are both on screen at once — pressing OK here tunes without closing
- * the guide, which is what makes the preview worth having.
- */
-@Composable
-private fun ChannelRail(
-    vm: AppViewModel,
-    onPlay: (Channel) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val state by vm.state.collectAsState()
-    val channels = state.list.channels
-    val listState = rememberLazyListState()
-    val metrics = LocalTvMetrics.current
-
-    // Open on the channel that is playing, as the channel-list overlay does. Landing at the top of
-    // a five-hundred-channel list when the answer is channel 214 is a scroll the remote should
-    // never be asked for.
-    var anchored by remember { mutableStateOf(false) }
-    LaunchedEffect(channels, state.currentChannel?.id) {
-        if (anchored) return@LaunchedEffect
-        val currentId = state.currentChannel?.id ?: return@LaunchedEffect
-        val index = channels.indexOfFirst { it.id == currentId }
-        if (index >= 0) {
-            anchored = true
-            listState.scrollToItem(index)
-            withFrameNanos { }
-        }
-    }
-
-    Column(modifier = modifier) {
-        Text(
-            text = stringResource(R.string.nav_live),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-        )
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-            items(channels, key = { it.id }) { channel ->
-                val playing = channel.id == state.currentChannel?.id
-                FocusableRow(
-                    onClick = { onPlay(channel) },
-                    selected = playing,
-                    contentDescription = channel.displayName,
-                ) {
-                    ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
-                    Text(
-                        text = channel.displayName,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.onSurface,
+            // Deliberately unpainted: this box exists to be measured, and the live picture is
+            // drawn into the rectangle it reports. What is drawn in it lies over the picture:
+            // the tally along its top and whose picture it is.
+            Box(
+                modifier = Modifier
+                    .width(PREVIEW_WIDTH + PREVIEW_MARGIN * 2)
+                    .fillMaxHeight()
+                    .padding(PREVIEW_MARGIN)
+                    .onGloballyPositioned { coordinates ->
+                        val origin = coordinates.positionInRoot()
+                        onDockBounds(
+                            Rect(
+                                left = origin.x,
+                                top = origin.y,
+                                right = origin.x + coordinates.size.width,
+                                bottom = origin.y + coordinates.size.height,
+                            ),
+                        )
+                    },
+            ) {
+                val onAir = state.currentChannel
+                if (onAir != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(StudioTheme.colors.tally),
+                    )
+                    LiveBadge(
+                        label = stringResource(R.string.guide_on_screen, onAir.displayName),
+                        modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
                     )
                 }
+            }
+        }
+
+        // The grid's rows are cut from the height left under the picture, not from the panel's:
+        // the panel's seventh (`TvMetrics.guideRowHeight`) fits fewer than two rows here on a
+        // 1080p television. Measured rather than computed from the constants above, so a panel
+        // whose top bar or type scale differs still gets rows that fit what it has.
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val docked = metrics.copy(guideRowHeight = dockedGuideRowHeightFor(maxHeight.value))
+            CompositionLocalProvider(LocalTvMetrics provides docked) {
+                GuideScreen(
+                    vm = vm,
+                    onPlay = onPlay,
+                    onOpenProgramme = onOpenProgramme,
+                    modifier = Modifier.fillMaxSize().background(pane),
+                    onFocusProgramme = { channel, programme -> pick = channel to programme },
+                    showClock = false,
+                    landOn = landOn,
+                )
             }
         }
     }
@@ -260,7 +198,7 @@ private fun GuideFocusPanel(
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (channel == null) return@Column
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -322,12 +260,16 @@ private fun GuideFocusPanel(
             )
         }
         programme.description?.takeIf { it.isNotBlank() }?.let { synopsis ->
+            // Takes what is left between the time line and the buttons, and no more: the pane is
+            // the picture's height, and a synopsis that claimed its two lines regardless pushed
+            // the buttons below the pane's edge on a panel where the type runs large.
             Text(
                 text = synopsis,
                 style = type.caption,
                 color = studio.ink2,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
         }
         val replay = channel.hasCatchup && CatchupUrlBuilder.isWithinWindow(channel, programme.startUtc, now)
@@ -363,14 +305,15 @@ private fun GuideFocusPanel(
 }
 
 /**
- * The preview's size.
+ * The preview's size: the Studio canvas's 576×324px at 1080p, where a pixel is half a dp.
  *
  * Fixed rather than derived, unlike everything else the ten-foot layout measures: the slot has to
  * stay a 16:9 rectangle whatever the panel, or the picture inside it letterboxes against its own
- * frame. What scales with the panel is how much guide fits beside it.
+ * frame. What scales with the panel is how much guide fits under it. The margin is added outside
+ * these, so the picture itself is this size rather than this size less its margin.
  */
-private val PREVIEW_WIDTH = 400.dp
-private val PREVIEW_HEIGHT = 225.dp
+private val PREVIEW_WIDTH = 288.dp
+private val PREVIEW_HEIGHT = 162.dp
 
 /** Keeps the picture off the panes either side of it. */
 private val PREVIEW_MARGIN = 8.dp

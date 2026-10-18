@@ -68,3 +68,28 @@ frame that made the app look windowed on every modern panel.
 `PlayerView` also had to stop being focusable. It is a `FrameLayout`, Compose hands focus across
 the interop boundary, and the video was therefore a D-pad stop with nothing on screen to show that
 focus had landed there. Every control in this app is drawn by Compose; the surface is decoration.
+
+## Addendum (2026-10-18, 0.17.6): two panes, and a grid that can be seen
+
+The owner's report: the guide screen was badly arranged and the guide itself could barely be seen.
+Measured on a 1080p panel (960×540dp), that was exact. The preview was 400×225dp — a third larger
+than the Studio canvas's 576×324px, which is 288×162dp — and the rows were cut from the *whole*
+panel's height (`TvMetrics.guideRowHeight`, a seventh of it, 77dp) although the top bar, the
+preview's row, the toolbar, the day strip and the hour ruler came first. What was left under them
+held fewer than two rows.
+
+Four changes, all in the television shell; the phone's guide is untouched:
+
+- **The preview is the canvas's 288×162dp.** The focused-programme panel beside it is the same
+  height, and its synopsis now yields to the buttons rather than pushing them below the pane.
+- **The channel rail is gone.** It listed the channels the grid's own channel column lists, a
+  hand's width away, and tuned on OK exactly as that column does; it cost the programmes a fifth
+  of the width. The canvas never had it. The guide is therefore two panes — the picture with its
+  panel, and the grid — not the three this record first described.
+- **The toolbar and the day strip are one row.** The toolbar's date is what the chosen chip says,
+  and its clock is in the top bar; the window buttons (−2h, now, +2h) sit at the end of the strip.
+- **The rows are cut from the height the grid actually has.** `PictureInGuide` measures what is
+  left under the picture and `dockedGuideRowHeightFor` divides it into six rows, as the canvas
+  draws, floored at 40dp — where the cell's two lines of Studio type still fit, now that each
+  line carries its own line height rather than the body step's — and capped at the shared row's
+  ceiling. Six rows on a 1080p panel, where there had been under two.

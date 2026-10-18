@@ -196,30 +196,45 @@ fun GuideScreen(
     // of rows — far cheaper than re-querying on every scroll tick.
     LaunchedEffect(windowStart) { recordings = vm.recordingsIn(windowStart, windowEnd) }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        GuideToolbar(
-            windowStart = windowStart,
-            showClock = showClock,
-            onJumpNow = { windowStart = snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L) },
-            onShift = { hours -> windowStart += hours * 60 * 60_000L },
-        )
+    val jumpNow = { windowStart = snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L) }
+    val shift = { hours: Int -> windowStart += hours * 60 * 60_000L }
+    val pickDay = { day: Long ->
+        val now = System.currentTimeMillis()
+        // Picking today means "now", not 00:00 — nobody opens the guide to read what was
+        // on at midnight.
+        windowStart = if (day == TimeModel.startOfLocalDay(now)) {
+            snapToHalfHour(now - 30 * 60_000L)
+        } else {
+            day
+        }
+    }
 
+    Column(modifier = modifier.fillMaxSize()) {
         // FR-UI-05's jump-to-date, as the strip of days the benchmark puts above its grid rather
         // than the dialog this used to open (ADR-020): reaching next Tuesday is now one press
         // sideways and one press of OK, from a row that also says what today is.
-        GuideDayStrip(
-            windowStart = windowStart,
-            onPick = { day ->
-                val now = System.currentTimeMillis()
-                // Picking today means "now", not 00:00 — nobody opens the guide to read what was
-                // on at midnight.
-                windowStart = if (day == TimeModel.startOfLocalDay(now)) {
-                    snapToHalfHour(now - 30 * 60_000L)
-                } else {
-                    day
-                }
-            },
-        )
+        if (StudioTheme.television) {
+            // One row, not two. On a television this sits under the docked picture and above
+            // the rows, and the toolbar's own line — the date, which the chosen chip already
+            // says, and the clock, which the top bar carries — cost the grid a row of its own.
+            // The pair that moves inside a day keeps its place at the end of the strip.
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                GuideDayStrip(windowStart = windowStart, onPick = pickDay, modifier = Modifier.weight(1f))
+                WindowButtons(onJumpNow = jumpNow, onShift = shift)
+            }
+        } else {
+            GuideToolbar(
+                windowStart = windowStart,
+                showClock = showClock,
+                onJumpNow = jumpNow,
+                onShift = shift,
+            )
+            GuideDayStrip(windowStart = windowStart, onPick = pickDay)
+        }
         HorizontalDivider()
 
         if (channels.isEmpty()) {
@@ -329,7 +344,24 @@ private fun GuideToolbar(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Box(modifier = Modifier.weight(1f))
-        // Ghosts, all three (MIGRATION.md §2): moving the window is not this screen's main action.
+        WindowButtons(onJumpNow = onJumpNow, onShift = onShift)
+        // The day buttons that used to sit here are the strip below; what is left is the pair
+        // that moves inside a day. The clock is here because a full-screen overlay takes the
+        // device's own away with it, and a guide is read against the current time.
+        if (showClock) {
+            ClockText(
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Two hours back, now, two hours on: the window's moves inside a day. */
+@Composable
+private fun WindowButtons(onJumpNow: () -> Unit, onShift: (Int) -> Unit) {
+    // Ghosts, all three (MIGRATION.md §2): moving the window is not this screen's main action.
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         StudioButton(
             label = stringResource(R.string.guide_shift_back_hours),
             onClick = { onShift(-2) },
@@ -348,15 +380,6 @@ private fun GuideToolbar(
             variant = StudioButtonVariant.GHOST,
             size = StudioButtonSize.MEDIUM,
         )
-        // The day buttons that used to sit here are the strip below; what is left is the pair
-        // that moves inside a day. The clock is here because a full-screen overlay takes the
-        // device's own away with it, and a guide is read against the current time.
-        if (showClock) {
-            ClockText(
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
     }
 }
 
@@ -369,7 +392,7 @@ private fun GuideToolbar(
  * the edge, and the days behind it are one press away for catch-up (FR-CU-02).
  */
 @Composable
-private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit) {
+private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit, modifier: Modifier = Modifier) {
     // One reading of the clock for the whole strip: taken again per chip, a day boundary crossed
     // mid-composition would put two different "today"s on the same row.
     val reference = remember { System.currentTimeMillis() }
@@ -379,7 +402,7 @@ private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit) {
     )
     LazyRow(
         state = listState,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -711,15 +734,25 @@ private fun ProgrammeCell(
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
             // with `focusable()` made every cell cost two D-pad presses to pass.
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            // Less air on a television, where the row is cut to fit six under the docked picture
+            // (`dockedGuideRowHeightFor`); the phone's row keeps its height, and its padding.
+            .padding(horizontal = 8.dp, vertical = if (StudioTheme.television) 3.dp else 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         val past = programme.endUtc <= now
-        val cellTitle = StudioTheme.type.body.copy(
-            fontSize = StudioTheme.type.body.fontSize * CELL_TITLE_SCALE,
+        // The line height follows the size. Copied from the body step with the size alone
+        // changed, both lines kept the body's line height, and the two of them stood taller than
+        // a row the television can fit six of.
+        val body = StudioTheme.type.body
+        val cellTitle = body.copy(
+            fontSize = body.fontSize * CELL_TITLE_SCALE,
+            lineHeight = body.lineHeight * CELL_TITLE_SCALE,
             fontWeight = FontWeight.SemiBold,
         )
-        val cellTime = StudioTheme.type.body.copy(fontSize = StudioTheme.type.body.fontSize * CELL_TIME_SCALE)
+        val cellTime = body.copy(
+            fontSize = body.fontSize * CELL_TIME_SCALE,
+            lineHeight = body.lineHeight * CELL_TIME_SCALE,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
             if (live && onScreen) {
                 Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(studio.tally))

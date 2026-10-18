@@ -1,6 +1,7 @@
 package com.tivicopy.player.ui
 
 import com.tivicopy.player.ui.common.TvMetrics
+import com.tivicopy.player.ui.common.dockedGuideRowHeightFor
 import com.tivicopy.player.ui.common.tvMetricsFor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,6 +47,39 @@ class TvMetricsTest {
      * collapsed rail that a row holds one card. Neither shows up as an error: both simply produce
      * a home screen nobody here can look at.
      */
+    /**
+     * The guide under the docked picture (`PictureInGuide`). On a 1080p panel the top bar and the
+     * picture's row take 242dp of 540, and what is left has to hold the strip, the ruler and a
+     * grid worth opening the guide for: the panel's own row height fitted fewer than two rows
+     * there, which is what the owner reported as barely seeing the guide at all.
+     */
+    @Test
+    fun `the docked guide fits at least five rows on a 1080p panel`() {
+        val top = 64f
+        val preview = 162f + 16f
+        val height = hd.second - top - preview
+        val rows = (height - 66f) / dockedGuideRowHeightFor(height).value
+        assertTrue("$rows rows", rows >= 5f)
+        // And the rows are not the panel's: the seventh of the panel the shared metric cuts.
+        assertTrue(dockedGuideRowHeightFor(height).value < tvMetricsFor(hd.first, hd.second).guideRowHeight.value)
+    }
+
+    @Test
+    fun `a docked row never falls below the height its two lines of type need`() {
+        listOf(0f, 1f, 100f, 200f).forEach { height ->
+            assertTrue(dockedGuideRowHeightFor(height).value >= 40f)
+        }
+    }
+
+    @Test
+    fun `a docked row never grows past the panel row's own ceiling`() {
+        panels.forEach { (_, h) ->
+            val docked = dockedGuideRowHeightFor(h - 64f - 178f).value
+            assertTrue("$docked", docked <= 112f)
+        }
+        assertEquals(112f, dockedGuideRowHeightFor(10_000f).value, 0.01f)
+    }
+
     @Test
     fun `the banner always leaves a slice of the first rail on screen`() {
         panels.forEach { (w, h) ->
