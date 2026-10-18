@@ -163,6 +163,45 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
 }
 
 /**
+ * How tall a guide row is where the grid sits under the docked picture (`PictureInGuide`).
+ *
+ * [TvMetrics.guideRowHeight] is cut from the whole panel: a seventh of its height. The television
+ * guide never has the whole panel for its rows — the top bar, the preview beside the focused
+ * programme, the day strip and the hour ruler come first — so on a 1080p panel that seventh left
+ * room for fewer than two rows under them, and the guide read as a picture with a grid's edge
+ * showing beneath it. This takes the height the grid actually has, less the strip and the ruler
+ * the grid draws above its rows, and cuts it into [DOCKED_GUIDE_ROWS] instead: six, as the Studio
+ * canvas (`Guide.dc.html`) draws under its preview.
+ *
+ * Floored where a cell's two lines of Studio type still fit (`GuideCell.dc.html` draws a 29dp
+ * cell; the floor keeps a little more air than that), and capped at the same ceiling as the
+ * panel's own row, so a 4K panel buys rows rather than taller ones.
+ *
+ * @param gridHeightDp the height handed to the guide under the picture, strip and ruler included
+ */
+fun dockedGuideRowHeightFor(gridHeightDp: Float): Dp {
+    val rows = (gridHeightDp - DOCKED_GUIDE_CHROME_HEIGHT).coerceAtLeast(0f)
+    return (rows / DOCKED_GUIDE_ROWS).coerceIn(MIN_DOCKED_ROW_HEIGHT, MAX_ROW_HEIGHT).dp
+}
+
+/** How many rows the guide under the docked picture aims to show at once. */
+private const val DOCKED_GUIDE_ROWS = 6
+
+/**
+ * What the guide draws above its rows on a television: the day strip with the window buttons
+ * beside it, the hour ruler, and the hairlines between them. Estimated once rather than measured,
+ * because a row height that depended on measuring the chrome would arrive one frame late and the
+ * grid would be laid out twice on every opening.
+ */
+private const val DOCKED_GUIDE_CHROME_HEIGHT = 66f
+
+/**
+ * The least a docked row may be: the ten-foot cell's title and time (21px and 17px on the 1080p
+ * canvas, at Studio's line heights) with their padding, and a few dp of air.
+ */
+private const val MIN_DOCKED_ROW_HEIGHT = 40f
+
+/**
  * How tall the home banner is on a given panel.
  *
  * A fraction of the height, then bounded twice: never so short that the banner stops being the
