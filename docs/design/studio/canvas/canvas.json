@@ -11,6 +11,10 @@
  },
  "pages": [
   {
+   "id": "icon",
+   "name": "אייקון"
+  },
+  {
    "id": "screens",
    "name": "טלוויזיה · מסכים"
   },
@@ -1093,6 +1097,70 @@
    "title": "שומר מסך — שעון ומבזקים, בצבע (קונספט)",
    "page": "tv-screensaver",
    "is_interactive": true
+  },
+  "AppIcon.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 192,
+   "h": 192,
+   "title": "אייקון · AppIcon",
+   "page": "icon"
+  },
+  "AppBanner.dc.html": {
+   "x": 4300,
+   "y": 0,
+   "w": 320,
+   "h": 180,
+   "title": "אריח טלוויזיה · AppBanner",
+   "page": "icon"
+  },
+  "IconCompare.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "השוואה — ארבע אפשרויות",
+   "page": "icon"
+  },
+  "IconA.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרות א · נורית",
+   "page": "icon"
+  },
+  "IconB.dc.html": {
+   "x": 2000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרות ב · ש של אותות",
+   "page": "icon"
+  },
+  "IconC.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרות ג · מסך ושליש תחתון",
+   "page": "icon"
+  },
+  "IconD.dc.html": {
+   "x": 2000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרות ד · חותמת אדומה",
+   "page": "icon"
+  },
+  "IconDRound.dc.html": {
+   "x": 4000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "אפשרות ד · חמש גרסאות לאייקון העגול",
+   "page": "icon"
   }
  },
  "order": [
@@ -1221,7 +1289,15 @@
   "TvScreensaver.dc.html",
   "TvScreensaverFlashes.dc.html",
   "TvScreensaverCombo.dc.html",
-  "TvSettingsFlashes.dc.html"
+  "TvSettingsFlashes.dc.html",
+  "AppIcon.dc.html",
+  "AppBanner.dc.html",
+  "IconCompare.dc.html",
+  "IconA.dc.html",
+  "IconB.dc.html",
+  "IconC.dc.html",
+  "IconD.dc.html",
+  "IconDRound.dc.html"
  ],
  "notes": {},
  "designSystems": []
