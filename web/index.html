@@ -7,7 +7,9 @@
     <meta name="color-scheme" content="dark" />
     <meta name="referrer" content="no-referrer" />
     <title>שידור</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- With credentials: behind a login proxy (Cloudflare Access) a manifest fetched without the
+         session cookie gets the login page instead, and the app cannot be installed. -->
+    <link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="preload" href="/fonts/ibm_plex_sans_hebrew_regular.ttf" as="font" type="font/ttf" crossorigin />

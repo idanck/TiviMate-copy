@@ -54,7 +54,9 @@ All optional, all environment variables:
 
 Serve it over HTTPS (a reverse proxy or a tunnel) when it is reachable from outside: the
 installed app, the service worker and the session cookie all expect a secure origin, except on
-`localhost`.
+`localhost`. A login proxy in front of it (Cloudflare Access, for one) can take the password's
+place: the manifest is requested with credentials and the service worker never caches the login
+page, so the app installs and works behind it.
 
 ## Check it
 
