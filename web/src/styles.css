@@ -455,6 +455,12 @@ a { color: var(--next); }
 .overlay-controls .spacer { flex: 1; }
 .volume { width: 96px; accent-color: var(--cue); }
 .mini .overlay-programme, .mini .volume { display: none; }
+/* The guide's preview and the corner player are too narrow for every control. */
+.player-host { container-type: size; }
+@container (max-width: 420px) {
+  .volume, .zap-btn { display: none; }
+  .overlay-top, .overlay-bottom { padding: 8px 10px; }
+}
 
 .player-state {
   position: absolute;

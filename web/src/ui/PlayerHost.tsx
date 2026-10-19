@@ -132,10 +132,10 @@ function Controls({ host }: { host: HTMLElement | null }) {
       </button>
       {pb.role === 'tv' && (
         <>
-          <button class="icon-btn" onClick={() => zap(-1)} aria-label="הערוץ הקודם" title="הערוץ הקודם (חץ למעלה)" style={{ transform: 'rotate(180deg)' }}>
+          <button class="icon-btn zap-btn" onClick={() => zap(-1)} aria-label="הערוץ הקודם" title="הערוץ הקודם (חץ למעלה)" style={{ transform: 'rotate(180deg)' }}>
             <Icon name="chevronDown" size={20} />
           </button>
-          <button class="icon-btn" onClick={() => zap(1)} aria-label="הערוץ הבא" title="הערוץ הבא (חץ למטה)">
+          <button class="icon-btn zap-btn" onClick={() => zap(1)} aria-label="הערוץ הבא" title="הערוץ הבא (חץ למטה)">
             <Icon name="chevronDown" size={20} />
           </button>
         </>
