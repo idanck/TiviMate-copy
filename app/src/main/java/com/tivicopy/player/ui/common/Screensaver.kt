@@ -864,7 +864,7 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                 val y = size.height - 0.5.dp.toPx()
                 drawLine(hairline, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.dp.toPx())
             }
-            .padding(vertical = units.dp(14f))
+            .padding(vertical = units.dp(12f))
             .height(IntrinsicSize.Min),
     ) {
         Box(
@@ -883,8 +883,8 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                     Text(
                         text = flashTime(at, nowUtc),
                         style = type.h1.copy(
-                            fontSize = units.sp(18f),
-                            lineHeight = units.sp(18f),
+                            fontSize = units.sp(15f),
+                            lineHeight = units.sp(15f),
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = studio.ink,
@@ -895,8 +895,9 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
             Text(
                 text = item.flash.title,
                 style = type.h1.copy(
-                    fontSize = units.sp(20f),
-                    lineHeight = units.sp(24f),
+                    // Was 20sp on 24 until 0.18.1, which the owner found too large.
+                    fontSize = units.sp(17f),
+                    lineHeight = units.sp(21f),
                     fontWeight = FontWeight.SemiBold,
                     // A Hebrew headline under an English interface, or the other way round,
                     // lays itself out by what it says.

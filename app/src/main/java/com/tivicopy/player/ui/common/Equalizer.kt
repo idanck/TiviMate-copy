@@ -29,8 +29,8 @@ import com.tivicopy.player.ui.theme.StudioTheme
 @Composable
 fun Equalizer(playing: Boolean, description: String, modifier: Modifier = Modifier) {
     DisposableEffect(Unit) {
-        AudioSpectrum.listening = true
-        onDispose { AudioSpectrum.listening = false }
+        AudioSpectrum.startListening()
+        onDispose { AudioSpectrum.stopListening() }
     }
     val bands by AudioSpectrum.bands.collectAsState()
     val colour = StudioTheme.colors.equalizerBar

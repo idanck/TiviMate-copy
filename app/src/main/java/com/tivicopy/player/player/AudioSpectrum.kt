@@ -5,6 +5,7 @@ import androidx.media3.common.C
 import androidx.media3.exoplayer.audio.TeeAudioProcessor
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.ln
@@ -39,13 +40,33 @@ object AudioSpectrum {
     /** The latest bands, 0..1, low frequencies first. All zero when nothing is being measured. */
     val bands: StateFlow<FloatArray> = _bands.asStateFlow()
 
-    /** Whether anything is showing the bars. Set by the equaliser while it is composed. */
-    @Volatile
-    var listening: Boolean = false
-        set(value) {
-            field = value
-            if (!value) _bands.value = FloatArray(BANDS)
+    /**
+     * How many equalisers are on screen. A count, not a flag: the screensaver's equaliser is
+     * composed over the radio's, and the one leaving must not switch off the one that stays —
+     * which a flag did until 0.18.1, leaving the radio's bars at rest after the screensaver.
+     */
+    private val listeners = AtomicInteger(0)
+
+    /** Whether anything is showing the bars. */
+    val listening: Boolean get() = listeners.get() > 0
+
+    /** Called by an equaliser entering the screen; pair each with one [stopListening]. */
+    fun startListening() {
+        listeners.incrementAndGet()
+    }
+
+    /** Called by an equaliser leaving the screen. The last one out rests the bars. */
+    fun stopListening() {
+        // A compare-and-set loop rather than updateAndGet, which needs API 24.
+        while (true) {
+            val current = listeners.get()
+            val next = (current - 1).coerceAtLeast(0)
+            if (listeners.compareAndSet(current, next)) {
+                if (next == 0) _bands.value = FloatArray(BANDS)
+                return
+            }
         }
+    }
 
     /** The sink [TeeAudioProcessor] writes to. One per player; the state it keeps is its own. */
     class Sink : TeeAudioProcessor.AudioBufferSink {
