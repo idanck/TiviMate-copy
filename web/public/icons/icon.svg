@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72">
+  <!-- Generated from app/src/main/res/drawable/ic_launcher_foreground.xml (docs/design/studio/ICON.md): the launcher's 72dp crop, rounded 22%. -->
+  <rect x="18" y="18" width="72" height="72" rx="15.84" fill="#FF5A5F"/>
+  <path fill="#F3F5F9" d="M46.832 31.6V61.488H50.48V40.112H48.304L49.712 31.6H58.544V61.488H61.616Q61.936 61.488 61.936 61.168V40.112H59.76L61.168 31.6H70V64.048Q70 66.736 68.528 68.368Q67.056 70 64.624 70H38.768V40.112H37.36L38.768 31.6Z"/>
+  <path fill="#080C14" d="M40.5,74H67.5A2.5,2.5 0 0 1 70,76.5V76.5A2.5,2.5 0 0 1 67.5,79H40.5A2.5,2.5 0 0 1 38,76.5V76.5A2.5,2.5 0 0 1 40.5,74Z"/>
+</svg>
