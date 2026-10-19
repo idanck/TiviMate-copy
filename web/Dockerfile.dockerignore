@@ -1,0 +1,6 @@
+# The build context is the repository root; the image needs only the web app and the version.
+*
+!version.properties
+!web/
+web/node_modules
+web/dist

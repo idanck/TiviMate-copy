@@ -257,3 +257,18 @@ clip at the moment they are pressed) and resting it on `Color.Transparent` (whic
 *black*, so a bright ring darkened on its way out rather than fading). Everything focusable now
 goes through one `Modifier.focusSurface`, and every menu through one `AppDialog` on the shell's
 own plate. `FocusVocabularyTest` holds the three invariants that were broken.
+
+## WEB — Shidur for the computer (ADR-044)
+
+An installable web app in `web/`, with the server that proxies providers. Measured against the
+same requirements; only what differs from the Android column above is listed.
+
+| Area | Status | Notes |
+|---|---|---|
+| Sources | Done | M3U address, M3U file, Xtream (live only). Built-in Israeli channels and radio, as FR-SRC-16. Stalker not implemented. |
+| Guide | Done | XMLTV streamed in a worker, bound with the same matcher; −12 h…+48 h kept. Global offset and `tvg-shift`; no per-channel offset or manual binding UI. |
+| Playback | Done | hls.js, mpegts.js, native. Failover across a channel's URLs, reconnect 5/10/15 s. AC-3 audio re-encoded to AAC by the server when ffmpeg is present. No track selection, subtitles or aspect modes. |
+| UI | Partial | Channels, guide, radio, search, settings, Hebrew only. Favourites and recents; no hiding, renaming or custom groups; no parental lock, screensaver, sport or news multi-view. |
+| Recording, catch-up, VOD | Not implemented | |
+| Backup | Done | Reads and writes the Android format 1 file, with or without credentials. |
+| Updates | N/A | A browser loads the new build from the server the next time the app opens. |
