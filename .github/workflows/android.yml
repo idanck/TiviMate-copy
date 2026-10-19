@@ -5,6 +5,11 @@ on:
     # Every branch except the ones this workflow publishes APKs to, so a build cannot
     # trigger itself, and the QA evidence branch, which holds no app.
     branches-ignore: ["apk", "apk-preview", "qa-results"]
+    # The web app (ADR-044) has its own workflow. A change to it alone builds no APK: it would
+    # carry the published versionCode with different contents, and the publish step refuses that.
+    paths-ignore:
+      - "web/**"
+      - ".github/workflows/web.yml"
   workflow_dispatch:
 
 permissions:

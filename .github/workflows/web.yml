@@ -1,0 +1,65 @@
+name: Web app
+
+# Shidur for the computer (web/, ADR-044): typecheck, unit tests, the production build, and the
+# Docker image. It publishes nothing; the web app has no update channel of its own to feed — a
+# browser picks up a new build from the server the next time it opens the app.
+on:
+  push:
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
+    paths:
+      - "web/**"
+      - "version.properties"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Docker image
+        working-directory: .
+        run: docker build -f web/Dockerfile --build-arg SHIDUR_SHA="$(git rev-parse --short=8 HEAD)" -t shidur-web:ci .
+
+      - name: The image serves the app
+        working-directory: .
+        run: |
+          set -euo pipefail
+          docker run -d --name shidur-web -p 8787:8787 shidur-web:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8787/api/health; then break; fi
+            sleep 1
+          done
+          echo
+          curl -fsS http://127.0.0.1:8787/api/health | jq -e '.ok == true and .remux == true'
+          curl -fsS -o /dev/null http://127.0.0.1:8787/
+          docker rm -f shidur-web

@@ -1,0 +1,15 @@
+# An example deployment. Copy next to a .env holding SHIDUR_WEB_PASSWORD, then:
+#   docker compose -f web/compose.example.yml up -d --build
+# from the repository root. Put it behind HTTPS (a reverse proxy or a tunnel) before reaching it
+# from outside the home network.
+services:
+  shidur-web:
+    build:
+      context: ..
+      dockerfile: web/Dockerfile
+    image: shidur-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8787:8787"
+    environment:
+      SHIDUR_WEB_PASSWORD: ${SHIDUR_WEB_PASSWORD:?set SHIDUR_WEB_PASSWORD}

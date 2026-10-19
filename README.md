@@ -22,6 +22,7 @@ branding are reproduced or reused in this repository or in the resulting app.
 
 ```
 app/          The Android application (Kotlin, Jetpack Compose, Media3)
+web/          Shidur for the computer: an installable web app and its proxy server (ADR-044)
 docs/         Functional analysis, split by area, plus ADRs
 requirements/ Numbered, testable requirements (FR / NFR) + roadmap
 ```
@@ -80,6 +81,11 @@ artefact installs directly for personal use. To sign it properly, set `RELEASE_K
 
 CI (`.github/workflows/android.yml`) runs the tests and assembles the APK on every push, and
 uploads it as a build artefact.
+
+### The web version
+
+`web/` is Shidur for a computer, an installable web app with the small server it needs to reach
+providers. How to run it, with or without Docker: `web/README.md`.
 
 ## Versioning
 
