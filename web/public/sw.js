@@ -4,7 +4,7 @@
 // launch, and falls back to the cached copy offline. Built assets carry a content hash in their
 // name, so they are cached the first time they are fetched and never revalidated. Nothing under
 // /api/ is ever cached: those are live playlists, guides and streams, proxied by the server.
-const CACHE = 'shidur-shell-v1';
+const CACHE = 'shidur-shell-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -29,8 +29,12 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/', copy));
+          // Only the page itself: behind a login proxy an expired session answers with a redirect
+          // to the login page, which must reach the browser but must not become the offline shell.
+          if (res.ok && res.type === 'basic') {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put('/', copy));
+          }
           return res;
         })
         .catch(() => caches.match('/')),
@@ -41,7 +45,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/fonts/') || url.pathname.startsWith('/icons/')) {
     event.respondWith(
       caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        if (res.ok) {
+        if (res.ok && res.type === 'basic') {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(req, copy));
         }
