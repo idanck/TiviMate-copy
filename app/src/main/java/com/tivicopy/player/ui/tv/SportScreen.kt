@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -62,6 +63,7 @@ import com.tivicopy.player.ui.common.PanelVideo
 import com.tivicopy.player.ui.common.SportPickerRow
 import com.tivicopy.player.ui.common.panelConnecting
 import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
+import com.tivicopy.player.ui.common.NewsTicker
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
@@ -85,7 +87,8 @@ import com.tivicopy.player.ui.theme.StudioTheme
  *
  * News mode (ADR-042) is this screen too, with two panels: one of them may show the headlines,
  * chosen in the picker like a channel. The headlines have the same menu as a picture; with them in
- * focus the sound stays with the channel beside them.
+ * focus the sound stays with the channel beside them. News mode's menu also switches between two
+ * panels and four, and the running strip of headlines across the top (ADR-045).
  */
 @Composable
 internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
@@ -100,6 +103,8 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val count by session.count.collectAsState()
     val mode by session.mode.collectAsState()
     val prefs by vm.settingsState.collectAsState()
+    val live by session.live.collectAsState()
+    val news = mode == SportSession.Mode.NEWS
     val heard = SportSession.audibleSlot(slots, focused)
     val requesters = remember { List(SportLayout.SLOTS) { FocusRequester() } }
     val drawerOpen = picking != null || menu != null
@@ -118,43 +123,49 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
 
     val gap = with(LocalDensity.current) { PANEL_GAP.roundToPx() }
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        Layout(
-            modifier = Modifier.fillMaxSize(),
-            content = {
-                // Keyed by place: a panel's view, and so its video surface, stays where it is
-                // while the grid around it moves.
-                slots.take(count).forEachIndexed { index, slot ->
-                    key(index) {
-                        SportPanel(
-                            vm = vm,
-                            slot = slot,
-                            audible = index == heard,
-                            expanded = expanded,
-                            paused = paused,
-                            canTakeFocus = !drawerOpen && (!expanded || index == focused),
-                            requester = requesters[index],
-                            onFocused = { session.focus(index) },
-                            onOk = {
-                                when {
-                                    slot.flashes -> session.openMenu(index)
-                                    slot.channel == null -> session.openPicker(index)
-                                    slot.panel.status.value.failed -> session.retry(index)
-                                    else -> session.openMenu(index)
-                                }
-                            },
-                            onMenu = { session.openPicker(index) },
-                        )
-                    }
-                }
-            },
-        ) { measurables, constraints ->
-            val cells = SportLayout.cells(constraints.maxWidth, constraints.maxHeight, focused, expanded, gap, count)
-            val placeables = measurables.mapIndexed { i, measurable ->
-                measurable.measure(Constraints.fixed(cells[i].width, cells[i].height))
+        Column(modifier = Modifier.fillMaxSize()) {
+            // In a band of its own above the panels rather than over them, so it hides no picture.
+            if (news && prefs.newsTicker) {
+                NewsTicker(live = live, modifier = Modifier.height(TICKER_HEIGHT))
             }
-            layout(constraints.maxWidth, constraints.maxHeight) {
-                // Relative, so the first panel is at the top right in Hebrew.
-                placeables.forEachIndexed { i, placeable -> placeable.placeRelative(cells[i].x, cells[i].y) }
+            Layout(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                content = {
+                    // Keyed by place: a panel's view, and so its video surface, stays where it is
+                    // while the grid around it moves.
+                    slots.take(count).forEachIndexed { index, slot ->
+                        key(index) {
+                            SportPanel(
+                                vm = vm,
+                                slot = slot,
+                                audible = index == heard,
+                                expanded = expanded,
+                                paused = paused,
+                                canTakeFocus = !drawerOpen && (!expanded || index == focused),
+                                requester = requesters[index],
+                                onFocused = { session.focus(index) },
+                                onOk = {
+                                    when {
+                                        slot.flashes -> session.openMenu(index)
+                                        slot.channel == null -> session.openPicker(index)
+                                        slot.panel.status.value.failed -> session.retry(index)
+                                        else -> session.openMenu(index)
+                                    }
+                                },
+                                onMenu = { session.openPicker(index) },
+                            )
+                        }
+                    }
+                },
+            ) { measurables, constraints ->
+                val cells = SportLayout.cells(constraints.maxWidth, constraints.maxHeight, focused, expanded, gap, count)
+                val placeables = measurables.mapIndexed { i, measurable ->
+                    measurable.measure(Constraints.fixed(cells[i].width, cells[i].height))
+                }
+                layout(constraints.maxWidth, constraints.maxHeight) {
+                    // Relative, so the first panel is at the top right in Hebrew.
+                    placeables.forEachIndexed { i, placeable -> placeable.placeRelative(cells[i].x, cells[i].y) }
+                }
             }
         }
 
@@ -163,7 +174,8 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 slot = slot,
                 slots = slots.take(count),
                 expanded = expanded,
-                news = mode == SportSession.Mode.NEWS,
+                news = news,
+                ticker = prefs.newsTicker,
                 opacity = prefs.overlayOpacity,
                 onExpand = {
                     session.closeMenu()
@@ -172,6 +184,8 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 },
                 onChange = { session.openPicker(slot) },
                 onClear = { session.clear(slot) },
+                onPanels = { vm.setNewsPanels(if (count > SportLayout.PAIR) SportLayout.PAIR else SportLayout.SLOTS) },
+                onTicker = { vm.setNewsTicker(!prefs.newsTicker) },
                 modifier = Modifier.align(Alignment.CenterEnd),
             )
         }
@@ -181,7 +195,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 slot = slot,
                 slots = slots.take(count),
                 choices = choices,
-                news = mode == SportSession.Mode.NEWS,
+                news = news,
                 opacity = prefs.overlayOpacity,
                 onPick = { channel -> session.assign(slot, channel) },
                 onFlashes = { session.showFlashes(slot) },
@@ -289,7 +303,8 @@ private fun SportPanel(
  * A panel's menu (ADR-041 decision 11): the same drawer as the picker, with the three things a
  * panel already showing something can do. Fill the screen with it, or put the grid back; change
  * what it shows, which opens the picker in its place; remove it. The remote lands on the first row,
- * so OK twice is still full screen.
+ * so OK twice is still full screen. In News mode, two more rows for the whole screen (ADR-045): two
+ * panels or four, and the running strip of headlines.
  */
 @Composable
 private fun SportPanelMenu(
@@ -297,14 +312,18 @@ private fun SportPanelMenu(
     slots: List<SportSession.Slot>,
     expanded: Boolean,
     news: Boolean,
+    ticker: Boolean,
     opacity: Float,
     onExpand: () -> Unit,
     onChange: () -> Unit,
     onClear: () -> Unit,
+    onPanels: () -> Unit,
+    onTicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
     val entry = slots.getOrNull(slot)
+    val four = slots.size > SportLayout.PAIR
     val title = when {
         entry?.flashes == true -> stringResource(R.string.news_flashes)
         else -> entry?.channel?.displayName ?: stringResource(R.string.sport_add_channel)
@@ -338,7 +357,13 @@ private fun SportPanelMenu(
             modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 10.dp),
         )
         ListRow(
-            label = stringResource(if (expanded) R.string.sport_menu_grid else R.string.sport_menu_fullscreen),
+            label = stringResource(
+                when {
+                    !expanded -> R.string.sport_menu_fullscreen
+                    four -> R.string.sport_menu_grid_all
+                    else -> R.string.sport_menu_grid
+                },
+            ),
             icon = if (expanded) StudioIcons.Grid else StudioIcons.Fullscreen,
             onClick = onExpand,
             focusRequester = first,
@@ -353,6 +378,20 @@ private fun SportPanelMenu(
             icon = StudioIcons.Close,
             onClick = onClear,
         )
+        if (news) {
+            ListRow(
+                label = stringResource(if (four) R.string.news_panels_two else R.string.news_panels_four),
+                icon = StudioIcons.Grid,
+                onClick = onPanels,
+            )
+            ListRow(
+                label = stringResource(R.string.news_ticker),
+                icon = StudioIcons.News,
+                onClick = onTicker,
+                trail = RowTrail.TOGGLE,
+                toggled = ticker,
+            )
+        }
     }
 }
 
@@ -498,4 +537,7 @@ private val PANEL_GAP = 4.dp
 private val RING_WIDTH = 3.dp
 
 private val PICKER_WIDTH = 360.dp
+
+/** News mode's strip of headlines across the top (ADR-045): one line, read across a room. */
+private val TICKER_HEIGHT = 48.dp
 

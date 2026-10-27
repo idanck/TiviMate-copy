@@ -56,6 +56,7 @@ import com.tivicopy.player.ui.common.EmptyPanel
 import com.tivicopy.player.ui.common.FlashesPanel
 import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.Loader
+import com.tivicopy.player.ui.common.NewsTicker
 import com.tivicopy.player.ui.common.PanelCaption
 import com.tivicopy.player.ui.common.PanelChangeButton
 import com.tivicopy.player.ui.common.PanelFailure
@@ -87,7 +88,8 @@ import kotlinx.coroutines.delay
  *
  * News mode (ADR-042) is this screen too, with the headlines on offer in the picker beside the
  * news channels. A tap on the headlines gives them the focus and
- * leaves the sound with the picture beside them.
+ * leaves the sound with the picture beside them. News mode's bar also switches between two panels
+ * and four, and the running strip of headlines along the top (ADR-045).
  */
 @Composable
 internal fun PhoneSport(
@@ -107,6 +109,10 @@ internal fun PhoneSport(
     val news = mode == SportSession.Mode.NEWS
     val heard = SportSession.audibleSlot(slots, focused)
     val studio = StudioTheme.colors
+    val prefs by vm.settingsState.collectAsState()
+    val live by session.live.collectAsState()
+    val onPanels = { vm.setNewsPanels(if (count > SportLayout.PAIR) SportLayout.PAIR else SportLayout.SLOTS) }
+    val onTicker = { vm.setNewsTicker(!prefs.newsTicker) }
 
     val configuration = LocalConfiguration.current
     val landscape = configuration.screenWidthDp > configuration.screenHeightDp
@@ -149,9 +155,17 @@ internal fun PhoneSport(
                 SportBar(
                     news = news,
                     paused = paused,
+                    four = count > SportLayout.PAIR,
+                    ticker = prefs.newsTicker,
                     onLeave = onLeave,
                     onTogglePause = session::togglePause,
+                    onPanels = onPanels,
+                    onTicker = onTicker,
                 )
+            }
+            // In a band of its own above the panels rather than over them, so it hides no picture.
+            if (news && prefs.newsTicker) {
+                NewsTicker(live = live, modifier = Modifier.height(TICKER_HEIGHT))
             }
             Box(modifier = Modifier.fillMaxWidth().weight(1f).background(Color.Black)) {
                 Layout(
@@ -215,8 +229,12 @@ internal fun PhoneSport(
                     SportBar(
                         news = news,
                         paused = paused,
+                        four = count > SportLayout.PAIR,
+                        ticker = prefs.newsTicker,
                         onLeave = onLeave,
                         onTogglePause = session::togglePause,
+                        onPanels = onPanels,
+                        onTicker = onTicker,
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .background(studio.ground.copy(alpha = BAR_SCRIM_ALPHA)),
@@ -241,14 +259,19 @@ internal fun PhoneSport(
 }
 
 /**
- * The bar: back, the title, and pause or play for both panels.
+ * The bar: back, the title, and pause or play for every panel. In News mode also two panels or
+ * four, and the running strip of headlines, each lit in the cue while it is on (ADR-045).
  */
 @Composable
 private fun SportBar(
     news: Boolean,
     paused: Boolean,
+    four: Boolean,
+    ticker: Boolean,
     onLeave: () -> Unit,
     onTogglePause: () -> Unit,
+    onPanels: () -> Unit,
+    onTicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
@@ -275,6 +298,22 @@ private fun SportBar(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f).padding(horizontal = 4.dp),
         )
+        if (news) {
+            IconButton(onClick = onPanels) {
+                Icon(
+                    imageVector = StudioIcons.Grid,
+                    contentDescription = stringResource(R.string.news_panels_toggle),
+                    tint = if (four) studio.cue else studio.ink,
+                )
+            }
+            IconButton(onClick = onTicker) {
+                Icon(
+                    imageVector = StudioIcons.News,
+                    contentDescription = stringResource(R.string.news_ticker),
+                    tint = if (ticker) studio.cue else studio.ink,
+                )
+            }
+        }
         IconButton(onClick = onTogglePause) {
             Icon(
                 imageVector = if (paused) StudioIcons.Play else StudioIcons.Pause,
@@ -474,6 +513,9 @@ private val PANEL_GAP = 3.dp
 private val RING_WIDTH = 2.dp
 
 private val BAR_HEIGHT = 56.dp
+
+/** News mode's strip of headlines along the top (ADR-045). */
+private val TICKER_HEIGHT = 34.dp
 
 /** How long the bar stays over the pictures, lying down, after the last touch. */
 private const val BAR_HOLD_MS = 4_000L

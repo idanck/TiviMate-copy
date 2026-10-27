@@ -870,8 +870,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Opens Sport mode (ADR-041): two panels, on the television and the phone alike (decision 10). */
     fun enterSport() = enterPanels(SportSession.Mode.SPORT, SportLayout.PAIR)
 
-    /** Opens News mode (ADR-042): two panels, one of which may show the headlines. */
-    fun enterNews() = enterPanels(SportSession.Mode.NEWS, SportLayout.PAIR)
+    /**
+     * Opens News mode (ADR-042): two panels, or four if the viewer chose them (ADR-045), one of
+     * which may show the headlines.
+     */
+    fun enterNews() = enterPanels(SportSession.Mode.NEWS, settings.state.value.newsPanels)
+
+    /** News mode's two or four panels (ADR-045): remembered, and applied at once while it is up. */
+    fun setNewsPanels(panels: Int) {
+        val count = SportLayout.panels(panels)
+        settings.setNewsPanels(count)
+        if (sport.active && sport.mode.value == SportSession.Mode.NEWS) sport.setPanels(count)
+    }
+
+    /** News mode's running strip of headlines across the top of the screen (ADR-045). */
+    fun setNewsTicker(on: Boolean) = settings.setNewsTicker(on)
 
     /**
      * The full-screen player stands down first — its decoder and its connection are the panels'

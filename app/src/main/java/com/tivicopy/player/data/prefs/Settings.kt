@@ -218,6 +218,10 @@ class Settings(context: Context) {
         val newsLastCheckUtc: Long,
         /** Every source's last headlines, already parsed; null when there are none. */
         val newsLastDigests: String?,
+        /** How many panels News mode has, two or four (ADR-045). Two by default, as ADR-042 decided. */
+        val newsPanels: Int,
+        /** Whether News mode runs a strip of headlines across the top of the screen (ADR-045). */
+        val newsTicker: Boolean,
     )
 
     private fun read() = Snapshot(
@@ -297,6 +301,8 @@ class Settings(context: Context) {
         newsSources = NewsSource.decode(prefs.getString(K_NEWS_SOURCES, null)),
         newsLastCheckUtc = prefs.getLong(K_NEWS_LAST_CHECK, 0),
         newsLastDigests = prefs.getString(K_NEWS_DIGESTS, null),
+        newsPanels = prefs.getInt(K_NEWS_PANELS, 2),
+        newsTicker = prefs.getBoolean(K_NEWS_TICKER, false),
     )
 
     private fun commit(block: SharedPreferences.Editor.() -> Unit) {
@@ -446,6 +452,10 @@ class Settings(context: Context) {
     fun setScreensaverColours(v: Boolean) = commit { putBoolean(K_SAVER_COLOURS, v) }
 
     fun setFlashSpeed(v: FlashSpeed) = commit { putString(K_FLASH_SPEED, v.name) }
+
+    fun setNewsPanels(v: Int) = commit { putInt(K_NEWS_PANELS, v) }
+
+    fun setNewsTicker(v: Boolean) = commit { putBoolean(K_NEWS_TICKER, v) }
 
     /**
      * Adds a news source, switched on, at the end of the list. False — and nothing stored — for
@@ -632,5 +642,7 @@ class Settings(context: Context) {
         const val K_NEWS_DIGESTS = "news_last_digests"
         const val K_SPORT_SLOTS = "sport_slots"
         const val K_NEWS_SLOTS = "news_slots"
+        const val K_NEWS_PANELS = "news_panels"
+        const val K_NEWS_TICKER = "news_ticker"
     }
 }

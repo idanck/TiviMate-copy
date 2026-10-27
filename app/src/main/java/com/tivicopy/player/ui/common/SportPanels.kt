@@ -3,13 +3,16 @@ package com.tivicopy.player.ui.common
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -18,19 +21,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.exoplayer.ExoPlayer
@@ -42,6 +58,7 @@ import com.tivicopy.player.core.AppError
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.news.NewsDigests
 import com.tivicopy.player.data.news.NewsRepository
+import com.tivicopy.player.data.news.SourcedFlash
 import com.tivicopy.player.player.PanelStatus
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.theme.StudioTheme
@@ -304,13 +321,7 @@ internal fun FlashesPanel(live: Boolean, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
     val prefs by ServiceLocator.settings.state.collectAsState()
     val digests by ServiceLocator.news.state.collectAsState()
-    LaunchedEffect(live) {
-        if (!live) return@LaunchedEffect
-        while (true) {
-            ServiceLocator.news.refresh(force = false)
-            delay(NewsRepository.CHECK_INTERVAL_MS)
-        }
-    }
+    RefreshHeadlines(live)
     val flashes = remember(prefs.newsSources, digests) {
         NewsDigests.merge(prefs.newsSources, digests, System.currentTimeMillis())
     }
@@ -335,6 +346,179 @@ internal fun FlashesPanel(live: Boolean, modifier: Modifier = Modifier) {
                 speed = prefs.flashSpeed,
                 units = units,
                 modifier = Modifier.fillMaxSize().padding(horizontal = units.dp(FLASH_SIDE_DP)),
+            )
+        }
+    }
+}
+
+/**
+ * Keeps the headlines fresh while [live], on the repository's own ten-minute limit. The panel of
+ * headlines and the strip both ask; the limit and the repository's lock make the second ask a
+ * no-op, so the two never fetch twice between them.
+ */
+@Composable
+private fun RefreshHeadlines(live: Boolean) {
+    LaunchedEffect(live) {
+        if (!live) return@LaunchedEffect
+        while (true) {
+            ServiceLocator.news.refresh(force = false)
+            delay(NewsRepository.CHECK_INTERVAL_MS)
+        }
+    }
+}
+
+/**
+ * News mode's running strip of headlines (ADR-045), across the top of the screen in a band of its
+ * own above the panels, so it covers no picture. The "Headlines" plate at the start edge stays put;
+ * the headlines run toward it without stopping, rightwards in Hebrew, so each one comes in from its
+ * first word. The same headlines, sources and colours as the panel of headlines and the
+ * screensaver, at their speed times [TICKER_SPEED_FACTOR]: a line crosses a screen's width, not a
+ * column's height.
+ */
+@Composable
+internal fun NewsTicker(live: Boolean, modifier: Modifier = Modifier) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val prefs by ServiceLocator.settings.state.collectAsState()
+    val digests by ServiceLocator.news.state.collectAsState()
+    RefreshHeadlines(live)
+    val flashes = remember(prefs.newsSources, digests) {
+        NewsDigests.merge(prefs.newsSources, digests, System.currentTimeMillis())
+    }
+    val label = stringResource(R.string.news_flashes)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(studio.saverGround)
+            .semantics { contentDescription = label },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxHeight()
+                .background(studio.cue)
+                .padding(horizontal = 14.dp),
+        ) {
+            Text(
+                text = label,
+                style = type.h1.copy(fontWeight = FontWeight.SemiBold),
+                color = studio.onCue,
+                maxLines = 1,
+            )
+        }
+        BoxWithConstraints(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clipToBounds(),
+        ) {
+            if (flashes.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.news_flashes_none),
+                    style = type.body,
+                    color = studio.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.align(Alignment.CenterStart).padding(horizontal = 16.dp),
+                )
+            } else {
+                TickerLine(flashes = flashes, viewport = constraints.maxWidth.toFloat())
+            }
+        }
+    }
+}
+
+/**
+ * The strip's moving part: as many rounds of the headlines side by side as the width needs, plus
+ * the one coming in, moved toward the start edge as one layer.
+ */
+@Composable
+private fun TickerLine(flashes: List<SourcedFlash>, viewport: Float) {
+    val prefs by ServiceLocator.settings.state.collectAsState()
+    var roundWidth by remember { mutableIntStateOf(0) }
+    val copies = feedCopies(viewport, roundWidth.toFloat())
+    val speedPx = with(LocalDensity.current) {
+        (prefs.flashSpeed.dpPerSecond * TICKER_SPEED_FACTOR).dp.toPx()
+    }
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    // Frame by frame, unlike the column's dozen steps a second: a line moving sideways at
+    // this speed visibly jumps between coarse steps. Read only in the layer below, so a
+    // frame redraws one layer and recomposes nothing.
+    var elapsed by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        val startedAt = withFrameNanos { it }
+        while (true) {
+            withFrameNanos { now -> elapsed = (now - startedAt) / 1_000_000_000f }
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxHeight()
+            .wrapContentWidth(align = Alignment.Start, unbounded = true)
+            .graphicsLayer {
+                // How far the copies have moved toward the start edge, from none to one
+                // round's width, at which point the second copy stands where the first did.
+                val travelled = feedOffset(elapsed, speedPx, roundWidth.toFloat()) + roundWidth
+                translationX = if (rtl) travelled else -travelled
+            },
+    ) {
+        repeat(copies) { copy ->
+            TickerRound(
+                flashes = flashes,
+                colours = prefs.screensaverColours,
+                modifier = if (copy == 0) {
+                    Modifier.onSizeChanged { roundWidth = it.width }
+                } else {
+                    // The copies are scenery: a screen reader reads the headlines once.
+                    Modifier.clearAndSetSemantics { }
+                },
+            )
+        }
+    }
+}
+
+/** One round of the strip: each headline's source dot, source, time and title, in a line. */
+@Composable
+private fun TickerRound(flashes: List<SourcedFlash>, colours: Boolean, modifier: Modifier) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val nowUtc = remember(flashes) { System.currentTimeMillis() }
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+        flashes.forEach { item ->
+            val tone = studio.saverTones[item.colourIndex % studio.saverTones.size]
+            Box(
+                modifier = Modifier
+                    .size(TICKER_DOT)
+                    .clip(CircleShape)
+                    .background(if (colours) tone else studio.ink3),
+            )
+            Text(
+                text = item.source,
+                style = type.caption.copy(fontWeight = FontWeight.SemiBold, textDirection = TextDirection.Content),
+                color = if (colours) tone else studio.ink2,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+            item.flash.publishedUtc?.let { at ->
+                Text(
+                    text = flashTime(at, nowUtc),
+                    style = type.body.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink2,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(start = 10.dp),
+                )
+            }
+            Text(
+                text = item.flash.title,
+                style = type.h1.copy(textDirection = TextDirection.Content),
+                color = studio.ink,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.padding(start = 10.dp, end = TICKER_GAP),
             )
         }
     }
@@ -382,6 +566,14 @@ internal fun SportPickerRow(
  * on a television the larger panel (58% of 960dp) lands at about one, the smaller at the floor.
  * Was 460dp with a ceiling of 1.25 until 0.17.3, which the owner found a little large.
  */
+/**
+ * The strip's speed against the column's: the screensaver's slow is 10dp a second, which reads
+ * well going down a column and crawls across a screen; five times it is a news channel's ticker.
+ */
+private const val TICKER_SPEED_FACTOR = 5f
+private val TICKER_DOT = 7.dp
+private val TICKER_GAP = 36.dp
+
 private const val FLASH_PANEL_WIDTH_DP = 560f
 private const val FLASH_MIN_SCALE = 0.7f
 private const val FLASH_MAX_SCALE = 1.1f

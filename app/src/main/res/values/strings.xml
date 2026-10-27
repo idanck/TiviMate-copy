@@ -532,4 +532,9 @@
     <string name="news_pick_none">No Israeli news channels were found in your playlists.</string>
     <string name="news_flashes">Headlines</string>
     <string name="news_flashes_none">No headlines yet. Their sources are chosen in Settings, under Screensaver.</string>
+    <string name="sport_menu_grid_all">Back to all screens</string>
+    <string name="news_panels_two">Two screens</string>
+    <string name="news_panels_four">Four screens</string>
+    <string name="news_ticker">Running headlines along the top</string>
+    <string name="news_panels_toggle">Two or four screens</string>
 </resources>
