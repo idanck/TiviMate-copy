@@ -54,3 +54,8 @@ purpose:
   could quietly swallow, and `IsraelPublicChannels.LEGACY_M3U_URLS` records superseded addresses so
   bootstrap corrects an existing row in place instead of stranding it beside a new one. Any future
   move of this host must add the outgoing URL to that list.
+- **2026-10-27: i24NEWS and Channel 16.** The owner had i24NEWS (Hebrew; `i24NEWSHebrew.il@SD`,
+  guide from `yes.co.il`'s `CN28`) and Channel 16 (`Channel16.il@SD`, no guide source found) added
+  to the Pi-side filter, so the playlist now carries nine channels. Both are open, unencrypted
+  streams on iptv-org's Israeli list; their logos sit beside the others on the Worker. Only the
+  Pi's `build_channels_m3u.py` and `config/il.channels.xml` changed, outside this repository.

@@ -252,6 +252,9 @@ describe('classifiers', () => {
     for (const n of ['|IL| CHANNEL 9', 'ערוץ 9', 'ספורט 1', 'קשת 120']) expect(isIsraeliNews(n, 'ישראל')).toBe(false);
     expect(isIsraeliNews('BBC News', 'UK')).toBe(false);
     expect(isIsraeliNews('Something', undefined, 'il.i24')).toBe(true);
+    expect(isIsraeliNews('i24NEWS', undefined, 'i24NEWSHebrew.il@SD')).toBe(true);
+    expect(isIsraeliNews('ערוץ הכנסת', undefined, 'KnessetChannel.il@SD')).toBe(true);
+    expect(isIsraeliNews('ערוץ 16', undefined, 'Channel16.il@SD')).toBe(false);
   });
 
   it('radio shelves and regions', () => {

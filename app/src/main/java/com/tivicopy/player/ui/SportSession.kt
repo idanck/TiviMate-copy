@@ -13,8 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Sport mode's state (ADR-041), and News mode's (ADR-042): two panels, which one has the remote,
- * and whether it fills the screen.
+ * Sport mode's state (ADR-041), and News mode's (ADR-042): two panels, or in News mode four if the
+ * viewer chose them (ADR-045), which one has the remote, and whether it fills the screen.
  *
  * The two modes share one session because they are never on screen together: [mode] says which
  * one it is, and decides which channels are offered, where the grid is remembered, and whether a
@@ -77,7 +77,10 @@ class SportSession(
 
     private val _count = MutableStateFlow(SportLayout.SLOTS)
 
-    /** How many panels are on screen: two, in both modes and on both shells (ADR-041, decision 10). */
+    /**
+     * How many panels are on screen: two in Sport mode (ADR-041, decision 10), and in News mode two
+     * or four, as the viewer chose (ADR-045).
+     */
     val count: StateFlow<Int> = _count
 
     private val _focused = MutableStateFlow(0)
@@ -191,6 +194,41 @@ class SportSession(
         }
         if (first < 0 && empty >= 0 && choices.isNotEmpty()) _picking.value = empty
         applyAudible()
+        refresh()
+    }
+
+    /**
+     * News mode's two or four panels (ADR-045), changed while it is on screen. Going to four adds
+     * two empty panels after the ones there. Going to two keeps the panel in focus and the next ones
+     * with something in them, in that order, moved to the front, players and all; the rest let go of
+     * their connections. The grid is remembered as it now stands.
+     */
+    fun setPanels(panels: Int) {
+        val target = SportLayout.panels(panels)
+        val count = _count.value
+        if (!active || target == count) return
+        if (target < count) {
+            val current = _slots.value
+            val filled = current.take(count).map { it.channel != null || it.flashes }
+            val kept = keptPanels(filled, _focused.value, target)
+            val order = kept + current.indices.filterNot { it in kept }
+            _slots.value = order.mapIndexed { i, from ->
+                val slot = current[from]
+                if (i < target) {
+                    slot
+                } else {
+                    slot.panel.release()
+                    Slot(null, slot.panel)
+                }
+            }
+            _focused.value = 0
+            _expanded.value = false
+        }
+        _count.value = target
+        _picking.value = null
+        _menu.value = null
+        applyAudible()
+        persist()
         refresh()
     }
 
@@ -440,6 +478,22 @@ class SportSession(
          */
         fun audibleSlot(slots: List<Slot>, focused: Int): Int =
             if (slots.getOrNull(focused)?.flashes == true) slots.indexOfFirst { it.channel != null } else focused
+
+        /**
+         * The panels that stay when the grid goes down to [keep] ([setPanels]), in their new order:
+         * the one in focus first, then the next ones with something in them, counting on from it
+         * and round, and empty ones only if there are not enough of those.
+         *
+         * @param filled whether each panel on screen shows something, a channel or the headlines
+         */
+        fun keptPanels(filled: List<Boolean>, focused: Int, keep: Int): List<Int> {
+            if (filled.isEmpty() || keep <= 0) return emptyList()
+            val from = focused.coerceIn(0, filled.size - 1)
+            val round = List(filled.size) { (from + it) % filled.size }
+            val kept = (listOf(from) + round.drop(1).filter { filled[it] }).toMutableList()
+            round.forEach { if (kept.size < keep && it !in kept) kept += it }
+            return kept.take(keep)
+        }
 
         /**
          * Whether a panel is a picture being watched, for the screensaver (ADR-040, decision 3):

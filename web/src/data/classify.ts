@@ -25,7 +25,8 @@ function israeliGroup(group: string | undefined): boolean {
 }
 
 export function isIsraeli(name: string, group?: string, tvgId?: string): boolean {
-  const id = tvgId?.trim().toLowerCase() ?? '';
+  // iptv-org's ids carry their feed after an `@` (`Kan11.il@SD`), which is not part of the country.
+  const id = (tvgId?.trim().toLowerCase() ?? '').split('@')[0];
   return israeliGroup(group) || ISRAELI_TAG.test(name) || id.endsWith('.il') || id.startsWith('il.');
 }
 

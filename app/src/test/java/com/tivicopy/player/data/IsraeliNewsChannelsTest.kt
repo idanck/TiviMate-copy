@@ -33,6 +33,15 @@ class IsraeliNewsChannelsTest {
     }
 
     @Test
+    fun `the bundled free-to-air playlist's news channels are news, with no group to go by`() {
+        assertTrue(news("i24NEWS", null, "i24NEWSHebrew.il@SD"))
+        assertTrue(news("קשת 12", null, "Keshet12.il@SD"))
+        assertTrue(news("ערוץ הכנסת", null, "KnessetChannel.il@SD"))
+        assertFalse(news("ערוץ 16", null, "Channel16.il@SD"))
+        assertFalse(news("כאן חינוכית", null, "KanEducational.il@SD"))
+    }
+
+    @Test
     fun `the rest of the Israeli group is not news`() {
         listOf("|IL| CHANNEL 9", "|IL| CHANNEL 1 HD", "|IL| CHANNEL 8", "ערוץ 9", "ערוץ 1 HD", "ספורט 1",
             "קשת 120", "|IL| HOT Channel 9", "יס סרטים דרמה HD").forEach {

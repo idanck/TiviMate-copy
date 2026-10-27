@@ -500,4 +500,9 @@
     <string name="news_pick_none">לא נמצאו ערוצי חדשות ישראליים ברשימות שלך.</string>
     <string name="news_flashes">מבזקים</string>
     <string name="news_flashes_none">אין מבזקים עדיין. את המקורות שלהם בוחרים בהגדרות, תחת שומר מסך.</string>
+    <string name="sport_menu_grid_all">חזרה לכל המסכים</string>
+    <string name="news_panels_two">שני מסכים</string>
+    <string name="news_panels_four">ארבעה מסכים</string>
+    <string name="news_ticker">פס מבזקים רץ למעלה</string>
+    <string name="news_panels_toggle">שניים או ארבעה מסכים</string>
 </resources>

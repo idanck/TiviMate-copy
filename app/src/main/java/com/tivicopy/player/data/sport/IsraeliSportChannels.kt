@@ -75,7 +75,9 @@ object IsraeliSportChannels {
      * Israeli one, or the channel carries the provider's country tag or an Israeli guide id.
      */
     internal fun isIsraeli(name: String, groupName: String?, tvgId: String?): Boolean {
-        val guideId = tvgId?.trim()?.lowercase().orEmpty()
+        // iptv-org's ids carry their feed after an `@` (`Kan11.il@SD`, the bundled free-to-air
+        // playlist's), which is not part of the country.
+        val guideId = tvgId?.trim()?.lowercase().orEmpty().substringBefore('@')
         // `sport5.il` from a provider's guide, `il.sport-5` from the owner's daily playlist.
         return israeliGroup(groupName) || ISRAELI_TAG.containsMatchIn(name) ||
             guideId.endsWith(".il") || guideId.startsWith("il.")

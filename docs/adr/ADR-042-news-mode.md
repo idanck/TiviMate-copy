@@ -3,7 +3,8 @@
 **Status:** accepted, 0.17.0. From 0.17.3 the headlines panel is drawn a little smaller (its scale
 is taken from a 560dp panel rather than a 460dp one, `ui/common/SportPanels.kt`), the owner having
 found the text a little large, and a panel's channel is changed from a menu on OK or a swap button
-(ADR-041 decision 11). Decided by the owner on 2026-10-17: *a news mode as well, two screens
+(ADR-041 decision 11). From 0.19.0 four panels may be chosen instead of two, and a running strip of
+headlines may run across the top (ADR-045). Decided by the owner on 2026-10-17: *a news mode as well, two screens
 only, where one of the screens can be chosen to show the flashes.*
 
 ## Context
