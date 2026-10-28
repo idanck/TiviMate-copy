@@ -10,6 +10,7 @@ import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.AppError
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.data.builtin.IsraelPublicChannels
 import com.tivicopy.player.data.builtin.IsraelRadioStations
 import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.ui.home.HomeData
@@ -31,6 +32,7 @@ import com.tivicopy.player.data.prefs.PinAttemptLimiter
 import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.repo.EpgProgress
+import com.tivicopy.player.data.news.FreeCopies
 import com.tivicopy.player.data.news.IsraeliNewsChannels
 import com.tivicopy.player.data.sport.IsraeliSportChannels
 import com.tivicopy.player.ui.tv.SportLayout
@@ -905,10 +907,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val opening = sport.begin(mode, panels)
         viewModelScope.launch {
             val news = mode == SportSession.Mode.NEWS
-            val choices = panelChoices(mode)
+            val offered = panelChoices(mode)
+            val choices = offered.choices
             val stored = if (news) settings.newsSlots() else settings.sportSlots()
+            // A panel left on the provider's copy of a station comes back on the free one.
             val restored = stored.map { id ->
-                id?.let { wanted -> choices.firstOrNull { it.id == wanted } }
+                id?.let { wanted -> choices.firstOrNull { it.id == wanted } ?: offered.replacedBy[wanted] }
             }
             val flashesAt = if (news) stored.indexOf(SportSession.FLASHES_ID) else -1
             sport.offer(opening, choices, restored, flashesAt)
@@ -946,13 +950,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * Every channel [mode] may show: the Israeli sports channels ([IsraeliSportChannels]) or news
      * channels ([IsraeliNewsChannels]) of every playlist but the bundled radio, in playlist order.
      * Hidden channels and hidden groups stay hidden, and a channel behind the parental PIN is left
-     * out rather than asked for in each of the panels.
+     * out rather than asked for in each of the panels. A station the bundled free-to-air playlist
+     * carries is offered from there only, not again through the provider ([FreeCopies]).
      */
-    private suspend fun panelChoices(mode: SportSession.Mode): List<Channel> = withContext(Dispatchers.IO) {
+    private suspend fun panelChoices(mode: SportSession.Mode): FreeCopies.Result = withContext(Dispatchers.IO) {
         val s = settings.state.value
         val unlocked = _parentalUnlocked.value
-        dao.playlists()
-            .filterNot { it.url == IsraelRadioStations.M3U_URL }
+        val playlists = dao.playlists().filterNot { it.url == IsraelRadioStations.M3U_URL }
+        val free = playlists.filter { it.url == IsraelPublicChannels.M3U_URL }.map { it.id }.toSet()
+        val channels = playlists
             .flatMap { playlist ->
                 val groups = dao.groups(playlist.id, includeHidden = true).associateBy { it.id }
                 dao.channels(playlist.id).filter { channel ->
@@ -975,6 +981,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
             }
+        FreeCopies.prefer(channels, free)
+    }
+
+    /** Each playlist's name, by its id: which one a channel in the panels' picker comes from. */
+    fun playlistNames(): Map<Long, String> = _state.value.playlists.associate { it.id to it.name }
+
+    /** Whether [channel] is the bundled free-to-air playlist's (ADR-013): a broadcaster's, no account. */
+    fun isFreeToAir(channel: Channel): Boolean =
+        _state.value.playlists.firstOrNull { it.id == channel.playlistId }?.url == IsraelPublicChannels.M3U_URL
+
+    /** The account limits [connectionLimit] has learned, by playlist. */
+    private val connectionLimits = HashMap<Long, Int>()
+
+    /**
+     * How many connections at once the account behind [channel]'s playlist allows, for a panel the
+     * provider closed to say so (ADR-041). Asked of the provider once and remembered; null when it
+     * does not answer, or for the free-to-air playlist, which has no account.
+     */
+    suspend fun connectionLimit(channel: Channel): Int? {
+        connectionLimits[channel.playlistId]?.let { return it }
+        val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId } ?: return null
+        if (playlist.url == IsraelPublicChannels.M3U_URL) return null
+        val limit = sources.maxConnections(playlist, channel.urls.firstOrNull()) ?: return null
+        connectionLimits[channel.playlistId] = limit
+        return limit
     }
 
     /** The request profile [channel]'s own playlist asks for, or the app's defaults. */

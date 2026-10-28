@@ -99,6 +99,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
     val picking by session.picking.collectAsState()
     val menu by session.menu.collectAsState()
     val choices by session.choices.collectAsState()
+    val sources = remember(choices) { vm.playlistNames() }
     val paused by session.paused.collectAsState()
     val count by session.count.collectAsState()
     val mode by session.mode.collectAsState()
@@ -195,6 +196,7 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 slot = slot,
                 slots = slots.take(count),
                 choices = choices,
+                sources = sources,
                 news = news,
                 opacity = prefs.overlayOpacity,
                 onPick = { channel -> session.assign(slot, channel) },
@@ -280,6 +282,8 @@ private fun SportPanel(
             PanelVideo(player = player, modifier = Modifier.fillMaxSize())
             when {
                 status.failed -> PanelFailure(
+                    vm = vm,
+                    channel = channel,
                     status = status,
                     hint = stringResource(R.string.sport_panel_retry_hint),
                     modifier = Modifier.align(Alignment.Center),
@@ -407,6 +411,8 @@ private fun SportPicker(
     slot: Int,
     slots: List<SportSession.Slot>,
     choices: List<Channel>?,
+    /** Each playlist's name, by its id. */
+    sources: Map<Long, String>,
     news: Boolean,
     opacity: Float,
     onPick: (Channel) -> Unit,
@@ -420,6 +426,8 @@ private fun SportPicker(
     val elsewhere = slots.mapIndexedNotNull { i, s -> s.channel?.id?.takeIf { i != slot } }.toSet()
     val flashesElsewhere = slots.withIndex().any { (i, s) -> i != slot && s.flashes }
     val list = choices.orEmpty()
+    // Which playlist a channel is from is worth a line only when there is more than one.
+    val mixed = list.distinctBy { it.playlistId }.size > 1
     val target = remember { FocusRequester() }
     val listState = rememberLazyListState()
 
@@ -516,6 +524,7 @@ private fun SportPicker(
                         channel = channel,
                         selected = channel.id == current?.id,
                         onScreenElsewhere = channel.id in elsewhere,
+                        source = if (mixed) sources[channel.playlistId] else null,
                         focusRequester = if (landOn == channelKey(channel)) target else null,
                         onClick = { onPick(channel) },
                     )

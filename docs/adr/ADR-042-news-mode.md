@@ -69,3 +69,14 @@ glyph. On the phone, the same glyph in the top bar of Channels and Guide, beside
   to add them.
 - `SportSession`, `SportScreen`, `PhoneSport` and `SportLayout` keep their names though they now
   serve both modes.
+- **2026-10-28: the free copy first.** The owner's four panels — Kan 11, Keshet 12, Channel 14,
+  i24NEWS, all public channels — showed two of them closed by the provider. They were the
+  provider's copies: the daily playlist carries the same stations under the same names as the
+  bundled free-to-air one (ADR-013), the picker offered both indistinguishably, and the account
+  allows one connection. Now a station the free playlist carries is offered from there only
+  (`FreeCopies`, matched by `IsraeliNewsChannels.station`), and a grid remembered on a provider's
+  copy comes back on the free one; HOT's own feeds and i24's foreign-language services are not the
+  same picture and stay. When the picker holds more than one playlist, each row names its own. A
+  closed panel says who closed it: the broadcaster's server for a free channel, or the provider by
+  its playlist's name with the account's limit, asked of its panel's `player_api.php` — for an
+  exported M3U too, through the account its stream addresses name (`XtreamStreamUrl`).

@@ -103,6 +103,7 @@ internal fun PhoneSport(
     val expanded by session.expanded.collectAsState()
     val picking by session.picking.collectAsState()
     val choices by session.choices.collectAsState()
+    val sources = remember(choices) { vm.playlistNames() }
     val paused by session.paused.collectAsState()
     val count by session.count.collectAsState()
     val mode by session.mode.collectAsState()
@@ -248,6 +249,7 @@ internal fun PhoneSport(
                 slot = slot,
                 slots = slots.take(count),
                 choices = choices,
+                sources = sources,
                 news = news,
                 onPick = { channel -> session.assign(slot, channel) },
                 onFlashes = { session.showFlashes(slot) },
@@ -391,6 +393,8 @@ private fun PhoneSportPanel(
             PanelVideo(player = player, modifier = Modifier.fillMaxSize())
             when {
                 status.failed -> PanelFailure(
+                    vm = vm,
+                    channel = channel,
                     status = status,
                     hint = stringResource(R.string.sport_panel_retry_hint_touch),
                     modifier = Modifier.align(Alignment.Center),
@@ -424,6 +428,8 @@ private fun PhoneSportPicker(
     slot: Int,
     slots: List<SportSession.Slot>,
     choices: List<Channel>?,
+    /** Each playlist's name, by its id. */
+    sources: Map<Long, String>,
     news: Boolean,
     onPick: (Channel) -> Unit,
     onFlashes: () -> Unit,
@@ -436,6 +442,8 @@ private fun PhoneSportPicker(
     val elsewhere = slots.mapIndexedNotNull { i, s -> s.channel?.id?.takeIf { i != slot } }.toSet()
     val flashesElsewhere = slots.withIndex().any { (i, s) -> i != slot && s.flashes }
     val list = choices.orEmpty()
+    // Which playlist a channel is from is worth a line only when there is more than one.
+    val mixed = list.distinctBy { it.playlistId }.size > 1
     val clearRow = current != null || showsFlashes
     StudioSheet(
         onDismissRequest = onDismiss,
@@ -498,6 +506,7 @@ private fun PhoneSportPicker(
                         channel = channel,
                         selected = channel.id == current?.id,
                         onScreenElsewhere = channel.id in elsewhere,
+                        source = if (mixed) sources[channel.playlistId] else null,
                         onClick = { onPick(channel) },
                     )
                 }
