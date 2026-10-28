@@ -19,6 +19,7 @@ import com.tivicopy.player.data.prefs.SecureStore
 import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.xtream.XtreamAccount
 import com.tivicopy.player.data.xtream.XtreamClient
+import com.tivicopy.player.data.xtream.XtreamStreamUrl
 import com.tivicopy.player.data.xtream.extension
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -439,6 +440,20 @@ class SourceRepository(
             total = seen.size,
             ok = true,
         )
+    }
+
+    /**
+     * How many connections at once the account behind [playlist] allows, if its panel will say: an
+     * Xtream source's own account, or else the one named in [streamUrl] ([XtreamStreamUrl]). Null
+     * when neither answers. Asking does not take one of the connections; only a stream does.
+     */
+    suspend fun maxConnections(playlist: Playlist, streamUrl: String?): Int? = withContext(Dispatchers.IO) {
+        val client = xtreamClient(playlist)
+            ?: streamUrl?.let(XtreamStreamUrl::parse)?.let { parts ->
+                XtreamClient(parts.server, parts.username, parts.password, profileFor(playlist))
+            }
+            ?: return@withContext null
+        client.account().getOrNull()?.maxConnections?.takeIf { it > 0 }
     }
 
     /** Convenience for the "add source" flow: probe an Xtream server before saving. */

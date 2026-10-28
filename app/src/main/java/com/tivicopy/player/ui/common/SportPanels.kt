@@ -138,14 +138,35 @@ internal fun EmptyPanel(hint: String, modifier: Modifier = Modifier) {
 
 /** A panel whose channel will not play, and why, with [hint] saying how to try again. */
 @Composable
-internal fun PanelFailure(status: PanelStatus, hint: String, modifier: Modifier = Modifier) {
+internal fun PanelFailure(
+    vm: AppViewModel,
+    channel: Channel,
+    status: PanelStatus,
+    hint: String,
+    modifier: Modifier = Modifier,
+) {
     val studio = StudioTheme.colors
     val context = LocalContext.current
     val error = status.error
+    val freeToAir = remember(channel.playlistId) { vm.isFreeToAir(channel) }
+    val source = remember(channel.playlistId) { vm.playlistNames()[channel.playlistId] }
+    var limit by remember(channel.playlistId) { mutableStateOf<Int?>(null) }
+    if (status.closed && !freeToAir) {
+        LaunchedEffect(channel.playlistId) { limit = vm.connectionLimit(channel) }
+    }
+    val known = limit
     val message = when {
+        // A broadcaster's own server ended the stream: no account, no limit, nothing of the
+        // provider's (2026-10-28, where the old wording blamed the provider for it).
+        status.closed && freeToAir -> stringResource(R.string.sport_panel_stream_ended_free)
         // The provider closed the stream: on an account with fewer connections than panels, that
         // is what happens to all but the newest (ADR-041). The channel itself is very likely fine.
-        status.closed -> stringResource(R.string.sport_panel_stream_closed)
+        // Named, and with the account's limit when its panel says, because the same station can
+        // be on screen free and through the provider under one name.
+        status.closed && source == null -> stringResource(R.string.sport_panel_stream_closed)
+        status.closed && known == 1 -> stringResource(R.string.sport_panel_stream_closed_one, source.orEmpty())
+        status.closed && known != null -> stringResource(R.string.sport_panel_stream_closed_many, source.orEmpty(), known)
+        status.closed -> stringResource(R.string.sport_panel_stream_closed_by, source.orEmpty())
         // Almost always the device's limit on pictures decoded at once (ADR-041), and that is
         // the thing worth saying: the channel itself is very likely fine.
         error?.kind == AppError.Kind.DecoderFailed -> stringResource(R.string.sport_panel_device_limit)
@@ -524,7 +545,11 @@ private fun TickerRound(flashes: List<SourcedFlash>, colours: Boolean, modifier:
     }
 }
 
-/** One channel in the picker: its mark, its name, and whether it is already in another panel. */
+/**
+ * One channel in the picker: its mark, its name, the playlist it comes from when the picker holds
+ * more than one ([source]) — the same station can come free or through the provider, and only the
+ * provider's copy spends a connection — and whether it is already in another panel.
+ */
 @Composable
 internal fun SportPickerRow(
     channel: Channel,
@@ -532,23 +557,34 @@ internal fun SportPickerRow(
     onScreenElsewhere: Boolean,
     onClick: () -> Unit,
     focusRequester: FocusRequester? = null,
+    source: String? = null,
 ) {
     val studio = StudioTheme.colors
     FocusableRow(
         onClick = onClick,
         selected = selected,
-        contentDescription = channel.displayName,
+        contentDescription = listOfNotNull(channel.displayName, source).joinToString(", "),
         focusRequester = focusRequester,
     ) {
         ChannelLogo(channel, sizeDp = 28)
-        Text(
-            text = channel.displayName,
-            style = StudioTheme.type.rowLabel,
-            color = studio.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = channel.displayName,
+                style = StudioTheme.type.rowLabel,
+                color = studio.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (source != null) {
+                Text(
+                    text = source,
+                    style = StudioTheme.type.caption,
+                    color = studio.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         if (onScreenElsewhere) {
             Text(
                 text = stringResource(R.string.sport_pick_on_screen),

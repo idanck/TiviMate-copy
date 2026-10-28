@@ -46,4 +46,46 @@ object IsraeliNewsChannels {
             guideId in GUIDE_IDS ||
             "news" in guideId
     }
+
+    /**
+     * Which broadcaster a channel carries — `11`, `12`, `13`, `14`, `i24` or `knesset` — so the
+     * same station from two playlists can be told apart from two stations: the bundled free-to-air
+     * playlist's `ערוץ 14` (`Now14.il@SD`) and the provider's (`il.channel-20`) are one channel.
+     * Null for anything else, and for a copy that is not plainly the same picture: HOT's own
+     * Keshet 12 and Reshet 13, and i24's English, French and Arabic services.
+     *
+     * The guide id decides when it is one of the known ones; the name only when it is not.
+     */
+    fun station(name: String, tvgId: String?): String? {
+        val guideId = tvgId?.trim()?.lowercase().orEmpty().substringBefore('@')
+        STATION_GUIDE_IDS[guideId]?.let { return it }
+        val folded = IsraeliSportChannels.fold(name)
+        val words = folded.split(' ')
+        if (NOT_THE_SAME_PICTURE.any { it in words }) return null
+        if ("i24" in folded || "איי 24" in folded) return "i24"
+        if ("knesset" in folded || "כנסת" in folded) return "knesset"
+        val number = BY_NUMBER_STATION.find(folded)?.groupValues?.get(1) ?: return null
+        // Channel 14 went on air as Channel 20, and some lists still call it that.
+        return if (number == "20") "14" else number
+    }
+
+    /** [BY_NUMBER], with the number captured. */
+    private val BY_NUMBER_STATION = Regex(
+        "(?:^|\\s)(?:channel|ערוץ|כאן|kan|קשת|keshet|רשת|reshet|now|עכשיו)\\s+(11|12|13|14|20)(?:\\s|$)",
+    )
+
+    /** Words that make a channel a different feed of the station, not the station itself. */
+    private val NOT_THE_SAME_PICTURE = setOf(
+        "hot", "הוט", "english", "אנגלית", "french", "francais", "צרפתית", "arabic", "ערבית",
+    )
+
+    /** The guide ids of the bundled playlist (iptv-org's, `@` feed dropped) and of the owner's. */
+    private val STATION_GUIDE_IDS = mapOf(
+        "kan11.il" to "11", "il.channel-11" to "11",
+        "keshet12.il" to "12", "il.channel-12" to "12",
+        "channel13.il" to "13", "reshet13.il" to "13", "il.channel-13" to "13",
+        "now14.il" to "14", "channel14.il" to "14", "il.channel-14" to "14", "il.channel-20" to "14",
+        "i24newshebrew.il" to "i24", "il.i24" to "i24",
+        "knessetchannel.il" to "knesset", "il.knesset" to "knesset",
+    )
 }
