@@ -125,9 +125,10 @@ the code.
 - The lift's white glow and the live dot's soft red glow are approximated or left out where Android
   has no coloured blur (shadows are dark below API 28); the lit surface and the words carry the
   state.
-- Two places keep a treatment the canvas does not show: the settings slider's row stays a content
-  row (lit glass in a ring), because its thumb is the lit colour; and a phone list row stays bare at
-  rest rather than thin glass, because most of them sit inside a sheet that is glass already.
+- One place keeps a treatment the canvas does not show: a phone list row stays bare at rest rather
+  than thin glass, because most of them sit inside a sheet that is glass already.
+- Sheets and the channel menu's drawer draw the canvas's own dim (`--st-dim-open`) and take the
+  platform's away, so a drawer is dimmed only outside itself.
 - The launcher icon is still drawn from Karantina's outlines (`docs/design/studio/ICON.md`), so
   `docs/licenses/Karantina-OFL.txt` stays; the web version (ADR-044) is not part of this change.
 - As ever, none of this could be compiled where it was written (`CLAUDE.md`). CI is the gate.
