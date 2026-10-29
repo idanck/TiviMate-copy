@@ -339,7 +339,7 @@ fun Screensaver(
     val studio = StudioTheme.colors
 
     // The screensaver arrives as a slow fade rather than a cut: it is replacing a picture
-    // somebody may still glance up at, and Motion.ENTRANCE — a quarter of a second — would read
+    // somebody may still glance up at, and Motion.ENTRANCE — about a third of a second — would read
     // as the app doing something rather than as the screen settling.
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { fade.animateTo(1f, tween(FADE_IN_MS, easing = FastOutSlowInEasing)) }
