@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,19 +36,23 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.ui.common.LiveBadge
+import com.tivicopy.player.ui.common.LiveBadgeSize
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /**
- * Studio's channel card (`canvas/ChannelCard.dc.html`): the one card the home rails and the
- * channel filmstrip are built from (Studio stage 10c).
+ * The channel card (`canvas/ChannelCard.dc.html`): the one card the home rails and the channel
+ * filmstrip are built from (Studio stage 10c; Merhav, ADR-046).
  *
  * The 16:9 tile *is* the card — it takes the focus treatment, the lift and the on-screen state —
  * and the programme and its time sit under it, outside the plate, as captions do under a picture.
- * On the tile: the channel's mark (or its name as a word, or a round station disc), its number in
- * the top corner, and while it is on screen a tally bar across the top with an "on screen" pill,
- * so the state is not carried by the red ring alone. A programme on air draws its progress along
- * the foot of the tile.
+ * The tile is thin glass; under focus it is lit glass in a white ring, lifted and grown, its text
+ * still white, because it is content. On the tile: the channel's mark (or its name as a word, or a
+ * round station disc), its number in the top corner, and while it is on screen a wash of the tally,
+ * a red ring and an "on screen" live pill in the other corner, so the state is not carried by the
+ * red alone. A programme on air draws its progress along the foot of the tile, in red while the
+ * channel is on screen.
  *
  * @param label the channel's name: written on the tile when there is no mark to show, and what
  *   TalkBack reads
@@ -135,30 +137,11 @@ internal fun StudioChannelCard(
                 )
             }
             if (onScreen) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(studio.tally),
+                LiveBadge(
+                    label = stringResource(R.string.card_on_screen),
+                    size = LiveBadgeSize.S,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(horizontal = 7.dp, vertical = 8.dp),
                 )
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(7.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(studio.scrim)
-                        .padding(horizontal = 5.dp, vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(studio.tally))
-                    Text(
-                        text = stringResource(R.string.card_on_screen),
-                        style = type.caption.copy(fontWeight = FontWeight.SemiBold),
-                        color = studio.ink,
-                    )
-                }
             }
             progress?.let { fraction ->
                 Box(
@@ -172,7 +155,7 @@ internal fun StudioChannelCard(
                         modifier = Modifier
                             .fillMaxWidth(fraction.coerceIn(0f, 1f))
                             .height(2.5.dp)
-                            .background(studio.ink),
+                            .background(if (onScreen) studio.tally else studio.ink),
                     )
                 }
             }

@@ -2,6 +2,7 @@ package com.tivicopy.player.ui.tv
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,9 +36,13 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -45,6 +50,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -61,12 +67,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.ConfigurationCompat
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.TvMetrics
-import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.drawerSurface
+import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -79,32 +88,36 @@ internal data class MenuDestination(
 )
 
 /**
- * Studio's side menu (`docs/design/studio/canvas/SideMenu.dc.html`, ADR-027).
+ * The side menu (`SideMenu.dc.html`; ADR-027, restyled by ADR-046).
  *
- * Full height, on the start edge — the right in Hebrew. Closed, it is a strip of icons that is
- * always on screen, at the same height each icon sits at when the menu is open, so nothing moves
- * under the remote as it opens. It opens the moment focus enters it and closes when focus leaves,
- * and it opens *over* the screen rather than beside it: the content is inset by the strip's width
- * only ([sideMenuInset]), so focus crossing in never reflows a card. While it is open the rest of
- * the screen is dimmed, which is what says the menu is now the screen.
+ * Full height, on the start edge — the right in Hebrew. Closed, it is a rail of icons in smoky
+ * glass that is always on screen, at the same height each icon sits at when the menu is open, so
+ * nothing moves under the remote as it opens. It opens the moment focus enters it and closes when
+ * focus leaves, and it opens *over* the screen rather than beside it, as a drawer: solid next to
+ * the screen's edge and fading over its last third towards the content (`Glass.kt`). The content is
+ * inset by the rail's width only ([sideMenuInset]), so focus crossing in never reflows a card.
+ * While it is open the rest of the screen is dimmed, which is what says the menu is now the screen.
  *
- * This replaces ADR-020's collapsing rail and ADR-022's floating capsule.
+ * The screen you are on is amber — its glyph and label, a wash of amber glass with an amber edge,
+ * and a short amber bar on the screen's edge beside it — and the entry the remote is on is the lit
+ * surface. The two are never the same colour, so "where I am" and "where the remote is" can both be
+ * read at once.
  *
  * It is the television's one navigation (ADR-035): `TvRoot` draws this single instance over every
- * browse screen, home included, so the same strip with the same entries in the same order is on
- * screen wherever the viewer is, and only which entry is lit changes. Choosing an entry hands the
- * remote to the screen it opened, as a press towards the content would, so the menu closes rather
- * than staying open over the screen just chosen.
+ * browse screen, home included, so the same rail with the same entries in the same order is on
+ * screen wherever the viewer is, and only which entry is current changes. Choosing an entry hands
+ * the remote to the screen it opened, as a press towards the content would, so the menu closes
+ * rather than staying open over the screen just chosen.
  *
  * Every entry carries its label as a content description whether or not it is drawn, so the
- * closed strip is still a list of named destinations to TalkBack and to the D-pad (NFR-UX-05).
+ * closed rail is still a list of named destinations to TalkBack and to the D-pad (NFR-UX-05).
  *
  * @param current the overlay on screen; the entry that opens it is drawn as the current one, and a
  *   screen with no entry of its own (on demand, adding a source) lights none
  * @param onTowardContent hands the remote back to a screen the D-pad cannot find from here on its
- *   own, on a press towards the content and on the lit entry; false when it could not, which
+ *   own, on a press towards the content and on the current entry; false when it could not, which
  *   leaves the press to the D-pad. Null leaves it to the D-pad always. Home needs it: its rails
- *   run full-bleed under the strip, so to the D-pad they are not beside the menu at all, and the
+ *   run full-bleed under the rail, so to the D-pad they are not beside the menu at all, and the
  *   press went nowhere (device report, 2026-10-16); see `HomeFocusReturn`.
  */
 @OptIn(ExperimentalFoundationApi::class)
@@ -118,8 +131,8 @@ internal fun SideMenu(
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
     var open by remember { mutableStateOf(false) }
-    // Studio's order (`SideMenu.dc.html`): the screens, then the tools under a hairline. On demand
-    // is not among them, as on the phone (ADR-032): search reaches it where a source has any.
+    // The canvas's order (`SideMenu.dc.html`): the screens, then the tools under a hairline. On
+    // demand is not among them, as on the phone (ADR-032): search reaches it where a source has any.
     // Sport mode follows the radio (ADR-041). It is the one entry whose screen draws no menu of
     // its own: its pictures fill it, and Back is the way out.
     val destinations = listOf(
@@ -157,8 +170,8 @@ internal fun SideMenu(
         withFrameNanos { }
         if (open) enterContent()
     }
-    // The lit entry is reported too, though it changes nothing on screen: it is still a choice made
-    // from the menu, and a screen opened from the video stops being one once it is (ADR-036).
+    // The current entry is reported too, though it changes nothing on screen: it is still a choice
+    // made from the menu, and a screen opened from the video stops being one once it is (ADR-036).
     val choose: (TvOverlay) -> Unit = { overlay ->
         onOpen(overlay)
         if (overlay == current) enterContent()
@@ -168,19 +181,30 @@ internal fun SideMenu(
         animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
         label = "sideMenuWidth",
     )
-    // Open, the entries sit further in from the screen's edge than they do in the strip
-    // (`--st-safe-x` against the strip's own centring); they glide there with the width.
-    val startPadding by animateDpAsState(
-        targetValue = if (open) SAFE_X else MENU_PADDING,
+    // How far the rail has become the drawer, read where it is drawn.
+    val openness = animateFloatAsState(
+        targetValue = if (open) 1f else 0f,
         animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
-        label = "sideMenuPadding",
+        label = "sideMenuOpenness",
+    )
+    // Open, the entries sit in from the screen's edge and from the content by the drawer's own
+    // padding; closed, they are centred in the rail. They glide there with the width.
+    val startPadding by animateDpAsState(
+        targetValue = if (open) DRAWER_PAD_START else MENU_PADDING,
+        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
+        label = "sideMenuPaddingStart",
+    )
+    val endPadding by animateDpAsState(
+        targetValue = if (open) DRAWER_PAD_END else MENU_PADDING,
+        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
+        label = "sideMenuPaddingEnd",
     )
     Box(modifier = modifier.fillMaxSize()) {
         // The screen behind an open menu (`--st-dim-open`).
         AnimatedVisibility(
             visible = open,
             enter = fadeIn(tween(Motion.ENTRANCE, easing = Motion.Ease)),
-            exit = fadeOut(tween(Motion.ENTRANCE, easing = Motion.Ease)),
+            exit = fadeOut(tween(Motion.EXIT, easing = Motion.Ease)),
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(modifier = Modifier.fillMaxSize().background(studio.dimOpen))
@@ -193,7 +217,7 @@ internal fun SideMenu(
                 // while any entry inside is focused, which is exactly when the menu is open.
                 .onFocusChanged { open = it.hasFocus }
                 // Ahead of the D-pad's own search, which finds nothing beside the menu on a screen
-                // drawn under the strip. Handed back, the press is spent; otherwise the D-pad
+                // drawn under the rail. Handed back, the press is spent; otherwise the D-pad
                 // carries on as on every other screen.
                 .onPreviewKeyEvent { event ->
                     onTowardContent != null && event.type == KeyEventType.KeyDown &&
@@ -201,33 +225,81 @@ internal fun SideMenu(
                 }
                 .focusGroup()
                 .width(width)
-                .background(animatedColour(if (open) studio.drawer else studio.rail))
-                .padding(top = SAFE_Y, bottom = SAFE_Y, start = startPadding, end = MENU_PADDING),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+                // Closed: the rail's smoky glass, its inner edge and a short shadow. Open: the
+                // drawer. The one crosses into the other as the menu opens.
+                .railSurface(rtl = rtl, presence = { 1f - openness.value })
+                .drawerSurface(atStart = true, presence = { openness.value })
+                .padding(top = SAFE_Y, bottom = SAFE_Y),
+            verticalArrangement = Arrangement.spacedBy(ENTRY_GAP),
         ) {
-            MenuHeader(open = open)
+            MenuHeader(open = open, startPadding = startPadding)
             destinations.forEach {
-                MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose)
+                MenuEntry(
+                    destination = it,
+                    current = it.overlay == current,
+                    open = open,
+                    onChoose = choose,
+                    startPadding = startPadding,
+                    endPadding = endPadding,
+                )
             }
             Box(
                 modifier = Modifier
-                    .padding(vertical = 7.dp)
+                    .padding(start = startPadding + DIVIDER_INSET, end = endPadding + DIVIDER_INSET)
+                    .padding(vertical = 5.dp)
                     .fillMaxWidth()
                     .height(1.dp)
                     .background(studio.hairline),
             )
             tools.forEach {
-                MenuEntry(it, current = it.overlay == current, open = open, onChoose = choose)
+                MenuEntry(
+                    destination = it,
+                    current = it.overlay == current,
+                    open = open,
+                    onChoose = choose,
+                    startPadding = startPadding,
+                    endPadding = endPadding,
+                )
             }
         }
-        // The inner edge: a hairline along the full height of the menu.
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(start = width)
-                .width(1.dp)
-                .fillMaxHeight()
-                .background(studio.hairline),
+    }
+}
+
+/**
+ * The closed rail's surface (`--st-rail`): smoky glass, a line of the lit edge along the side that
+ * faces the content, and a short shadow falling onto it. Drawn rather than laid out, at
+ * [presence], so it can cross into the drawer as the menu opens.
+ */
+@Composable
+private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float): Modifier {
+    val studio = StudioTheme.colors
+    val tint = studio.rail
+    val line = studio.edgeLine
+    val shadowPx = with(LocalDensity.current) { RAIL_SHADOW.toPx() }
+    return this.drawBehind {
+        val amount = presence().coerceIn(0f, 1f)
+        if (amount <= 0f) return@drawBehind
+        drawRect(color = tint, alpha = amount)
+        // The rail sits on the start edge: its inner side is the left in Hebrew.
+        val inner = if (rtl) 0f else size.width
+        drawLine(
+            color = line,
+            start = Offset(if (rtl) inner + 0.5f else inner - 0.5f, 0f),
+            end = Offset(if (rtl) inner + 0.5f else inner - 0.5f, size.height),
+            strokeWidth = 1.dp.toPx(),
+            alpha = amount,
+        )
+        val dark = Color.Black.copy(alpha = RAIL_SHADOW_ALPHA)
+        val clear = Color.Black.copy(alpha = 0f)
+        drawRect(
+            brush = if (rtl) {
+                Brush.horizontalGradient(listOf(clear, dark), startX = inner - shadowPx, endX = inner)
+            } else {
+                Brush.horizontalGradient(listOf(dark, clear), startX = inner, endX = inner + shadowPx)
+            },
+            topLeft = Offset(if (rtl) inner - shadowPx else inner, 0f),
+            size = Size(shadowPx, size.height),
+            alpha = amount,
         )
     }
 }
@@ -241,23 +313,20 @@ internal fun SideMenu(
  * the `ColumnScope` extension, which does not compile there.
  */
 @Composable
-private fun MenuHeader(open: Boolean) {
+private fun MenuHeader(open: Boolean, startPadding: Dp) {
     val studio = StudioTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(HEADER_HEIGHT)
-            .padding(bottom = 15.dp),
+            .padding(bottom = 13.dp)
+            .padding(start = startPadding),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(7.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Box(
-            modifier = Modifier
-                // Centred on the icons below it.
-                .padding(start = ENTRY_ICON_INSET + (ENTRY_ICON - TALLY_DOT) / 2)
-                .size(TALLY_DOT)
-                .clip(CircleShape)
-                .background(studio.tally),
+        TallyLight(
+            // Centred on the icons below it.
+            modifier = Modifier.padding(start = ENTRY_ICON_INSET + (ENTRY_ICON - TALLY_DOT) / 2),
         )
         AnimatedVisibility(
             visible = open,
@@ -266,7 +335,7 @@ private fun MenuHeader(open: Boolean) {
         ) {
             Text(
                 text = stringResource(R.string.app_name),
-                style = StudioTheme.type.titleSmall,
+                style = appNameStyle(),
                 color = studio.ink,
                 maxLines = 1,
             )
@@ -277,8 +346,11 @@ private fun MenuHeader(open: Boolean) {
 /**
  * One entry: an icon, and its label while the menu is open.
  *
- * Studio's states (`SideMenu.dc.html`): focused is the cue with dark text, lifted; the screen
- * you are on is a `card`; anything else is bare, in the secondary ink.
+ * The canvas's states (`SideMenu.dc.html`): the entry the remote is on is the lit surface, with
+ * dark content, lifted; the screen you are on is amber — glyph, label, a wash of amber glass with
+ * an amber edge, and an amber bar on the screen's edge; anything else is bare, in the second ink.
+ * The bar sits outside the entry's own padding, on the menu's edge, so it is laid out here rather
+ * than inside the entry's plate.
  */
 @Composable
 private fun MenuEntry(
@@ -286,80 +358,111 @@ private fun MenuEntry(
     current: Boolean,
     open: Boolean,
     onChoose: (TvOverlay) -> Unit,
+    startPadding: Dp,
+    endPadding: Dp,
 ) {
     val metrics = LocalTvMetrics.current
-    val studio = StudioTheme.colors
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(metrics.controlCorner)
-    val fill = animatedColour(
-        when {
-            focused -> studio.cue
-            current -> studio.card
-            else -> studio.card.copy(alpha = 0f)
-        },
-    )
-    val content = animatedColour(
-        when {
-            focused -> studio.onCue
-            current -> studio.ink
-            else -> studio.ink2
-        },
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(ENTRY_HEIGHT)
-            .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
-            .clip(shape)
-            .background(fill)
-            .onFocusChanged { focused = it.isFocused }
-            // `clickable` carries the focus target on its own; `focusable()` beside it would cost
-            // the remote a second press to pass every entry.
-            .clickable { onChoose(destination.overlay) }
-            // Selected the way Material's own navigation rail marks its item: TalkBack says which
-            // screen this is, and the emulator QA reads it to tell the screens apart (QA-24).
-            .semantics {
-                contentDescription = destination.label
-                role = Role.Tab
-                selected = current
-            }
-            .padding(horizontal = ENTRY_ICON_INSET),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(9.dp),
-    ) {
-        Icon(
-            imageVector = destination.icon,
-            contentDescription = null,
-            modifier = Modifier.size(ENTRY_ICON),
-            tint = content,
-        )
-        AnimatedVisibility(
-            visible = open,
-            enter = fadeIn(tween(Motion.FAST, easing = Motion.Ease)),
-            exit = fadeOut(tween(Motion.FAST, easing = Motion.Ease)),
-        ) {
-            Text(
-                text = destination.label,
-                style = StudioTheme.type.nav.copy(
-                    fontWeight = when {
-                        focused -> FontWeight.Bold
-                        current -> FontWeight.SemiBold
-                        else -> FontWeight.Medium
-                    },
-                ),
-                color = content,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+    val content = filledContentColour(focused = focused, selected = current, muted = true)
+    Box(modifier = Modifier.fillMaxWidth().height(ENTRY_HEIGHT)) {
+        if (current) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .size(width = CURRENT_BAR_WIDTH, height = CURRENT_BAR_HEIGHT)
+                    // Rounded on the side towards the content, square against the screen's edge.
+                    .clip(RoundedCornerShape(topEnd = CURRENT_BAR_WIDTH, bottomEnd = CURRENT_BAR_WIDTH))
+                    .background(StudioTheme.colors.current),
             )
+        }
+        Row(
+            modifier = Modifier
+                .padding(start = startPadding, end = endPadding)
+                .fillMaxWidth()
+                .height(ENTRY_HEIGHT)
+                .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
+                // A menu row's treatment (`Focus.kt`): the lit surface under focus, amber glass
+                // with an amber edge for the screen you are on.
+                .focusSurface(focused = focused, shape = shape, selected = current, fill = FocusFill.LIT)
+                .onFocusChanged { focused = it.isFocused }
+                // `clickable` carries the focus target on its own; `focusable()` beside it would cost
+                // the remote a second press to pass every entry.
+                .clickable { onChoose(destination.overlay) }
+                // Selected the way Material's own navigation rail marks its item: TalkBack says which
+                // screen this is, and the emulator QA reads it to tell the screens apart (QA-24).
+                .semantics {
+                    contentDescription = destination.label
+                    role = Role.Tab
+                    selected = current
+                }
+                .padding(horizontal = ENTRY_ICON_INSET),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+        ) {
+            Icon(
+                imageVector = destination.icon,
+                contentDescription = null,
+                modifier = Modifier.size(ENTRY_ICON),
+                tint = content,
+            )
+            AnimatedVisibility(
+                visible = open,
+                enter = fadeIn(tween(Motion.FAST, easing = Motion.Ease)),
+                exit = fadeOut(tween(Motion.FAST, easing = Motion.Ease)),
+            ) {
+                Text(
+                    text = destination.label,
+                    style = StudioTheme.type.nav.copy(
+                        fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
+                    ),
+                    color = content,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
 
 /**
- * Studio's top bar (`TopBar.dc.html`): the app's name at the start, the clock and the date at the
- * end — the top-left corner in Hebrew, where the clock has always been.
+ * The app's tally light (`TopBar.dc.html`): the red dot before the app's name, with its halo and
+ * glow drawn round it so the row keeps its size.
+ */
+@Composable
+private fun TallyLight(modifier: Modifier = Modifier) {
+    val tally = StudioTheme.colors.tally
+    Box(
+        modifier = modifier
+            .size(TALLY_DOT)
+            .drawBehind {
+                val r = this.size.minDimension / 2f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(tally.copy(alpha = TALLY_GLOW_ALPHA), tally.copy(alpha = 0f)),
+                        center = center,
+                        radius = r * 3.2f,
+                    ),
+                    radius = r * 3.2f,
+                )
+                drawCircle(color = tally.copy(alpha = TALLY_HALO_ALPHA), radius = r + 3.dp.toPx())
+            }
+            .clip(CircleShape)
+            .background(tally),
+    )
+}
+
+/** The app's name as the canvas sets it in the top bar and the open menu: 44px at 800, at 1080p. */
+@Composable
+private fun appNameStyle() = StudioTheme.type.titleSmall.let {
+    it.copy(fontSize = it.fontSize * (44f / 40f), fontWeight = FontWeight.ExtraBold)
+}
+
+/**
+ * The top bar (`TopBar.dc.html`): the tally light and the app's name at the start, the clock and
+ * the date at the end — the top-left corner in Hebrew, where the clock has always been.
  *
- * @param startInset room kept clear for the side menu's closed strip
+ * @param startInset room kept clear for the side menu's closed rail
  * @param showClock false while the radio backdrop behind is already showing a clock of its own
  * @param scrim the gradient that lets it read over video; off as the head of an overlay screen,
  *   which already sits on its own panel and only needs the bar's own height
@@ -382,7 +485,7 @@ internal fun StudioTopBar(
             .then(
                 if (scrim) {
                     Modifier.background(
-                        Brush.verticalGradient(listOf(studio.ground.copy(alpha = 0.88f), studio.ground.copy(alpha = 0f))),
+                        Brush.verticalGradient(listOf(studio.ground.copy(alpha = 0.82f), studio.ground.copy(alpha = 0f))),
                     )
                 } else {
                     Modifier
@@ -401,10 +504,10 @@ internal fun StudioTopBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                Box(modifier = Modifier.size(TALLY_DOT).clip(CircleShape).background(studio.tally))
+                TallyLight()
                 Text(
                     text = stringResource(R.string.app_name),
-                    style = StudioTheme.type.titleSmall,
+                    style = appNameStyle(),
                     color = studio.ink,
                     maxLines = 1,
                 )
@@ -448,8 +551,8 @@ private fun TopBarClock() {
 }
 
 /**
- * The room content keeps clear at its start edge for the closed strip (`--st-inset-start`, the
- * strip plus 48px at 1080p).
+ * The room content keeps clear at its start edge for the closed rail (`--st-inset-browse`, the
+ * rail plus 48px at 1080p).
  */
 @Composable
 internal fun sideMenuInset(): Dp = sideMenuInset(LocalTvMetrics.current)
@@ -458,18 +561,36 @@ internal fun sideMenuInset(): Dp = sideMenuInset(LocalTvMetrics.current)
 internal fun sideMenuInset(metrics: TvMetrics): Dp = metrics.homeNavRailCollapsedWidth + SIDE_MENU_GAP
 
 /*
- * Studio's ten-foot spacing, in dp (the canvas's 1080p pixels halved).
+ * The canvas's ten-foot spacing, in dp (its 1080p pixels halved).
  */
 private val SAFE_X = 48.dp
 private val SAFE_Y = 27.dp
 private val SIDE_MENU_GAP = 24.dp
+/** Centres the 32dp entries in the 56dp rail. */
 private val MENU_PADDING = 12.dp
-private val HEADER_HEIGHT = 52.dp
-private val ENTRY_HEIGHT = 36.dp
-private val ENTRY_ICON = 15.dp
-/** Centres the icon in the strip's 32dp-wide entry (`width: 64px` at 1080p). */
+/** The open drawer's padding: 28px from the screen's edge, 32px from the content. */
+private val DRAWER_PAD_START = 14.dp
+private val DRAWER_PAD_END = 16.dp
+/** The header: 74px high and 24 to 30px above the first entry. */
+private val HEADER_HEIGHT = 50.dp
+/** `--st-h-row`: 64px. */
+private val ENTRY_HEIGHT = 32.dp
+private val ENTRY_GAP = 2.dp
+private val ENTRY_ICON = 16.dp
+/** Centres the icon in the rail's 32dp-wide entry (`width: 64px` at 1080p). */
 private val ENTRY_ICON_INSET = 8.dp
+/** The current screen's bar on the screen's edge: 4 by 32px. */
+private val CURRENT_BAR_WIDTH = 2.dp
+private val CURRENT_BAR_HEIGHT = 16.dp
+/** How much narrower than its entry the hairline between the screens and the tools is. */
+private val DIVIDER_INSET = 6.dp
+/** The rail's shadow on the content: `-24px 0 60px rgba(0, 0, 0, 0.30)`. */
+private val RAIL_SHADOW = 30.dp
+private const val RAIL_SHADOW_ALPHA = 0.3f
 private val TALLY_DOT = 8.dp
+/** The tally light's halo and glow (`0 0 0 6px …0.18, 0 0 18px …0.8`), softened for a radial. */
+private const val TALLY_HALO_ALPHA = 0.18f
+private const val TALLY_GLOW_ALPHA = 0.5f
 private val TOP_BAR_HEIGHT = 64.dp
 private val TOP_SCRIM_HEIGHT = 110.dp
 

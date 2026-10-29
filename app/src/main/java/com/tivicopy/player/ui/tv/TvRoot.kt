@@ -1,7 +1,6 @@
 package com.tivicopy.player.ui.tv
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -28,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
@@ -53,6 +51,8 @@ import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.AudioOnlyNowPlaying
 import com.tivicopy.player.ui.common.ChannelLogo
+import com.tivicopy.player.ui.common.GlassMaterial
+import com.tivicopy.player.ui.common.glass
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.tvMetricsFor
 import com.tivicopy.player.ui.common.describe
@@ -799,21 +799,16 @@ internal val TV_CONTENT_INSET = 24.dp
  * The zapping info card (FR-PLB-18) — the whole of what the shell says while you are simply
  * watching.
  *
- * It used to be a small opaque box in the corner: a plate of `surface` at 0.9, a logo, a name and
- * three lines of grey text, laid out as a list rather than as something read from a sofa. That is
- * the surface a viewer sees more than any other in this app, and it was the one surface the
- * redesign had not touched — so it looked like a different app to the home screen it was one
- * button away from.
+ * It used to be a small opaque box in the corner, and then Studio's lower third: a gradient over
+ * the foot of the picture with the words straight on it. In Merhav (`LowerThird.dc.html`, ADR-046)
+ * it is a panel of glass floating over the foot of the picture, inset from its edges: a tile of
+ * thinner glass with the channel's number and name, then the live badge, the programme's title at
+ * the title step, its time with a progress bar and the minutes left, and what comes next on a
+ * tile of its own in the "next" blue. A soft gradient still darkens the foot of the picture behind
+ * it, so the panel's edge never meets a bright frame head-on.
  *
- * This is the lower third the design calls for instead. Full width, no box: a gradient that
- * fades the picture into legibility from about half way down, the way the home banner already
- * does, so nothing is hidden that does not have to be. Above the fold of text sits the channel's
- * identity and, when the stream is live, the shared [LiveBadge] — the same badge the station
- * backdrop draws, because they are answering the same question about the same stream.
- *
- * The programme title carries the weight here rather than the channel name. Zapping asks "what is
- * on this one", and the answer was previously set two steps down the type ramp from the channel's
- * own name.
+ * The programme title carries the weight rather than the channel name: zapping asks "what is on
+ * this one".
  */
 @Composable
 fun ChannelInfoCard(
@@ -831,187 +826,174 @@ fun ChannelInfoCard(
      * two of everything a few centimetres apart is worse than one.
      */
     showIdentity: Boolean,
-    /** The viewer's overlay-opacity setting: how far the gradient darkens the picture. */
+    /** The viewer's overlay-opacity setting: how opaque the panel and the gradient under it are. */
     opacity: Float,
     modifier: Modifier = Modifier,
 ) {
     if (channel == null) return
     val studio = StudioTheme.colors
     val type = StudioTheme.type
+    val metrics = LocalTvMetrics.current
     val backdrop = studio.ground
     // The setting, with a floor under it. This card is the most-seen surface in the app — it is
     // what every channel change puts on screen — and "turn overlays down" is not a request to make
     // the zapping readout unreadable.
     val floor = opacity.coerceAtLeast(INFO_MIN_OPACITY)
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            // The transparent lead-in is short and the ramp is steep: everything from the number
-            // tile down is inside the dense part of it (`.st-scrim-bottom`).
+            // `.st-scrim-bottom`: the foot of the picture darkens under the panel.
             .background(
                 Brush.verticalGradient(
                     0f to Color.Transparent,
                     INFO_GRADIENT_KNEE to backdrop.copy(alpha = floor * INFO_GRADIENT_KNEE_ALPHA),
-                    1f to backdrop.copy(alpha = floor),
+                    1f to backdrop.copy(alpha = floor * INFO_GRADIENT_FOOT_ALPHA),
                 ),
             )
-            .padding(start = INFO_SAFE_X, end = INFO_SAFE_X, top = 72.dp, bottom = TV_CONTENT_INSET),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(20.dp),
+            .padding(start = INFO_SAFE_X, end = INFO_SAFE_X, top = 72.dp, bottom = INFO_SAFE_Y),
     ) {
-        // The channel's number as a broadcast sets it: a tile with the tally across its top.
-        if (showIdentity) {
-            val tileShape = RoundedCornerShape(LocalTvMetrics.current.controlCorner)
-            Box(
-                modifier = Modifier
-                    .size(INFO_TILE)
-                    .clip(tileShape)
-                    .background(studio.scrim)
-                    .border(1.dp, studio.hairline, tileShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .tvGlassPanel(opacity = floor, shape = RoundedCornerShape(metrics.panelCorner))
+                .padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            // The channel's number on a tile of thinner glass, its name under it.
+            if (showIdentity) {
+                Column(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .height(4.dp)
-                        .background(studio.tally),
-                )
-                if (channel.number > 0) {
+                        .size(INFO_TILE)
+                        .glass(GlassMaterial.THIN, RoundedCornerShape(INFO_TILE_CORNER)),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+                ) {
+                    if (channel.number > 0) {
+                        val title = type.title
+                        Text(
+                            text = TimeModel.ltr(channel.number.toString()),
+                            style = title.copy(
+                                fontSize = title.fontSize * INFO_NUMBER_SCALE,
+                                lineHeight = title.fontSize * INFO_NUMBER_SCALE,
+                            ),
+                            color = studio.ink,
+                            maxLines = 1,
+                        )
+                    } else {
+                        ChannelLogo(channel = channel, sizeDp = 40, circular = circularLogo)
+                    }
                     Text(
-                        text = channel.number.toString(),
-                        style = type.hero.copy(fontSize = type.hero.fontSize * INFO_NUMBER_SCALE),
-                        color = studio.ink,
+                        text = channel.displayName,
+                        style = type.meta.copy(fontWeight = FontWeight.SemiBold),
+                        color = studio.ink2,
                         maxLines = 1,
-                        modifier = Modifier.padding(top = 9.dp),
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp),
                     )
-                } else {
-                    ChannelLogo(channel = channel, sizeDp = 56, circular = circularLogo)
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            if (showIdentity) Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp),
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
+                if (showIdentity && live) LiveBadge()
+
+                // The programme title carries the weight.
                 Text(
-                    text = channel.displayName,
-                    style = type.action.copy(
-                        fontSize = type.action.fontSize * INFO_CHANNEL_SCALE,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
+                    text = now?.title ?: stringResource(R.string.no_guide_data),
+                    style = type.title,
                     color = studio.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
                 )
-                if (live) LiveBadge()
-            }
 
-            // The programme title carries the weight, set the way a channel sets it on air.
-            Text(
-                text = now?.title ?: stringResource(R.string.no_guide_data),
-                style = type.title.copy(fontSize = type.title.fontSize * INFO_TITLE_SCALE),
-                color = studio.ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            now?.let {
-                val meta = type.body.copy(fontSize = type.body.fontSize * INFO_META_SCALE)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Text(
-                        text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                        style = meta,
-                        color = studio.ink2,
-                    )
-                    ProgrammeProgress(
-                        it.startUtc,
-                        it.endUtc,
-                        modifier = Modifier.width(INFO_PROGRESS_WIDTH),
-                    )
-                    val left = ((it.endUtc - System.currentTimeMillis()) / 60_000L).toInt()
-                    if (left > 0) {
+                now?.let {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(11.dp),
+                    ) {
                         Text(
-                            text = stringResource(R.string.home_minutes_left, left),
-                            style = meta,
+                            text = TimeModel.ltr(TimeModel.formatClockRange(it.startUtc, it.endUtc)),
+                            style = type.meta,
                             color = studio.ink2,
                         )
+                        ProgrammeProgress(
+                            it.startUtc,
+                            it.endUtc,
+                            modifier = Modifier.width(INFO_PROGRESS_WIDTH),
+                        )
+                        val left = ((it.endUtc - System.currentTimeMillis()) / 60_000L).toInt()
+                        if (left > 0) {
+                            Text(
+                                text = stringResource(R.string.home_minutes_left, left),
+                                style = type.meta,
+                                color = studio.ink2,
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // What comes next, on a panel of its own, in Studio's "next" blue.
-        next?.let {
-            val panelShape = RoundedCornerShape(LocalTvMetrics.current.panelCorner)
-            Column(
-                modifier = Modifier
-                    .width(INFO_NEXT_WIDTH)
-                    .clip(panelShape)
-                    .background(studio.panel)
-                    .border(1.dp, studio.hairline, panelShape)
-                    .padding(horizontal = 15.dp, vertical = 13.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.info_next),
-                    style = type.meta.copy(fontWeight = FontWeight.SemiBold),
-                    color = studio.next,
-                )
-                Text(
-                    text = it.title,
-                    style = type.h1.copy(fontWeight = FontWeight.SemiBold),
-                    color = studio.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = TimeModel.formatClockRange(it.startUtc, it.endUtc),
-                    style = type.meta,
-                    color = studio.ink2,
-                )
+            // What comes next, on a tile of its own, in the "next" blue.
+            next?.let {
+                Column(
+                    modifier = Modifier
+                        .width(INFO_NEXT_WIDTH)
+                        .glass(GlassMaterial.THIN, RoundedCornerShape(INFO_NEXT_CORNER))
+                        .padding(horizontal = 15.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.info_next),
+                        style = type.caption.copy(fontWeight = FontWeight.Bold),
+                        color = studio.next,
+                    )
+                    Text(
+                        text = it.title,
+                        style = type.h1.copy(fontSize = type.h1.fontSize * INFO_NEXT_TITLE_SCALE),
+                        color = studio.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = TimeModel.ltr(TimeModel.formatClockRange(it.startUtc, it.endUtc)),
+                        style = type.meta,
+                        color = studio.ink2,
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Where the info card's gradient stops fading and starts holding, and how dark it already is
- * there relative to its foot.
- *
- * The card's top padding puts the first line of text below this knee, which is the whole point:
- * above it the picture is barely touched, below it there is enough scrim to read grey text on.
+ * Where the info card's gradient stops fading and starts holding, and how dark it is there and at
+ * its foot relative to the opacity setting. Lighter than Studio's, which held the words on its own:
+ * the glass panel holds them now.
  */
-private const val INFO_GRADIENT_KNEE = 0.28f
-private const val INFO_GRADIENT_KNEE_ALPHA = 0.82f
+private const val INFO_GRADIENT_KNEE = 0.4f
+private const val INFO_GRADIENT_KNEE_ALPHA = 0.5f
+private const val INFO_GRADIENT_FOOT_ALPHA = 0.9f
 
-/** The least dense the info card's gradient is drawn, whatever the opacity setting says. */
+/** The least opaque the info card's panel and gradient are drawn, whatever the setting says. */
 private const val INFO_MIN_OPACITY = 0.8f
 
 /*
- * The lower third's measurements, from `canvas/LowerThird.dc.html` (1080p pixels halved).
+ * The lower third's measurements, from `LowerThird.dc.html` (1080p pixels halved).
  */
 private val INFO_SAFE_X = 48.dp
-private val INFO_TILE = 88.dp
+private val INFO_SAFE_Y = 27.dp
+private val INFO_TILE = 84.dp
+private val INFO_TILE_CORNER = 18.dp
 private val INFO_PROGRESS_WIDTH = 280.dp
-private val INFO_NEXT_WIDTH = 220.dp
+private val INFO_NEXT_WIDTH = 190.dp
+private val INFO_NEXT_CORNER = 16.dp
 
-/** The number is 150px against the hero's 140; the title 124px against the title step's 108. */
-private const val INFO_NUMBER_SCALE = 150f / 140f
-private const val INFO_TITLE_SCALE = 124f / 108f
-
-/** The channel name is 32px against the action step's 30; the time line 26px against the body's 24. */
-private const val INFO_CHANNEL_SCALE = 32f / 30f
-private const val INFO_META_SCALE = 26f / 24f
+/** The number is 64px at 800 against the title step's 56; the next title 30px against h1's 34. */
+private const val INFO_NUMBER_SCALE = 64f / 56f
+private const val INFO_NEXT_TITLE_SCALE = 30f / 34f
 
 /** Whether [channel] is one of the bundled Israeli radio stations (ADR-015). */
 private fun isBundledRadio(state: com.tivicopy.player.ui.AppUiState, channel: com.tivicopy.player.data.model.Channel): Boolean {

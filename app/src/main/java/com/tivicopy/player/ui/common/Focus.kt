@@ -187,14 +187,15 @@ val LocalOnLitSurface = compositionLocalOf { false }
  * The colour of a [FocusFill.FILLED] or [FocusFill.LIT] element's label or icon, which turns over
  * with its fill: dark on the lit surface, amber when it is the chosen one, ink at rest.
  *
- * @param muted for a resting chip or a secondary line, which is the second ink until chosen
+ * @param muted for an element whose resting label is the second ink — a chip, a menu entry — until
+ *   it is focused or chosen
  */
 @Composable
 fun filledContentColour(focused: Boolean, selected: Boolean = false, muted: Boolean = false): Color {
     val studio = StudioTheme.colors
     return animatedColour(
         when {
-            focused -> if (muted) studio.onCue.copy(alpha = LIT_MUTED_ALPHA) else studio.onCue
+            focused -> studio.onCue
             selected -> studio.current
             muted -> studio.ink2
             else -> studio.ink

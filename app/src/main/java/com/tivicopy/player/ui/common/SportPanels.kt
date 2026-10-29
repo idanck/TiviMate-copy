@@ -271,7 +271,8 @@ internal fun PanelCaption(
             Icon(
                 imageVector = StudioIcons.Audio,
                 contentDescription = stringResource(R.string.sport_sound_here),
-                tint = studio.cue,
+                // The panel the sound comes from is the chosen one: amber (`--st-current`).
+                tint = studio.current,
                 modifier = Modifier.size(22.dp),
             )
         }
