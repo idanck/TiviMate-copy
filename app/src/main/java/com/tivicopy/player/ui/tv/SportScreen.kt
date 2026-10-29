@@ -62,7 +62,6 @@ import com.tivicopy.player.ui.common.PanelFailure
 import com.tivicopy.player.ui.common.PanelVideo
 import com.tivicopy.player.ui.common.SportPickerRow
 import com.tivicopy.player.ui.common.panelConnecting
-import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
 import com.tivicopy.player.ui.common.NewsTicker
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.focusSurface
@@ -177,7 +176,6 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 expanded = expanded,
                 news = news,
                 ticker = prefs.newsTicker,
-                opacity = prefs.overlayOpacity,
                 onExpand = {
                     session.closeMenu()
                     session.focus(slot)
@@ -198,7 +196,6 @@ internal fun SportScreen(vm: AppViewModel, modifier: Modifier = Modifier) {
                 choices = choices,
                 sources = sources,
                 news = news,
-                opacity = prefs.overlayOpacity,
                 onPick = { channel -> session.assign(slot, channel) },
                 onFlashes = { session.showFlashes(slot) },
                 onClear = { session.clear(slot) },
@@ -317,7 +314,6 @@ private fun SportPanelMenu(
     expanded: Boolean,
     news: Boolean,
     ticker: Boolean,
-    opacity: Float,
     onExpand: () -> Unit,
     onChange: () -> Unit,
     onClear: () -> Unit,
@@ -342,7 +338,9 @@ private fun SportPanelMenu(
         modifier = modifier
             .width(PICKER_WIDTH)
             .fillMaxHeight()
-            .background(studio.drawer.copy(alpha = opacity.coerceAtLeast(MENU_MIN_OPACITY)))
+            // A drawer against the end edge (ADR-046): solid by the edge, fading towards the
+            // panels, never blurred.
+            .tvDrawer(atStart = false)
             .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
@@ -414,7 +412,6 @@ private fun SportPicker(
     /** Each playlist's name, by its id. */
     sources: Map<Long, String>,
     news: Boolean,
-    opacity: Float,
     onPick: (Channel) -> Unit,
     onFlashes: () -> Unit,
     onClear: () -> Unit,
@@ -452,7 +449,9 @@ private fun SportPicker(
         modifier = modifier
             .width(PICKER_WIDTH)
             .fillMaxHeight()
-            .background(studio.drawer.copy(alpha = opacity.coerceAtLeast(MENU_MIN_OPACITY)))
+            // A drawer against the end edge (ADR-046): solid by the edge, fading towards the
+            // panels, never blurred.
+            .tvDrawer(atStart = false)
             .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
