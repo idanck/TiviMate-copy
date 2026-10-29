@@ -130,5 +130,11 @@ the code.
 - Sheets and the channel menu's drawer draw the canvas's own dim (`--st-dim-open`) and take the
   platform's away, so a drawer is dimmed only outside itself.
 - The launcher icon is still drawn from Karantina's outlines (`docs/design/studio/ICON.md`), so
-  `docs/licenses/Karantina-OFL.txt` stays; the web version (ADR-044) is not part of this change.
+  `docs/licenses/Karantina-OFL.txt` stays.
+- The web version (ADR-044) moves to Merhav in the same change: `web/src/styles.css` carries the
+  same tokens under its own names, glass with a no-blur fallback, the lit surface for keyboard
+  focus and amber for the current item, and Noto Sans Hebrew self-hosted as three woff2 subsets of
+  the variable font (`web/public/fonts`), in place of IBM Plex Sans Hebrew and Karantina.
+- The static Android weights are cut by `docs/design/merhav/cut_noto.py` from google/fonts'
+  variable font, so they can be cut again the same way.
 - As ever, none of this could be compiled where it was written (`CLAUDE.md`). CI is the gate.
