@@ -357,8 +357,9 @@ private fun PhoneSportPanel(
         slot.flashes -> stringResource(R.string.news_flashes)
         else -> channel?.displayName ?: stringResource(R.string.sport_add_channel)
     }
-    // The panel in focus wears the cue, crossed in at one width rather than widened (ADR-025).
-    val ring = animatedColour(if (inFocus) studio.cue else studio.cue.copy(alpha = 0f))
+    // The panel in focus wears the cue, crossed in at one width rather than widened (ADR-025); a
+    // panel that fills the screen wears none (`PModePanel`).
+    val ring = animatedColour(if (inFocus && !expanded) studio.cue else studio.cue.copy(alpha = 0f))
     Box(
         modifier = Modifier
             .fillMaxSize()

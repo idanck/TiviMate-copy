@@ -458,9 +458,59 @@ fun Screensaver(
  * length would push its text out of the ring it is centred in.
  */
 @Immutable
-internal class SaverUnits(val scale: Float, private val density: Density) {
+internal class SaverUnits(
+    val scale: Float,
+    private val density: Density,
+    /** The least the headlines' text may shrink to, for a column read as a panel (News mode). */
+    val floors: FlashFloors = FlashFloors.NONE,
+) {
     fun dp(value: Float): Dp = (value * scale).dp
     fun sp(value: Float): TextUnit = with(density) { (value * scale).dp.toSp() }
+
+    /** [dp], but never below [floor] dp. */
+    fun dp(value: Float, floor: Float): Dp = maxOf(value * scale, floor).dp
+
+    /** [sp], but never below [floor] dp. */
+    fun sp(value: Float, floor: Float): TextUnit = with(density) { maxOf(value * scale, floor).dp.toSp() }
+}
+
+/**
+ * The least the headlines' parts may be, in dp, whatever the column's scale (`TvModeHeadlines`,
+ * `PModeHeadlines`). The screensaver's own column has none: it is laid out as a picture. A panel
+ * of headlines in News mode is read, and on a narrow panel its scale would take the header and the
+ * source's tag below what can be read from a sofa, or below a phone's 12.
+ */
+@Immutable
+internal class FlashFloors(
+    val header: Float = 0f,
+    val headerLine: Float = 0f,
+    val time: Float = 0f,
+    val timeLine: Float = 0f,
+    val title: Float = 0f,
+    val titleLine: Float = 0f,
+    val chip: Float = 0f,
+    val chipLine: Float = 0f,
+    val chipHeight: Float = 0f,
+) {
+    companion object {
+        val NONE = FlashFloors()
+
+        /** 18px and 16px at 1080p for the header and the tag; the tag's plate 28px. */
+        val TELEVISION = FlashFloors(header = 9f, headerLine = 11f, chip = 8f, chipLine = 10f, chipHeight = 14f)
+
+        /** The phone's 12 for the header and the tag, 14 for the time, 15 on 20 for the titles. */
+        val PHONE = FlashFloors(
+            header = 12f,
+            headerLine = 16f,
+            time = 14f,
+            timeLine = 14f,
+            title = 15f,
+            titleLine = 20f,
+            chip = 12f,
+            chipLine = 15f,
+            chipHeight = 18f,
+        )
+    }
 }
 
 /**
@@ -837,8 +887,8 @@ private fun FlashRound(
         Text(
             text = header,
             style = StudioTheme.type.meta.copy(
-                fontSize = units.sp(11f),
-                lineHeight = units.sp(14f),
+                fontSize = units.sp(11f, units.floors.header),
+                lineHeight = units.sp(14f, units.floors.headerLine),
                 fontWeight = FontWeight.SemiBold,
             ),
             color = studio.ink3,
@@ -884,8 +934,8 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                     Text(
                         text = flashTime(at, nowUtc),
                         style = type.h1.copy(
-                            fontSize = units.sp(15f),
-                            lineHeight = units.sp(15f),
+                            fontSize = units.sp(15f, units.floors.time),
+                            lineHeight = units.sp(15f, units.floors.timeLine),
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = studio.ink,
@@ -897,8 +947,8 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                 text = item.flash.title,
                 style = type.h1.copy(
                     // Was 20sp on 24 until 0.18.1, which the owner found too large.
-                    fontSize = units.sp(17f),
-                    lineHeight = units.sp(21f),
+                    fontSize = units.sp(17f, units.floors.title),
+                    lineHeight = units.sp(21f, units.floors.titleLine),
                     fontWeight = FontWeight.SemiBold,
                     // A Hebrew headline under an English interface, or the other way round,
                     // lays itself out by what it says.
@@ -919,7 +969,7 @@ private fun SourceChip(label: String, tone: Color, colours: Boolean, units: Save
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
-            .height(units.dp(16f))
+            .height(units.dp(16f, units.floors.chipHeight))
             .widthIn(max = units.dp(CHIP_MAX_DP))
             .clip(shape)
             .background(if (colours) tone.copy(alpha = CHIP_FILL_ALPHA) else studio.surface)
@@ -929,8 +979,8 @@ private fun SourceChip(label: String, tone: Color, colours: Boolean, units: Save
         Text(
             text = label,
             style = StudioTheme.type.caption.copy(
-                fontSize = units.sp(9.5f),
-                lineHeight = units.sp(12f),
+                fontSize = units.sp(9.5f, units.floors.chip),
+                lineHeight = units.sp(12f, units.floors.chipLine),
                 fontWeight = FontWeight.SemiBold,
                 textDirection = TextDirection.Content,
             ),

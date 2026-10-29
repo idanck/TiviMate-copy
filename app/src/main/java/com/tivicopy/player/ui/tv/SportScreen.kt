@@ -264,8 +264,10 @@ private fun SportPanel(
                 onClick = onOk,
             )
             .semantics { contentDescription = label }
-            // Square, because a video surface ignores the clip a rounded corner would ask for.
-            .focusSurface(focused = hasFocus, shape = RectangleShape, fill = FocusFill.NONE, ringWidth = RING_WIDTH),
+            // Square, because a video surface ignores the clip a rounded corner would ask for. A
+            // light ring inside the panel, never a growth (`TvModePanel`); none on a panel that
+            // fills the screen, where there is nothing to tell it from.
+            .focusSurface(focused = hasFocus && !expanded, shape = RectangleShape, fill = FocusFill.NONE, ringWidth = RING_WIDTH),
     ) {
         if (slot.flashes) {
             val live by vm.sport.live.collectAsState()
