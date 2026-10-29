@@ -375,7 +375,7 @@
     <string name="about_secure_store">Credential encryption: %1$s</string>
     <string name="about_secure_yes">Android Keystore</string>
     <string name="about_secure_no">unavailable on this device</string>
-    <string name="about_typeface">Typefaces: IBM Plex Sans Hebrew, © IBM Corp., and Karantina, by the Karantina Project Authors — SIL Open Font License 1.1</string>
+    <string name="about_typeface">Typeface: Noto Sans Hebrew, © The Noto Project Authors — SIL Open Font License 1.1</string>
 
     <string name="exit_confirm">Press Back again to exit.</string>
     <string name="loading">Loading…</string>

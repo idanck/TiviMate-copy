@@ -688,7 +688,8 @@ private fun VideoLine(video: SaverPlaying.Video, units: SaverUnits) {
                 text = title,
                 style = type.titleSmall.copy(
                     fontSize = units.sp(32f),
-                    lineHeight = units.sp(30.4f),
+                    // 1.1 of the size: Noto's Hebrew needs the room Karantina's condensed lines did not.
+                    lineHeight = units.sp(35.2f),
                     textDirection = TextDirection.Content,
                 ),
                 color = studio.ink,

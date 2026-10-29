@@ -183,7 +183,7 @@ fun PictureInGuide(
 
 /**
  * The focused programme, beside the picture (`canvas/Guide.dc.html`): its channel and number, its
- * category, the title in Karantina, the time and where it stands now, the synopsis, and what can
+ * category, the title at the display weight, the time and where it stands now, the synopsis, and what can
  * be done with it — watch it or start it over while it airs, watch the replay once it has aired,
  * or open its details (record, remind) while it is still to come.
  */

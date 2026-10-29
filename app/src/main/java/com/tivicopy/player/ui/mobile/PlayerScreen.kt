@@ -348,7 +348,7 @@ fun PlayerScreen(
 /**
  * The metadata half of the portrait player screen, Studio's `PNowPlaying`, keyed off what is
  * actually playing. A live channel gets the live badge and its name, the programme title in
- * Karantina, its time with progress and minutes left, zapping around play/pause, favourite /
+ * the display weight, its time with progress and minutes left, zapping around play/pause, favourite /
  * guide / view, and what comes next in a panel in the "next" blue. Catch-up, on-demand and
  * recordings get their title and what little else is known, play/pause and the view action.
  * Seeking stays on the surface's gestures (FR-UI-14) — there is no scrubber yet, and docs/10
@@ -596,13 +596,13 @@ private fun MoreChannels(vm: AppViewModel, current: Channel, channels: List<Chan
 /** How many channels "more channels" lists. */
 private const val MORE_CHANNELS = 2
 
-/** The programme's title as Studio sets it on the phone: Karantina, 44sp, two lines at most. */
+/** The programme's title as the canvas sets it on the phone: the display weight, two lines at most. */
 @Composable
 private fun PlayerTitle(text: String) {
-    val hero = StudioTheme.type.hero
     Text(
         text = text,
-        style = hero.copy(fontSize = hero.fontSize * (44f / 48f), lineHeight = hero.fontSize * (44f / 48f) * 0.95f),
+        // `PNowPlaying`'s title is the hero step itself (32 on a phone).
+        style = StudioTheme.type.hero,
         color = StudioTheme.colors.ink,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,

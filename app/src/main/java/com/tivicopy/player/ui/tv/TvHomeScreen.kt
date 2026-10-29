@@ -294,7 +294,7 @@ fun TvHomeScreen(
  * The picture itself is not drawn here and never was — `TvRoot` owns the one `PlayerSurface` in
  * the app and, on this screen, leaves it filling the panel. What this composable adds is the
  * gradient that makes words legible over it, and over that, from the top: the live badge with the
- * channel's name and number, the programme's title as a broadcast would set it (Karantina), its
+ * channel's name and number, the programme's title as a broadcast would set it (the display weight), its
  * time with a progress bar and the minutes left, and a row of actions — watch full screen, the
  * guide, and the channel as a favourite — with what comes next beside them, in Studio's "next"
  * blue.

@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The bundled typefaces are the weights they claim to be (FR-UI-27, ADR-027).
+ * The bundled typeface is the weights it claims to be (FR-UI-27, ADR-046).
  *
  * `ui/theme/Type.kt` maps each `FontWeight` to one file in `res/font/`, and nothing on the build
  * side checks that the file behind a name is actually that weight — a wrong drop, or a
@@ -52,20 +52,47 @@ class TypefaceAssetsTest {
     @Test
     fun `each bundled weight is the weight its filename promises`() {
         val expected = mapOf(
-            "ibm_plex_sans_hebrew_regular.ttf" to 400,
-            "ibm_plex_sans_hebrew_medium.ttf" to 500,
-            "ibm_plex_sans_hebrew_semibold.ttf" to 600,
-            "ibm_plex_sans_hebrew_bold.ttf" to 700,
-            "karantina_bold.ttf" to 700,
+            "noto_sans_hebrew_regular.ttf" to 400,
+            "noto_sans_hebrew_medium.ttf" to 500,
+            "noto_sans_hebrew_semibold.ttf" to 600,
+            "noto_sans_hebrew_bold.ttf" to 700,
+            "noto_sans_hebrew_extrabold.ttf" to 800,
         )
         val dir = fontDir()
         expected.forEach { (name, weight) ->
             val file = File(dir, name)
             assertTrue("$name is missing from res/font", file.isFile)
             // A stray Git LFS pointer or a truncated download is a plausible way for this to go
-            // wrong; a real weight of Plex Sans Hebrew is around 96 KB, and Karantina about 48 KB.
+            // wrong; a real weight of the subset Noto Sans Hebrew is around 44 KB.
             assertTrue("$name is too small to be a font (${file.length()} bytes)", file.length() > 20_000)
             assertEquals("$name declares the wrong usWeightClass", weight.toLong(), weightClassOf(file).toLong())
+        }
+    }
+
+    /** The four-letter tags in a TrueType file's table directory. */
+    private fun tablesOf(file: File): List<String> = RandomAccessFile(file, "r").use { raf ->
+        raf.readInt() // sfnt version
+        val tableCount = raf.readUnsignedShort()
+        raf.seek(12)
+        val tag = ByteArray(4)
+        List(tableCount) {
+            raf.readFully(tag)
+            raf.skipBytes(12) // checksum, offset, length
+            String(tag, Charsets.US_ASCII)
+        }
+    }
+
+    /**
+     * Every weight is a static instance, never the variable font (ADR-019, ADR-046): below API 26
+     * Compose cannot select a variable font's weight, and this one's default is Thin. A variable
+     * file dropped into `res/font/` under a static name would pass the weight check above (its
+     * `OS/2` still says something) and draw every screen in hairlines on an older television.
+     */
+    @Test
+    fun `no bundled weight is a variable font`() {
+        val dir = fontDir()
+        dir.listFiles { file -> file.extension == "ttf" }.orEmpty().forEach { file ->
+            assertTrue("${file.name} still carries an fvar table", "fvar" !in tablesOf(file))
         }
     }
 
@@ -76,7 +103,7 @@ class TypefaceAssetsTest {
      */
     @Test
     fun `each font licence ships with the app`() {
-        listOf("ibm-plex-sans-hebrew-ofl.txt", "karantina-ofl.txt").forEach { name ->
+        listOf("noto-sans-hebrew-ofl.txt").forEach { name ->
             val candidates = listOf(
                 File("src/main/assets/licenses/$name"),
                 File("app/src/main/assets/licenses/$name"),

@@ -160,7 +160,7 @@ fun AddSourceScreen(
             modifier = Modifier.weight(1f).widthIn(max = 500.dp),
             verticalArrangement = Arrangement.spacedBy(if (tv) 9.dp else 12.dp),
         ) {
-            // `TvAddSource`: a Karantina title, the sentence that says what the app is, and the three
+            // `TvAddSource`: a display title, the sentence that says what the app is, and the three
             // kinds of source as chips.
             // A phone's title is its top bar's (`PAddSource`).
             if (tv) {

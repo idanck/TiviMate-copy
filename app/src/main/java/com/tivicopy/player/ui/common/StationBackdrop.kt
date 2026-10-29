@@ -314,7 +314,7 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  *
  * On a television: Studio's shifting background ([studioAmbient]), the live badge and the clock
  * across the top, the station's disc haloed in light, and beside it what is playing: the song as a
- * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. Once
+ * broadcast would set it (the display weight), the artist, play/pause and the station as a favourite. Once
  * the viewer has been away for the idle time, the screensaver takes this screen like any other
  * that is not full-screen video, and carries the task list under its clock (ADR-040).
  *
@@ -441,7 +441,7 @@ fun AudioOnlyNowPlaying(
                     text = parts?.title ?: headline,
                     style = type.hero.copy(
                         fontSize = type.hero.fontSize * SONG_SCALE,
-                        lineHeight = type.hero.fontSize * SONG_SCALE * 0.88f,
+                        lineHeight = type.hero.fontSize * SONG_SCALE * 1.05f,
                         textDirection = TextDirection.Content,
                     ),
                     color = studio.ink,

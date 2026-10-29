@@ -259,7 +259,7 @@ private fun RecordingStatusPill(state: RecordingState) {
 /**
  * The recording the remote is on, described beside the list (`canvas/Recordings.dc.html`): a
  * plate with its channel where the canvas has a frame of it (the app keeps no thumbnails), its
- * state, the title in Karantina, channel, day, time and length, and what can be done with it.
+ * state, the title at the display weight, channel, day, time and length, and what can be done with it.
  */
 @Composable
 private fun RecordingDetail(
@@ -294,7 +294,7 @@ private fun RecordingDetail(
             text = recording.title,
             style = type.titleSmall.copy(
                 fontSize = type.titleSmall.fontSize * DETAIL_TITLE_SCALE,
-                lineHeight = type.titleSmall.fontSize * DETAIL_TITLE_SCALE * 0.9f,
+                lineHeight = type.titleSmall.fontSize * DETAIL_TITLE_SCALE * 1.15f,
             ),
             color = studio.ink,
             maxLines = 2,

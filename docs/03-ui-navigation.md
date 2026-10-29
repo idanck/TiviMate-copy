@@ -194,10 +194,11 @@ This is our differentiator and must not be an afterthought.
   `docs/adr/ADR-021`, which also records why the interface was not smooth before it: none of this
   app's own code was in the baseline profile, so on a freshly updated install every screen ran
   interpreted.
-- The interface is drawn in the Studio language (`docs/design/studio/`, ADR-027): a night-blue
-  ground, a red *tally* for what is on screen and an amber *cue* that is the only focus colour.
-  It is set in typefaces the app ships itself rather than the device default — Karantina for
-  programme titles and the app's name, IBM Plex Sans Hebrew for everything else, both covering
+- The interface is drawn in the Merhav language (`docs/design/merhav/`, ADR-046): the picture is
+  the environment and the interface floats over it in smoky glass; focus on a television is a lit
+  surface (or lit glass with a white ring on a content tile), amber marks the current screen and
+  the chosen value, and red is only what is on screen or live. It is set in one typeface the app
+  ships itself rather than the device default — Noto Sans Hebrew, in five static weights covering
   Hebrew and Latin. No weight lighter than Regular.
 - Configurable bottom playback menu: which actions appear and in what order.
 - Optional channel-logo-only vs logo+name list modes.

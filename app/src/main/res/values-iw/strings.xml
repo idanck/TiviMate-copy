@@ -344,7 +344,7 @@
     <string name="about_secure_store">הצפנת פרטי התחברות: %1$s</string>
     <string name="about_secure_yes">Android Keystore</string>
     <string name="about_secure_no">אינה זמינה במכשיר הזה</string>
-    <string name="about_typeface">גופנים: IBM Plex Sans Hebrew, ‏© IBM Corp., ו-Karantina, מאת יוצרי פרויקט Karantina — רישיון SIL Open Font License 1.1</string>
+    <string name="about_typeface">גופן: Noto Sans Hebrew, ‏© The Noto Project Authors — רישיון SIL Open Font License 1.1</string>
     <string name="exit_confirm">לחץ שוב על חזרה כדי לצאת.</string>
     <string name="loading">טוען…</string>
 

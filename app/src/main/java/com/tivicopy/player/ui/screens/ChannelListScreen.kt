@@ -845,8 +845,8 @@ fun NowNextPane(
 }
 
 /**
- * The preview beside a television's channel list (`Channels`' aside): the number in Karantina
- * beside the name, the live badge, the programme's title in Karantina, its times with the
+ * The preview beside a television's channel list (`Channels`' aside): the number at the display weight
+ * beside the name, the live badge, the programme's title at the display weight, its times with the
  * progress and the minutes left, its synopsis, and under a hairline what comes next — in the
  * `next` colour, which is what it is for.
  *
