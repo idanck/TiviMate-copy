@@ -140,11 +140,18 @@ fun PlaybackStateOverlay(
             }
             return
         }
-        Box(modifier = modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.Center) {
+        // With buttons the panel is the screen's, in the middle of it. Without them (`TvPlayErrorQuiet`)
+        // another overlay owns the remote — the transport bar, the lower third — so the panel sits
+        // above that, near the top, rather than across it.
+        val quiet = errorActions == null
+        Box(
+            modifier = modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = if (quiet) QUIET_ERROR_TOP else 16.dp),
+            contentAlignment = if (quiet) Alignment.TopCenter else Alignment.Center,
+        ) {
             Column(
                 modifier = Modifier
                     .widthIn(max = 500.dp)
-                    .panelSurface(opacity.coerceAtLeast(MENU_MIN_OPACITY), MaterialTheme.shapes.large)
+                    .panelSurface(opacity.coerceAtLeast(MENU_MIN_OPACITY), MaterialTheme.shapes.large, GlassMaterial.THICK)
                     .padding(horizontal = 28.dp, vertical = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
@@ -269,3 +276,6 @@ private const val RECONNECT_DIM = 0.6f
 
 /** How long buffering has to persist before it is worth drawing anything. */
 private const val BUSY_GRACE_MILLIS = 350L
+
+/** The quiet error's place: 150px from the top at 1080p, clear of the lower third under it. */
+private val QUIET_ERROR_TOP = 75.dp

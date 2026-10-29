@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -436,17 +438,36 @@ fun TvRoot(
             )
         }
 
+        // `Live`, `PlayerTransport`, `TvFilmstrip`: the time on a pill of thin glass in the corner
+        // while a surface over the playing picture is up. Not over a station's backdrop, which
+        // has a clock of its own, and not while digits are typed, whose readout takes the corner.
+        SurfacePresence(
+            visible = numericEntry.isEmpty() && !audioOnly &&
+                (overlay == TvOverlay.INFO || overlay == TvOverlay.TRANSPORT || overlay == TvOverlay.MINI_GUIDE),
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 24.dp, end = 48.dp),
+        ) {
+            VideoClock()
+        }
+
         if (numericEntry.isNotEmpty()) {
-            Text(
-                text = stringResource(R.string.channel_number_entry, numericEntry),
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.onSurface,
+            // `TvChannelEntry`: the digits read back on a pill of thick glass at the safe area's
+            // corner, at the title step (56px at 800, at 1080p).
+            Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(TV_CONTENT_INSET)
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = prefs.overlayOpacity))
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-            )
+                    .padding(top = 27.dp, end = 48.dp)
+                    .height(52.dp)
+                    .glass(GlassMaterial.THICK, MaterialTheme.shapes.large)
+                    .padding(horizontal = 22.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.channel_number_entry, numericEntry),
+                    style = StudioTheme.type.title,
+                    color = StudioTheme.colors.ink,
+                    maxLines = 1,
+                )
+            }
         }
 
         // The filmstrip is drawn over playing video with no scrim of its own, which is what makes
@@ -785,6 +806,38 @@ private fun OverlayScaffold(
         }
     }
 }
+
+/**
+ * The clock over the playing picture (`Live`, `PlayerTransport`, `TvFilmstrip`): the time on a pill
+ * of thin glass, 64px high at 1080p with the digits at 30px. It wakes on the minute.
+ */
+@Composable
+private fun VideoClock() {
+    val type = StudioTheme.type
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = System.currentTimeMillis()
+            delay(CLOCK_MINUTE_MS - now % CLOCK_MINUTE_MS)
+        }
+    }
+    Box(
+        modifier = Modifier
+            .height(32.dp)
+            .glass(GlassMaterial.THIN, CircleShape)
+            .padding(horizontal = 13.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = TimeModel.ltr(TimeModel.formatClock(now)),
+            style = type.action.copy(fontSize = type.action.fontSize * (30f / 28f), fontWeight = FontWeight.SemiBold),
+            color = StudioTheme.colors.ink,
+            maxLines = 1,
+        )
+    }
+}
+
+private const val CLOCK_MINUTE_MS = 60_000L
 
 /**
  * How far the ten-foot shell keeps text from the edge of the panel.
