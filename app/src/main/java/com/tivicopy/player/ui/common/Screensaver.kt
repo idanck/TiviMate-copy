@@ -970,7 +970,9 @@ internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Mod
 }
 
 /**
- * One open task.
+ * One open task, on a card of thin glass in the three inks (`TvScreensaverTasks`, `PScreensaver`;
+ * ADR-046): the section and the counter in the third ink, the task in ink, its due date in the
+ * second.
  *
  * [TextDirection.Content] on both lines of body text on purpose: a Hebrew task read by an
  * English interface — or the other way round — has to lay itself out by what it says, not by
@@ -978,19 +980,13 @@ internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Mod
  */
 @Composable
 private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
+    val studio = StudioTheme.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = Color.White.copy(alpha = TASK_CARD_ALPHA),
-                shape = RoundedCornerShape(16.dp),
-            )
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = TASK_BORDER_ALPHA),
-                shape = RoundedCornerShape(16.dp),
-            )
+            // `--st-r-card`: 24px at 1080p, 20 on a phone.
+            .glass(GlassMaterial.THIN, RoundedCornerShape(if (StudioTheme.television) 12.dp else 20.dp))
             .padding(horizontal = 20.dp, vertical = if (compact) 10.dp else 16.dp),
     ) {
         Text(
@@ -1001,7 +997,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
                 TimeModel.ltr("${at + 1}/$of"),
             ).joinToString(" · "),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.65f),
+            color = studio.ink3,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1015,7 +1011,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
                     MaterialTheme.typography.titleMedium
                 }
                 ).copy(textDirection = TextDirection.Content),
-            color = Color.White,
+            color = studio.ink,
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -1025,7 +1021,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
             Text(
                 text = stringResource(R.string.screensaver_task_due, TimeModel.ltr(due)),
                 style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.Content),
-                color = Color.White.copy(alpha = 0.7f),
+                color = studio.ink2,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp),
             )
@@ -1086,9 +1082,6 @@ private const val CHIP_LINE_ALPHA = 0.40f
 private const val SHIFT_DP = 6f
 private const val SHIFT_EVERY_MS = 3L * 60 * 1000
 private const val SHIFT_MS = 2_000
-
-private const val TASK_CARD_ALPHA = 0.10f
-private const val TASK_BORDER_ALPHA = 0.18f
 
 /** How long one task holds the card, and how long the change between two of them takes. */
 private const val TASK_DWELL_MS = 12_000L
