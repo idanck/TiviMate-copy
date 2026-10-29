@@ -314,7 +314,7 @@ private fun SeriesEpisodes(
                 AsyncImage(
                     model = series.posterUrl,
                     contentDescription = null,
-                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(MaterialTheme.shapes.extraSmall),
+                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(MaterialTheme.shapes.small),
                 )
             }
             Text(
