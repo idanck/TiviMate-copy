@@ -509,12 +509,28 @@ fun AudioOnlyNowPlaying(
 }
 
 /**
- * Studio's station disc (`canvas/StationDisc.dc.html`): the station's mark on a round `card`,
- * edged with a hairline — and, for the station on air, ringed in the halo's light.
+ * The station disc (`canvas/StationDisc.dc.html`): the station's mark on a disc of thin glass with
+ * its lit edge — and, for the station on air on its own screen, ringed in the halo's light. A disc
+ * is content: under the remote it is lit glass, and on air in a list a wash of the tally (the ring
+ * round it is the caller's).
  */
 @Composable
-internal fun StationDisc(channel: Channel, size: Dp, modifier: Modifier = Modifier, halo: Boolean = false) {
+internal fun StationDisc(
+    channel: Channel,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    halo: Boolean = false,
+    focused: Boolean = false,
+    onAir: Boolean = false,
+) {
     val studio = StudioTheme.colors
+    val plate = animatedColour(
+        when {
+            focused -> studio.cardFocus
+            onAir -> studio.onScreen
+            else -> studio.card
+        },
+    )
     val haloWidth = if (halo) size * DISC_HALO_FRACTION else 0.dp
     Box(
         modifier = modifier
@@ -527,8 +543,8 @@ internal fun StationDisc(channel: Channel, size: Dp, modifier: Modifier = Modifi
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(studio.card)
-                .border(1.dp, studio.hairline, CircleShape),
+                .background(plate)
+                .litEdge(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             // The mark is inset rather than filling the disc: a round plate has no room at its

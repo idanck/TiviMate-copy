@@ -74,6 +74,7 @@ import com.tivicopy.player.ui.common.StudioButtonVariant
 import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.common.litEdge
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 import com.tivicopy.player.ui.common.StudioIcons
@@ -722,6 +723,9 @@ private fun ProgrammeCell(
             .padding(2.dp)
             .clip(cellShape)
             .background(body)
+            // `GuideCell`: a cell still to come or on air has the glass's lit edge; one that has
+            // aired has none, and recedes.
+            .then(if (programme.endUtc > now) Modifier.litEdge(cellShape) else Modifier)
             // The app's one focus treatment. This cell used to ring itself at a hard-coded 2dp,
             // so on a television every row in the channel list was ringed at 3dp and every cell
             // in the guide beside it at 2dp.

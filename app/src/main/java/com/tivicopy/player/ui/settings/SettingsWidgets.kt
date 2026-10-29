@@ -40,6 +40,7 @@ import com.tivicopy.player.ui.common.ListRow
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.RowTrail
 import com.tivicopy.player.ui.common.StudioIcons
+import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.animatedColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
@@ -183,8 +184,9 @@ fun <T> SettingsChoice(
  * of the range, which a setting stored as a whole number truncated straight back to where it was:
  * on a television the row looked dead.
  *
- * Focused, the value sits between two chevrons, each dimmed once the value is at the end it points
- * to, and the thumb and the filled track turn the cue: the cue is reserved for focus.
+ * Focused, the row is the lit surface (`Slider`, ADR-046): the label, the value between two
+ * chevrons (each dimmed once the value is at the end it points to), the thumb and the track all
+ * turn dark on it.
  *
  * @param keyStep how far one press of the remote moves the value. Defaults to one of [steps] when
  *   there are some and to a twentieth of the range otherwise; a setting stored as a whole number
@@ -214,7 +216,9 @@ fun SettingsSlider(
         modifier = Modifier
             .fillMaxWidth()
             .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
-            .focusSurface(focused = focused, shape = shape)
+            // A control (`Slider`): the whole row becomes the lit surface, and everything on it
+            // turns dark, the track included.
+            .focusSurface(focused = focused, shape = shape, fill = FocusFill.LIT)
             .onFocusChanged { focused = it.isFocused }
             .onKeyEvent { event ->
                 val towardsEnd = when (event.key) {
@@ -241,8 +245,8 @@ fun SettingsSlider(
         ) {
             Text(
                 title,
-                style = StudioTheme.type.rowLabel,
-                color = studio.ink,
+                style = StudioTheme.type.rowLabel.copy(fontWeight = if (focused) FontWeight.Bold else FontWeight.SemiBold),
+                color = animatedColour(if (focused) studio.onCue else studio.ink),
                 modifier = Modifier.weight(1f),
             )
             if (tv) {
@@ -258,11 +262,12 @@ fun SettingsSlider(
             Text(
                 valueLabel,
                 style = StudioTheme.type.meta,
-                color = animatedColour(if (focused) studio.ink else studio.ink2),
+                color = animatedColour(if (focused) studio.onCue else studio.ink2),
             )
             if (tv) SliderChevron(focused = focused, atLimit = value >= range.endInclusive)
         }
-        val thumb = animatedColour(if (focused) studio.cue else studio.ink)
+        val thumb = animatedColour(if (focused) studio.onCue else studio.ink)
+        val rest = animatedColour(if (focused) studio.onCue.copy(alpha = 0.16f) else studio.track)
         Slider(
             value = value,
             onValueChange = onChange,
@@ -271,11 +276,11 @@ fun SettingsSlider(
             // The row takes focus and the keys; the slider would otherwise be a second, invisible
             // stop on the way down the list, and handle the keys its own way.
             modifier = Modifier.focusProperties { canFocus = false },
-            // Ink on the track, as Studio's progress bar is: the cue is reserved for focus.
+            // Ink on the track, as the progress bar is; dark on the lit surface.
             colors = SliderDefaults.colors(
                 thumbColor = thumb,
                 activeTrackColor = thumb,
-                inactiveTrackColor = studio.track,
+                inactiveTrackColor = rest,
                 activeTickColor = studio.ground,
                 inactiveTickColor = studio.ink3,
             ),
@@ -288,10 +293,11 @@ fun SettingsSlider(
 @Composable
 private fun SliderChevron(focused: Boolean, atLimit: Boolean, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
+    // On the lit surface: dark, and dimmed at the end it points to.
     val tint = when {
-        !focused -> studio.ink.copy(alpha = 0f)
-        atLimit -> studio.ink3
-        else -> studio.ink
+        !focused -> studio.onCue.copy(alpha = 0f)
+        atLimit -> studio.onCue.copy(alpha = 0.35f)
+        else -> studio.onCue
     }
     Icon(
         imageVector = StudioIcons.ChevronEnd,
