@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -39,6 +41,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -47,6 +50,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -119,44 +123,97 @@ fun ChannelLogo(
     }
 }
 
+/** The live badge's sizes (`LiveBadge.dc.html`): on a phone it is always the phone's own. */
+enum class LiveBadgeSize { M, S }
+
 /**
- * "Live", with the tally light, on a dark plate (Studio's `LiveBadge`, `canvas/LiveBadge.dc.html`).
+ * "Live", with the tally light (`LiveBadge.dc.html`, `st-live`): a pill of dark red glass with a
+ * red edge, the dot glowing, and always a word — red never says "live" alone.
  *
- * Shared rather than owned by one screen: the station backdrop, the zapping info card, the home
- * banner and the transport bar all have to say the same word about the same stream.
+ * Shared rather than owned by one screen: the station backdrop, the lower third, the home banner,
+ * the transport bar and a row's "on screen" all have to say the same thing about the same stream.
  *
- * The plate is Studio's scrim with a hairline edge, so it reads over live video, over a station's
- * backdrop and over a panel alike; the dot is the tally, which is what "on air" means everywhere
- * in this language.
+ * @param label what it says: "live" unless told otherwise ("on screen", "recording")
+ * @param size the television's 44px or 34px badge at 1080p; a phone draws its 26dp one either way
+ * @param lit on the lit surface of a focused row: solid tally with dark text, as the canvas's
+ *   `ListRow` draws it, because red glass on a white plate would be pink
  */
 @Composable
-fun LiveBadge(modifier: Modifier = Modifier, label: String? = null) {
+fun LiveBadge(
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    size: LiveBadgeSize = LiveBadgeSize.M,
+    lit: Boolean = false,
+) {
     val studio = com.tivicopy.player.ui.theme.StudioTheme.colors
-    val shape = MaterialTheme.shapes.extraSmall
+    val type = com.tivicopy.player.ui.theme.StudioTheme.type
+    val tv = com.tivicopy.player.ui.theme.StudioTheme.television
+    val shape = CircleShape
+    // Height, padding at the start and at the end, the gap, the dot and its halo, in dp.
+    val m = when {
+        !tv -> LiveBadgeMeasure(26f, 10f, 12f, 6f, 8f, 3f)
+        size == LiveBadgeSize.M -> LiveBadgeMeasure(22f, 8f, 9f, 5f, 6f, 2.5f)
+        else -> LiveBadgeMeasure(17f, 6f, 7f, 5f, 5f, 2f)
+    }
+    val textStyle = when {
+        !tv -> type.caption.copy(fontSize = type.caption.fontSize * (12f / 13f), fontWeight = FontWeight.Bold)
+        size == LiveBadgeSize.M -> type.meta.copy(fontWeight = FontWeight.Bold)
+        else -> type.caption.copy(fontSize = type.caption.fontSize * 0.9f, fontWeight = FontWeight.Bold)
+    }
+    val dot = if (lit) studio.onTally else studio.tally
+    val halo = studio.tally.copy(alpha = LIVE_HALO_ALPHA)
+    val glow = studio.tally.copy(alpha = LIVE_GLOW_ALPHA)
     Row(
         modifier = modifier
+            .height(m.height.dp)
             .clip(shape)
-            .background(studio.scrim)
-            .border(1.dp, studio.hairline, shape)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .background(if (lit) studio.tally else studio.liveGlass)
+            .border(1.dp, if (lit) studio.tally else studio.liveEdge, shape)
+            .padding(start = m.start.dp, end = m.end.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(m.gap.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(6.dp)
+                .size(m.dot.dp)
+                // The dot's halo and glow (`st-live-dot`), drawn round it rather than laid out, so
+                // the pill keeps its size. None on the lit surface.
+                .drawBehind {
+                    if (!lit) {
+                        // `this.size`: the draw area, not this function's `size` parameter.
+                        val r = this.size.minDimension / 2f
+                        drawCircle(
+                            brush = Brush.radialGradient(listOf(glow, glow.copy(alpha = 0f)), center = center, radius = r * 3f),
+                            radius = r * 3f,
+                        )
+                        drawCircle(color = halo, radius = r + m.halo.dp.toPx())
+                    }
+                }
                 .clip(CircleShape)
-                .background(studio.tally),
+                .background(dot),
         )
         Text(
             text = label ?: stringResource(R.string.playback_live_badge),
-            style = com.tivicopy.player.ui.theme.StudioTheme.type.meta.copy(
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
-            ),
-            color = studio.ink,
+            style = textStyle,
+            color = if (lit) studio.onTally else studio.liveInk,
+            maxLines = 1,
         )
     }
 }
+
+/** One size of [LiveBadge], in dp. */
+private class LiveBadgeMeasure(
+    val height: Float,
+    val start: Float,
+    val end: Float,
+    val gap: Float,
+    val dot: Float,
+    val halo: Float,
+)
+
+/** `0 0 0 5px rgba(255, 90, 95, 0.22), 0 0 16px rgba(255, 90, 95, 0.7)`, softened for a radial. */
+private const val LIVE_HALO_ALPHA = 0.22f
+private const val LIVE_GLOW_ALPHA = 0.45f
 
 /**
  * How far a logo is held back from the edge of a round plate, as a fraction of its width.
@@ -184,8 +241,14 @@ internal fun monogramColour(name: String): Color {
 }
 
 /**
- * A row that is focusable for D-pad use and clickable for touch, with a visible focus ring.
- * NFR-UX-02 asks for a 3:1 focus contrast, which the primary colour on any surface here meets.
+ * A row that is focusable for D-pad use and clickable for touch, with the app's focus treatment.
+ * NFR-UX-02 asks for a 3:1 focus contrast, which the lit surface and the white ring meet on any
+ * glass here.
+ *
+ * Two kinds of row, by [fill] (ADR-046): a content row — a channel, a recording, a search hit — is
+ * lit glass in a white ring under focus ([FocusFill.TINT]); a row that acts like a menu item
+ * ([ListRow]) becomes the lit surface ([FocusFill.LIT]), and its content turns dark, which it learns
+ * from [LocalOnLitSurface].
  */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -207,10 +270,12 @@ fun FocusableRow(
      */
     focusRequester: FocusRequester? = null,
     /**
-     * The channel on screen (`ListRow`'s `onscreen` state): the dark tally fill, a tally ring and
+     * The channel on screen (`ListRow`'s `onscreen` state): a wash of the tally, a tally ring and
      * its glow, as the channel card draws it. Focus still wins.
      */
     onScreen: Boolean = false,
+    /** A content row ([FocusFill.TINT], the default) or a menu row ([FocusFill.LIT]). */
+    fill: FocusFill = FocusFill.TINT,
     content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -230,14 +295,14 @@ fun FocusableRow(
             // Studio's row lift (`--st-focus-scale-row`): less than a card's, because a row is
             // the width of its panel. One on a phone.
             .focusLift(focused, scale = rowMetrics.rowFocusScale, shape = rowShape)
-            // The app's one focus treatment (`ui/common/Focus.kt`), tinting rather than raising
-            // because a row sits on a settled surface. Every list in the app is built from this
-            // row, so this one call is most of what focus feels like here.
+            // The app's focus treatment (`ui/common/Focus.kt`). Every list in the app is built
+            // from this row, so this one call is most of what focus feels like here. The channel
+            // on screen keeps the card's tally treatment whichever kind of row it is in.
             .focusSurface(
                 focused = focused,
                 shape = rowShape,
                 selected = selected || onScreen,
-                fill = if (onScreen) FocusFill.RAISE else FocusFill.TINT,
+                fill = if (onScreen && !(fill == FocusFill.LIT && focused)) FocusFill.RAISE else fill,
             )
             .onFocusChanged {
                 // `hasFocus`, not `isFocused`: rows now carry their own controls — the favourite
@@ -265,8 +330,12 @@ fun FocusableRow(
             )
             .semantics { contentDescription?.let { this.contentDescription = it } }
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        content = content,
-    )
+    ) {
+        val scope = this
+        CompositionLocalProvider(LocalOnLitSurface provides (fill == FocusFill.LIT && focused)) {
+            scope.content()
+        }
+    }
 }
 
 /**
@@ -310,8 +379,8 @@ fun ProgrammeProgress(startUtc: Long, endUtc: Long, modifier: Modifier = Modifie
 }
 
 /**
- * Studio's progress bar (`canvas/Progress.dc.html`): ink on a faint track, rounded, 4dp. Ink rather
- * than the cue, because the cue means focus and a progress bar is never where the remote is.
+ * The progress bar (`canvas/Progress.dc.html`): ink on a faint track, rounded, 4dp. Ink rather than
+ * the cue or amber: a progress bar is never where the remote is, and never the chosen thing.
  *
  * @param indeterminate for work whose length is not known yet — a search, a download before its
  *   size is in: a third of the bar travels from the start to the end and round again (`st-indet`),
@@ -448,10 +517,10 @@ private const val CLOCK_TICK_MS = 20_000L
 
 /**
  * A tag on a row or a sheet — "archive", a lock, a programme's category — as the canvas draws one
- * (`ColorRules`, `ListRow`'s muted value): a grey chip on the card colour.
+ * (`ColorRules`, `ListRow`'s muted value): a pill of thin glass, in the second ink.
  *
- * It used to be a solid `primary` plate, which is the cue: amber means focus, and a tag is a fact
- * about the thing, never where the remote is (MIGRATION.md §3).
+ * Never amber: amber is where you are and what is chosen, and a tag is a fact about the thing
+ * (ADR-046; it was the cue once, MIGRATION.md §3).
  */
 @Composable
 fun Badge(text: String, modifier: Modifier = Modifier) {
@@ -465,7 +534,8 @@ fun Badge(text: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .clip(MaterialTheme.shapes.extraSmall)
             .background(studio.colors.card)
-            .padding(horizontal = if (tv) 6.dp else 10.dp, vertical = if (tv) 2.dp else 4.dp),
+            .border(1.dp, studio.colors.edgeLine, MaterialTheme.shapes.extraSmall)
+            .padding(horizontal = if (tv) 7.dp else 10.dp, vertical = if (tv) 2.dp else 4.dp),
     )
 }
 

@@ -572,7 +572,8 @@ internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modif
         Icon(
             imageVector = StudioIcons.Music,
             contentDescription = null,
-            tint = StudioTheme.colors.ink2.copy(alpha = alpha),
+            // The second ink is itself translucent: fade it from its own alpha, not from opaque.
+            tint = StudioTheme.colors.ink2.let { it.copy(alpha = it.alpha * alpha) },
             modifier = Modifier.size(if (compact) 16.dp else 24.dp),
         )
         Text(

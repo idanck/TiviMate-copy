@@ -42,22 +42,22 @@ enum class StudioButtonSize { LARGE, MEDIUM }
 /**
  * The canvas's four buttons (`Button.dc.html`, `PButton.dc.html`).
  *
- * - [PRIMARY] — the one action a screen or a dialog is built around. Ink at rest on a television,
- *   where the cue is kept for focus; the cue itself on a phone, where it marks what is active.
- * - [SECONDARY] — a translucent control inside a hairline.
+ * - [PRIMARY] — the one action a screen or a dialog is built around. Brighter glass at rest on a
+ *   television, where the lit surface is kept for focus; the cue (amber) on a phone, where it marks
+ *   what is active.
+ * - [SECONDARY] — a pill of thin glass with its lit edge.
  * - [GHOST] — only its label: "close", "cancel", "later", "skip". Nothing behind it at rest.
  * - [DANGER] — a secondary button whose label is the error colour, for a destructive action.
  */
 enum class StudioButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
 
 /**
- * Studio's button, in whichever shell is showing (`StudioTheme.television`).
+ * The button, in whichever shell is showing (`StudioTheme.television`).
  *
- * On a television it is a translucent control that *becomes* the cue when focus is on it, lifting
- * with a shadow — whatever its variant, because focus has one colour. On a phone it is
- * [PhoneButton], which has no focus state: there the cue is the primary variant's own fill.
- * Icon-only buttons are square on a television, round on a phone, and say their [label] to
- * TalkBack.
+ * On a television it is a pill of glass that *becomes* the lit surface when focus is on it — dark
+ * text, a lift and a 1.06 growth — whatever its variant, because focus has one look (ADR-046). On a
+ * phone it is [PhoneButton], which has no focus state: there the cue (amber) is the primary
+ * variant's own fill. Icon-only buttons are round, and say their [label] to TalkBack.
  *
  * Every Material `Button` and `TextButton` in the app came through here in Studio stage 7, which is
  * what lets one screen — the channel menu, an update prompt — be drawn by both shells.
@@ -99,19 +99,20 @@ fun StudioButton(
     }
     var focused by remember { mutableStateOf(false) }
     val studio = StudioTheme.colors
-    // The control corner by the theme, which knows the shell even above `TvRoot`'s metrics —
-    // where the update and PIN prompts are drawn.
-    val shape = MaterialTheme.shapes.medium
+    // A pill (`--st-r-pill`); a button with only a glyph is a circle.
+    val shape = CircleShape
     val large = size == StudioButtonSize.LARGE
-    val height = if (large) 42.dp else 32.dp
+    // `--st-h-control-l` and `--st-h-control-m`: 80px and 64px at 1080p.
+    val height = if (large) 40.dp else 32.dp
     val primary = variant == StudioButtonVariant.PRIMARY
     val ghost = variant == StudioButtonVariant.GHOST
     // Every resting value that has nothing to show is its own colour at alpha zero, never
-    // `Color.Transparent` (`Motion.kt`): a ghost button's fill fades out of the cue, not into black.
+    // `Color.Transparent` (`Motion.kt`): a ghost button's fill fades out of the lit surface, not
+    // into black.
     val fill = animatedColour(
         when {
             focused -> studio.cue
-            primary -> studio.ink
+            primary -> studio.light.copy(alpha = PRIMARY_GLASS_ALPHA)
             ghost -> studio.control.copy(alpha = 0f)
             else -> studio.control
         },
@@ -119,15 +120,13 @@ fun StudioButton(
     val edge = animatedColour(
         when {
             focused -> studio.cue
-            primary -> studio.ink
-            ghost -> studio.hairline.copy(alpha = 0f)
-            else -> studio.hairline
+            ghost -> studio.edgeLine.copy(alpha = 0f)
+            else -> studio.edgeLine
         },
     )
     val content = animatedColour(
         when {
             focused -> studio.onCue
-            primary -> studio.ground
             ghost -> studio.ink2
             variant == StudioButtonVariant.DANGER -> studio.error
             else -> studio.ink
@@ -149,7 +148,7 @@ fun StudioButton(
             // the remote a second press to pass the button. Disabled, it is not a focus target.
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label }
-            .padding(horizontal = if (iconOnly) 0.dp else if (large) 19.dp else 14.dp),
+            .padding(horizontal = if (iconOnly) 0.dp else if (large) 18.dp else 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
     ) {
@@ -167,7 +166,7 @@ fun StudioButton(
                 text = label,
                 style = action.copy(
                     fontSize = if (large) action.fontSize else action.fontSize * MEDIUM_LABEL_SCALE,
-                    fontWeight = if (focused || primary) FontWeight.Bold else FontWeight.Medium,
+                    fontWeight = if (focused || primary) FontWeight.Bold else FontWeight.SemiBold,
                 ),
                 color = content,
                 maxLines = 1,
@@ -176,8 +175,11 @@ fun StudioButton(
     }
 }
 
-/** The medium button's label is 24px against the large one's 30 at 1080p. */
-private const val MEDIUM_LABEL_SCALE = 24f / 30f
+/** The medium button's label is 24px against the large one's 28 at 1080p. */
+private const val MEDIUM_LABEL_SCALE = 24f / 28f
+
+/** A primary button at rest is brighter glass: white at 24% (`Button.dc.html`). */
+private const val PRIMARY_GLASS_ALPHA = 0.24f
 
 /** The canvas's disabled state, the same for a button, a field and a toggle. */
 internal const val DISABLED_ALPHA = 0.45f
@@ -190,15 +192,15 @@ internal enum class PhoneButtonSize(val height: Dp, val icon: Dp) {
 }
 
 /**
- * `PButton`'s variants: the cue fill for the one main action, a card, nothing behind, or a card
- * whose label is the error colour.
+ * `PButton`'s variants: the cue (amber) for the one main action, thin glass, nothing behind, or
+ * thin glass whose label is the error colour.
  */
 internal enum class PhoneButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
 
 /**
- * `PButton`: Studio's button at a phone's scale. A primary button is the cue with a lift, a
- * secondary or danger one a card inside a hairline, a ghost one only its icon and label. Icon-only
- * buttons are round; the others take the control radius.
+ * `PButton`: the button at a phone's scale. A primary button is the cue (amber) with a lift, a
+ * secondary or danger one thin glass inside a hairline, a ghost one only its icon and label.
+ * Icon-only buttons are round; the others take the control radius.
  *
  * Phone-only screens call this directly for the sizes the television has no counterpart for
  * ([PhoneButtonSize.XL]); shared screens call [StudioButton], which comes here on a phone.
