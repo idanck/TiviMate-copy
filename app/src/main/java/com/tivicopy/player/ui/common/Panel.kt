@@ -346,7 +346,13 @@ fun StudioSheet(
                     }
                 }
 
-                tv && drawer -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
+                tv && drawer -> Box(
+                    // The canvas's dim (`--st-dim-open`) rather than the platform's; the drawer's
+                    // own fade shows the list it came from beside it.
+                    modifier = Modifier.fillMaxSize().background(studio.dimOpen),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    ClearWindowDim()
                     Column(
                         modifier = modifier
                             .width(310.dp)
@@ -397,10 +403,13 @@ fun StudioSheet(
                 else -> Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        // The canvas's dim (`--st-dim-open`) rather than the platform's.
+                        .background(studio.dimOpen)
                         // A tap above the sheet closes it, as a sheet's does everywhere else.
                         .pointerInput(Unit) { detectTapGestures { onDismissRequest() } },
                     contentAlignment = Alignment.BottomCenter,
                 ) {
+                    ClearWindowDim()
                     // `PChannelMenu`: thick glass floating 8dp off the edges, every corner the sheet's.
                     val shape = MaterialTheme.shapes.extraLarge
                     val settings by ServiceLocator.settings.state.collectAsState()

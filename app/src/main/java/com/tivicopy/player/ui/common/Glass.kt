@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
@@ -248,3 +249,15 @@ fun rememberWindowBlurBehind(radius: Dp = WINDOW_BLUR_RADIUS): Boolean {
 
 /** `--st-blur-thick`: 64px at 1080p. */
 private val WINDOW_BLUR_RADIUS = 32.dp
+
+/**
+ * Takes away the platform's own dim behind the dialog this is called from, so the dialog can lay
+ * the canvas's (`--st-dim-open`) over the screen itself, where it draws a full-screen backdrop. A
+ * drawer is dimmed only outside itself, which the platform's whole-window dim cannot do. Outside a
+ * dialog it does nothing.
+ */
+@Composable
+fun ClearWindowDim() {
+    val window = (LocalView.current.parent as? DialogWindowProvider)?.window ?: return
+    SideEffect { window.setDimAmount(0f) }
+}

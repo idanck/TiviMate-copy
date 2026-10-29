@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -184,11 +183,11 @@ private const val PRIMARY_GLASS_ALPHA = 0.24f
 /** The canvas's disabled state, the same for a button, a field and a toggle. */
 internal const val DISABLED_ALPHA = 0.45f
 
-/** `PButton`'s three heights: 64, 48 and 40dp. */
+/** `PButton`'s three heights: 64, 52 and 44dp (`--st-h-control-l`, `--st-h-control-m`). */
 internal enum class PhoneButtonSize(val height: Dp, val icon: Dp) {
     XL(64.dp, 30.dp),
-    L(48.dp, 22.dp),
-    M(40.dp, 18.dp),
+    L(52.dp, 22.dp),
+    M(44.dp, 18.dp),
 }
 
 /**
@@ -198,9 +197,9 @@ internal enum class PhoneButtonSize(val height: Dp, val icon: Dp) {
 internal enum class PhoneButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
 
 /**
- * `PButton`: the button at a phone's scale. A primary button is the cue (amber) with a lift, a
- * secondary or danger one thin glass inside a hairline, a ghost one only its icon and label.
- * Icon-only buttons are round; the others take the control radius.
+ * `PButton`: the button at a phone's scale, always a pill. A primary button is the cue (amber) with
+ * a lift, a secondary or danger one thin glass with its lit edge, a ghost one only its icon and
+ * label. Icon-only buttons are round.
  *
  * Phone-only screens call this directly for the sizes the television has no counterpart for
  * ([PhoneButtonSize.XL]); shared screens call [StudioButton], which comes here on a phone.
@@ -217,7 +216,7 @@ internal fun PhoneButton(
     enabled: Boolean = true,
 ) {
     val studio = StudioTheme.colors
-    val shape = if (iconOnly) CircleShape else MaterialTheme.shapes.medium
+    val shape = CircleShape
     val content = when (variant) {
         PhoneButtonVariant.PRIMARY -> studio.onCue
         PhoneButtonVariant.DANGER -> studio.error
@@ -225,8 +224,7 @@ internal fun PhoneButton(
     }
     val surface = when (variant) {
         PhoneButtonVariant.PRIMARY -> Modifier.shadow(8.dp, shape).clip(shape).background(studio.cue)
-        PhoneButtonVariant.SECONDARY, PhoneButtonVariant.DANGER ->
-            Modifier.clip(shape).background(studio.card).border(1.dp, studio.hairline, shape)
+        PhoneButtonVariant.SECONDARY, PhoneButtonVariant.DANGER -> Modifier.glass(GlassMaterial.THIN, shape)
         PhoneButtonVariant.GHOST -> Modifier.clip(shape)
     }
     Row(
@@ -250,11 +248,7 @@ internal fun PhoneButton(
                 text = label,
                 style = action.copy(
                     fontSize = if (size == PhoneButtonSize.M) action.fontSize * (14f / 16f) else action.fontSize,
-                    fontWeight = when (variant) {
-                        PhoneButtonVariant.PRIMARY -> FontWeight.Bold
-                        PhoneButtonVariant.DANGER -> FontWeight.SemiBold
-                        else -> FontWeight.Medium
-                    },
+                    fontWeight = if (variant == PhoneButtonVariant.PRIMARY) FontWeight.Bold else FontWeight.SemiBold,
                 ),
                 color = content,
                 maxLines = 1,
