@@ -393,7 +393,7 @@ fun ChannelListScreen(
 
     renamingGroup?.let { group ->
         TextEntryDialog(
-            title = stringResource(R.string.group_options),
+            title = stringResource(R.string.group_rename),
             label = stringResource(R.string.group_name),
             initial = group.name,
             onDismiss = { renamingGroup = null },

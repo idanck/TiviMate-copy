@@ -81,7 +81,13 @@ fun RecordingsScreen(
     val finished = recordings.filter { it.state != RecordingState.SCHEDULED && it.state != RecordingState.RECORDING }
 
     if (recordings.isEmpty()) {
-        EmptyState(stringResource(R.string.rec_title), modifier, icon = StudioIcons.Record)
+        // `Recordings` (empty), `TvRecordingsEmpty`: what the list is for, not only its name.
+        EmptyState(
+            text = stringResource(R.string.rec_empty_text),
+            modifier = modifier,
+            icon = StudioIcons.Record,
+            title = stringResource(R.string.rec_empty_title),
+        )
         return
     }
 
