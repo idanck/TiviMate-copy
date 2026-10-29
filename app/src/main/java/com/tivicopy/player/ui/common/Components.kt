@@ -201,6 +201,34 @@ fun LiveBadge(
     }
 }
 
+/**
+ * The tally as a live dot (`st-live-dot`): 8dp, with its halo and glow drawn round it, and a word
+ * for TalkBack — red never says "live" alone.
+ */
+@Composable
+fun LiveDot(description: String?, modifier: Modifier = Modifier) {
+    val tally = com.tivicopy.player.ui.theme.StudioTheme.colors.tally
+    Box(
+        modifier = modifier
+            .size(8.dp)
+            .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier)
+            .drawBehind {
+                val r = this.size.minDimension / 2f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(tally.copy(alpha = 0.45f), tally.copy(alpha = 0f)),
+                        center = center,
+                        radius = r * 2.6f,
+                    ),
+                    radius = r * 2.6f,
+                )
+                drawCircle(color = tally.copy(alpha = 0.22f), radius = r + 3.dp.toPx())
+            }
+            .clip(CircleShape)
+            .background(tally),
+    )
+}
+
 /** One size of [LiveBadge], in dp. */
 private class LiveBadgeMeasure(
     val height: Float,

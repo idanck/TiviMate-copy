@@ -572,12 +572,14 @@ private fun MoreChannels(vm: AppViewModel, current: Channel, channels: List<Chan
             .mapNotNull { (id, list) -> list.firstOrNull { now in it.startUtc until it.endUtc }?.let { id to it } }
             .toMap()
     }
-    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    // The rows are separate plates of glass, 8dp apart (`PNowPlaying`).
+    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = stringResource(R.string.player_more_channels),
-            style = StudioTheme.type.h1.copy(fontSize = StudioTheme.type.h1.fontSize * (16f / 20f)),
+            // The h1 step, in line with the rows under it (`PNowPlaying`).
+            style = StudioTheme.type.h1,
             color = StudioTheme.colors.ink,
-            modifier = Modifier.padding(start = 16.dp, bottom = 4.dp),
+            modifier = Modifier.padding(top = 6.dp),
         )
         neighbours.forEach { channel ->
             PhoneChannelRow(

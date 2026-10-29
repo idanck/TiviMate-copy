@@ -263,8 +263,14 @@ fun ChannelListScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    // The phone's rows are separate plates of glass (`PChannels`): 16dp from the
+                    // screen's edges and 8dp apart. The television's sit on one panel, close.
+                    contentPadding = if (compact) {
+                        androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    } else {
+                        androidx.compose.foundation.layout.PaddingValues(8.dp)
+                    },
+                    verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 2.dp),
                 ) {
                     items(channels, key = { it.id }) { channel ->
                         val isCurrent = state.currentChannel?.id == channel.id
