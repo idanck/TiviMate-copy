@@ -194,7 +194,10 @@ function ChannelRow({ channel, selected }: { channel: Channel; selected: boolean
       <span class="num">{channel.number ?? ''}</span>
       <Logo url={channel.logoUrl} name={channel.name} size={44} />
       <div class="body">
-        <span class="name" dir="auto">{channel.name}</span>
+        <span class="name-line">
+          <span class="name" dir="auto">{channel.name}</span>
+          {selected && <span class="onscreen-tag">על המסך</span>}
+        </span>
         {air.now ? (
           <>
             <span class="now" dir="auto">{air.now.title}</span>

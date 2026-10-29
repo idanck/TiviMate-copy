@@ -75,7 +75,10 @@ export function RadioScreen() {
                   onClick={() => (on ? engine.togglePause() : play(s, 'radio'))}
                 >
                   <Logo url={s.logoUrl} name={s.name} size={84} round />
-                  <span class="name" dir="auto">{s.name}</span>
+                  <span class="name-line">
+                    {on && <span class={`eq${pb.status === 'playing' ? ' on' : ''}`} aria-hidden="true"><i /><i /><i /><i /></span>}
+                    <span class="name" dir="auto">{s.name}</span>
+                  </span>
                 </button>
               );
             })}
