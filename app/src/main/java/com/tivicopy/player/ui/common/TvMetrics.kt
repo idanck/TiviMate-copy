@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
  *
  * [Phone] holds the original constants. The touch shell keeps them: a phone is held at arm's
  * length and its layout was already tuned for that, so nothing about this change is aimed at it.
+ * Its shapes and focus are the Merhav canvas's phone values (`studio-phone.css`, ADR-046).
  */
 @Immutable
 data class TvMetrics(
@@ -31,11 +32,11 @@ data class TvMetrics(
     val nowNextPaneWidth: Dp,
     /** Edge length of a channel logo in a list row. */
     val rowLogoSize: Int,
-    /** Width of the home screen's side menu while it is open (Studio `--st-w-drawer`). */
+    /** Width of the side menu while it is open, as a drawer (`--st-w-drawer`, 380px at 1080p). */
     val homeNavRailWidth: Dp,
     /**
-     * Width of the side menu's closed strip of icons, which is what it shows until focus enters
-     * it (Studio `--st-w-rail`, ADR-027). Every row on the home screen keeps this much clear at its
+     * Width of the side menu's closed rail of icons, which is what it shows until focus enters
+     * it (`--st-w-rail`, 112px at 1080p; ADR-027, ADR-046). Every row on the home screen keeps this much clear at its
      * leading edge, and never the open width: the menu opens *over* the screen rather than
      * pushing it, so nothing reflows as focus crosses into it. The room is kept by each row's own
      * content padding rather than by insetting the list, so the rails stay full-bleed under it.
@@ -50,7 +51,9 @@ data class TvMetrics(
     /** Width of one card on a home-screen rail. */
     val homeCardWidth: Dp,
     /**
-     * The corner every card and focusable list row is cut to (Studio `--st-r-card`).
+     * The corner every card and focusable list row is cut to (`--st-r-card`: 24px at 1080p, 20 on
+     * a phone; a television row's `--st-r-control` is 22px, which is the same corner at reading
+     * distance).
      *
      * A phone row is read at arm's length and a television row from three metres, where the
      * original 8dp read as a plain rectangle. Giving the ten-foot shell a card corner is what
@@ -59,18 +62,27 @@ data class TvMetrics(
      */
     val rowCorner: Dp,
     /**
+     * The corner of a guide cell: a card on a television (`GuideCell`, `--st-r-card`), but only
+     * 8dp on a phone (`PGuideCell`), where a 64dp cell cut at the phone's 20dp card corner would be
+     * a lozenge.
+     */
+    val cellCorner: Dp,
+    /**
      * How thick a focused row's ring is. Thicker on a television for the same reason every other
      * ring in that shell is (NFR-UX-02): it is read at distance, and often against moving video.
      */
     val focusRingWidth: Dp,
-    /** The corner of a button (Studio `--st-r-control`). */
+    /**
+     * The corner of a control that is not a pill: a field, a key, a menu entry
+     * (`--st-r-control`). Buttons are pills ([PILL_CORNER]).
+     */
     val controlCorner: Dp,
-    /** The corner of a chip, such as the guide's day strip (Studio `--st-r-chip`). */
+    /** The corner of a chip, such as the guide's day strip: a pill (`--st-r-chip`). */
     val chipCorner: Dp,
-    /** The corner of a floating panel and of every menu (Studio `--st-r-panel`). */
+    /** The corner of a floating panel and of every menu (`--st-r-panel`). */
     val panelCorner: Dp,
     /**
-     * How much a focused card or button grows (Studio `--st-focus-scale`). One on a phone, where
+     * How much a focused card or button grows (`--st-focus-scale`). One on a phone, where
      * nothing has focus in the ten-foot sense and a tile that grows under a finger reads as a bug.
      */
     val focusScale: Float,
@@ -80,7 +92,7 @@ data class TvMetrics(
     companion object {
         /**
          * The values every screen used before this type existed, and what the touch shell still
-         * uses. Its shapes and focus are Studio's phone values (`studio-phone.css`).
+         * uses. Its shapes and focus are the canvas's phone values (`studio-phone.css`).
          */
         val Phone = TvMetrics(
             guideHourWidth = 240.dp,
@@ -89,15 +101,16 @@ data class TvMetrics(
             groupColumnWidth = 220.dp,
             nowNextPaneWidth = 280.dp,
             rowLogoSize = 36,
-            homeNavRailWidth = 240.dp,
+            homeNavRailWidth = 190.dp,
             homeNavRailCollapsedWidth = 56.dp,
             homeHeroHeight = 320.dp,
             homeCardWidth = 180.dp,
-            rowCorner = 10.dp,
+            rowCorner = 20.dp,
+            cellCorner = 8.dp,
             focusRingWidth = 2.dp,
-            controlCorner = 12.dp,
-            chipCorner = 18.dp,
-            panelCorner = 20.dp,
+            controlCorner = 16.dp,
+            chipCorner = PILL_CORNER,
+            panelCorner = 28.dp,
             focusScale = 1f,
             rowFocusScale = 1f,
         )
@@ -153,6 +166,7 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         // bigger panel does not move the sofa: a 4K television wants the same corner and the same
         // ring as a 1080p one, which is exactly what scaling them would take away.
         rowCorner = TV_CARD_CORNER,
+        cellCorner = TV_CARD_CORNER,
         focusRingWidth = TV_FOCUS_RING_WIDTH,
         controlCorner = TV_CONTROL_CORNER,
         chipCorner = TV_CHIP_CORNER,
@@ -227,21 +241,28 @@ private const val RAIL_TEASER_HEIGHT = 150f
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.6f
 
-/*
- * The ten-foot shapes and focus, from the Studio canvas (`docs/design/studio/studio.css`), whose
- * 1080p pixels are half a dp. A card and a row share a corner, so a channel row and a home tile
- * are cut the same way.
+/**
+ * A corner large enough to make a pill of anything a chip or a button is (`--st-r-pill`, 999px):
+ * a rounded shape clamps each corner to half its shorter side. Declared before the values below
+ * that use it: top-level values are initialised in the order they are written.
  */
-private val TV_CARD_CORNER = 6.dp
-private val TV_CONTROL_CORNER = 7.dp
-private val TV_CHIP_CORNER = 6.dp
-private val TV_PANEL_CORNER = 12.dp
+val PILL_CORNER = 999.dp
 
-/** The cue ring: 4px on the canvas. One width for every ring the television shell draws. */
+/*
+ * The ten-foot shapes and focus, from the Merhav canvas (`studio.css`), whose 1080p pixels are half
+ * a dp. A card and a row share a corner, so a channel row and a home tile are cut the same way.
+ */
+private val TV_CARD_CORNER = 12.dp
+private val TV_CONTROL_CORNER = 11.dp
+private val TV_CHIP_CORNER = PILL_CORNER
+private val TV_PANEL_CORNER = 22.dp
+
+/** The focus ring: 4px on the canvas. One width for every ring the television shell draws. */
 private val TV_FOCUS_RING_WIDTH = 2.dp
 
-private const val TV_FOCUS_SCALE = 1.05f
-private const val TV_ROW_FOCUS_SCALE = 1.02f
+/** `--st-focus-scale` and `--st-focus-scale-row`. */
+private const val TV_FOCUS_SCALE = 1.06f
+private const val TV_ROW_FOCUS_SCALE = 1.03f
 
 /** Floors and ceilings for the derived row height, so an odd viewport cannot produce a silly one. */
 private const val MIN_ROW_HEIGHT = 56f
