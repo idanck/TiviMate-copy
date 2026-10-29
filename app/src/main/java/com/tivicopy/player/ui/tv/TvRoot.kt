@@ -833,7 +833,6 @@ fun ChannelInfoCard(
     if (channel == null) return
     val studio = StudioTheme.colors
     val type = StudioTheme.type
-    val metrics = LocalTvMetrics.current
     val backdrop = studio.ground
     // The setting, with a floor under it. This card is the most-seen surface in the app — it is
     // what every channel change puts on screen — and "turn overlays down" is not a request to make
@@ -855,7 +854,9 @@ fun ChannelInfoCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .tvGlassPanel(opacity = floor, shape = RoundedCornerShape(metrics.panelCorner))
+                // The panel corner by the theme: this card is drawn over the video, outside the
+                // browse screens' metrics, and the theme knows the shell everywhere.
+                .tvGlassPanel(opacity = floor, shape = MaterialTheme.shapes.large)
                 .padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(20.dp),

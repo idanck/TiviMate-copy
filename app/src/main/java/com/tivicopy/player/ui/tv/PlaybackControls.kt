@@ -140,7 +140,9 @@ fun TransportBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .tvGlassPanel(opacity = panel)
+                // The panel corner by the theme: the bar is drawn over the video, outside the
+                // browse screens' metrics.
+                .tvGlassPanel(opacity = panel, shape = MaterialTheme.shapes.large)
                 .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {

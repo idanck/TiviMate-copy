@@ -3,8 +3,10 @@
 ## Status
 
 Accepted. Completes ADR-023, which defined the shell's two shapes and applied them to four
-surfaces. The single treatment stands; its colours, ring width and corners are restated in Studio
-terms by ADR-027 (cue for focus, tally for the channel on screen, a 2dp ring, the canvas's radii).
+surfaces. The single function stands; its colours, ring width and corners were restated in Studio
+terms by ADR-027 (cue for focus, tally for the channel on screen, a 2dp ring, the canvas's radii),
+and its fills by ADR-046 as Merhav's two treatments (a control becomes the lit surface; a content
+tile becomes lit glass in a white ring; the chosen one is amber).
 The one menu is now Studio's `StudioDialog` rather than `AppDialog` over Material's dialog; see
 the addendum at the end.
 

@@ -1,6 +1,8 @@
 # ADR-027 — The Studio design language
 
-**Status:** accepted; all five stages landed (0.11.0 to 0.13.3). The side menu, drawn on home only
+**Status:** accepted; all five stages landed (0.11.0 to 0.13.3). Its visual parts — the palette,
+the two typefaces, the shapes, the focus colour and the surfaces — are superseded by ADR-046
+(Merhav, 0.20.0); its structure (the side menu, the top bar, the radio's background) stands. The side menu, drawn on home only
 by stage 3, frames every browse screen since ADR-035. Supersedes the typeface and the palette of ADR-019, and the *shape* of the
 television's navigation in ADR-020 and ADR-022. Lands in stages (see Consequences); this record
 covers the language as a whole so each stage does not need its own.

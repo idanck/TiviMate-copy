@@ -1,7 +1,9 @@
 # ADR-019 — The app has its own typeface (and keeps its own background)
 
-**Status:** superseded by ADR-027. The app still carries its own typeface, but it is no longer
-Rubik, and the blue-grey palette of decision 2 is replaced by Studio's night blue.
+**Status:** superseded by ADR-027, and its typeface by ADR-046. The app still carries its own
+typeface, but it is no longer Rubik: it is Noto Sans Hebrew (ADR-046), bundled with this record's
+method — static weights cut from the variable font and subset. The blue-grey palette of decision 2
+was replaced by Studio's night blue, and that by Merhav's near-black.
 
 ## Context
 
