@@ -351,7 +351,13 @@ fun TvRoot(
         // is focusable, and the remote's search for the next panel goes by position, not by what
         // is drawn on top — an arrow could land on a button nobody can see.
         val sport = overlay.isPanels
-        if (audioOnly && !sport) {
+        // On the radio's own screen only (ADR-047): the bare picture and the surfaces over it, and
+        // the guide's preview slot, where it is the picture. Not behind a browse screen, which
+        // covers it: drawn there, its moving light and equaliser cost a Google TV Streamer about
+        // 12ms of GPU a frame, every frame, and held every animation on home to some 35 a second.
+        // It fades as a browse screen arrives over it and returns as one leaves, rather than
+        // cutting to black under a screen still fading in.
+        SurfacePresence(visible = audioOnly && !sport && (!overlay.isBrowse || docked), rise = 0.dp) {
             AudioOnlyNowPlaying(
                 channel = state.nowPlaying.audioOnlyChannel(),
                 title = status.title,
@@ -566,13 +572,10 @@ fun TvRoot(
                     // The television's root surface (ADR-016). Added here in the same edit as the
                     // enum value on purpose: the `else -> Unit` at the bottom of this `when` means
                     // a forgotten branch compiles and renders an empty scaffold over the video.
+                    // The radio backdrop is not drawn behind it (ADR-047), so the banner keeps its
+                    // own station identity and clock while a station plays.
                     TvOverlay.HOME -> TvHomeScreen(
                         vm = vm,
-                        // The radio backdrop fills the panel behind the home screen exactly as
-                        // video does, and it draws its own clock and station identity in the
-                        // same corners the banner would. The banner drops its own rather than
-                        // printing a second clock a centimetre from the first.
-                        audioOnlyBackdrop = audioOnly,
                         onOpen = onOverlayChange,
                         onFullscreen = { onOverlayChange(TvOverlay.NONE) },
                         focusReturn = homeFocus,

@@ -113,12 +113,6 @@ import com.tivicopy.player.ui.common.StudioIcons
 @Composable
 fun TvHomeScreen(
     vm: AppViewModel,
-    /**
-     * Whether what is behind this screen is the radio backdrop rather than a picture. It draws a
-     * station's identity and a clock of its own, so the banner drops both instead of doubling
-     * them (`ui/common/StationBackdrop.kt`).
-     */
-    audioOnlyBackdrop: Boolean,
     onOpen: (TvOverlay) -> Unit,
     onFullscreen: () -> Unit,
     /**
@@ -227,7 +221,6 @@ fun TvHomeScreen(
                     next = state.next,
                     live = state.nowPlaying.isLive(),
                     height = metrics.homeHeroHeight,
-                    showIdentity = !audioOnlyBackdrop,
                     backdrop = backdrop,
                     scrim = scrim,
                     startInset = railGutter,
@@ -279,7 +272,7 @@ fun TvHomeScreen(
         // down the rails the viewer goes.
         StudioTopBar(
             startInset = railGutter,
-            showClock = !audioOnlyBackdrop,
+            showClock = true,
             modifier = Modifier.align(Alignment.TopCenter),
         )
         // The side menu over all of this is `TvRoot`'s, the same one every browse screen has
@@ -310,8 +303,6 @@ private fun HomeBanner(
     /** Whether the stream is arriving live (rather than catch-up or a recording). */
     live: Boolean,
     height: Dp,
-    /** False while the radio backdrop behind is already saying which station this is. */
-    showIdentity: Boolean,
     backdrop: Color,
     scrim: Color,
     /** Room kept clear at the leading edge for the side menu's strip drawn over this. */
@@ -344,7 +335,7 @@ private fun HomeBanner(
                 .padding(start = startInset, end = TV_CONTENT_INSET, top = BANNER_IDENTITY_TOP, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(11.dp),
         ) {
-            if (showIdentity && channel != null) {
+            if (channel != null) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(9.dp),
