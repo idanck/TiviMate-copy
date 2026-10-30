@@ -229,8 +229,8 @@ fun TvHomeScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-            // The rail past either edge, built before the remote gets there.
-            state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 1) }),
+            // The two rails past either edge, built before the remote gets there.
+            state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2) }),
             modifier = Modifier
                 .fillMaxSize()
                 .focusGroup(),

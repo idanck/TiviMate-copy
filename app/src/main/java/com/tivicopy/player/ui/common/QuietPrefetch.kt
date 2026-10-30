@@ -35,7 +35,7 @@ import androidx.compose.ui.platform.LocalView
  * This scheduler waits instead: for the screen to have drawn nothing for [QUIET_MS], which is
  * after the last frame of a press's motion and before the next press in all but a held key; then
  * it works for up to [BUDGET_MS], one step of a request at a time (a step is composing or
- * measuring one item), and leaves the rest to the next quiet moment. A step the lists expect to
+ * measuring one item), and goes on [GAP_MS] later for as long as the screen stays still. A step the lists expect to
  * take longer than the budget is refused by them every time, so the first one of a quiet moment
  * is never left waiting: refused, the request is finished there and then. A press arriving
  * meanwhile waits for the step under way, which is less than the frame it would have cost.
@@ -91,7 +91,8 @@ internal class QuietPrefetchScheduler(private val view: View) : PrefetchSchedule
             queue.removeFirst()
             if (System.nanoTime() >= stop) break
         }
-        if (queue.isNotEmpty()) post(QUIET_MS)
+        // Still quiet, the next run follows at once; a press in between is seen by its drawing.
+        if (queue.isNotEmpty()) post(GAP_MS)
     }
 
     /** Drops what is waiting, with the screen it was composing for. */
@@ -105,8 +106,11 @@ internal class QuietPrefetchScheduler(private val view: View) : PrefetchSchedule
         /** Longer than the gap between two frames of any motion, shorter than a press. */
         const val QUIET_MS = 120L
 
-        /** What one quiet moment does: a card or two, composed and measured. */
+        /** What one run does: a card or two, composed and measured. */
         const val BUDGET_MS = 40L
+
+        /** Between two runs while the screen stays still: room for a press to be handled. */
+        const val GAP_MS = 16L
 
         /** Less than any step takes: a request back this soon did nothing. */
         const val REFUSED_NS = 1_000_000L

@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6; amended 0.20.7, 0.20.8, 0.20.9 and 0.20.10 (below). Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7 to 0.20.11 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -113,3 +113,12 @@ back. The 0.20.8 trace of the same presses showed no such frames, and why was no
   same scheduler as the cards (`AheadPrefetch` on home's list, replacing `NoRowPrefetch`).
 - **The scheduler works a step at a time** (composing or measuring one item) within its 40ms, and
   finishes at once only a request whose next step it would otherwise refuse every time.
+
+## 0.20.11
+
+0.20.10 on the same box: once the rails were built, every press cost one frame of 25–35ms and
+then ran at 6–13ms a frame, up, down and along, and the app stayed still between presses. The
+first way down after home was built still froze for 80–125ms at two of the rails: presses 0.9s
+apart left too little stillness for the rail ahead to be finished, the scheduler waiting a full
+quiet period between two runs. It now goes on 16ms after a run while nothing has drawn, and home's
+list builds two rails ahead rather than one.
