@@ -1,11 +1,9 @@
 package com.tivicopy.player.ui.tv
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -21,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -37,18 +36,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -68,16 +75,17 @@ import androidx.core.os.ConfigurationCompat
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.ui.common.FocusFill
+import com.tivicopy.player.ui.common.LocalReducedMotion
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.TvMetrics
 import com.tivicopy.player.ui.common.drawerSurface
 import com.tivicopy.player.ui.common.filledContentColour
-import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
+import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 /** One entry in the side menu: what it says, its glyph, and the screen it opens. */
@@ -101,7 +109,12 @@ internal data class MenuDestination(
  * The screen you are on is amber — its glyph and label, a wash of amber glass with an amber edge,
  * and a short amber bar on the screen's edge beside it — and the entry the remote is on is the lit
  * surface. The two are never the same colour, so "where I am" and "where the remote is" can both be
- * read at once.
+ * read at once. The lit surface is one plate that glides from entry to entry on a spring, rather
+ * than each entry lighting up in place, so a press reads as movement (owner's request, 2026-10-30).
+ *
+ * Everything that moves here moves in the draw phase: the opening is the drawer drawn wider over a
+ * menu already laid out at its full width, the labels fade in a layer, and the plate is drawn by
+ * the menu. Nothing is composed or measured a frame (see `openness`).
  *
  * It is the television's one navigation (ADR-035): `TvRoot` draws this single instance over every
  * browse screen, home included, so the same rail with the same entries in the same order is on
@@ -176,46 +189,79 @@ internal fun SideMenu(
         onOpen(overlay)
         if (overlay == current) enterContent()
     }
-    val width by animateDpAsState(
-        targetValue = if (open) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth,
-        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
-        label = "sideMenuWidth",
-    )
-    // How far the rail has become the drawer, read where it is drawn.
-    val openness = animateFloatAsState(
-        targetValue = if (open) 1f else 0f,
-        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
-        label = "sideMenuOpenness",
-    )
-    // Open, the entries sit in from the screen's edge and from the content by the drawer's own
-    // padding; closed, they are centred in the rail. They glide there with the width.
-    val startPadding by animateDpAsState(
-        targetValue = if (open) DRAWER_PAD_START else MENU_PADDING,
-        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
-        label = "sideMenuPaddingStart",
-    )
-    val endPadding by animateDpAsState(
-        targetValue = if (open) DRAWER_PAD_END else MENU_PADDING,
-        animationSpec = tween(Motion.ENTRANCE, easing = Motion.Ease),
-        label = "sideMenuPaddingEnd",
-    )
-    Box(modifier = modifier.fillMaxSize()) {
-        // The screen behind an open menu (`--st-dim-open`).
-        AnimatedVisibility(
-            visible = open,
-            enter = fadeIn(tween(Motion.ENTRANCE, easing = Motion.Ease)),
-            exit = fadeOut(tween(Motion.EXIT, easing = Motion.Ease)),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(modifier = Modifier.fillMaxSize().background(studio.dimOpen))
+    val reduced = LocalReducedMotion.current
+    // How far the rail has become the drawer, 0 to 1. Read only where things are drawn, never in
+    // composition or layout: animating the width and the paddings themselves recomposed the menu
+    // and measured every row and label again on every frame, 25 to 30ms a frame on a Google TV
+    // Streamer, which is the opening that "drops frames" (device trace, 2026-10-30).
+    val openness = remember { Animatable(0f) }
+    // Laid out as the drawer from the moment the remote comes in until the closing has finished,
+    // and as the rail otherwise: two layouts for an open and a close, rather than one a frame.
+    var laidOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(open) {
+        val millis = when {
+            reduced -> Motion.REDUCED
+            open -> Motion.ENTRANCE
+            else -> Motion.EXIT
         }
+        val spec = tween<Float>(millis, easing = if (reduced) LinearEasing else Motion.Ease)
+        if (open) {
+            laidOpen = true
+            openness.animateTo(1f, spec)
+        } else {
+            openness.animateTo(0f, spec)
+            laidOpen = false
+        }
+    }
+    val density = LocalDensity.current
+    val railPx = with(density) { metrics.homeNavRailCollapsedWidth.toPx() }
+    val drawerPx = with(density) { metrics.homeNavRailWidth.toPx() }
+    // The width the menu is drawn at: the rail's, growing to the drawer's.
+    val drawnWidth: () -> Float = { railPx + (drawerPx - railPx) * openness.value }
+    // One inset for the rail and the drawer at the screen's edge, so the icons never move as it opens.
+    val startPadding = MENU_PADDING
+    val endPadding = if (laidOpen) DRAWER_PAD_END else MENU_PADDING
+
+    // The lit plate under the remote: one plate, the menu's, that glides from the entry the remote
+    // left to the one it is on rather than one entry going dark and the next lighting up in place.
+    // Where each entry sits is noted as it is placed; the plate's height on the menu is a spring.
+    var focusedEntry by remember { mutableStateOf<TvOverlay?>(null) }
+    val placement = remember { MenuPlacement() }
+    val plateTop = remember { Animatable(0f) }
+    LaunchedEffect(focusedEntry) {
+        val entry = focusedEntry
+        val arriving = placement.lastPlated == null
+        placement.lastPlated = entry
+        val target = entry?.let(placement::topOf) ?: return@LaunchedEffect
+        // Coming in from the content it is simply there, under the entry the remote landed on.
+        if (arriving || reduced) plateTop.snapTo(target) else plateTop.animateTo(target, PlateSpring)
+    }
+    val plateColour = studio.cue
+    val plateCorner = with(density) { metrics.controlCorner.toPx() }
+    val plateGrow = metrics.rowFocusScale - 1f
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            // A layer of its own, as the menu below has: a frame of the opening redraws these two
+            // and nothing of the screen under them.
+            .graphicsLayer()
+            // The screen behind an open menu (`--st-dim-open`), dimmed outside the drawer only.
+            .drawBehind {
+                val amount = openness.value
+                if (amount > 0f) drawRect(color = studio.dimOpen, alpha = amount)
+            },
+    ) {
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxHeight()
                 // Before `focusGroup`, so it observes the group's own focus: `hasFocus` is true
                 // while any entry inside is focused, which is exactly when the menu is open.
-                .onFocusChanged { open = it.hasFocus }
+                .onFocusChanged {
+                    open = it.hasFocus
+                    if (!it.hasFocus) focusedEntry = null
+                }
                 // Ahead of the D-pad's own search, which finds nothing beside the menu on a screen
                 // drawn under the rail. Handed back, the press is spent; otherwise the D-pad
                 // carries on as on every other screen.
@@ -224,21 +270,43 @@ internal fun SideMenu(
                         event.key == towardContentKey && onTowardContent()
                 }
                 .focusGroup()
-                .width(width)
+                .width(if (laidOpen) metrics.homeNavRailWidth else metrics.homeNavRailCollapsedWidth)
+                .onPlaced { placement.menu = it }
+                .graphicsLayer()
                 // Closed: the rail's smoky glass, its inner edge and a short shadow. Open: the
-                // drawer. The one crosses into the other as the menu opens.
-                .railSurface(rtl = rtl, presence = { 1f - openness.value })
-                .drawerSurface(atStart = true, presence = { openness.value })
+                // drawer. The one crosses into the other as the menu opens, both drawn at the
+                // width the menu has reached.
+                .railSurface(rtl = rtl, presence = { 1f - openness.value }, reach = { drawnWidth() })
+                .drawerSurface(atStart = true, presence = { openness.value }, reach = { drawnWidth() })
+                // The entries are revealed with the drawer, and the plate is drawn under them.
+                .drawWithContent {
+                    val reach = drawnWidth().coerceAtMost(size.width)
+                    val from = if (rtl) size.width - reach else 0f
+                    clipRect(left = from, top = 0f, right = from + reach, bottom = size.height) {
+                        drawPlate(
+                            bounds = focusedEntry?.let(placement::boundsOf),
+                            top = plateTop.value,
+                            velocity = plateTop.velocity,
+                            colour = plateColour,
+                            corner = plateCorner,
+                            grow = plateGrow,
+                            alpha = openness.value,
+                        )
+                        this@drawWithContent.drawContent()
+                    }
+                }
                 .padding(top = SAFE_Y, bottom = SAFE_Y),
             verticalArrangement = Arrangement.spacedBy(ENTRY_GAP),
         ) {
-            MenuHeader(open = open, startPadding = startPadding)
+            MenuHeader(openness = { openness.value }, startPadding = startPadding)
             destinations.forEach {
                 MenuEntry(
                     destination = it,
                     current = it.overlay == current,
-                    open = open,
+                    openness = { openness.value },
                     onChoose = choose,
+                    onFocused = { overlay -> focusedEntry = overlay },
+                    onRowPlaced = placement::note,
                     startPadding = startPadding,
                     endPadding = endPadding,
                 )
@@ -255,8 +323,10 @@ internal fun SideMenu(
                 MenuEntry(
                     destination = it,
                     current = it.overlay == current,
-                    open = open,
+                    openness = { openness.value },
                     onChoose = choose,
+                    onFocused = { overlay -> focusedEntry = overlay },
+                    onRowPlaced = placement::note,
                     startPadding = startPadding,
                     endPadding = endPadding,
                 )
@@ -266,12 +336,69 @@ internal fun SideMenu(
 }
 
 /**
+ * Where the menu and each of its entries were last placed, for the plate. Plain fields rather than
+ * state: they change only when the menu is laid out again, and that redraws it anyway.
+ */
+private class MenuPlacement {
+    var menu: LayoutCoordinates? = null
+    private val entries = HashMap<TvOverlay, LayoutCoordinates>()
+
+    /** The entry the plate was last under; null while the remote is outside the menu. */
+    var lastPlated: TvOverlay? = null
+
+    fun note(entry: TvOverlay, coordinates: LayoutCoordinates) {
+        entries[entry] = coordinates
+    }
+
+    /** The entry's bounds in the menu's own coordinates, or null when either is not on screen. */
+    fun boundsOf(entry: TvOverlay): Rect? {
+        val menu = menu ?: return null
+        val row = entries[entry] ?: return null
+        if (!menu.isAttached || !row.isAttached) return null
+        return menu.localBoundingBoxOf(row, clipBounds = false)
+    }
+
+    fun topOf(entry: TvOverlay): Float? = boundsOf(entry)?.top
+}
+
+/**
+ * The lit plate (`--st-light` under a focused menu row): at the entry's place across the menu, at
+ * [top] down it, grown by [grow] as a lifted control is. While it travels it stretches behind
+ * itself in proportion to its speed, so a glide reads as a glide and a held arrow as a sweep.
+ */
+private fun DrawScope.drawPlate(
+    bounds: Rect?,
+    top: Float,
+    velocity: Float,
+    colour: Color,
+    corner: Float,
+    grow: Float,
+    alpha: Float,
+) {
+    if (bounds == null || alpha <= 0f) return
+    val dx = bounds.width * grow / 2f
+    val dy = bounds.height * grow / 2f
+    val trail = (abs(velocity) * PLATE_TRAIL_PER_VELOCITY).coerceAtMost(bounds.height * PLATE_TRAIL_MAX)
+    // Moving down, the trail is above it; moving up, below.
+    val upper = top - dy - if (velocity > 0f) trail else 0f
+    val lower = top + bounds.height + dy + if (velocity < 0f) trail else 0f
+    drawRoundRect(
+        color = colour,
+        topLeft = Offset(bounds.left - dx, upper),
+        size = Size(bounds.width + 2f * dx, lower - upper),
+        cornerRadius = CornerRadius(corner + dy),
+        alpha = alpha.coerceIn(0f, 1f),
+    )
+}
+
+/**
  * The closed rail's surface (`--st-rail`): smoky glass, a line of the lit edge along the side that
  * faces the content, and a short shadow falling onto it. Drawn rather than laid out, at
- * [presence], so it can cross into the drawer as the menu opens.
+ * [presence] and [reach] wide from the screen's edge, so it can cross into the drawer as the menu
+ * opens.
  */
 @Composable
-private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float): Modifier {
+private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float, reach: () -> Float): Modifier {
     val studio = StudioTheme.colors
     val tint = studio.rail
     val line = studio.edgeLine
@@ -279,9 +406,11 @@ private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float): Modifier 
     return this.drawBehind {
         val amount = presence().coerceIn(0f, 1f)
         if (amount <= 0f) return@drawBehind
-        drawRect(color = tint, alpha = amount)
+        val width = reach().coerceIn(0f, size.width)
         // The rail sits on the start edge: its inner side is the left in Hebrew.
-        val inner = if (rtl) 0f else size.width
+        val from = if (rtl) size.width - width else 0f
+        drawRect(color = tint, topLeft = Offset(from, 0f), size = Size(width, size.height), alpha = amount)
+        val inner = if (rtl) from else width
         drawLine(
             color = line,
             start = Offset(if (rtl) inner + 0.5f else inner - 0.5f, 0f),
@@ -308,12 +437,11 @@ private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float): Modifier 
  * The tally light, and the app's name beside it once the menu is open. The height is reserved
  * whether or not the name is drawn, so the entries below never jump as the menu opens.
  *
- * Its own composable rather than a `Box` inside the menu's `Column`: inside that `Box` the
- * `ColumnScope` would still be an implicit receiver, and `AnimatedVisibility` would resolve to
- * the `ColumnScope` extension, which does not compile there.
+ * The name is always composed and laid out at its own width, and fades in with [openness]: the
+ * rail clips it while it is closed. Composing it afresh on every opening was a frame of its own.
  */
 @Composable
-private fun MenuHeader(open: Boolean, startPadding: Dp) {
+private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
     val studio = StudioTheme.colors
     Row(
         modifier = Modifier
@@ -328,36 +456,40 @@ private fun MenuHeader(open: Boolean, startPadding: Dp) {
             // Centred on the icons below it.
             modifier = Modifier.padding(start = ENTRY_ICON_INSET + (ENTRY_ICON - TALLY_DOT) / 2),
         )
-        AnimatedVisibility(
-            visible = open,
-            enter = fadeIn(tween(Motion.FAST, easing = Motion.Ease)),
-            exit = fadeOut(tween(Motion.FAST, easing = Motion.Ease)),
-        ) {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = appNameStyle(),
-                color = studio.ink,
-                maxLines = 1,
-            )
-        }
+        Text(
+            text = stringResource(R.string.app_name),
+            style = appNameStyle(),
+            color = studio.ink,
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier
+                .wrapContentWidth(align = Alignment.Start, unbounded = true)
+                .graphicsLayer { alpha = openness() },
+        )
     }
 }
 
 /**
  * One entry: an icon, and its label while the menu is open.
  *
- * The canvas's states (`SideMenu.dc.html`): the entry the remote is on is the lit surface, with
- * dark content, lifted; the screen you are on is amber — glyph, label, a wash of amber glass with
- * an amber edge, and an amber bar on the screen's edge; anything else is bare, in the second ink.
- * The bar sits outside the entry's own padding, on the menu's edge, so it is laid out here rather
- * than inside the entry's plate.
+ * The canvas's states (`SideMenu.dc.html`): the entry the remote is on has dark content on the lit
+ * plate, which the menu draws under it ([drawPlate]); the screen you are on is amber — glyph,
+ * label, a wash of amber glass with an amber edge, and an amber bar on the screen's edge — and
+ * gives its wash up while the plate is on it; anything else is bare, in the second ink. The bar
+ * sits outside the entry's own padding, on the menu's edge, so it is laid out here rather than
+ * inside the entry's plate.
+ *
+ * The label is laid out at its own width whether or not there is room for it, so opening the menu
+ * measures no text, and it fades in with [openness]; the entry clips it while the menu is a rail.
  */
 @Composable
 private fun MenuEntry(
     destination: MenuDestination,
     current: Boolean,
-    open: Boolean,
+    openness: () -> Float,
     onChoose: (TvOverlay) -> Unit,
+    onFocused: (TvOverlay) -> Unit,
+    onRowPlaced: (TvOverlay, LayoutCoordinates) -> Unit,
     startPadding: Dp,
     endPadding: Dp,
 ) {
@@ -381,11 +513,16 @@ private fun MenuEntry(
                 .padding(start = startPadding, end = endPadding)
                 .fillMaxWidth()
                 .height(ENTRY_HEIGHT)
-                .focusLift(focused, scale = metrics.rowFocusScale, shape = shape)
-                // A menu row's treatment (`Focus.kt`): the lit surface under focus, amber glass
-                // with an amber edge for the screen you are on.
-                .focusSurface(focused = focused, shape = shape, selected = current, fill = FocusFill.LIT)
-                .onFocusChanged { focused = it.isFocused }
+                // Where the plate goes when the remote is here.
+                .onPlaced { onRowPlaced(destination.overlay, it) }
+                // A menu row's treatment (`Focus.kt`) without its own lit fill, which is the menu's
+                // plate: amber glass with an amber edge for the screen you are on, until the plate
+                // is on it.
+                .focusSurface(focused = false, shape = shape, selected = current && !focused, fill = FocusFill.LIT)
+                .onFocusChanged {
+                    focused = it.isFocused
+                    if (it.isFocused) onFocused(destination.overlay)
+                }
                 // `clickable` carries the focus target on its own; `focusable()` beside it would cost
                 // the remote a second press to pass every entry.
                 .clickable { onChoose(destination.overlay) }
@@ -406,21 +543,18 @@ private fun MenuEntry(
                 modifier = Modifier.size(ENTRY_ICON),
                 tint = content,
             )
-            AnimatedVisibility(
-                visible = open,
-                enter = fadeIn(tween(Motion.FAST, easing = Motion.Ease)),
-                exit = fadeOut(tween(Motion.FAST, easing = Motion.Ease)),
-            ) {
-                Text(
-                    text = destination.label,
-                    style = StudioTheme.type.nav.copy(
-                        fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
-                    ),
-                    color = content,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                text = destination.label,
+                style = StudioTheme.type.nav.copy(
+                    fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
+                ),
+                color = content,
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier
+                    .wrapContentWidth(align = Alignment.Start, unbounded = true)
+                    .graphicsLayer { alpha = openness() },
+            )
         }
     }
 }
@@ -566,11 +700,26 @@ internal fun sideMenuInset(metrics: TvMetrics): Dp = metrics.homeNavRailCollapse
 private val SAFE_X = 48.dp
 private val SAFE_Y = 27.dp
 private val SIDE_MENU_GAP = 24.dp
-/** Centres the 32dp entries in the 56dp rail. */
+/**
+ * Centres the 32dp entries in the 56dp rail, and is the open drawer's inset from the screen's edge
+ * as well (the canvas's 28px is 2dp more): the icons stay where they are as the menu opens.
+ */
 private val MENU_PADDING = 12.dp
-/** The open drawer's padding: 28px from the screen's edge, 32px from the content. */
-private val DRAWER_PAD_START = 14.dp
+/** The open drawer's padding from the content: 32px. */
 private val DRAWER_PAD_END = 16.dp
+
+/**
+ * The plate's glide from entry to entry: a spring that settles in about a quarter of a second and
+ * overshoots by a few percent, so it lands rather than stops, and keeps its speed into the next
+ * entry when the arrow is held.
+ */
+private val PlateSpring = spring<Float>(dampingRatio = 0.62f, stiffness = 650f)
+
+/** How far the plate trails behind itself per pixel a second of its speed: 20ms of travel. */
+private const val PLATE_TRAIL_PER_VELOCITY = 0.02f
+
+/** The longest the trail gets, as a share of an entry's height. */
+private const val PLATE_TRAIL_MAX = 0.45f
 /** The header: 74px high and 24 to 30px above the first entry. */
 private val HEADER_HEIGHT = 50.dp
 /** `--st-h-row`: 64px. */

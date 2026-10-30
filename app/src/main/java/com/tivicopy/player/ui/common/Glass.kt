@@ -159,12 +159,16 @@ fun Modifier.depth(level: Depth, shape: Shape): Modifier {
  * @param presence how much of the drawer is drawn, 0 to 1, read when it is drawn — for a drawer
  *   that crosses in from another surface (the side menu's closed rail)
  * @param shadow how far the shadow reaches onto the content
+ * @param reach how wide the drawer is drawn, in pixels, from the screen's edge, given the element's
+ *   own width; read when it is drawn. The side menu lays itself out as the drawer once and grows the
+ *   drawer it draws, so its opening costs no layout a frame. Defaults to the element's whole width.
  */
 @Composable
 fun Modifier.drawerSurface(
     atStart: Boolean,
     presence: () -> Float = { 1f },
     shadow: Dp = DRAWER_SHADOW,
+    reach: (Float) -> Float = { it },
 ): Modifier {
     val studio = StudioTheme.colors
     val solid = studio.drawer
@@ -177,14 +181,18 @@ fun Modifier.drawerSurface(
     return this.drawBehind {
         val amount = presence().coerceIn(0f, 1f)
         if (amount <= 0f) return@drawBehind
+        val width = reach(size.width).coerceIn(0f, size.width)
+        if (width <= 0f) return@drawBehind
+        // The drawer runs from the screen's edge to [width] in from it.
+        val from = if (onLeft) 0f else size.width - width
         val brush = if (onLeft) {
-            Brush.horizontalGradient(0f to solid, DRAWER_SOLID to solid, 1f to faded)
+            Brush.horizontalGradient(0f to solid, DRAWER_SOLID to solid, 1f to faded, startX = from, endX = from + width)
         } else {
-            Brush.horizontalGradient(0f to faded, 1f - DRAWER_SOLID to solid, 1f to solid)
+            Brush.horizontalGradient(0f to faded, 1f - DRAWER_SOLID to solid, 1f to solid, startX = from, endX = from + width)
         }
-        drawRect(brush = brush, alpha = amount)
+        drawRect(brush = brush, topLeft = Offset(from, 0f), size = Size(width, size.height), alpha = amount)
         // The edge facing the content, and the shadow beyond it.
-        val inner = if (onLeft) size.width else 0f
+        val inner = if (onLeft) from + width else from
         drawLine(
             color = line,
             start = Offset(if (onLeft) inner - 0.5f else inner + 0.5f, 0f),
