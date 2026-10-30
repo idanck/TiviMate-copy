@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6; amended 0.20.7 and 0.20.8 (below). Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7, 0.20.8 and 0.20.9 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -80,3 +80,20 @@ colour crossing: two buttons, 7–8ms a frame, through 210ms of the 360ms fade, 
 20 frames a second. `StudioButton` now reads its fill, edge and content colours where they are
 drawn, so a crossing redraws the button and recomposes nothing, on home and wherever the button
 is used.
+
+## 0.20.9
+
+The owner, once the fade was smooth: moving about home over the picture is not. A trace on the
+same box, ten presses down, along a rail and back up:
+
+- **Every press** cost 27–47ms in its first frame, and every frame of the motion after it
+  recomposed both cards for 4–5ms, because the app's focus treatment (`focusSurface`) read its
+  colour crossings where it was composed — the same fault 0.20.8 fixed in `StudioButton`. It now
+  draws them, for every focusable surface in the app, the guide's cells among them. A tile on home
+  no longer recomposes for focus at all to keep a flag only a rebuild reads.
+- **A press along a rail** to a card not yet built froze for 92ms while four cards composed in
+  one frame. A card takes 15–18ms to compose there, more than a frame, so a lazy row's own
+  prefetch never ran; it asked again every frame instead, and the app woke sixty times a second
+  for as long as the remote stayed on that rail — 0.20.7's loop, one level down. The rails now
+  keep two cards composed past each edge, built while the screen is still
+  (`QuietPrefetchScheduler`, `AheadPrefetch`).

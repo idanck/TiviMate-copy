@@ -1,14 +1,16 @@
 package com.tivicopy.player.ui.common
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.theme.StudioTheme
@@ -100,7 +102,11 @@ fun Modifier.focusSurface(
     val studio = StudioTheme.colors
     // Every resting value is its own colour at alpha zero, never `Color.Transparent`: transparent
     // is transparent *black*, and a bright ring interpolating towards it darkens on its way out.
-    val ring = animatedColour(
+    // Both crossings are read where they are drawn ([focusPaint]), not here: read here, every frame
+    // of a crossing recomposed the whole element that called this — two channel cards a press on
+    // home, 4–5ms a frame on a Google TV Streamer for as long as the colours moved (device trace,
+    // 0.20.8). Drawn, a crossing repaints the element and recomposes nothing.
+    val ring = animatedColourState(
         when (fill) {
             FocusFill.TINT -> when {
                 focused -> studio.cue
@@ -159,19 +165,36 @@ fun Modifier.focusSurface(
     // state: it used to widen on focus in several places, which moves the element's own contents
     // inside the clip at the moment it is pressed.
     val edgeWidth = if (fill == FocusFill.FILLED || fill == FocusFill.LIT) CONTROL_EDGE else ringWidth
+    // Not painted at all with no fill, rather than painted with something transparent.
+    val plate = if (fill == FocusFill.NONE) null else animatedColourState(background)
     return this
         // The tally glow (`--st-tally-glow`) round the card that is on screen.
         .then(if (fill == FocusFill.RAISE && selected && !focused) Modifier.tallyGlow(shape) else Modifier)
         .clip(shape)
-        .then(
-            if (fill == FocusFill.NONE) {
-                Modifier
-            } else {
-                Modifier.background(animatedColour(background))
-            },
-        )
-        .border(edgeWidth, ring, shape)
+        .focusPaint(shape = shape, edge = edgeWidth, plate = plate, ring = ring)
 }
+
+/**
+ * [focusSurface]'s plate under the content and its ring over it, as `background` and `border`
+ * drew them, with both colours read in the draw phase.
+ *
+ * The ring is the inner half of a stroke twice its width laid on the shape's own outline, the
+ * outer half falling to the clip [focusSurface] sets first: a band exactly [edge] wide inside the
+ * edge, its outer corner the shape's own, which is how `border` draws it for any shape.
+ */
+private fun Modifier.focusPaint(shape: Shape, edge: Dp, plate: State<Color>?, ring: State<Color>): Modifier =
+    drawWithCache {
+        val stroke = edge.toPx()
+        val outline = shape.createOutline(size, layoutDirection, this)
+        val style = Stroke(width = stroke * 2)
+        onDrawWithContent {
+            plate?.value?.let { if (it.alpha > 0f) drawRect(it) }
+            drawContent()
+            val colour = ring.value
+            // A zero-width stroke is a hairline, not nothing.
+            if (stroke > 0f && colour.alpha > 0f) drawOutline(outline, colour, style = style)
+        }
+    }
 
 /** The edge of a control's plate: 1px at 1080p on the canvas, drawn at 1dp so it survives. */
 private val CONTROL_EDGE = 1.dp

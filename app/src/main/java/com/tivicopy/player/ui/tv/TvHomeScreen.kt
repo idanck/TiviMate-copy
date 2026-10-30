@@ -71,7 +71,10 @@ import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
 import com.tivicopy.player.ui.common.Motion
+import com.tivicopy.player.ui.common.AheadPrefetch
+import com.tivicopy.player.ui.common.QuietPrefetchScheduler
 import com.tivicopy.player.ui.common.focusLift
+import com.tivicopy.player.ui.common.rememberQuietPrefetchScheduler
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.StudioButton
@@ -223,6 +226,9 @@ fun TvHomeScreen(
     // crosses into it.
     val railGutter = sideMenuInset()
 
+    // Composes each rail's next cards while the screen is still (`QuietPrefetch.kt`).
+    val cardPrefetch = rememberQuietPrefetchScheduler()
+
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             state = rememberLazyListState(prefetchStrategy = NoRowPrefetch),
@@ -273,6 +279,7 @@ fun TvHomeScreen(
                     firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
                     startInset = railGutter,
                     focusReturn = focusReturn,
+                    prefetch = cardPrefetch,
                     onOpen = open,
                 )
             }
@@ -479,8 +486,11 @@ private fun HomeCardRail(
     firstCardFocus: FocusRequester?,
     startInset: Dp,
     focusReturn: HomeFocusReturn,
+    prefetch: QuietPrefetchScheduler,
     onOpen: (HomeCard) -> Unit,
 ) {
+    // Two cards built past each edge before the remote gets there; see `AheadPrefetch`.
+    val rowState = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch) })
     Column(modifier = Modifier.fillMaxWidth().background(background)) {
         SectionHeader(
             text = title,
@@ -494,6 +504,7 @@ private fun HomeCardRail(
             modifier = Modifier.padding(start = startInset - SECTION_HEADER_OWN_INSET),
         )
         LazyRow(
+            state = rowState,
             modifier = Modifier
                 .fillMaxWidth()
                 .focusGroup(),
@@ -544,14 +555,17 @@ private fun HomeTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var focused by remember { mutableStateOf(false) }
+    // Whether the remote is on this card, kept out of composition: the card's own lists bring it
+    // into view as it takes the remote, so only a move below needs it, and a press moving the
+    // remote between two cards recomposes neither tile for it (device trace, 0.20.8).
+    val focused = remember { booleanArrayOf(false) }
     val bringIntoView = remember { BringIntoViewRequester() }
     // A rebuild can move the card the remote is on: OK on a card puts its channel first under
     // "continue watching" (and in any rail sorted by what was watched last), and the first channel
     // ever played adds that rail above the rest. The lists keep their scroll through it, so the
     // card went off screen with the remote still on it, and the screen showed no focus at all.
     // Wherever the card lands, the lists follow it.
-    LaunchedEffect(focused, row, index) { if (focused) bringIntoView.bringIntoView() }
+    LaunchedEffect(row, index) { if (focused[0]) bringIntoView.bringIntoView() }
     // Studio's channel card (`HomeRails`): the tile is the card, the programme and its time are
     // captions under it. A window still ahead gets its clock rather than a bar sitting at zero.
     val now = System.currentTimeMillis()
@@ -573,7 +587,7 @@ private fun HomeTile(
         modifier = modifier
             .notesFocus(focusReturn)
             .bringIntoViewRequester(bringIntoView)
-            .onFocusChanged { focused = it.isFocused },
+            .onFocusChanged { focused[0] = it.isFocused },
     )
 }
 
@@ -656,8 +670,9 @@ internal fun Modifier.notesFocus(focusReturn: HomeFocusReturn): Modifier {
  * a scroll of two pixels as the remote crossed the banner left the app waking sixty times a
  * second, on home and, since home waits under the video (ADR-048), all through the video, until
  * the next scroll down the rails (device trace, 0.20.6). Composing the row as it arrives is what
- * already happened on that box, so nothing is lost there. The rails' own lists keep theirs: a
- * card fits.
+ * already happened on that box, so nothing is lost there. A card does not fit a frame either
+ * (15–18ms there); the rails' own lists compose theirs ahead while the screen is still instead
+ * ([AheadPrefetch], 0.20.9).
  */
 @OptIn(ExperimentalFoundationApi::class)
 private object NoRowPrefetch : LazyListPrefetchStrategy {
