@@ -122,6 +122,11 @@ fun TvHomeScreen(
      */
     focusReturn: HomeFocusReturn,
     modifier: Modifier = Modifier,
+    /**
+     * Whether this is the screen on show. False while it waits, composed but not drawn, under the
+     * video it was left for (ADR-048).
+     */
+    active: Boolean = true,
 ) {
     val state by vm.state.collectAsState()
     val prefs by vm.settingsState.collectAsState()
@@ -140,7 +145,12 @@ fun TvHomeScreen(
             tick++
         }
     }
-    LaunchedEffect(state.activePlaylist?.id, state.currentChannel?.id, featured, tick) {
+    LaunchedEffect(state.activePlaylist?.id, state.currentChannel?.id, featured, tick, active) {
+        // Waiting under the video (ADR-048), a change is left to settle before the rails are built
+        // again: zapping through ten channels rebuilds them once, after the last, rather than at
+        // every press while the zap card is moving. Coming back, they are brought up to date at
+        // once, and rails that come out the same change nothing on screen.
+        if (!active) delay(HIDDEN_REBUILD_DELAY_MS)
         val data = vm.loadHomeData()
         rails = HomeRails.build(data, System.currentTimeMillis())
     }
@@ -614,6 +624,9 @@ internal fun Modifier.notesFocus(focusReturn: HomeFocusReturn): Modifier {
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000
+
+/** How long a change waits, while home waits under the video, before the rails are rebuilt. */
+private const val HIDDEN_REBUILD_DELAY_MS = 4_000L
 
 /** Where the banner's channel line starts: under the top bar (`StudioTopBar`, 64dp) and a gap. */
 private val BANNER_IDENTITY_TOP = 72.dp
