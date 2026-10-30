@@ -460,17 +460,22 @@ private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
             // Centred on the icons below it.
             modifier = Modifier.padding(start = ENTRY_ICON_INSET + (ENTRY_ICON - TALLY_DOT) / 2),
         )
-        Text(
-            text = stringResource(R.string.app_name),
-            style = appNameStyle(),
-            color = studio.ink,
-            maxLines = 1,
-            softWrap = false,
+        // Wrapped, so the clearing reaches the text itself: on the text's own node it would clear
+        // only what is under it, and the text would stay.
+        Box(
             modifier = Modifier
                 .wrapContentWidth(align = Alignment.Start, unbounded = true)
                 .graphicsLayer { alpha = openness() }
                 .clearAndSetSemantics { },
-        )
+        ) {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = appNameStyle(),
+                color = studio.ink,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
 
@@ -565,19 +570,23 @@ private fun MenuEntry(
                         with(glyph) { draw(size = size, colorFilter = ColorFilter.tint(content.value)) }
                     },
             )
-            BasicText(
-                text = destination.label,
-                style = StudioTheme.type.nav.copy(
-                    fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
-                ),
-                color = { content.value },
-                maxLines = 1,
-                softWrap = false,
+            // Wrapped, so the clearing reaches the text itself (see [MenuHeader]).
+            Box(
                 modifier = Modifier
                     .wrapContentWidth(align = Alignment.Start, unbounded = true)
                     .graphicsLayer { alpha = openness() }
                     .clearAndSetSemantics { },
-            )
+            ) {
+                BasicText(
+                    text = destination.label,
+                    style = StudioTheme.type.nav.copy(
+                        fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
+                    ),
+                    color = { content.value },
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
         }
     }
 }
