@@ -54,6 +54,12 @@ Focus moves on a spring that settles in about 220ms with a slight overshoot; pan
 360ms and leave in 200ms. With the system's animations removed (animator duration scale zero),
 nothing grows or rises and colours cross in 120ms.
 
+In the side menu the lit surface is one plate that glides from row to row on a spring (about a
+quarter of a second, a few percent of overshoot) and trails behind itself while it travels, rather
+than each row lighting up in place (0.20.1, the owner's request). The menu's opening, its labels
+and the plate move in the draw phase only: on a Google TV Streamer, animating the menu's width and
+paddings had cost 25 to 30ms a frame in composition and layout.
+
 **4. The colours mean one thing each.**
 
 - *Current* — amber `#FFB547`: where you are and what is chosen. The current screen in the side
