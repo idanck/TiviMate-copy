@@ -1,6 +1,9 @@
 package com.tivicopy.player.ui.tv
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -27,17 +30,24 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -66,6 +76,7 @@ import com.tivicopy.player.ui.common.audioOnlyChannel
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.ProgrammeProgress
+import com.tivicopy.player.ui.common.LocalReducedMotion
 import com.tivicopy.player.ui.common.Motion
 import com.tivicopy.player.ui.common.SurfacePresence
 import com.tivicopy.player.ui.common.animatedColour
@@ -234,6 +245,15 @@ fun TvRoot(
     LaunchedEffect(overlay) { if (overlay != TvOverlay.GUIDE) guideFor = null }
     // Where home last had the remote, for the side menu to hand it back to; see HomeFocusReturn.
     val homeFocus = remember { HomeFocusReturn() }
+    // Home kept while the video played (ADR-048) does not claim the remote again on its own when it
+    // comes back, as a home composed afresh does: it is handed it, where it last had it. Two
+    // frames: one to place the screen, one for a home composed afresh to make its own claim first.
+    LaunchedEffect(overlay) {
+        if (overlay != TvOverlay.HOME) return@LaunchedEffect
+        withFrameNanos { }
+        withFrameNanos { }
+        homeFocus.restore()
+    }
 
     // The screen drops the request itself once it has taken it; this only covers the request
     // that is never taken, because on demand was left before it composed.
@@ -534,8 +554,11 @@ fun TvRoot(
         val lastBrowse = remember { arrayOf(overlay) }
         if (overlay.isBrowse) lastBrowse[0] = overlay
         val browse = lastBrowse[0]
-        // A fade alone, no rise: the content inside rises on its own as it arrives.
-        SurfacePresence(visible = overlay.isBrowse, rise = 0.dp) {
+        // Back from the video goes to home most of the time, and home built afresh took a 145ms
+        // frame and then a 210ms one in the middle of its fade on a Google TV Streamer. Kept,
+        // composed but not placed, it comes back as a fade alone (ADR-048).
+        val keepHome = browse == TvOverlay.HOME && overlay.isPassthrough
+        BrowsePresence(visible = overlay.isBrowse, keep = keepHome) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
                 // The guide paints its own panes and leaves the preview slot bare; the home
@@ -580,6 +603,7 @@ fun TvRoot(
                         onFullscreen = { onOverlayChange(TvOverlay.NONE) },
                         focusReturn = homeFocus,
                         modifier = Modifier.fillMaxSize(),
+                        active = overlay == TvOverlay.HOME,
                     )
 
                     // Where else to go is the side menu's, as on every other screen (ADR-035):
@@ -706,6 +730,75 @@ fun TvRoot(
         // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
         // is absent in picture-in-picture, which returns above this point.
         UpdatePrompt()
+    }
+}
+
+/**
+ * How a browse screen arrives over the video and leaves for it: a fade (ADR-043), and for the one
+ * screen Back from the video returns to, a wait in between (ADR-048).
+ *
+ * While [visible] the screen is placed and fades in — from a frame later, so a screen that has to
+ * be composed and laid out first does that while it is still unseen, rather than in the first
+ * frames of its own fade. Leaving, it fades out and is then unplaced. Unplaced it draws
+ * nothing, takes no part in the remote's search for focus and says nothing to accessibility; with
+ * [keep] it stays composed like that, so coming back costs neither composition nor layout.
+ * Without it, it is let go once it has left, as before.
+ *
+ * The fade multiplies every draw by the screen's opacity rather than painting the whole screen
+ * into a layer of its own each frame (`CompositingStrategy.ModulateAlpha`): on a television box
+ * that layer was a second full-screen pass every frame of the fade.
+ */
+@Composable
+private fun BrowsePresence(
+    visible: Boolean,
+    keep: Boolean,
+    content: @Composable () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    val reduced = LocalReducedMotion.current
+    val presence = remember { Animatable(if (visible) 1f else 0f) }
+    // Still placed after it stops being wanted, until its exit has finished. While it is wanted it
+    // is placed from the first frame, so a screen claiming the remote as it composes finds itself
+    // on screen; it is the fade that waits.
+    var placed by remember { mutableStateOf(visible) }
+    val onScreen = visible || placed
+    // Whether the remote is somewhere inside: true while any focus target below holds it.
+    var holdsFocus by remember { mutableStateOf(false) }
+    LaunchedEffect(visible) {
+        val easing = if (reduced) LinearEasing else Motion.Ease
+        if (visible) {
+            placed = true
+            withFrameNanos { }
+            presence.animateTo(1f, tween(if (reduced) Motion.REDUCED else Motion.ENTRANCE, easing = easing))
+        } else {
+            // Only if the remote is in here (see `SurfacePresence`).
+            if (holdsFocus) focusManager.clearFocus(force = true)
+            presence.animateTo(0f, tween(if (reduced) Motion.REDUCED else Motion.EXIT, easing = easing))
+            placed = false
+        }
+    }
+    // Composed while wanted, while leaving, and while kept.
+    if (!visible && !placed && !keep) return
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onFocusChanged { holdsFocus = it.hasFocus }
+            // While leaving, as `SurfacePresence` does; once unplaced, the search passes it by.
+            .then(if (visible) Modifier else Modifier.focusProperties { canFocus = false })
+            .then(if (onScreen) Modifier else Modifier.clearAndSetSemantics { })
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    if (onScreen) {
+                        placeable.placeWithLayer(0, 0) {
+                            alpha = presence.value
+                            compositingStrategy = CompositingStrategy.ModulateAlpha
+                        }
+                    }
+                }
+            },
+    ) {
+        content()
     }
 }
 

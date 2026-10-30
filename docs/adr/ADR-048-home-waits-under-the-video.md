@@ -1,0 +1,56 @@
+# ADR-048 — Home waits under the video
+
+**Status:** accepted, 0.20.6. Decided by the owner on 2026-10-30, from two options: *home stays
+built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
+composed while it is not on screen is the one fading out.
+
+## Context
+
+The owner: from a channel, Back brings up the screen's semi-transparent backdrop too slowly, and
+the frames can be told apart. A trace on the living-room Google TV Streamer (two presses of Back
+from the full-screen picture to home) showed home built from nothing at every press, in two heavy
+steps: the frame the press lands in (about 145ms, 104ms of it laying out the banner, the bar and
+the menu), and, some 270ms later, the frame in which the rails arrive from their query (about
+210ms, composing ten cards and their images). The 360ms fade was eaten by both: it jumped at the
+start and froze in the middle.
+
+Back from the video goes to the browse screen it was opened from (`MainActivity.lastBrowseOverlay`),
+which is home most of the time.
+
+## Decision
+
+**1. Home waits, built, under the video.** While the screen Back would return to is home and the
+video is up — bare, or with a surface drawn over it (the info card, the transport bar, the mini
+guide, the playback menu) — the scaffold stays composed but is not placed (`BrowsePresence`). Not
+placed, it draws nothing, the remote's search for focus passes it by, and it says nothing to
+accessibility. Back places it and fades it in; nothing is composed or laid out. Any other browse
+screen, and home under Sport or News mode, is let go once it has faded out, as before.
+
+**2. Home comes back where it was left.** Its scroll and the control the remote was on are kept;
+it is handed the remote there (`HomeFocusReturn.restore`) rather than claiming its banner again.
+
+**3. The fade waits a frame.** Every browse screen arriving over the video is placed at once, so a
+screen claiming the remote as it composes finds itself on screen, and its fade starts a frame
+later: a screen that has to be built is built unseen, not in the first frames of its fade.
+
+**4. The fade multiplies, it does not paint a layer.** The screen's opacity is applied to every
+draw (`CompositingStrategy.ModulateAlpha`) rather than painting the whole screen into a layer of its
+own each frame and blending that.
+
+**5. Waiting, home lets changes settle.** Its rails are rebuilt four seconds after the last
+change while it waits (zapping through channels rebuilds them once), and at once when it comes
+back; rails that come out the same change nothing on screen.
+
+## Alternatives rejected
+
+- **Build it, then show it.** Keep the rails from the last visit and start the fade only once home
+  is built. A small change, but about 0.3s after Back before anything appears.
+- **Keep every browse screen.** The channel list and the guide query and claim focus as they
+  compose; keeping them is a larger change than the owner asked for.
+
+## Consequences
+
+- Home costs its memory, and a rebuild of its rails a few seconds after a zap, while the video
+  plays. Nothing of it is drawn.
+- Home over the video no longer replays its content's rise when Back brings it up (the content
+  rises when one browse screen replaces another, as before).
