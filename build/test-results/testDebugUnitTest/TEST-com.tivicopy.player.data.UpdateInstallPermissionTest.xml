@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.UpdateInstallPermissionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:22" hostname="runnervm48cm3" time="0.062">
+  <properties/>
+  <testcase name="the permission is published as state, not only read on demand" classname="com.tivicopy.player.data.UpdateInstallPermissionTest" time="0.018"/>
+  <testcase name="the refusal that names the permission republishes it" classname="com.tivicopy.player.data.UpdateInstallPermissionTest" time="0.033"/>
+  <testcase name="a refresh answers with what it published" classname="com.tivicopy.player.data.UpdateInstallPermissionTest" time="0.011"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

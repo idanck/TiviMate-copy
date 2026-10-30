@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.DatabaseTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:20" hostname="runnervm48cm3" time="0.058">
+  <properties/>
+  <testcase name="every schema statement survives being replayed" classname="com.tivicopy.player.data.DatabaseTest" time="0.036"/>
+  <testcase name="a fresh install opens the database and answers the cold-start queries" classname="com.tivicopy.player.data.DatabaseTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

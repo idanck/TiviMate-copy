@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.AppLocaleTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:13" hostname="runnervm48cm3" time="5.196">
+  <properties/>
+  <testcase name="following the device overrides nothing" classname="com.tivicopy.player.data.AppLocaleTest" time="4.864"/>
+  <testcase name="choosing English sets the locale and leaves the layout alone" classname="com.tivicopy.player.data.AppLocaleTest" time="0.034"/>
+  <testcase name="a stored choice becomes an activity override" classname="com.tivicopy.player.data.AppLocaleTest" time="0.066"/>
+  <testcase name="everything the configuration already carried survives" classname="com.tivicopy.player.data.AppLocaleTest" time="0.028"/>
+  <testcase name="choosing Hebrew sets the locale and mirrors the layout" classname="com.tivicopy.player.data.AppLocaleTest" time="0.029"/>
+  <testcase name="a stored choice reaches the wrapper as a different context" classname="com.tivicopy.player.data.AppLocaleTest" time="0.034"/>
+  <testcase name="the activity override carries the locale and nothing else" classname="com.tivicopy.player.data.AppLocaleTest" time="0.023"/>
+  <testcase name="wrapping does not move the process default locale" classname="com.tivicopy.player.data.AppLocaleTest" time="0.039"/>
+  <testcase name="an unreadable or unknown stored value falls back to the device language" classname="com.tivicopy.player.data.AppLocaleTest" time="0.025"/>
+  <testcase name="nothing is applied on top of the platform" classname="com.tivicopy.player.data.AppLocaleTest" time="0.026"/>
+  <testcase name="following the device hands back the same context" classname="com.tivicopy.player.data.AppLocaleTest" time="0.026"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

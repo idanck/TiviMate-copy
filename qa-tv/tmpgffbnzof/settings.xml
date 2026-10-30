@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <long name="previous_channel" value="121" />
+    <int name="retries" value="2" />
+    <int name="connect_timeout" value="15" />
+    <long name="active_playlist" value="7" />
+    <string name="update_last_manifest">{
+  "versionCode": 125,
+  "versionName": "0.21.1",
+  "apkUrl": "https://updates.idanck.com/apk/shidur-0.21.1-release-209a6ef5.apk",
+  "sha256": "e5486006c25b5c8a458ca43f13d4e62023be80da255f693a5925165733f49907",
+  "sizeBytes": 12430722,
+  "minSdk": 23,
+  "notes": {
+    "he": "perf(tv): the guide opens without freezing; home waits under it (#129)",
+    "en": "perf(tv): the guide opens without freezing; home waits under it (#129)"
+  }
+}
+    </string>
+    <int name="read_timeout" value="30" />
+    <long name="last_channel" value="122" />
+    <long name="update_last_check" value="1793371013583" />
+<string name="rec_folder">/data/user/0/com.tivicopy.player.debug/files/qa-rec</string><boolean name="pip_on_home" value="true" /></map>

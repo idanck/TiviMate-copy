@@ -1,0 +1,616 @@
+{
+ "form": "tv",
+ "counts": {
+  "PASS": 22,
+  "WARN": 2,
+  "FAIL": 5
+ },
+ "results": [
+  {
+   "id": "QA-01",
+   "title": "Install the debug APK",
+   "area": "install",
+   "status": "PASS",
+   "detail": "Performing Streamed Install\nSuccess · APK 17841 KB · uid 10122",
+   "evidence": [],
+   "form": "tv"
+  },
+  {
+   "id": "QA-02",
+   "title": "Cold and warm start time",
+   "area": "performance",
+   "status": "WARN",
+   "detail": "cold [4337, 3121, 2351] ms (budget 4000 on an emulator), warm 980 ms",
+   "evidence": [
+    "001_first_screen.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-03",
+   "title": "First run: built-in Israeli channels and radio bootstrap",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "ערוצים פתוחים בישראל: 9 channels, ok=1 ; רדיו ישראלי: 98 channels, ok=1 ",
+   "evidence": [
+    "002_bootstrap.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-04",
+   "title": "Every top-level destination opens",
+   "area": "navigation",
+   "status": "PASS",
+   "detail": "opened 7/7: ['Home', 'Live', 'Guide', 'Radio', 'DVR', 'Search', 'Settings']; missing []",
+   "evidence": [
+    "003_nav_home.png",
+    "004_nav_live.png",
+    "005_nav_guide.png",
+    "006_nav_radio.png",
+    "007_nav_dvr.png",
+    "008_nav_search.png",
+    "009_nav_settings.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-26",
+   "title": "Home: from the side menu, the arrow towards the content returns the remote to where it left from (ADR-035)",
+   "area": "navigation",
+   "status": "FAIL",
+   "detail": "back from the menu: wanted i24NEWS, הערביסטים, got ערוץ 13, הישרדות - פרק הבכורה!; OK on the lit Home: wanted i24NEWS, הערביסטים, got ערוץ 13, הישרדות - פרק הבכורה! || down:Home (menu) · menu_to_content:ערוץ 13, הישרדות - פרק ה · along:i24NEWS, הערביסטים · to_menu:ערוץ 13, הישרדות - פרק ה · to_menu:Radio (menu) · in_menu:Sport · back:ערוץ 13, הישרדות - פרק ה · to_menu_again:Radio (menu) · up:Guide (menu) · up:Live (menu) · up:Home (menu) · ok_on_home:ערוץ 13, הישרדות - פרק ה · next:i24NEWS, הערביסטים · after_ok:i24NEWS, הערביסטים",
+   "evidence": [
+    "010_QA-26_end.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-05",
+   "title": "Bad playlist addresses fail cleanly",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "QA Malformed: saved=True alive=True row=[(3, 0, 'ParseFailed', 0)] || QA Missing: saved=True alive=True row=[(4, 0, 'NotFound', 0)] || QA Empty: saved=True alive=True row=[(5, 0, 'empty', 0)]",
+   "evidence": [],
+   "form": "tv"
+  },
+  {
+   "id": "QA-07",
+   "title": "Add the mock Xtream account (live, VOD, series)",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "test ok shown=True; 12 live (expect 12), 8 VOD rows (expect 6 films + 2 series), refresh ok=1 ; password not stored in clear; xmltv.php requested 1 times in the 30+ s after Save; password in 0 channel URLs and not the guide address; an Xtream channel requested /live/qa/qa123/",
+   "evidence": [
+    "014_xtream_test.png",
+    "015_xtream_playing.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-06",
+   "title": "Add the mock M3U playlist with its XMLTV guide through the UI",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "fields typed ok=[True, True, True]; 30 channels (expect 30), 3 groups, refresh ok=1 , 0.2s; failover urls=[('[\"http:\\\\/\\\\/10.0.2.2:8080\\\\/hls\\\\/gone\\\\/live.m3u8\",\"http:\\\\/\\\\/10.0.2.2:8080\\\\/hls\\\\/a\\\\/live.m3u8\"]',)]",
+   "evidence": [
+    "016_add_m3u_filled.png",
+    "017_after_add_m3u.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-06b",
+   "title": "Guide loads by itself after a playlist is added",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "1 guide requests and 3612 programmes in the 60+ s after Save, with no user action",
+   "evidence": [
+    "018_guide_not_loaded.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-06c",
+   "title": "Update guide now loads and matches the mock XMLTV",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "pressed=True; 3612 programmes, 30/30 channels matched in 0.4 s",
+   "evidence": [
+    "019_guide_after_update.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-08",
+   "title": "Live playback starts from the shidur:// deep link (HLS, TS)",
+   "area": "playback",
+   "status": "PASS",
+   "detail": "HLS: motion=0.126 audio=True; MPEG-TS: motion=0.098 audio=True",
+   "evidence": [
+    "020_play_hls_a.png",
+    "021_play_hls_b.png",
+    "022_play_mpeg-ts_a.png",
+    "023_play_mpeg-ts_b.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-09",
+   "title": "Zapping: channel up/down, number entry, last channel",
+   "area": "playback",
+   "status": "PASS",
+   "detail": "CHANNEL_UP->QA Sport 02 · CHANNEL_DOWN->QA News 01 · digits 1 2->QA Kids 12 · LAST_CHANNEL->QA News 01 · DPAD_UP->QA Sport 02",
+   "evidence": [
+    "024_after_zap.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-10",
+   "title": "Broken stream, failover and slow start are handled",
+   "area": "playback",
+   "status": "PASS",
+   "detail": "broken: alive=True motion=0.0 audio=False text@4s=['Connecting…', 'QA Broken 404'] text@18s=['QA Broken 404', 'The server has no stream at that address any more.', 'Up and down still change channel from here.', 'Network settings', 'Network settings', 'Channel list'] || failover: alive=True motion=0.133 audio=True text@4s=['QA Failover'] text@18s=[] || slow: alive=True motion=0.191 audio=True text@4s=['Connecting…', 'QA Slow Start'] text@18s=[]",
+   "evidence": [
+    "025_broken_early.png",
+    "026_broken_a.png",
+    "027_broken_b.png",
+    "028_failover_early.png",
+    "029_failover_a.png",
+    "030_failover_b.png",
+    "031_slow_early.png",
+    "032_slow_a.png",
+    "033_slow_b.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-11",
+   "title": "D-pad: focus is always visible and never lost",
+   "area": "navigation",
+   "status": "PASS",
+   "detail": "no focused node after 0/18 keys; path: DPAD_DOWN:QA Slow Start, qa. DPAD_DOWN:QA News 01, qa.ch0 DPAD_DOWN:כאן 88 DPAD_DOWN:qa.ch01 show 26, Q DPAD_RIGHT:qa.ch02 show 26, Q DPAD_RIGHT:qa.ch03 show 26, Q DPAD_RIGHT:qa.ch04 show 26, Q DPAD_UP:רדיו תשעים DPAD_UP:QA Sport 02, qa.ch DPAD_LEFT:QA News 01, qa.ch0 DPAD_LEFT:Radio DPAD_LEFT:Radio DPAD_LEFT:Radio DPAD_CENTER:Recently watched DPAD_DOWN:Hidden channels DPAD_DOWN:National BACK:Watch fullscreen DPAD_UP:Watch fullscreen",
+   "evidence": [
+    "034_focus_end.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-12",
+   "title": "Guide shows mock programmes; search finds a channel and a programme",
+   "area": "guide",
+   "status": "PASS",
+   "detail": "guide cells seen: ['\\u2068qa.slow show 25\\u2069   \\u206614:30 – 15:00\\u2069  ·  \\u2068On air · 6 min left\\u2069  ·  \\u2068On screen · QA Slow Start\\u2069  ·  \\u2068QA programme 25 on qa.slow\\u2069', 'QA News 01', 'qa.ch01 show 24', 'qa.ch01 show 25', 'qa.ch01 show 26', 'qa.ch01 show 27', 'qa.ch01 show 28', 'qa.ch01 show 29']; search hits: ['QA Sport 05', 'QA Sport 05']",
+   "evidence": [
+    "035_guide.png",
+    "036_search.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-24",
+   "title": "Back from a screen opened from the video returns to the video (ADR-036)",
+   "area": "navigation",
+   "status": "FAIL",
+   "detail": "OK on the channel: wanted video, got Live; back: wanted Home, got video; back: wanted video, got Home || deep link->video · arrow->Live · back->video · back->Live · back->Home · deep link->video · arrow->Live · OK on the channel->Live · back->Live · back->video · deep link->video · arrow->Live · back->video · yellow->Guide · back->video · back->Live · back->Home · deep link->video · transport bar's guide->Guide · back->Home · deep link->video · arrow->Live · menu guide->Guide · back->Home · deep link->video · arrow->Live · menu lit entry->Live · back->Home",
+   "evidence": [
+    "037_QA-24_08_wrong.png",
+    "038_QA-24_10_wrong.png",
+    "039_QA-24_20_wrong.png",
+    "040_QA-24_end.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-25",
+   "title": "The guide opened from the video lands on what the playing channel is airing",
+   "area": "guide",
+   "status": "FAIL",
+   "detail": "focused: nothing; panel says on air: True",
+   "evidence": [
+    "041_QA-25_guide.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-27",
+   "title": "Settings by remote: a slider shows focus and moves with left and right; a text field brings the keyboard up only on OK",
+   "area": "navigation",
+   "status": "PASS",
+   "detail": "into0:Home · into1:Playlists and guide · into2:User agent · down:App default, TiviCopy/1.0 (And · down:VLC, VLC/3.0.20 LibVLC/3.0.20 · down:Kodi, Kodi/20.2 (Linux; Androi · down:Lavf, Lavf/60.16.100 · down:Android TV browser, Mozilla/5. · down:Smart TV, Mozilla/5.0 (SMART-T · down:MX Player, MXPlayer/1.0 · down:Timeouts and retries, 15s / 30 · raise:Timeouts and retries, 16s / 30 · lower:Timeouts and retries, 15s / 30 · to_field0:MX Player, MXPlayer/1.0 · to_field1:Smart TV, Mozilla/5.0 (SMART-T · to_field2:Android TV browser, Mozilla/5. · to_field3:Lavf, Lavf/60.16.100 · to_field4:Kodi, Kodi/20.2 (Linux; Androi · to_field5:VLC, VLC/3.0.20 LibVLC/3.0.20 · to_field6:App default, TiviCopy/1.0 (And · to_field7:User agent · ok:keyboard=up",
+   "evidence": [
+    "042_QA-27_end.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-13",
+   "title": "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",
+   "area": "lifecycle",
+   "status": "PASS",
+   "detail": "Home: pip=False audio=False; return: motion=0.042 audio=True; Back x3: left the app=True audio=False; process death -> relaunch 1460 ms alive=True",
+   "evidence": [
+    "043_after_home.png",
+    "044_resume_after_home_a.png",
+    "045_resume_after_home_b.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-14",
+   "title": "Network drops for 20 s during playback and comes back",
+   "area": "resilience",
+   "status": "PASS",
+   "detail": "alive=True; on-screen while down: ['Connecting…', 'QA Kids 03']; picture back after 3.5 s (budget 45 s, no user action)",
+   "evidence": [
+    "046_net_down.png",
+    "049_net_up.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-15",
+   "title": "Malformed and hostile deep links are ignored",
+   "area": "security",
+   "status": "PASS",
+   "detail": "7 links, crashes on: []",
+   "evidence": [
+    "050_deeplink_fuzz.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-23",
+   "title": "A scheduled recording starts from its alarm with the app closed",
+   "area": "recording",
+   "status": "PASS",
+   "detail": "process killed=True; alarm entries=1; 35 s after the start: process=True row=('RECORDING', 0, None) stream requests=0; after the end: row=('COMPLETED', 3146116, None)",
+   "evidence": [],
+   "form": "tv"
+  },
+  {
+   "id": "QA-21",
+   "title": "A refresh that gets an HTML error page keeps the existing channels",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "before 30 channels; provider switched to an HTML 'Account suspended' page; Refresh now tapped=True; switchable.m3u requests=2; after: [(30, 0, 'ParseFailed')] sample=[('QA News 01', '[\"http:\\\\/\\\\/10.0.2.2:8080\\\\/hls\\\\/a\\\\/live.m3u8?ch=01\"]'), ('QA News 04', '[\"http:\\\\/\\\\/10.0.2.2:8080\\\\/hls\\\\/a\\\\/live.m3u8?ch=04\"]'), ('QA News 07', '[\"http:\\\\/\\\\/10.0.2.2:8080\\\\/hls\\\\/a\\\\/live.m3u8?ch=07\"]')]",
+   "evidence": [
+    "051_after_suspended_refresh.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-16",
+   "title": "Hebrew UI is complete and right-to-left",
+   "area": "i18n",
+   "status": "PASS",
+   "detail": "31 Hebrew labels; untranslated-looking labels: []",
+   "evidence": [
+    "052_he_0.png",
+    "053_he_1.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-17",
+   "title": "Scale: a 5,000-channel playlist loads and scrolls",
+   "area": "performance",
+   "status": "PASS",
+   "detail": "5000 channels in 9.0 s; alive=True; {'channels': 5000, 'load_s': 9.0, 'jank': 'Janky frames: 6 (100.00%)', 'frames': '6', 'p90': '300'}",
+   "evidence": [
+    "054_big_list.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-22",
+   "title": "Parental PIN: a locked channel and Settings wait for it",
+   "area": "parental",
+   "status": "FAIL",
+   "detail": "try 1: settings=True parental=True; PIN saved=True; settings switch tapped=True; qa.ch05 locked rows=1; deep link to the locked channel: prompt=True locked stream requests behind it=0; wrong PIN refused=True (field=no typed=- ok=yes; screen=['QA Sport 05', 'Enter your PIN', '4 to 6 digits', 'That PIN is not correct.', '1', '1', '2', '2']); right PIN typed (field=no typed=- ok=yes); right PIN: prompt closed=True locked stream requests=7 sound=True; Settings after leaving the app: PIN asked=True settings shown=False; Settings after the PIN: open=False",
+   "evidence": [
+    "055_parental_set.png",
+    "056_pin_prompt.png",
+    "057_pin_accepted.png",
+    "058_settings_gate.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-18",
+   "title": "Monkey: 4,000 random events with a fixed seed",
+   "area": "stability",
+   "status": "WARN",
+   "detail": "injected 78; crash=False anr=False (monkey itself aborted, no app crash) ",
+   "evidence": [
+    "059_after_monkey.png"
+   ],
+   "form": "tv"
+  },
+  {
+   "id": "QA-19",
+   "title": "Memory and storage after the run",
+   "area": "performance",
+   "status": "PASS",
+   "detail": "PSS 170 MB while playing (budget 350); java 61660 KB native 46868 KB; storage: 1884\tdatabases\n464\tcache\n3104\tfiles",
+   "evidence": [],
+   "form": "tv"
+  },
+  {
+   "id": "QA-20",
+   "title": "Log audit: crashes, ANRs, error volume",
+   "area": "stability",
+   "status": "FAIL",
+   "detail": "FATAL=0 ANR=2 StrictMode=292; top error tags: [('AppOps', 636), ('ExoPlayerImplInternal', 270), ('Finsky', 249), ('katniss_search_LoadCastServiceInfoTaskImpl', 198), ('katniss_interactor_LoadCastServiceInfoTaskImpl', 198), ('Clearcut-EventLogger', 85), ('CellBroadcastUtils', 72), ('ActivityManager', 55), ('AudioMediaPlayerWrapper', 51), ('MediaControllerCompat', 50), ('EGL_emulation', 38), ('GlideExecutor', 36)]",
+   "evidence": [
+    "logcat.txt"
+   ],
+   "form": "tv"
+  }
+ ],
+ "facts": {
+  "device": {
+   "model": "AOSP TV on x86",
+   "sdk": "34",
+   "features_leanback": true,
+   "screen": "Physical size: 1920x1080",
+   "density": "Physical density: 320"
+  },
+  "durations": {
+   "QA-01": 8.7,
+   "QA-02": 31.7,
+   "QA-03": 9.4,
+   "QA-04": 78.6,
+   "QA-26": 65.9,
+   "QA-05": 276.8,
+   "QA-07": 155.0,
+   "QA-06": 189.7,
+   "QA-08": 27.9,
+   "QA-09": 36.6,
+   "QA-10": 83.5,
+   "QA-11": 62.5,
+   "QA-12": 37.4,
+   "QA-24": 170.5,
+   "QA-25": 16.8,
+   "QA-27": 90.5,
+   "QA-13": 51.8,
+   "QA-14": 44.2,
+   "QA-15": 17.6,
+   "QA-23": 190.7,
+   "QA-21": 128.3,
+   "QA-16": 37.7,
+   "QA-17": 89.7,
+   "QA-22": 205.6,
+   "QA-18": 20.2,
+   "QA-19": 20.1
+  },
+  "cold_start_ms": [
+   4337,
+   3121,
+   2351
+  ],
+  "warm_start_ms": 980,
+  "bootstrap_playlists": [
+   [
+    1,
+    "ערוצים פתוחים בישראל",
+    "https://il-epg.idanck.com/channels.m3u",
+    1,
+    null,
+    9
+   ],
+   [
+    2,
+    "רדיו ישראלי",
+    "https://il-epg.idanck.com/radio.m3u",
+    1,
+    null,
+    98
+   ]
+  ],
+  "tv_rail": [
+   "Home",
+   "Live",
+   "Guide",
+   "Radio",
+   "DVR",
+   "Search",
+   "Settings"
+  ],
+  "bad_playlists": [
+   [
+    3,
+    0,
+    "ParseFailed",
+    0
+   ],
+   [
+    4,
+    0,
+    "NotFound",
+    0
+   ],
+   [
+    5,
+    0,
+    "empty",
+    0
+   ]
+  ],
+  "xtream_playlist_id": 6,
+  "xtream_password_at_rest": "password not stored in clear",
+  "m3u_refresh_seconds": 0.2,
+  "m3u_playlist_id": 7,
+  "guide_manual": {
+   "pressed": true,
+   "programmes": 3612,
+   "matched": 30,
+   "secs": 0.4
+  },
+  "play_HLS": {
+   "motion": 0.12590277777777775,
+   "audio": true,
+   "secs": 12.6
+  },
+  "play_MPEG-TS": {
+   "motion": 0.0984375,
+   "audio": true,
+   "secs": 12.5
+  },
+  "process_restarts": [
+   "QA-13",
+   "QA-23",
+   "QA-16",
+   "QA-22"
+  ],
+  "scale": {
+   "channels": 5000,
+   "load_s": 9.0,
+   "jank": "Janky frames: 6 (100.00%)",
+   "frames": "6",
+   "p90": "300"
+  },
+  "memory": {
+   "pss_mb": 170,
+   "java_kb": "61660",
+   "native_kb": "46868",
+   "storage": "1884\tdatabases\n464\tcache\n3104\tfiles"
+  },
+  "log_errors_by_tag": [
+   [
+    "AppOps",
+    636
+   ],
+   [
+    "ExoPlayerImplInternal",
+    270
+   ],
+   [
+    "Finsky",
+    249
+   ],
+   [
+    "katniss_search_LoadCastServiceInfoTaskImpl",
+    198
+   ],
+   [
+    "katniss_interactor_LoadCastServiceInfoTaskImpl",
+    198
+   ],
+   [
+    "Clearcut-EventLogger",
+    85
+   ],
+   [
+    "CellBroadcastUtils",
+    72
+   ],
+   [
+    "ActivityManager",
+    55
+   ],
+   [
+    "AudioMediaPlayerWrapper",
+    51
+   ],
+   [
+    "MediaControllerCompat",
+    50
+   ],
+   [
+    "EGL_emulation",
+    38
+   ],
+   [
+    "GlideExecutor",
+    36
+   ]
+  ],
+  "db_summary": {
+   "playlists": [
+    [
+     1,
+     "ערוצים פתוחים בישראל",
+     "M3U_URL",
+     1,
+     null,
+     9
+    ],
+    [
+     2,
+     "רדיו ישראלי",
+     "M3U_URL",
+     1,
+     null,
+     98
+    ],
+    [
+     3,
+     "QA Malformed",
+     "M3U_URL",
+     0,
+     "ParseFailed",
+     0
+    ],
+    [
+     4,
+     "QA Missing",
+     "M3U_URL",
+     0,
+     "NotFound",
+     0
+    ],
+    [
+     5,
+     "QA Empty",
+     "M3U_URL",
+     0,
+     "empty",
+     0
+    ],
+    [
+     6,
+     "QA Xtream",
+     "XTREAM",
+     1,
+     null,
+     12
+    ],
+    [
+     7,
+     "QA M3U",
+     "M3U_URL",
+     1,
+     null,
+     30
+    ],
+    [
+     8,
+     "QA Switch",
+     "M3U_URL",
+     0,
+     "ParseFailed",
+     30
+    ],
+    [
+     9,
+     "QA Big",
+     "M3U_URL",
+     1,
+     null,
+     5000
+    ]
+   ],
+   "programmes": [
+    [
+     3696
+    ]
+   ],
+   "history": [
+    [
+     0
+    ]
+   ]
+  }
+ }
+}

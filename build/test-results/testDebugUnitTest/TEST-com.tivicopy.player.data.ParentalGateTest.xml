@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.ParentalGateTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.001">
+  <properties/>
+  <testcase name="loosening parental controls waits for the PIN once there is one" classname="com.tivicopy.player.data.ParentalGateTest" time="0.001"/>
+  <testcase name="a correct PIN clears the count" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="three wrong PINs lock the prompt, and the lockout doubles" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="Settings wait for the PIN only when asked to" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="nothing is gated without a PIN, or with the channel switch off, or once unlocked" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="a channel in a locked group waits for the PIN" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="a locked channel waits for the PIN" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <testcase name="an unlocked channel plays" classname="com.tivicopy.player.data.ParentalGateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

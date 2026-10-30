@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.AppIconResourcesTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.01">
+  <properties/>
+  <testcase name="the TV banner is 160 by 90dp, at mdpi and xhdpi" classname="com.tivicopy.player.ui.AppIconResourcesTest" time="0.0"/>
+  <testcase name="the manifest uses these files" classname="com.tivicopy.player.ui.AppIconResourcesTest" time="0.003"/>
+  <testcase name="the adaptive icon has a background, a mark and a monochrome layer, all of them real" classname="com.tivicopy.player.ui.AppIconResourcesTest" time="0.005"/>
+  <testcase name="the mark and the monochrome layer are drawn on the 108dp adaptive canvas" classname="com.tivicopy.player.ui.AppIconResourcesTest" time="0.001"/>
+  <testcase name="the legacy launcher icons are 48dp at every density" classname="com.tivicopy.player.ui.AppIconResourcesTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

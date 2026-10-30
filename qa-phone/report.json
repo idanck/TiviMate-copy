@@ -1,0 +1,474 @@
+{
+ "form": "phone",
+ "counts": {
+  "PASS": 8,
+  "WARN": 3,
+  "FAIL": 8,
+  "SKIP": 7,
+  "INFO": 1
+ },
+ "results": [
+  {
+   "id": "QA-01",
+   "title": "Install the debug APK",
+   "area": "install",
+   "status": "PASS",
+   "detail": "Performing Streamed Install\nSuccess · APK 17841 KB · uid 10192",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-02",
+   "title": "Cold and warm start time",
+   "area": "performance",
+   "status": "WARN",
+   "detail": "cold [4519, 3833, 4605] ms (budget 4000 on an emulator), warm 60 ms",
+   "evidence": [
+    "001_first_screen.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-03",
+   "title": "First run: built-in Israeli channels and radio bootstrap",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "ערוצים פתוחים בישראל: 9 channels, ok=1 ; רדיו ישראלי: 98 channels, ok=1 ",
+   "evidence": [
+    "002_bootstrap.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-04",
+   "title": "Every top-level destination opens",
+   "area": "navigation",
+   "status": "FAIL",
+   "detail": "opened 4/5: ['Live', 'Radio', 'Guide', 'VOD', 'Settings']; missing ['VOD']",
+   "evidence": [
+    "003_nav_live.png",
+    "004_nav_radio.png",
+    "005_nav_guide.png",
+    "006_nav_settings.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-26",
+   "title": "Home: from the side menu, the arrow towards the content returns the remote to where it left from (ADR-035)",
+   "area": "navigation",
+   "status": "SKIP",
+   "detail": "television only: the phone has no side menu",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-05",
+   "title": "Bad playlist addresses fail cleanly",
+   "area": "sources",
+   "status": "PASS",
+   "detail": "QA Malformed: saved=True alive=True row=[] || QA Missing: saved=True alive=True row=[] || QA Empty: saved=True alive=True row=[]",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-07",
+   "title": "Add the mock Xtream account (live, VOD, series)",
+   "area": "sources",
+   "status": "FAIL",
+   "detail": "test tapped=True, ok shown=False, no row",
+   "evidence": [
+    "010_xtream_test.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-06",
+   "title": "Add the mock M3U playlist with its XMLTV guide through the UI",
+   "area": "sources",
+   "status": "FAIL",
+   "detail": "fields filled [False, False, False], saved=True, no playlist row",
+   "evidence": [
+    "011_add_m3u_filled.png",
+    "012_after_add_m3u.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-08",
+   "title": "Live playback starts from the shidur:// deep link (HLS, TS)",
+   "area": "playback",
+   "status": "FAIL",
+   "detail": "HLS: channel not in DB; MPEG-TS: channel not in DB",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-09",
+   "title": "Zapping: channel up/down, number entry, last channel",
+   "area": "playback",
+   "status": "SKIP",
+   "detail": "mock playlist missing",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-10",
+   "title": "Broken stream, failover and slow start are handled",
+   "area": "playback",
+   "status": "FAIL",
+   "detail": "broken: not in DB || failover: not in DB || slow: not in DB",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-11",
+   "title": "D-pad: focus is always visible and never lost",
+   "area": "navigation",
+   "status": "WARN",
+   "detail": "no focused node after 1/18 keys; path: DPAD_DOWN:Back DPAD_DOWN:ערוצים פתוחים בישר DPAD_DOWN:רדיו ישראלי, Last  DPAD_DOWN:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_UP:רדיו ישראלי, Last  DPAD_UP:ערוצים פתוחים בישר DPAD_LEFT:ערוצים פתוחים בישר DPAD_LEFT:ערוצים פתוחים בישר DPAD_LEFT:ערוצים פתוחים בישר DPAD_LEFT:ערוצים פתוחים בישר DPAD_CENTER:∅ DPAD_DOWN:רדיו ישראלי, Last  DPAD_DOWN:Add a playlist, Xt BACK:Back DPAD_UP:Back",
+   "evidence": [
+    "013_focus_end.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-12",
+   "title": "Guide shows mock programmes; search finds a channel and a programme",
+   "area": "guide",
+   "status": "FAIL",
+   "detail": "guide cells seen: []; search hits: []",
+   "evidence": [
+    "014_guide.png",
+    "015_search.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-24",
+   "title": "Back from a screen opened from the video returns to the video (ADR-036)",
+   "area": "navigation",
+   "status": "SKIP",
+   "detail": "television only: the phone's MobileRoot handles Back itself",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-25",
+   "title": "The guide opened from the video lands on what the playing channel is airing",
+   "area": "guide",
+   "status": "SKIP",
+   "detail": "television only: the phone's guide is a tab of its own",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-27",
+   "title": "Settings by remote: a slider shows focus and moves with left and right; a text field brings the keyboard up only on OK",
+   "area": "navigation",
+   "status": "SKIP",
+   "detail": "television only: on a phone a finger picks the field and drags the slider",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-13",
+   "title": "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",
+   "area": "lifecycle",
+   "status": "PASS",
+   "detail": "process death -> relaunch 2472 ms alive=True; rotation x4 alive=True",
+   "evidence": [
+    "016_landscape.png",
+    "017_landscape.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-14",
+   "title": "Network drops for 20 s during playback and comes back",
+   "area": "resilience",
+   "status": "SKIP",
+   "detail": "mock playlist missing",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-15",
+   "title": "Malformed and hostile deep links are ignored",
+   "area": "security",
+   "status": "PASS",
+   "detail": "7 links, crashes on: []",
+   "evidence": [
+    "018_deeplink_fuzz.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-23",
+   "title": "A scheduled recording starts from its alarm with the app closed",
+   "area": "recording",
+   "status": "SKIP",
+   "detail": "mock playlist missing",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-21",
+   "title": "A refresh that gets an HTML error page keeps the existing channels",
+   "area": "sources",
+   "status": "WARN",
+   "detail": "could not set up: before 0 channels; provider switched to an HTML 'Account suspended' page; Refresh now tapped=True; switchable.m3u requests=0; after: [] sample=[]",
+   "evidence": [
+    "019_after_suspended_refresh.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-16",
+   "title": "Hebrew UI is complete and right-to-left",
+   "area": "i18n",
+   "status": "PASS",
+   "detail": "48 Hebrew labels; untranslated-looking labels: []",
+   "evidence": [
+    "020_he_0.png",
+    "021_he_1.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-17",
+   "title": "Scale: a 5,000-channel playlist loads and scrolls",
+   "area": "performance",
+   "status": "FAIL",
+   "detail": "0 channels in 121.9 s; alive=True; {'channels': 0, 'load_s': 121.9, 'jank': 'Janky frames: 119 (92.97%)', 'frames': '128', 'p90': '150'}",
+   "evidence": [
+    "022_big_list.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-22",
+   "title": "Parental PIN: a locked channel and Settings wait for it",
+   "area": "parental",
+   "status": "FAIL",
+   "detail": "try 1: settings=True parental=True; PIN saved=False; settings switch tapped=True; qa.ch05 locked rows=0; deep link to the locked channel: prompt=False locked stream requests behind it=0; wrong PIN refused=False (field=yes typed=4 ok=no; screen=['Parental controls', 'Set a PIN', '••••', '4 to 6 digits', 'Save', 'Save', 'Require the PIN to open Settings', 'Require the PIN to open Settings']); right PIN typed (field=yes typed=4 ok=no); right PIN: prompt closed=True locked stream requests=0 sound=False; Settings after leaving the app: PIN asked=False settings shown=False; Settings after the PIN: open=False",
+   "evidence": [
+    "023_parental_set.png",
+    "024_pin_prompt.png",
+    "025_pin_wrong_missing.png",
+    "026_pin_accepted.png",
+    "027_settings_gate.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-18",
+   "title": "Monkey: 4,000 random events with a fixed seed",
+   "area": "stability",
+   "status": "PASS",
+   "detail": "injected 4000; crash=False anr=False ",
+   "evidence": [
+    "028_after_monkey.png"
+   ],
+   "form": "phone"
+  },
+  {
+   "id": "QA-19",
+   "title": "Memory and storage after the run",
+   "area": "performance",
+   "status": "PASS",
+   "detail": "PSS 130 MB while playing (budget 450); java 27384 KB native 40440 KB; storage: 852\tdatabases\n544\tcache\n16\tfiles",
+   "evidence": [],
+   "form": "phone"
+  },
+  {
+   "id": "QA-20",
+   "title": "Log audit: crashes, ANRs, error volume",
+   "area": "stability",
+   "status": "INFO",
+   "detail": "FATAL=0 ANR=0 StrictMode=337; top error tags: [('RecoverySnapshotStorage', 85), ('system_server', 55), ('ExoPlayerImplInternal', 30), ('AmbientMusicServiceMana', 28), ('FrameTracker', 27), ('AppOps', 15), ('TaskPersister', 13), ('AiAiEcho', 13), ('WifiChipAidlImpl', 13), ('PackageManager', 12), ('WifiStaIfaceAidlImpl', 11), ('QuickAccessWalletKeyguardQuickAffordanceConfig', 9)]",
+   "evidence": [
+    "logcat.txt"
+   ],
+   "form": "phone"
+  }
+ ],
+ "facts": {
+  "device": {
+   "model": "sdk_gphone64_x86_64",
+   "sdk": "34",
+   "features_leanback": false,
+   "screen": "Physical size: 1080x2400",
+   "density": "Physical density: 420"
+  },
+  "durations": {
+   "QA-01": 8.8,
+   "QA-02": 34.2,
+   "QA-03": 4.0,
+   "QA-04": 44.3,
+   "QA-26": 2.3,
+   "QA-05": 189.7,
+   "QA-07": 162.3,
+   "QA-06": 173.1,
+   "QA-08": 2.2,
+   "QA-09": 2.2,
+   "QA-10": 2.3,
+   "QA-11": 52.5,
+   "QA-12": 31.4,
+   "QA-24": 2.1,
+   "QA-25": 2.1,
+   "QA-27": 2.1,
+   "QA-13": 26.7,
+   "QA-14": 2.4,
+   "QA-15": 16.7,
+   "QA-23": 2.1,
+   "QA-21": 186.4,
+   "QA-16": 29.4,
+   "QA-17": 203.1,
+   "QA-22": 236.5,
+   "QA-18": 160.2,
+   "QA-19": 3.3
+  },
+  "cold_start_ms": [
+   4519,
+   3833,
+   4605
+  ],
+  "warm_start_ms": 60,
+  "bootstrap_playlists": [
+   [
+    1,
+    "ערוצים פתוחים בישראל",
+    "https://il-epg.idanck.com/channels.m3u",
+    1,
+    null,
+    9
+   ],
+   [
+    2,
+    "רדיו ישראלי",
+    "https://il-epg.idanck.com/radio.m3u",
+    1,
+    null,
+    98
+   ]
+  ],
+  "typing_mismatch": [
+   "Display name",
+   "Playlist URL",
+   "Display name",
+   "Playlist URL",
+   "Display name",
+   "Playlist URL",
+   "Display name",
+   "Server URL",
+   "Username",
+   "Display name",
+   "Playlist URL",
+   "Guide (XMLTV) URL",
+   "Display name",
+   "Playlist URL",
+   "Display name",
+   "Playlist URL"
+  ],
+  "m3u_refresh_seconds": 93.6,
+  "process_restarts": [
+   "QA-13",
+   "QA-16",
+   "QA-22"
+  ],
+  "scale": {
+   "channels": 0,
+   "load_s": 121.9,
+   "jank": "Janky frames: 119 (92.97%)",
+   "frames": "128",
+   "p90": "150"
+  },
+  "memory": {
+   "pss_mb": 130,
+   "java_kb": "27384",
+   "native_kb": "40440",
+   "storage": "852\tdatabases\n544\tcache\n16\tfiles"
+  },
+  "log_errors_by_tag": [
+   [
+    "RecoverySnapshotStorage",
+    85
+   ],
+   [
+    "system_server",
+    55
+   ],
+   [
+    "ExoPlayerImplInternal",
+    30
+   ],
+   [
+    "AmbientMusicServiceMana",
+    28
+   ],
+   [
+    "FrameTracker",
+    27
+   ],
+   [
+    "AppOps",
+    15
+   ],
+   [
+    "TaskPersister",
+    13
+   ],
+   [
+    "AiAiEcho",
+    13
+   ],
+   [
+    "WifiChipAidlImpl",
+    13
+   ],
+   [
+    "PackageManager",
+    12
+   ],
+   [
+    "WifiStaIfaceAidlImpl",
+    11
+   ],
+   [
+    "QuickAccessWalletKeyguardQuickAffordanceConfig",
+    9
+   ]
+  ],
+  "db_summary": {
+   "playlists": [
+    [
+     1,
+     "ערוצים פתוחים בישראל",
+     "M3U_URL",
+     1,
+     null,
+     9
+    ],
+    [
+     2,
+     "רדיו ישראלי",
+     "M3U_URL",
+     1,
+     null,
+     98
+    ]
+   ],
+   "programmes": [
+    [
+     588
+    ]
+   ],
+   "history": [
+    [
+     0
+    ]
+   ]
+  }
+ }
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.player.ReconnectPolicyTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.001">
+  <properties/>
+  <testcase name="an on-demand title is not retried from the beginning" classname="com.tivicopy.player.player.ReconnectPolicyTest" time="0.001"/>
+  <testcase name="a server error counts as a lost connection" classname="com.tivicopy.player.player.ReconnectPolicyTest" time="0.0"/>
+  <testcase name="a lost connection or a timeout on a live channel is retried" classname="com.tivicopy.player.player.ReconnectPolicyTest" time="0.0"/>
+  <testcase name="a refusal that will not pass on its own is not retried" classname="com.tivicopy.player.player.ReconnectPolicyTest" time="0.0"/>
+  <testcase name="the wait grows and then holds" classname="com.tivicopy.player.player.ReconnectPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

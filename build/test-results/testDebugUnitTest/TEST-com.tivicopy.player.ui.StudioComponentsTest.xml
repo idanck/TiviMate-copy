@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.StudioComponentsTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.313">
+  <properties/>
+  <testcase name="no screen draws a Material control" classname="com.tivicopy.player.ui.StudioComponentsTest" time="0.302"/>
+  <testcase name="every icon is Studio's" classname="com.tivicopy.player.ui.StudioComponentsTest" time="0.01"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

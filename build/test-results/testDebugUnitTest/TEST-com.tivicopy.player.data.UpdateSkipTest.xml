@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.UpdateSkipTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:22" hostname="runnervm48cm3" time="0.109">
+  <properties/>
+  <testcase name="a check that found nothing drops the manifest it was holding" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.028"/>
+  <testcase name="a skip is forgotten once that version is what is running" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.022"/>
+  <testcase name="a skip survives while that version is still the newest one out there" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.017"/>
+  <testcase name="a check records when it happened" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.017"/>
+  <testcase name="a check keeps the manifest it read, for the next process to find" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.011"/>
+  <testcase name="a skipped version is remembered as a floor" classname="com.tivicopy.player.data.UpdateSkipTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

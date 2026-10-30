@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.HomeRailsTest" tests="19" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.007">
+  <properties/>
+  <testcase name="a starting soon card is not marked live" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.005"/>
+  <testcase name="an unconfigured feed produces no featured rail" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a programme already under way is not starting soon" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a channel with no number gets no badge" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a card carries the programme that is on right now" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="card keys are unique across the whole screen" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a recent channel from a playlist that was not loaded survives" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a channel with no guide still gets a card" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a featured item that leads nowhere is dropped" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.001"/>
+  <testcase name="a channel appears at most once in starting soon" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a recent or favourite channel that is no longer visible is dropped" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a radio station counts as visible" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="rails come back in a fixed order" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="each rail disappears independently when its source is empty" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a featured item naming no channel at all is dropped" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.001"/>
+  <testcase name="a featured item resolves to a channel and becomes playable" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="nothing to show produces no rails at all" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="a rail is capped and keeps the order it was given" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <testcase name="starting soon takes the next programme inside the window, soonest first" classname="com.tivicopy.player.ui.HomeRailsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

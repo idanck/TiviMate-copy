@@ -1,0 +1,4 @@
+{"t": 0.42, "method": "GET", "path": "/health", "status": 200, "bytes": 2, "ua": "curl/8.5.0", "range": null}
+{"t": 768.12, "method": "GET", "path": "/admin/restore", "status": 200, "bytes": 8, "ua": "Python-urllib/3.12", "range": null}
+{"t": 888.38, "method": "GET", "path": "/admin/suspend", "status": 200, "bytes": 9, "ua": "Python-urllib/3.12", "range": null}
+{"t": 952.46, "method": "GET", "path": "/admin/restore", "status": 200, "bytes": 8, "ua": "Python-urllib/3.12", "range": null}

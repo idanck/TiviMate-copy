@@ -1,0 +1,66 @@
+  bash arg: -p
+  bash arg: com.tivicopy.player.debug
+  bash arg: -s
+  bash arg: 4242
+  bash arg: --throttle
+  bash arg: 120
+  bash arg: --pct-syskeys
+  bash arg: 0
+  bash arg: --pct-appswitch
+  bash arg: 2
+  bash arg: --pct-nav
+  bash arg: 30
+  bash arg: --pct-majornav
+  bash arg: 20
+  bash arg: --pct-touch
+  bash arg: 20
+  bash arg: --pct-motion
+  bash arg: 5
+  bash arg: --ignore-security-exceptions
+  bash arg: -v
+  bash arg: 4000
+:Monkey: seed=4242 count=4000
+:AllowPackage: com.tivicopy.player.debug
+:IncludeCategory: android.intent.category.LAUNCHER
+:IncludeCategory: android.intent.category.MONKEY
+// Event percentages:
+//   0: 20.0%
+//   1: 5.0%
+//   2: 1.483871%
+//   3: 11.129032%
+//   4: -0.0%
+//   5: -0.0%
+//   6: 30.0%
+//   7: 20.0%
+//   8: -0.0%
+//   9: 2.0%
+//   10: 0.7419355%
+//   11: 9.645162%
+:Switch: #Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10200000;component=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity;end
+    // Allowing start of Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity } in package com.tivicopy.player.debug
+:Sending Trackball (ACTION_MOVE): 0:(-1.0,0.0)
+:Sending Touch (ACTION_DOWN): 0:(492.0,917.0)
+:Sending Touch (ACTION_UP): 0:(494.5586,907.4512)
+:Sending Touch (ACTION_DOWN): 0:(784.0,931.0)
+:Sending Touch (ACTION_UP): 0:(776.80566,933.59766)
+:Switch: #Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10200000;component=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity;end
+    // Allowing start of Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity } in package com.tivicopy.player.debug
+:Sending Trackball (ACTION_MOVE): 0:(1.0,-5.0)
+:Sending Touch (ACTION_DOWN): 0:(1870.0,202.0)
+:Sending Touch (ACTION_UP): 0:(1903.627,227.84863)
+:Sending Trackball (ACTION_MOVE): 0:(2.0,3.0)
+:Sending Flip keyboardOpen=false
+Got IOException performing flipjava.io.FileNotFoundException: /dev/input/event0: open failed: EACCES (Permission denied)
+    // Injection Failed
+:Sending Touch (ACTION_DOWN): 0:(445.0,905.0)
+    // Injection Failed
+:Sending Touch (ACTION_UP): 0:(445.18262,896.042)
+    // Injection Failed
+:Sending Trackball (ACTION_MOVE): 0:(-4.0,0.0)
+:Switch: #Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10200000;component=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity;end
+    // Allowing start of Intent { act=android.intent.action.MAIN cat=[android.intent.category.LAUNCHER] cmp=com.tivicopy.player.debug/com.tivicopy.player.ui.MainActivity } in package com.tivicopy.player.debug
+** Monkey aborted due to error.
+Events injected: 78
+:Sending rotation degree=0, persist=false
+:Dropped: keys=0 pointers=2 trackballs=0 flips=1 rotations=0
+## Network stats: elapsed time=13990ms (0ms mobile, 0ms wifi, 13990ms not connected)

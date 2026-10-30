@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.player.StreamTitleTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.003">
+  <properties/>
+  <testcase name="the station's own name is not a song" classname="com.tivicopy.player.player.StreamTitleTest" time="0.001"/>
+  <testcase name="whitespace and dangling dashes are tidied" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="windows-1255 hebrew read as latin-1 is repaired" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="windows-1255 read as windows-1252 is repaired, punctuation and all" classname="com.tivicopy.player.player.StreamTitleTest" time="0.001"/>
+  <testcase name="plain titles pass through" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="icy title tells no title apart from an empty one" classname="com.tivicopy.player.player.StreamTitleTest" time="0.001"/>
+  <testcase name="latin titles with the odd accent are left alone" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="placeholders and empties are not songs" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="hebrew beside an english artist is repaired too" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <testcase name="bytes already lost upstream are dropped rather than shown" classname="com.tivicopy.player.player.StreamTitleTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

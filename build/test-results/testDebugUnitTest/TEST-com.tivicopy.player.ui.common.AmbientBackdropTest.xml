@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.common.AmbientBackdropTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.01">
+  <properties/>
+  <testcase name="the pool does not retrace its path after one period of either axis" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.0"/>
+  <testcase name="the ground is each tone at its quarter of the cycle, and back to the first at the end" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.0"/>
+  <testcase name="between two tones the ground is neither" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.001"/>
+  <testcase name="the pool of light stays on screen" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.007"/>
+  <testcase name="a song announced as artist and title is split, anything else is all title" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.002"/>
+  <testcase name="the pool's hue stays within its swing" classname="com.tivicopy.player.ui.common.AmbientBackdropTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

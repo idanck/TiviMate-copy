@@ -1,0 +1,1185 @@
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/record/Receivers.kt:41: Warning: Field requires API level 24 (current min is 23): android.content.Intent#ACTION_LOCKED_BOOT_COMPLETED [InlinedApi]
+            action == Intent.ACTION_LOCKED_BOOT_COMPLETED
+                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "InlinedApi":
+   This check scans through all the Android API field references in the
+   application and flags certain constants, such as static final integers and
+   Strings, which were introduced in later versions. These will actually be
+   copied into the class files rather than being referenced, which means that
+   the value is available even when running on older devices. In some cases
+   that's fine, and in other cases it can result in a runtime crash or
+   incorrect behavior. It depends on the context, so consider the code
+   carefully and decide whether it's safe and can be suppressed or whether the
+   code needs to be guarded.
+
+   If you really want to use this API and don't need to support older devices
+   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+   files.
+
+   If your code is deliberately accessing newer APIs, and you have ensured
+   (e.g. with conditional execution) that this code will only ever be called
+   on a supported platform, then you can annotate your class or method with
+   the @TargetApi annotation specifying the local minimum SDK to apply, such
+   as @TargetApi(11), such that this check considers 11 rather than your
+   manifest file's minimum SDK as the required API level.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/AndroidManifest.xml:67: Error: Missing intent-filter for action android.media.action.MEDIA_PLAY_FROM_SEARCH. [MissingIntentFilterForMediaSearch]
+    <application
+    ^
+
+   Explanation for issues of type "MissingIntentFilterForMediaSearch":
+   To support voice searches on Android Auto, you should also register an
+   intent-filter for the action android.media.action.MEDIA_PLAY_FROM_SEARCH.
+
+   To do this, add
+   `<intent-filter>`
+       `<action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH"
+   />`
+   `</intent-filter>`
+   to your <activity> or <service>.
+
+   https://developer.android.com/training/auto/audio/index.html#support_voice
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:1053: Error: Call requires API level 26 (current min is 23): android.app.RemoteAction() [NewApi]
+        val toggle = RemoteAction(
+                     ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:1067: Error: Call requires API level 26 (current min is 23): android.app.PictureInPictureParams.Builder() [NewApi]
+        return PictureInPictureParams.Builder()
+                                      ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:1068: Error: Call requires API level 26 (current min is 23): android.app.PictureInPictureParams.Builder#setAspectRatio [NewApi]
+            .setAspectRatio(ratio)
+             ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:1069: Error: Call requires API level 26 (current min is 23): android.app.PictureInPictureParams.Builder#setActions [NewApi]
+            .setActions(listOf(toggle))
+             ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:1070: Error: Call requires API level 26 (current min is 23): android.app.PictureInPictureParams.Builder#build [NewApi]
+            .build()
+             ~~~~~
+
+   Explanation for issues of type "NewApi":
+   This check scans through all the Android API calls in the application and
+   warns about any calls that are not available on all versions targeted by
+   this application (according to its minimum SDK attribute in the manifest).
+
+   If you really want to use this API and don't need to support older devices
+   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
+   files.
+
+   If your code is deliberately accessing newer APIs, and you have ensured
+   (e.g. with conditional execution) that this code will only ever be called
+   on a supported platform, then you can annotate your class or method with
+   the @TargetApi annotation specifying the local minimum SDK to apply, such
+   as @TargetApi(11), such that this check considers 11 rather than your
+   manifest file's minimum SDK as the required API level.
+
+   If you are deliberately setting android: attributes in style definitions,
+   make sure you place this in a values-vNN folder in order to avoid running
+   into runtime conflicts on certain devices where manufacturers have added
+   custom attributes whose ids conflict with the new ones on later platforms.
+
+   Similarly, you can use tools:targetApi="11" in an XML file to indicate that
+   the element will only be inflated in an adequate context.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/build.gradle.kts:54: Warning: Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details. [OldTargetApi]
+        targetSdk = 35
+        ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "OldTargetApi":
+   When your application runs on a version of Android that is more recent than
+   your targetSdkVersion specifies that it has been tested with, various
+   compatibility modes kick in. This ensures that your application continues
+   to work, but it may look out of place. For example, if the targetSdkVersion
+   is less than 14, your app may get an option button in the UI.
+
+   To fix this issue, set the targetSdkVersion to the highest available value.
+   Then test your app to make sure everything works correctly. You may want to
+   consult the compatibility notes to see what changes apply to each version
+   you are adding support for:
+   https://developer.android.com/reference/android/os/Build.VERSION_CODES.html
+   as well as follow this guide:
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.
+   html
+
+   https://developer.android.com/distribute/best-practices/develop/target-sdk.html
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:94: Error: Must be one of: SessionResult.RESULT_SUCCESS, SessionError.INFO_CANCELLED, SessionError.ERROR_UNKNOWN, SessionError.ERROR_INVALID_STATE, SessionError.ERROR_BAD_VALUE, SessionError.ERROR_PERMISSION_DENIED, SessionError.ERROR_IO, SessionError.ERROR_SESSION_DISCONNECTED, SessionError.ERROR_NOT_SUPPORTED, SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED, SessionError.ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED, SessionError.ERROR_SESSION_CONCURRENT_STREAM_LIMIT, SessionError.ERROR_SESSION_PARENTAL_CONTROL_RESTRICTED, SessionError.ERROR_SESSION_NOT_AVAILABLE_IN_REGION, SessionError.ERROR_SESSION_SKIP_LIMIT_REACHED, SessionError.ERROR_SESSION_SETUP_REQUIRED [WrongConstant]
+            ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:128: Error: Must be one of: LibraryResult.RESULT_SUCCESS, SessionError.INFO_CANCELLED, SessionError.ERROR_UNKNOWN, SessionError.ERROR_INVALID_STATE, SessionError.ERROR_BAD_VALUE, SessionError.ERROR_PERMISSION_DENIED, SessionError.ERROR_IO, SessionError.ERROR_SESSION_DISCONNECTED, SessionError.ERROR_NOT_SUPPORTED, SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED, SessionError.ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED, SessionError.ERROR_SESSION_CONCURRENT_STREAM_LIMIT, SessionError.ERROR_SESSION_PARENTAL_CONTROL_RESTRICTED, SessionError.ERROR_SESSION_NOT_AVAILABLE_IN_REGION, SessionError.ERROR_SESSION_SKIP_LIMIT_REACHED, SessionError.ERROR_SESSION_SETUP_REQUIRED [WrongConstant]
+            else -> Futures.immediateFuture(LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE))
+                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:164: Error: Must be one of: LibraryResult.RESULT_SUCCESS, SessionError.INFO_CANCELLED, SessionError.ERROR_UNKNOWN, SessionError.ERROR_INVALID_STATE, SessionError.ERROR_BAD_VALUE, SessionError.ERROR_PERMISSION_DENIED, SessionError.ERROR_IO, SessionError.ERROR_SESSION_DISCONNECTED, SessionError.ERROR_NOT_SUPPORTED, SessionError.ERROR_SESSION_AUTHENTICATION_EXPIRED, SessionError.ERROR_SESSION_PREMIUM_ACCOUNT_REQUIRED, SessionError.ERROR_SESSION_CONCURRENT_STREAM_LIMIT, SessionError.ERROR_SESSION_PARENTAL_CONTROL_RESTRICTED, SessionError.ERROR_SESSION_NOT_AVAILABLE_IN_REGION, SessionError.ERROR_SESSION_SKIP_LIMIT_REACHED, SessionError.ERROR_SESSION_SETUP_REQUIRED [WrongConstant]
+        item?.let { LibraryResult.ofItem(it, null) } ?: LibraryResult.ofError(SessionResult.RESULT_ERROR_BAD_VALUE)
+                                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "WrongConstant":
+   Ensures that when parameter in a method only allows a specific set of
+   constants, calls obey those rules.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/data/prefs/AppLocale.kt:160: Warning: Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the bundle configuration [AppBundleLocaleChanges]
+            setLocales(LocaleList(locale))
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AppBundleLocaleChanges":
+   When changing locales at runtime (e.g. to provide an in-app language
+   switcher), the Android App Bundle must be configured to not split by locale
+   or the Play Core library must be used to download additional locales at
+   runtime.
+
+   https://developer.android.com/guide/app-bundle/configure-base#handling_language_changes
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/xml/backup_rules.xml:8: Error: tivicopy.db is not in an included path [FullBackupContent]
+    <exclude domain="database" path="tivicopy.db" />
+                                     ~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/xml/backup_rules.xml:9: Error: tivicopy.db-wal is not in an included path [FullBackupContent]
+    <exclude domain="database" path="tivicopy.db-wal" />
+                                     ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/xml/backup_rules.xml:10: Error: tivicopy.db-shm is not in an included path [FullBackupContent]
+    <exclude domain="database" path="tivicopy.db-shm" />
+                                     ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/xml/data_extraction_rules.xml:5: Error: tivicopy.db is not in an included path [FullBackupContent]
+        <exclude domain="database" path="tivicopy.db" />
+                                         ~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/xml/data_extraction_rules.xml:9: Error: tivicopy.db is not in an included path [FullBackupContent]
+        <exclude domain="database" path="tivicopy.db" />
+                                         ~~~~~~~~~~~
+
+   Explanation for issues of type "FullBackupContent":
+   Ensures that <data-extraction-rules> and <full-backup-content> files, which
+   configure backup options, are valid.
+
+   https://android-developers.googleblog.com/2015/07/auto-backup-for-apps-made-simple.html
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/AndroidManifest.xml:9: Warning: Requiring Wifi permissions limits app availability on TVs that support only Ethernet [LeanbackUsesWifi]
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "LeanbackUsesWifi":
+   WiFi is not required for Android TV and many devices connect to the
+   internet via alternative methods e.g. Ethernet.
+
+   If your app is not focused specifically on WiFi functionality and only
+   wishes to connect to the internet, please modify your Manifest to contain:
+   <uses-feature android:name="android.hardware.wifi" android:required="false"
+   />
+
+   Un-metered or non-roaming connections can be detected in software using
+   NetworkCapabilities#NET_CAPABILITY_NOT_METERED and
+   NetworkCapabilities#NET_CAPABILITY_NOT_ROAMING.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/AndroidManifest.xml:67: Warning: An activity in this app supports picture-in-picture and the targetSdkVersion is 31 or above; it is therefore strongly recommended to call both setAutoEnterEnabled(true) and setSourceRectHint(...) [PictureInPictureIssue]
+    <application
+     ~~~~~~~~~~~
+
+   Explanation for issues of type "PictureInPictureIssue":
+   Starting in Android 12, the recommended approach for enabling
+   picture-in-picture (PiP) has changed. If your app does not use the new
+   approach, your app's transition animations will be of poor quality compared
+   to other apps. The new approach requires calling setAutoEnterEnabled(true)
+   and setSourceRectHint(...).
+
+   https://developer.android.com/develop/ui/views/picture-in-picture#smoother-transition
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.7.3 is available: 9.5.0 [AndroidGradlePluginVersion]
+agp = "8.7.3"
+      ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.7.3 is available: 9.5.0 [AndroidGradlePluginVersion]
+agp = "8.7.3"
+      ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:2: Warning: A newer version of com.android.application than 8.7.3 is available: 9.5.0 [AndroidGradlePluginVersion]
+agp = "8.7.3"
+      ~~~~~~~
+
+   Explanation for issues of type "AndroidGradlePluginVersion":
+   This detector looks for usage of the Android Gradle Plugin where the
+   version you are using is not the current stable release. Using older
+   versions is fine, and there are cases where you deliberately want to stick
+   with an older version. However, you may simply not be aware that a more
+   recent version is available, and that is what this lint check helps find.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/build.gradle.kts:149: Warning: A newer version of com.android.tools:desugar_jdk_libs than 2.1.3 is available: 2.1.5 [GradleDependency]
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:4: Warning: A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.1 [GradleDependency]
+coreKtx = "1.13.1"
+          ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:4: Warning: A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.1 [GradleDependency]
+coreKtx = "1.13.1"
+          ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:4: Warning: A newer version of androidx.core:core-ktx than 1.13.1 is available: 1.19.1 [GradleDependency]
+coreKtx = "1.13.1"
+          ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:5: Warning: A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.8.0 [GradleDependency]
+appcompat = "1.7.0"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:5: Warning: A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.8.0 [GradleDependency]
+appcompat = "1.7.0"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:5: Warning: A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.8.0 [GradleDependency]
+appcompat = "1.7.0"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:6: Warning: A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0 [GradleDependency]
+activityCompose = "1.9.3"
+                  ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:6: Warning: A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0 [GradleDependency]
+activityCompose = "1.9.3"
+                  ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:6: Warning: A newer version of androidx.activity:activity-compose than 1.9.3 is available: 1.13.0 [GradleDependency]
+activityCompose = "1.9.3"
+                  ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-process than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-runtime-ktx than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:7: Warning: A newer version of androidx.lifecycle:lifecycle-viewmodel-compose than 2.8.7 is available: 2.11.0 [GradleDependency]
+lifecycle = "2.8.7"
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:8: Warning: A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.09.00 [GradleDependency]
+composeBom = "2024.10.01"
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:8: Warning: A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.09.00 [GradleDependency]
+composeBom = "2024.10.01"
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:8: Warning: A newer version of androidx.compose:compose-bom than 2024.10.01 is available: 2026.09.00 [GradleDependency]
+composeBom = "2024.10.01"
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-datasource-okhttp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-datasource-okhttp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-datasource-okhttp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-dash than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-dash than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-dash than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-hls than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-hls than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-hls than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-rtsp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-rtsp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-exoplayer-rtsp than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-session than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-session than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-session than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-ui than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-ui than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:9: Warning: A newer version of androidx.media3:media3-ui than 1.5.0 is available: 1.11.1 [GradleDependency]
+media3 = "1.5.0"
+         ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:12: Warning: A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.12.0 [GradleDependency]
+work = "2.9.1"
+       ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:12: Warning: A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.12.0 [GradleDependency]
+work = "2.9.1"
+       ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:12: Warning: A newer version of androidx.work:work-runtime-ktx than 2.9.1 is available: 2.12.0 [GradleDependency]
+work = "2.9.1"
+       ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:14: Warning: A newer version of androidx.tvprovider:tvprovider than 1.0.0 is available: 1.1.0 [GradleDependency]
+tvprovider = "1.0.0"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:14: Warning: A newer version of androidx.tvprovider:tvprovider than 1.0.0 is available: 1.1.0 [GradleDependency]
+tvprovider = "1.0.0"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:14: Warning: A newer version of androidx.tvprovider:tvprovider than 1.0.0 is available: 1.1.0 [GradleDependency]
+tvprovider = "1.0.0"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:15: Warning: A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.10.2 [GradleDependency]
+navigation = "2.8.4"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:15: Warning: A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.10.2 [GradleDependency]
+navigation = "2.8.4"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:15: Warning: A newer version of androidx.navigation:navigation-compose than 2.8.4 is available: 2.10.2 [GradleDependency]
+navigation = "2.8.4"
+             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:21: Warning: A newer version of androidx.test:core than 1.6.1 is available: 1.7.0 [GradleDependency]
+androidxTestCore = "1.6.1"
+                   ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:21: Warning: A newer version of androidx.test:core than 1.6.1 is available: 1.7.0 [GradleDependency]
+androidxTestCore = "1.6.1"
+                   ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/gradle/libs.versions.toml:21: Warning: A newer version of androidx.test:core than 1.6.1 is available: 1.7.0 [GradleDependency]
+androidxTestCore = "1.6.1"
+                   ~~~~~~~
+
+   Explanation for issues of type "GradleDependency":
+   This detector looks for usages of libraries where the version you are using
+   is not the current stable release. Using older versions is fine, and there
+   are cases where you deliberately want to stick with an older version.
+   However, you may simply not be aware that a more recent version is
+   available, and that is what this lint check helps find.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:631: Error: ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=androidx.core with prefix androidx from groupId=TiviMate-copy) [RestrictedApi]
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+                 ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:632: Error: ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=androidx.core with prefix androidx from groupId=TiviMate-copy) [RestrictedApi]
+        if (event.keyCode in VOLUME_KEYS) return super.dispatchKeyEvent(event)
+                                                       ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:632: Error: ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=androidx.core with prefix androidx from groupId=TiviMate-copy) [RestrictedApi]
+        if (event.keyCode in VOLUME_KEYS) return super.dispatchKeyEvent(event)
+                                                                        ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:644: Error: ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=androidx.core with prefix androidx from groupId=TiviMate-copy) [RestrictedApi]
+        return super.dispatchKeyEvent(event)
+                     ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:644: Error: ComponentActivity.dispatchKeyEvent can only be called from within the same library group prefix (referenced groupId=androidx.core with prefix androidx from groupId=TiviMate-copy) [RestrictedApi]
+        return super.dispatchKeyEvent(event)
+                                      ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:131: Error: WatchNextProgram.PROJECTION can only be accessed from within the same library group (referenced groupId=androidx.tvprovider from groupId=TiviMate-copy) [RestrictedApi]
+            WatchNextProgram.PROJECTION,
+                             ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:139: Error: BasePreviewProgram.getInternalProviderId can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                    val channelId = program.internalProviderId?.toLongOrNull() ?: continue
+                                            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:139: Error: BasePreviewProgram.getInternalProviderId can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                    val channelId = program.internalProviderId?.toLongOrNull() ?: continue
+                                            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:140: Error: BaseProgram.getId can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                    put(channelId, program.id)
+                                           ~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:140: Error: BaseProgram.getId can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                    put(channelId, program.id)
+                                           ~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:157: Error: Builder.setType can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setType(TvContractCompat.WatchNextPrograms.TYPE_CHANNEL)
+                 ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:157: Error: Builder.setType can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setType(TvContractCompat.WatchNextPrograms.TYPE_CHANNEL)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:157: Error: PreviewProgramColumns.TYPE_CHANNEL can only be accessed from within the same library group (referenced groupId=androidx.tvprovider from groupId=TiviMate-copy) [RestrictedApi]
+                .setType(TvContractCompat.WatchNextPrograms.TYPE_CHANNEL)
+                                                            ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:162: Error: Builder.setLive can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setLive(true)
+                 ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:163: Error: Builder.setTitle can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setTitle(entry.title)
+                 ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:165: Error: Builder.setInternalProviderId can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setInternalProviderId(entry.channelId.toString())
+                 ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:166: Error: Builder.setIntentUri can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                .setIntentUri(Uri.parse(entry.deepLink))
+                 ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:167: Error: Builder.setDescription can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+            entry.description?.let { builder.setDescription(it) }
+                                             ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:169: Error: Builder.setPosterArtUri can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                builder.setPosterArtUri(Uri.parse(it))
+                        ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:174: Error: Builder.setPosterArtAspectRatio can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                builder.setPosterArtAspectRatio(TvContractCompat.WatchNextPrograms.ASPECT_RATIO_1_1)
+                        ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:174: Error: Builder.setPosterArtAspectRatio can only be called from within the same library (androidx.tvprovider:tvprovider) [RestrictedApi]
+                builder.setPosterArtAspectRatio(TvContractCompat.WatchNextPrograms.ASPECT_RATIO_1_1)
+                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/tv/WatchNextSync.kt:174: Error: PreviewProgramColumns.ASPECT_RATIO_1_1 can only be accessed from within the same library group (referenced groupId=androidx.tvprovider from groupId=TiviMate-copy) [RestrictedApi]
+                builder.setPosterArtAspectRatio(TvContractCompat.WatchNextPrograms.ASPECT_RATIO_1_1)
+                                                                                   ~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "RestrictedApi":
+   This API has been flagged with a restriction that has not been met.
+
+   Examples of API restrictions:
+   * Method can only be invoked by a subclass
+   * Method can only be accessed from within the same library (defined by the
+   Gradle library group id)
+   * Method can only be accessed from tests.
+
+   You can add your own API restrictions with the @RestrictTo annotation.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/AudioSpectrum.kt:75: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        private var encoding = C.ENCODING_INVALID
+                                 ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/AudioSpectrum.kt:83: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun flush(sampleRateHz: Int, channelCount: Int, encoding: Int) {
+                     ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/AudioSpectrum.kt:90: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun handleBuffer(buffer: ByteBuffer) {
+                     ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/AudioSpectrum.kt:96: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                C.ENCODING_PCM_16BIT -> {
+                  ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/AudioSpectrum.kt:104: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                C.ENCODING_PCM_FLOAT -> {
+                  ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:41: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+) : DefaultRenderersFactory(context) {
+    ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:41: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+) : DefaultRenderersFactory(context) {
+    ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:44: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        setExtensionRendererMode(EXTENSION_RENDERER_MODE_OFF)
+        ~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:44: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        setExtensionRendererMode(EXTENSION_RENDERER_MODE_OFF)
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:47: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        setEnableDecoderFallback(true)
+        ~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:50: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    override fun buildVideoRenderers(
+                 ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:53: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        mediaCodecSelector: MediaCodecSelector,
+                            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:56: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        eventListener: VideoRendererEventListener,
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:58: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        out: ArrayList<Renderer>,
+                       ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:60: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        super.buildVideoRenderers(
+              ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:72: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    override fun buildAudioRenderers(
+                 ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:75: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        mediaCodecSelector: MediaCodecSelector,
+                            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:77: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        audioSink: AudioSink,
+                   ~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:79: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        eventListener: AudioRendererEventListener,
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:80: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        out: ArrayList<Renderer>,
+                       ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:82: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        super.buildAudioRenderers(
+              ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:100: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    private fun spectrumSink(context: Context, enableFloatOutput: Boolean): AudioSink {
+                                                                            ~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:101: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val builder = if (encodedAudioPassthrough) {
+            ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:102: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            DefaultAudioSink.Builder(context)
+                             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:106: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            @Suppress("DEPRECATION") DefaultAudioSink.Builder()
+                                                      ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:109: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setEnableFloatOutput(enableFloatOutput)
+             ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:110: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setAudioProcessors(arrayOf<AudioProcessor>(TeeAudioProcessor(AudioSpectrum.Sink())))
+             ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:110: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setAudioProcessors(arrayOf<AudioProcessor>(TeeAudioProcessor(AudioSpectrum.Sink())))
+                                                        ~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:111: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .build()
+             ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:114: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    private fun selectorFor(mode: DecoderMode, base: MediaCodecSelector): MediaCodecSelector =
+                                                     ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:114: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    private fun selectorFor(mode: DecoderMode, base: MediaCodecSelector): MediaCodecSelector =
+                                                                          ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:117: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            DecoderMode.HARDWARE -> preferring(base) { it.hardwareAccelerated }
+                                                          ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:118: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            DecoderMode.SOFTWARE -> preferring(base) { !it.hardwareAccelerated }
+                                                           ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:127: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        base: MediaCodecSelector,
+              ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:128: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        preferred: (MediaCodecInfo) -> Boolean,
+                    ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:129: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    ): MediaCodecSelector = MediaCodecSelector { mimeType, secure, tunneling ->
+       ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:129: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    ): MediaCodecSelector = MediaCodecSelector { mimeType, secure, tunneling ->
+                            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:129: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    ): MediaCodecSelector = MediaCodecSelector { mimeType, secure, tunneling ->
+                                               ^
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/DecoderSelection.kt:130: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val all = base.getDecoderInfos(mimeType, secure, tunneling)
+                       ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:163: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setUserAgent(profile.userAgent)
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:164: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setDefaultRequestProperties(profile.headers)
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:166: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setRenderersFactory(
+             ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:172: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setLoadControl(
+             ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:173: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                DefaultLoadControl.Builder()
+                                   ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:174: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                    .setBufferDurationsMs(MIN_BUFFER_MS, MAX_BUFFER_MS, PLAYBACK_BUFFER_MS, REBUFFER_MS)
+                     ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:175: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                    .setTargetBufferBytes(TARGET_BUFFER_BYTES)
+                     ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:176: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                    .build(),
+                     ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PanelPlayer.kt:178: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(context, http)))
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:134: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    private var trackSelector: DefaultTrackSelector? = null
+                               ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:234: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val loadControl = DefaultLoadControl.Builder()
+            ~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:234: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val loadControl = DefaultLoadControl.Builder()
+                                             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:235: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setBufferDurationsMs(
+             ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:241: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setPrioritizeTimeOverSizeThresholds(true)
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:242: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .build()
+             ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:244: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val selector = DefaultTrackSelector(context).apply {
+            ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:244: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val selector = DefaultTrackSelector(context).apply {
+                       ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:245: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            parameters = buildUponParameters()
+            ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:245: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            parameters = buildUponParameters()
+            ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:245: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            parameters = buildUponParameters()
+                         ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:250: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .setPreferredAudioLanguage(
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:253: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .setPreferredTextLanguage(
+                 ~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:256: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, textTracksDisabled)
+                 ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:257: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .setSelectUndeterminedTextLanguage(false)
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:258: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .setTunnelingEnabled(false)
+                 ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:259: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                .build()
+                 ~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:264: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setUserAgent(profile.userAgent)
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:265: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setDefaultRequestProperties(profile.headers)
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:268: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setRenderersFactory(SelectiveRenderersFactory(context, effectiveVideoMode, audioMode))
+             ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:269: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setTrackSelector(selector)
+             ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:270: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setLoadControl(loadControl)
+             ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:272: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
+                ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:643: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val format = exo.videoFormat
+                         ~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:644: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        val audio = exo.audioFormat
+                        ~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:653: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            bitrate = format?.bitrate ?: 0,
+                              ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:663: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun onDroppedVideoFrames(
+                     ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:664: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:697: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun onMetadata(metadata: Metadata) {
+                     ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/PlayerEngine.kt:697: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun onMetadata(metadata: Metadata) {
+                                          ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:43: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                setKeepContentOnPlayerReset(true)
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:44: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                setShutterBackgroundColor(android.graphics.Color.BLACK)
+                ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:58: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            view.resizeMode = aspectMode.toResizeMode()
+                 ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:59: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            view.subtitleView?.apply {
+                 ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:60: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                setFractionalTextSize(
+                ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:61: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                    androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subtitleScale,
+                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:81: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    AspectMode.FIT, AspectMode.ORIGINAL -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                                                  ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:82: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    AspectMode.FILL, AspectMode.RATIO_16_9 -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                                                     ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:83: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    AspectMode.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                                              ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:84: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    AspectMode.STRETCH -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                                                 ~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/PlayerSurface.kt:85: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    AspectMode.RATIO_4_3 -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
+                                                   ~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioMediaLibraryService.kt:67: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun onMetadata(metadata: Metadata) {
+                     ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioMediaLibraryService.kt:67: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        override fun onMetadata(metadata: Metadata) {
+                                          ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioPlayerFactory.kt:23: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        httpFactory.setUserAgent(profile.userAgent)
+                    ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioPlayerFactory.kt:24: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        httpFactory.setDefaultRequestProperties(profile.headers)
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioPlayerFactory.kt:45: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setUserAgent(initialProfile.userAgent)
+             ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioPlayerFactory.kt:46: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            .setDefaultRequestProperties(initialProfile.headers)
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioPlayerFactory.kt:55: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
+                ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:167: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    override fun onSetMediaItems(
+                 ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:173: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/auto/RadioSessionCallback.kt:179: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            MediaSession.MediaItemsWithStartPosition(queue, index, /* startPositionMs = */ 0L)
+                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/SportPanels.kt:94: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/SportPanels.kt:94: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                ~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/SportPanels.kt:94: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                                                    ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/SportPanels.kt:95: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                setShutterBackgroundColor(android.graphics.Color.BLACK)
+                ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/SportPanels.kt:96: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+                subtitleView?.visibility = android.view.View.GONE
+                ~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/StreamTitle.kt:35: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+    fun icyTitle(metadata: Metadata): String? {
+                           ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/StreamTitle.kt:36: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+        for (i in 0 until metadata.length()) {
+                                   ~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/StreamTitle.kt:37: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            val title = (metadata.get(i) as? IcyInfo)?.title
+                                  ~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/StreamTitle.kt:37: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            val title = (metadata.get(i) as? IcyInfo)?.title
+                                             ~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/player/StreamTitle.kt:37: Error: This declaration is opt-in and its usage should be marked with @androidx.media3.common.util.UnstableApi or @OptIn(markerClass = androidx.media3.common.util.UnstableApi.class) [UnsafeOptInUsageError from androidx.annotation.experimental]
+            val title = (metadata.get(i) as? IcyInfo)?.title
+                                                       ~~~~~
+
+   Explanation for issues of type "UnsafeOptInUsageError":
+   This API has been flagged as opt-in with error-level severity.
+
+   Any declaration annotated with this marker is considered part of an
+   unstable or
+   otherwise non-standard API surface and its call sites should accept the
+   opt-in
+   aspect of it by using the @OptIn annotation, using the marker annotation
+   --
+   effectively causing further propagation of the opt-in aspect -- or
+   configuring
+   the UnsafeOptInUsageError check's options for project-wide opt-in.
+
+   To configure project-wide opt-in, specify the opt-in option value in
+   lint.xml
+   as a comma-delimited list of opted-in annotations:
+
+   <lint>
+       <issue id="UnsafeOptInUsageError">
+           <option name="opt-in" value="com.foo.ExperimentalBarAnnotation" />
+       </issue>
+   </lint>
+
+   Vendor: Android Open Source Project
+   Identifier: androidx.annotation.experimental
+   Feedback: https://issuetracker.google.com/issues/new?component=459778
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/screens/ChannelListScreen.kt:560: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/mobile/PlayerScreen.kt:104: Warning: Modifier parameter should be the first optional parameter [ModifierParameter from androidx.compose.ui]
+    modifier: Modifier = Modifier,
+    ~~~~~~~~
+
+   Explanation for issues of type "ModifierParameter":
+   The first (or only) Modifier parameter in a Composable function should
+   follow the following rules:
+   - Be named modifier
+   - Have a type of Modifier
+   - Either have no default value, or have a default value of Modifier
+   - If optional, be the first optional parameter in the parameter list
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.ui
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/tv/HomeAppStrip.kt:81: Error: produceState calls should assign value inside the producer lambda [ProduceStateDoesNotAssignValue from androidx.compose.runtime]
+    val apps = produceState(initialValue = emptyList<HomeAppTile>(), context) {
+               ~~~~~~~~~~~~
+
+   Explanation for issues of type "ProduceStateDoesNotAssignValue":
+   produceState returns an observable State using values assigned inside the
+   producer lambda. If the lambda never assigns (i.e value = foo), then the
+   State will never change. Make sure to assign a value when the source you
+   are producing values from changes / emits a new value. For sample usage see
+   the produceState documentation.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.runtime
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:457: Error: Content padding parameter _ is not used [UnusedMaterial3ScaffoldPaddingParameter from androidx.compose.material3]
+                        ) { _ ->
+                            ~
+
+   Explanation for issues of type "UnusedMaterial3ScaffoldPaddingParameter":
+   The content lambda in Scaffold has a padding parameter which will include
+   any inner padding for the content due to app bars. If this parameter is
+   ignored, then content may be obscured by the app bars resulting in visual
+   issues or elements that can't be interacted with.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.material3
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:81: Warning: Formatting %d followed by words ("added"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="refresh_report">%1$d added · %2$d removed · %3$d renamed · %4$d total</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:111: Warning: Formatting %d followed by words ("channels"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="guide_updating">Updating guide… %1$d channels, %2$d programmes</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:114: Warning: Formatting %d followed by words ("channels"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="guide_match_summary">%1$d of %2$d channels matched (%3$d exact, %4$d by name, %5$d fuzzy, %6$d manual)</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:115: Warning: Formatting %d followed by words ("channels"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="guide_unmatched">%1$d channels have no guide</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:219: Warning: Formatting %d followed by words ("time"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="rec_gaps">Reconnected %1$d time(s); the recording has gaps</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:353: Warning: Formatting %d followed by words ("playlists"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="backup_imported">Restored %1$d playlists, %2$d groups, %3$d channel settings.</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:367: Warning: Formatting %d followed by words ("programmes"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="diag_guide_rows">%1$d programmes across %2$d guide channels</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:472: Warning: Formatting %d followed by words ("sources"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="settings_news_source_refused">An https:// address that is not in the list yet (up to %1$d sources)</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:491: Warning: Formatting %d followed by words ("sources"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="screensaver_flashes_header">News · from %1$d sources · as of %2$s</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:496: Warning: Formatting %d followed by words ("scheduled"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="rec_summary">%1$d scheduled · %2$d completed</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:535: Warning: Formatting %d followed by words ("connections"): This should probably be a plural rather than a string [PluralsCandidate]
+    <string name="sport_panel_stream_closed_many">The provider (%1$s) closed the stream: the account allows %2$d connections at a time.</string>
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "PluralsCandidate":
+   This lint check looks for potential errors in internationalization where
+   you have translated a message which involves a quantity and it looks like
+   other parts of the string may need grammatical changes.
+
+   For example, rather than something like this:
+     <string name="try_again">Try again in %d seconds.</string>
+   you should be using a plural:
+      <plurals name="try_again">
+           <item quantity="one">Try again in %d second</item>
+           <item quantity="other">Try again in %d seconds</item>
+       </plurals>
+   This will ensure that in other languages the right set of translations are
+   provided for the different quantity classes.
+
+   (This check depends on some heuristics, so it may not accurately determine
+   whether a string really should be a quantity. You can use tools:ignore to
+   filter out false positives.
+
+   https://developer.android.com/guide/topics/resources/string-resource.html#Plurals
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/data/net/Http.kt:135: Warning: Implementing a custom X509TrustManager is error-prone and likely to be insecure. It is likely to disable certificate validation altogether, and is non-trivial to implement correctly without calling Android's default implementation. [CustomX509TrustManager]
+        val trustAll = object : javax.net.ssl.X509TrustManager {
+                       ~~~~~~
+
+   Explanation for issues of type "CustomX509TrustManager":
+   This check looks for custom X509TrustManager implementations.
+
+   https://goo.gle/CustomX509TrustManager
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/AndroidManifest.xml:136: Warning: Exported service does not require permission [ExportedService]
+        <service
+         ~~~~~~~
+
+   Explanation for issues of type "ExportedService":
+   Exported services (services which either set exported=true or contain an
+   intent-filter and do not specify exported=false) should define a permission
+   that an entity must have in order to launch the service or bind to it.
+   Without this, any application can use this service.
+
+   https://goo.gle/ExportedService
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/core/TimeModel.kt:58: Error: String contains misleading Unicode bidirectional text [BidiSpoofing]
+    fun ltr(text: String): String = "⁦$text⁩"
+                                     ~
+
+   Explanation for issues of type "BidiSpoofing":
+   Unicode bidirectional text characters can alter the order in which the
+   compiler processes tokens. However, this can also be used to hide malicious
+   code, and can be difficult to spot. This lint check audits the source code
+   and looks for cases where it looks like bidirectional text has the
+   potential to be misleading.
+
+   https://krebsonsecurity.com/2021/11/trojan-source-bug-threatens-the-security-of-all-code/
+   https://goo.gle/BidiSpoofing
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/record/RecordingScheduler.kt:268: Warning: Unnecessary; SDK_INT is always >= 23 [ObsoleteSdkInt]
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && canScheduleExact()) {
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/record/RecordingScheduler.kt:323: Warning: Unnecessary; SDK_INT is always >= 23 [ObsoleteSdkInt]
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) flags = flags or PendingIntent.FLAG_IMMUTABLE
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/record/RecordingService.kt:307: Warning: Unnecessary; SDK_INT is always >= 23 [ObsoleteSdkInt]
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0,
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/data/prefs/SecureStore.kt:72: Warning: Unnecessary; SDK_INT is never < 23 [ObsoleteSdkInt]
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return null
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "ObsoleteSdkInt":
+   This check flags version checks that are not necessary, because the
+   minSdkVersion (or surrounding known API level) is already at least as high
+   as the version checked for.
+
+   Similarly, it also looks for resources in -vNN folders, such as values-v14
+   where the version qualifier is less than or equal to the minSdkVersion,
+   where the contents should be merged into the best folder.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:32: Warning: Do not place Android context classes in static fields (static reference to ServiceLocator which has field localeContext pointing to Context); this is a memory leak [StaticFieldLeak]
+/**
+^
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:47: Warning: Do not place Android context classes in static fields (static reference to SourceRepository which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+    lateinit var sources: SourceRepository private set
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:49: Warning: Do not place Android context classes in static fields (static reference to CacheBudget which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+    lateinit var cache: CacheBudget private set
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:51: Warning: Do not place Android context classes in static fields (static reference to RecordingScheduler which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+    lateinit var recordings: RecordingScheduler private set
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:52: Warning: Do not place Android context classes in static fields (static reference to UpdateManager which has field context pointing to Context); this is a memory leak [StaticFieldLeak]
+    lateinit var updates: UpdateManager private set
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/App.kt:69: Warning: Do not place Android context classes in static fields; this is a memory leak [StaticFieldLeak]
+    @Volatile private var localeContext: Context? = null
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "StaticFieldLeak":
+   A static field will leak contexts.
+
+   Non-static inner classes have an implicit reference to their outer class.
+   If that outer class is for example a Fragment or Activity, then this
+   reference means that the long-running handler/loader/task will hold a
+   reference to the activity which prevents it from getting garbage
+   collected.
+
+   Similarly, direct field references to activities and fragments from these
+   longer running instances can cause leaks.
+
+   ViewModel classes should never point to Views or non-application Contexts.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/Components.kt:523: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+                          ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/MainActivity.kt:583: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    private var lastInteractionAt by mutableStateOf(SystemClock.elapsedRealtime())
+                                     ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/tv/PlaybackControls.kt:342: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var reload by remember { mutableStateOf(0) }
+                             ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/screens/RecordingsScreen.kt:72: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var reloadToken by remember { mutableStateOf(0) }
+                                  ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/StationBackdrop.kt:644: Information: Prefer mutableLongStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+                          ~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/tv/TvHomeScreen.kt:142: Information: Prefer mutableIntStateOf instead of mutableStateOf [AutoboxingStateCreation from androidx.compose.runtime]
+    var tick by remember { mutableStateOf(0) }
+                           ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "AutoboxingStateCreation":
+   Calling mutableStateOf<T>() when T is either backed by a primitive type on
+   the JVM or is a value class results in a state implementation that requires
+   all state values to be boxed. This usually causes an additional allocation
+   for each state write, and adds some additional work to auto-unbox values
+   when reading the value of the state. Instead, prefer to use a specialized
+   primitive state implementation for Int, Long, Float, and Double when the
+   state does not need to track null values and does not override the default
+   SnapshotMutationPolicy. See mutableIntStateOf(), mutableLongStateOf(),
+   mutableFloatStateOf(), and mutableDoubleStateOf() for more information.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.runtime
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:23: Warning: The resource R.string.action_add appears to be unused [UnusedResources]
+    <string name="action_add">Add</string>
+            ~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:25: Warning: The resource R.string.action_refresh appears to be unused [UnusedResources]
+    <string name="action_refresh">Refresh</string>
+            ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:37: Warning: The resource R.string.action_copy appears to be unused [UnusedResources]
+    <string name="action_copy">Copy</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:38: Warning: The resource R.string.action_done appears to be unused [UnusedResources]
+    <string name="action_done">Done</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:78: Warning: The resource R.string.playlist_refreshing appears to be unused [UnusedResources]
+    <string name="playlist_refreshing">Refreshing…</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:82: Warning: The resource R.string.refresh_failed_kept appears to be unused [UnusedResources]
+    <string name="refresh_failed_kept">Refresh failed — your previous channel list is unchanged.</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:84: Warning: The resource R.string.interval_off appears to be unused [UnusedResources]
+    <string name="interval_off">Off</string>
+            ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:85: Warning: The resource R.string.interval_6h appears to be unused [UnusedResources]
+    <string name="interval_6h">Every 6 hours</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:86: Warning: The resource R.string.interval_12h appears to be unused [UnusedResources]
+    <string name="interval_12h">Every 12 hours</string>
+            ~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:88: Warning: The resource R.string.interval_weekly appears to be unused [UnusedResources]
+    <string name="interval_weekly">Weekly</string>
+            ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:106: Warning: The resource R.string.now_next appears to be unused [UnusedResources]
+    <string name="now_next">Now / Next</string>
+            ~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:147: Warning: The resource R.string.no_subtitles_available appears to be unused [UnusedResources]
+    <string name="no_subtitles_available">This stream carries no subtitles.</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:148: Warning: The resource R.string.video_track appears to be unused [UnusedResources]
+    <string name="video_track">Quality</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:166: Warning: The resource R.string.retrying_in appears to be unused [UnusedResources]
+    <string name="retrying_in">Reconnecting…</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:167: Warning: The resource R.string.open_external_player appears to be unused [UnusedResources]
+    <string name="open_external_player">Open in another player</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:195: Warning: The resource R.string.rec_record_now appears to be unused [UnusedResources]
+    <string name="rec_record_now">Record now</string>
+            ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:196: Warning: The resource R.string.rec_record_programme appears to be unused [UnusedResources]
+    <string name="rec_record_programme">Record this programme</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:198: Warning: The resource R.string.rec_manual_timer appears to be unused [UnusedResources]
+    <string name="rec_manual_timer">Manual timer</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:201: Warning: The resource R.string.rec_choose_destination appears to be unused [UnusedResources]
+    <string name="rec_choose_destination">Choose folder</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:272: Warning: The resource R.string.channel_options appears to be unused [UnusedResources]
+    <string name="channel_options">Channel options</string>
+            ~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:365: Warning: The resource R.string.diag_playlists appears to be unused [UnusedResources]
+    <string name="diag_playlists">Playlists</string>
+            ~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:370: Warning: The resource R.string.diag_recent_errors appears to be unused [UnusedResources]
+    <string name="diag_recent_errors">Recent errors</string>
+            ~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:376: Warning: The resource R.string.about_version appears to be unused [UnusedResources]
+    <string name="about_version">Version %1$s</string>
+            ~~~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:377: Warning: The resource R.string.about_build appears to be unused [UnusedResources]
+    <string name="about_build">Build %1$s · %2$s</string>
+            ~~~~~~~~~~~~~~~~~~
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res/values/strings.xml:384: Warning: The resource R.string.loading appears to be unused [UnusedResources]
+    <string name="loading">Loading…</string>
+            ~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UnusedResources":
+   Unused resources make applications larger and slow down builds.
+
+
+   The unused resource check can ignore tests. If you want to include
+   resources that are only referenced from tests, consider packaging them in a
+   test source set instead.
+
+   You can include test sources in the unused resource check by setting the
+   system property lint.unused-resources.include-tests =true, and to exclude
+   them (usually for performance reasons), use
+   lint.unused-resources.exclude-tests =true.
+   ,
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/data/update/UpdateManager.kt:276: Warning: Consider also using StorageManager#getAllocatableBytes and allocateBytes which will consider clearable cached data [UsableSpace]
+        updateDir.parentFile?.let { it.usableSpace < manifest.sizeBytes * 2 } == true ->
+                                       ~~~~~~~~~~~
+
+   Explanation for issues of type "UsableSpace":
+   When you need to allocate disk space for large files, consider using the
+   new allocateBytes(FileDescriptor, long) API, which will automatically clear
+   cached files belonging to other apps (as needed) to meet your request.
+
+   When deciding if the device has enough disk space to hold your new data,
+   call getAllocatableBytes(UUID) instead of using getUsableSpace(), since the
+   former will consider any cached data that the system is willing to clear on
+   your behalf.
+
+   Note that these methods require API level 26. If your app is running on
+   older devices, you will probably need to use both APIs, conditionally
+   switching on Build.VERSION.SDK_INT. Lint only looks in the same compilation
+   unit to see if you are already using both APIs, so if it warns even though
+   you are already using the new API, consider moving the calls to the same
+   file or suppressing the warning.
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/java/com/tivicopy/player/ui/common/StudioControls.kt:352: Warning: State backed values should use the lambda overload of Modifier.offset [UseOfNonLambdaOffsetOverload from androidx.compose.foundation]
+                .offset(x = travel, y = inset)
+                 ~~~~~~
+
+   Explanation for issues of type "UseOfNonLambdaOffsetOverload":
+   Modifier.offset() is recommended to be used with static arguments only to
+   avoid unnecessary recompositions. Modifier.offset{ } is preferred in the
+   cases where the arguments are backed by a State.
+
+   Vendor: Jetpack Compose
+   Identifier: androidx.compose.foundation
+   Feedback: https://issuetracker.google.com/issues/new?component=612128
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/src/main/res: Warning: Missing density variation folders in src/main/res: drawable-hdpi, drawable-xxhdpi [IconMissingDensityFolder]
+
+   Explanation for issues of type "IconMissingDensityFolder":
+   Icons will look best if a custom version is provided for each of the major
+   screen density classes (low, medium, high, extra-high, extra-extra-high).
+   This lint check identifies folders which are missing, such as
+   drawable-hdpi.
+
+   Low density is not really used much anymore, so this check ignores the ldpi
+   density. To force lint to include it, set the environment variable
+   ANDROID_LINT_INCLUDE_LDPI=true. For more information on current density
+   usage, see https://developer.android.com/about/dashboards
+
+   https://developer.android.com/guide/practices/screens_support.html
+
+/home/runner/work/TiviMate-copy/TiviMate-copy/app/build.gradle.kts:149: Warning: Use version catalog instead [UseTomlInstead]
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.3")
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   Explanation for issues of type "UseTomlInstead":
+   If your project is using a libs.versions.toml file, you should place all
+   Gradle dependencies in the TOML file. This lint check looks for version
+   declarations outside of the TOML file and suggests moving them (and in the
+   IDE, provides a quickfix to performing the operation automatically).
+
+150 errors, 117 warnings

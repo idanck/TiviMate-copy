@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.NewsFeedTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.329">
+  <properties/>
+  <testcase name="only an https address with a host is a source" classname="com.tivicopy.player.data.NewsFeedTest" time="0.015"/>
+  <testcase name="an rss 1 document is read too" classname="com.tivicopy.player.data.NewsFeedTest" time="0.021"/>
+  <testcase name="a switched-off source, a stale headline and a repeated story are left out" classname="com.tivicopy.player.data.NewsFeedTest" time="0.014"/>
+  <testcase name="a json feed is read" classname="com.tivicopy.player.data.NewsFeedTest" time="0.009"/>
+  <testcase name="a bare json array of headlines with unix times is read" classname="com.tivicopy.player.data.NewsFeedTest" time="0.009"/>
+  <testcase name="rss dates are read in their many spellings" classname="com.tivicopy.player.data.NewsFeedTest" time="0.01"/>
+  <testcase name="an item with nothing to print is dropped and the rest still show" classname="com.tivicopy.player.data.NewsFeedTest" time="0.008"/>
+  <testcase name="an atom feed's entries are headlines, and its link is an attribute" classname="com.tivicopy.player.data.NewsFeedTest" time="0.008"/>
+  <testcase name="an html page is refused rather than read as an empty feed" classname="com.tivicopy.player.data.NewsFeedTest" time="0.011"/>
+  <testcase name="the source list survives the round trip through preferences" classname="com.tivicopy.player.data.NewsFeedTest" time="0.016"/>
+  <testcase name="markup and double-escaped entities are not printed at the viewer" classname="com.tivicopy.player.data.NewsFeedTest" time="0.012"/>
+  <testcase name="the encoding the declaration names is the one the document is read in" classname="com.tivicopy.player.data.NewsFeedTest" time="0.076"/>
+  <testcase name="one busy source cannot push the others off the screen" classname="com.tivicopy.player.data.NewsFeedTest" time="0.013"/>
+  <testcase name="a time with a zone this reader does not know is read as local time" classname="com.tivicopy.player.data.NewsFeedTest" time="0.011"/>
+  <testcase name="the parsed headlines survive the round trip through preferences" classname="com.tivicopy.player.data.NewsFeedTest" time="0.012"/>
+  <testcase name="a source is called by its own name without the slogan, or by its host" classname="com.tivicopy.player.data.NewsFeedTest" time="0.011"/>
+  <testcase name="an rss channel names the source and its items are the headlines" classname="com.tivicopy.player.data.NewsFeedTest" time="0.016"/>
+  <testcase name="an empty document is an empty source, not an error" classname="com.tivicopy.player.data.NewsFeedTest" time="0.014"/>
+  <testcase name="a bare clock time is the most recent time the clock read it" classname="com.tivicopy.player.data.NewsFeedTest" time="0.013"/>
+  <testcase name="every source's headlines become one column, newest first, each with its source's colour" classname="com.tivicopy.player.data.NewsFeedTest" time="0.013"/>
+  <testcase name="nonsense is no date rather than a wrong one" classname="com.tivicopy.player.data.NewsFeedTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

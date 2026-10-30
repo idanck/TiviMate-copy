@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.135">
+  <properties/>
+  <testcase name="a playlist seeded at a legacy url is corrected in place" classname="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" time="0.052"/>
+  <testcase name="deleting it is undone by the next cold start" classname="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" time="0.022"/>
+  <testcase name="first cold start inserts exactly one built-in playlist" classname="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" time="0.02"/>
+  <testcase name="a legacy row is corrected only once, not on every start" classname="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" time="0.02"/>
+  <testcase name="a second cold start does not duplicate it" classname="com.tivicopy.player.data.IsraelPublicChannelsBootstrapTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

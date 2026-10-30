@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.CatchupUrlBuilderTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:18" hostname="runnervm48cm3" time="0.015">
+  <properties/>
+  <testcase name="the archive window is enforced" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="template date tokens are formatted in UTC" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.006"/>
+  <testcase name="append mode keeps an existing query string" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="a channel with no archive yields nothing" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="xtream builds the timeshift endpoint with a minute duration" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.004"/>
+  <testcase name="an explicit template wins over the declared mode" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.0"/>
+  <testcase name="default mode appends the utc pair" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="flussonic handles an mpegts endpoint" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.0"/>
+  <testcase name="flussonic rewrites the manifest name" classname="com.tivicopy.player.data.CatchupUrlBuilderTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

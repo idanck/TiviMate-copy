@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.UpdateManifestTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:22" hostname="runnervm48cm3" time="0.11">
+  <properties/>
+  <testcase name="notes fall back from a regional tag to the language, then to English" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.016"/>
+  <testcase name="refuses something that is not JSON at all" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.009"/>
+  <testcase name="reads every published field" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.008"/>
+  <testcase name="refuses plain http, so nothing on the path can swap the binary" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.01"/>
+  <testcase name="refuses a missing or nonsense version" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.01"/>
+  <testcase name="accepts an upper-case checksum by normalising it" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.01"/>
+  <testcase name="refuses a size that is absent, empty or absurd" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.01"/>
+  <testcase name="an absent notes block is simply absent" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.012"/>
+  <testcase name="only a higher version code counts as newer" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.011"/>
+  <testcase name="refuses a checksum that is not a sha-256" classname="com.tivicopy.player.data.UpdateManifestTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

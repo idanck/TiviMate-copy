@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.ResumeMarkTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.001">
+  <properties/>
+  <testcase name="a source that restarted from zero does not erase the mark" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.0"/>
+  <testcase name="a position in the opening minute leaves the stored mark alone" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.0"/>
+  <testcase name="an unknown duration never counts as finished" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.0"/>
+  <testcase name="finishing clears the mark so the title leaves continue-watching" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.001"/>
+  <testcase name="short of the tail is still a place to resume" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.0"/>
+  <testcase name="a position worth returning to is stored" classname="com.tivicopy.player.data.ResumeMarkTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

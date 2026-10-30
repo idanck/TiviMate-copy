@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.SportSessionTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.001">
+  <properties/>
+  <testcase name="the headlines are a picture being watched" classname="com.tivicopy.player.ui.SportSessionTest" time="0.001"/>
+  <testcase name="the panel in focus stays even when empty, and empty ones make up the number" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="a panel connecting or rebuffering is still a picture being watched" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="empty panels are passed over while there are filled ones" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="counting on from the panel in focus goes round to the first" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="going to two keeps the panel in focus and the next one showing something" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="an empty panel, a failed one and a closed one are still screens" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <testcase name="a playing panel is a picture being watched" classname="com.tivicopy.player.ui.SportSessionTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

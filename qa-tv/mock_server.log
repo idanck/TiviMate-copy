@@ -1,0 +1,1 @@
+mock provider on :8080, base http://10.0.2.2:8080, segments/channel 150

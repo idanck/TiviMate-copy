@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.M3uParserTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.014">
+  <properties/>
+  <testcase name="preserves attributes it does not understand" classname="com.tivicopy.player.data.M3uParserTest" time="0.008"/>
+  <testcase name="reads EXTVLCOPT and KODIPROP into headers and licence hints" classname="com.tivicopy.player.data.M3uParserTest" time="0.001"/>
+  <testcase name="survives an EXTINF with no URL" classname="com.tivicopy.player.data.M3uParserTest" time="0.001"/>
+  <testcase name="parses fractional and signed tvg-shift as minutes" classname="com.tivicopy.player.data.M3uParserTest" time="0.001"/>
+  <testcase name="handles a byte order mark and CRLF endings" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="treats an archive window with no explicit mode as the default mode" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="derives catch-up mode and window" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="keeps a comma inside the display name" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="accepts a bare URL with no EXTINF" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="an HTML error page is not a playlist" classname="com.tivicopy.player.data.M3uParserTest" time="0.003"/>
+  <testcase name="reads a built-in-playlist-shaped entry with Hebrew name and hosted logo" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="accepts a bare absolute path" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="reads the documented attributes" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <testcase name="identity prefers tvg-id then stream id then name" classname="com.tivicopy.player.data.M3uParserTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

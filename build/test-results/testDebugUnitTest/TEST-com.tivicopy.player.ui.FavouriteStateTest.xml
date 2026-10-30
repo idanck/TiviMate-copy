@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.FavouriteStateTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.002">
+  <properties/>
+  <testcase name="a catch-up session's channel is updated too" classname="com.tivicopy.player.ui.FavouriteStateTest" time="0.002"/>
+  <testcase name="a second press takes the favourite away again" classname="com.tivicopy.player.ui.FavouriteStateTest" time="0.0"/>
+  <testcase name="other channels are left alone" classname="com.tivicopy.player.ui.FavouriteStateTest" time="0.0"/>
+  <testcase name="nothing playing is fine" classname="com.tivicopy.player.ui.FavouriteStateTest" time="0.0"/>
+  <testcase name="every copy of the channel takes the new favourite" classname="com.tivicopy.player.ui.FavouriteStateTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

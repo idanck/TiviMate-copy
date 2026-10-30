@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.HomeAppsTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.004">
+  <properties/>
+  <testcase name="nothing installed is an empty strip, not an empty heading" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.001"/>
+  <testcase name="an entry resolves to its first launchable package, television build first" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.0"/>
+  <testcase name="the catalogue has no duplicate ids or packages" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.0"/>
+  <testcase name="an app that is not installed is not a tile" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.0"/>
+  <testcase name="the installed app's own name wins, and a blank one falls back" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.0"/>
+  <testcase name="the leanback build wins when both are installed" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.001"/>
+  <testcase name="every package the catalogue can ask about is declared in the manifest" classname="com.tivicopy.player.ui.HomeAppsTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

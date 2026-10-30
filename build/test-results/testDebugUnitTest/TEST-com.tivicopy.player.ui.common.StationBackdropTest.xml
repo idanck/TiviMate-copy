@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.common.StationBackdropTest" tests="21" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.002">
+  <properties/>
+  <testcase name="two stations without logos still get two different colours" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a channel with a picture never gets it" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a stream with sound and no picture gets the backdrop" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a black and white logo falls back to the station's name, not to grey" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a grey has no hue rather than a division by zero" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="black lettering counts for as little as white does" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a colourful pixel outweighs a muddy one" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a channel that has not started yet shows nothing" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="an empty image is not a colour" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="the same station gets the same colour every time" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a logo with nothing but black and white has no colour to give" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="the transparent margin around a logo is not part of it" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a failure is not a radio station" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a film started after a station is not drawn as that station" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a shade keeps the hue and only moves the lightness" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a station that stalls keeps its screen too" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="pausing a station keeps the screen it was on" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="every station lands on one lightness, however loud its logo is" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.001"/>
+  <testcase name="hsl round-trips through rgb" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a station keeps its logo's hue at a lightness white text survives" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <testcase name="a wordmark on a white plate takes the colour of the wordmark" classname="com.tivicopy.player.ui.common.StationBackdropTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

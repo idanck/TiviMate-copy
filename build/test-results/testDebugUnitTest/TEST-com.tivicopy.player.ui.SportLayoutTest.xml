@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.SportLayoutTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.001">
+  <properties/>
+  <testcase name="the four panels tile the screen with the gap between them and never overlap" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.001"/>
+  <testcase name="two panels stand side by side on a wide screen, the one in focus the wider" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="the panel in focus is the largest, wherever it is" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="the panel in focus keeps the screen's shape" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="held upright, panels stand one above the other and the one in focus is the tallest" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="expanded with two, the panel in focus fills the screen and the other measures nothing" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="panels keep their places when focus moves" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="expanded, the panel in focus fills the screen and the rest measure nothing" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <testcase name="anything but two panels is four" classname="com.tivicopy.player.ui.SportLayoutTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

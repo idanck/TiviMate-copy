@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.TaskFeedTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:21" hostname="runnervm48cm3" time="0.255">
+  <properties/>
+  <testcase name="plain bullets are read as tasks when the document has no checkboxes" classname="com.tivicopy.player.data.TaskFeedTest" time="0.017"/>
+  <testcase name="a due date is lifted out of the line, marker and all" classname="com.tivicopy.player.data.TaskFeedTest" time="0.012"/>
+  <testcase name="plain bullets are ignored once the document uses checkboxes" classname="com.tivicopy.player.data.TaskFeedTest" time="0.012"/>
+  <testcase name="a document with nothing in it is an empty list rather than a failure" classname="com.tivicopy.player.data.TaskFeedTest" time="0.013"/>
+  <testcase name="a markdown checklist keeps what is open and drops what is done" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <testcase name="headings name the list and say where each task came from" classname="com.tivicopy.player.data.TaskFeedTest" time="0.016"/>
+  <testcase name="an empty box with nothing after it is not a task" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <testcase name="hebrew survives the trip intact" classname="com.tivicopy.player.data.TaskFeedTest" time="0.012"/>
+  <testcase name="markdown punctuation is not printed at the viewer" classname="com.tivicopy.player.data.TaskFeedTest" time="0.013"/>
+  <testcase name="a json document is read, and its finished items are dropped" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <testcase name="broken json and an unknown schema are refused" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <testcase name="a runaway document is capped" classname="com.tivicopy.player.data.TaskFeedTest" time="0.02"/>
+  <testcase name="a task with no date has no date" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <testcase name="a bare json array is a list too" classname="com.tivicopy.player.data.TaskFeedTest" time="0.014"/>
+  <testcase name="a link keeps its text and loses its address" classname="com.tivicopy.player.data.TaskFeedTest" time="0.01"/>
+  <testcase name="a list with everything ticked is finished, not a list of bullets" classname="com.tivicopy.player.data.TaskFeedTest" time="0.019"/>
+  <testcase name="a json document with no items is an empty list rather than a failure" classname="com.tivicopy.player.data.TaskFeedTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

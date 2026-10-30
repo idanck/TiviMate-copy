@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.FeaturedFeedTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:20" hostname="runnervm48cm3" time="0.166">
+  <properties/>
+  <testcase name="an unknown reference resolves to nothing" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.016"/>
+  <testcase name="an empty feed is a valid answer, not a failure" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.013"/>
+  <testcase name="a well-formed feed parses" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.013"/>
+  <testcase name="duplicate ids collapse" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.011"/>
+  <testcase name="a runaway feed is truncated" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.012"/>
+  <testcase name="a reference matches the guide id first" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.012"/>
+  <testcase name="the version may be omitted" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.01"/>
+  <testcase name="a bare number matches the channel number" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.009"/>
+  <testcase name="a version this build does not know is refused outright" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.011"/>
+  <testcase name="a non-https image is dropped but the item is kept" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.013"/>
+  <testcase name="a reference matches the channel name" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.01"/>
+  <testcase name="text that is not JSON is refused" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.009"/>
+  <testcase name="an item with no title is dropped and its siblings survive" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.009"/>
+  <testcase name="an item without an id still gets a stable one" classname="com.tivicopy.player.data.FeaturedFeedTest" time="0.012"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

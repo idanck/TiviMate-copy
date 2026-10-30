@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.XtreamSeriesTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:22" hostname="runnervm48cm3" time="0.088">
+  <properties/>
+  <testcase name="a flat payload with no season still yields episodes with a season" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.016"/>
+  <testcase name="a series is stored as a container, not as something playable" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.011"/>
+  <testcase name="episodes carry a real provider id, extension and numbering" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.01"/>
+  <testcase name="a movie is still served from the movie endpoint" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.011"/>
+  <testcase name="an unparsable payload degrades to nothing" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.009"/>
+  <testcase name="an entry with no id is skipped rather than failing the series" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.008"/>
+  <testcase name="an id without the prefix is passed through untouched" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.007"/>
+  <testcase name="a season declared on the episode itself is used" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.008"/>
+  <testcase name="an episode is served from the series endpoint with the local prefix removed" classname="com.tivicopy.player.data.XtreamSeriesTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

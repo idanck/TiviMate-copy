@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.ui.FocusVocabularyTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:23" hostname="runnervm48cm3" time="0.067">
+  <properties/>
+  <testcase name="every menu is the app's menu" classname="com.tivicopy.player.ui.FocusVocabularyTest" time="0.035"/>
+  <testcase name="no ring rests on transparent" classname="com.tivicopy.player.ui.FocusVocabularyTest" time="0.018"/>
+  <testcase name="no ring widens on focus" classname="com.tivicopy.player.ui.FocusVocabularyTest" time="0.014"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

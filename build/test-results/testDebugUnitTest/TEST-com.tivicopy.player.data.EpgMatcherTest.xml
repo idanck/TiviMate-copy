@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.data.EpgMatcherTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:20" hostname="runnervm48cm3" time="0.005">
+  <properties/>
+  <testcase name="a sibling channel that differs only by a digit is left unmatched" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.002"/>
+  <testcase name="a guide id that reads as a name still matches" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.001"/>
+  <testcase name="a manual binding outranks everything" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.0"/>
+  <testcase name="a near miss is taken only above the confidence threshold" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.001"/>
+  <testcase name="an unrelated channel is reported unmatched rather than guessed" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.0"/>
+  <testcase name="exact tvg-id wins" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.0"/>
+  <testcase name="normalized names match through quality tokens" classname="com.tivicopy.player.data.EpgMatcherTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

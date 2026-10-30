@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.core.TimeModelTest" tests="15" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:13" hostname="runnervm48cm3" time="0.128">
+  <properties/>
+  <testcase name="rejects a malformed timestamp instead of guessing" classname="com.tivicopy.player.core.TimeModelTest" time="0.007"/>
+  <testcase name="isolating leaves the text itself untouched" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="a missing offset is read as UTC" classname="com.tivicopy.player.core.TimeModelTest" time="0.001"/>
+  <testcase name="a Hebrew locale gets a Hebrew day name" classname="com.tivicopy.player.core.TimeModelTest" time="0.11"/>
+  <testcase name="effective offset prefers the per-channel override" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="parses an XMLTV timestamp with an explicit offset" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="formats durations" classname="com.tivicopy.player.core.TimeModelTest" time="0.001"/>
+  <testcase name="a clock range is isolated so it survives a right-to-left layout" classname="com.tivicopy.player.core.TimeModelTest" time="0.003"/>
+  <testcase name="an explicit offset round-trips to the same instant" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="an instant renders at the same wall clock either side of a DST change" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="formats a full date in the caller's locale" classname="com.tivicopy.player.core.TimeModelTest" time="0.004"/>
+  <testcase name="a day and time is isolated the same way" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="offsets are clamped to quarter-hour steps" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="an offset shifts the instant, not the wall clock, across a DST boundary" classname="com.tivicopy.player.core.TimeModelTest" time="0.0"/>
+  <testcase name="start of the local day respects the rendering zone" classname="com.tivicopy.player.core.TimeModelTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

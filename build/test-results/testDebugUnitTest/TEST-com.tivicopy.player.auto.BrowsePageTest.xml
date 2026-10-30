@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.tivicopy.player.auto.BrowsePageTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-10-30T14:30:13" hostname="runnervm48cm3" time="0.022">
+  <properties/>
+  <testcase name="an empty list pages to nothing" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.013"/>
+  <testcase name="a page index far enough out to overflow Int arithmetic is still empty" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.0"/>
+  <testcase name="the browser asking for everything gets everything" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.0"/>
+  <testcase name="each page is a distinct window, and together they are the whole list" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.009"/>
+  <testcase name="nonsense paging is answered with the list rather than an exception" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.0"/>
+  <testcase name="a page past the end is empty, not the whole list again" classname="com.tivicopy.player.auto.BrowsePageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
