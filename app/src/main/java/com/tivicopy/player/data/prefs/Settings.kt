@@ -189,6 +189,14 @@ class Settings(context: Context) {
         val screensaverEnabled: Boolean,
         /** How long a still screen with nobody pressing anything is left alone. */
         val screensaverIdleMinutes: Int,
+        /**
+         * Whether a live channel left playing full screen on the television is handed to the
+         * channel's own screensaver — the picture dimmed under a clock — after
+         * [channelSaverMinutes] (ADR-049). On by default, and off with [screensaverEnabled] as well.
+         */
+        val channelSaverEnabled: Boolean,
+        /** How long a channel plays full screen with nobody pressing anything before it is dimmed. */
+        val channelSaverMinutes: Int,
         /** Whether the radio screensaver also prints the open tasks (FR-UI-32). */
         val screensaverTasks: Boolean,
         /**
@@ -291,6 +299,8 @@ class Settings(context: Context) {
         showHomeApps = prefs.getBoolean(K_SHOW_HOME_APPS, false),
         screensaverEnabled = prefs.getBoolean(K_SCREENSAVER, true),
         screensaverIdleMinutes = prefs.getInt(K_SCREENSAVER_IDLE, 10),
+        channelSaverEnabled = prefs.getBoolean(K_CHANNEL_SAVER, true),
+        channelSaverMinutes = prefs.getInt(K_CHANNEL_SAVER_IDLE, CHANNEL_SAVER_DEFAULT_MINUTES),
         screensaverTasks = prefs.getBoolean(K_SCREENSAVER_TASKS, false),
         taskFeedUrl = prefs.getString(K_TASK_URL, "") ?: "",
         taskLastCheckUtc = prefs.getLong(K_TASK_LAST_CHECK, 0),
@@ -429,6 +439,18 @@ class Settings(context: Context) {
      * timeout of nothing.
      */
     fun setScreensaverIdleMinutes(v: Int) = commit { putInt(K_SCREENSAVER_IDLE, v.coerceIn(1, 120)) }
+
+    /** ADR-049. */
+    fun setChannelSaverEnabled(v: Boolean) = commit { putBoolean(K_CHANNEL_SAVER, v) }
+
+    /**
+     * Held to the half hours Settings offers (ADR-049). Never below half an hour: a channel is
+     * being watched until shown otherwise, and dimming it sooner would read as the app getting in
+     * the way of the programme.
+     */
+    fun setChannelSaverMinutes(v: Int) = commit {
+        putInt(K_CHANNEL_SAVER_IDLE, v.coerceIn(CHANNEL_SAVER_MIN_MINUTES, CHANNEL_SAVER_MAX_MINUTES))
+    }
 
     fun setScreensaverTasks(v: Boolean) = commit { putBoolean(K_SCREENSAVER_TASKS, v) }
 
@@ -630,6 +652,14 @@ class Settings(context: Context) {
         const val K_SHOW_HOME_APPS = "show_home_apps"
         const val K_SCREENSAVER = "screensaver_enabled"
         const val K_SCREENSAVER_IDLE = "screensaver_idle_minutes"
+        const val K_CHANNEL_SAVER = "channel_saver_enabled"
+        const val K_CHANNEL_SAVER_IDLE = "channel_saver_minutes"
+
+        /** The channel screensaver's wait (ADR-049): an hour by default, in half hours from 30 to 120. */
+        const val CHANNEL_SAVER_DEFAULT_MINUTES = 60
+        const val CHANNEL_SAVER_MIN_MINUTES = 30
+        const val CHANNEL_SAVER_MAX_MINUTES = 120
+        const val CHANNEL_SAVER_STEP_MINUTES = 30
         const val K_SCREENSAVER_TASKS = "screensaver_tasks"
         const val K_TASK_URL = "task_feed_url"
         const val K_TASK_LAST_CHECK = "task_last_check"

@@ -591,7 +591,7 @@ private fun GroupColumn(
                 stringResource(R.string.all_channels),
                 // Radio keeps `selectedGroupId` on ALL while a category narrows the list, so
                 // "All" and the chosen category would both draw as selected without this.
-                state.list.selectedGroupId == VirtualGroup.ALL && state.list.selectedRadioCategory == null,
+                state.list.selectedGroupId == VirtualGroup.ALL && state.list.selectedRadioShelf == null,
                 icon = StudioIcons.Grid,
             ) { vm.selectGroup(VirtualGroup.ALL) }
         }
@@ -618,11 +618,11 @@ private fun GroupColumn(
         }
         item { SectionHeader(text = stringResource(R.string.filter_categories)) }
         if (isRadio) {
-            items(radioCategories, key = { it.second }) { (category, label) ->
+            items(radioCategories, key = { it.second }) { (shelf, label) ->
                 GroupRow(
                     name = label,
-                    selected = state.list.selectedRadioCategory == category,
-                    onClick = { vm.selectRadioCategory(category) },
+                    selected = state.list.selectedRadioShelf == shelf,
+                    onClick = { vm.selectRadioShelf(shelf) },
                 )
             }
         } else {
@@ -645,34 +645,41 @@ private fun GroupColumn(
 }
 
 /**
- * The radio category menu (National/Regional/genre buckets/Other), built from every non-Russian
- * radio station regardless of the current selection — see [AppUiState.radioAllChannels] — ordered
- * National, Regional, genres alphabetically, Other last, and skipping any bucket with nothing in it.
+ * The radio category menu (ADR-050), one flat list on the television's column and the phone's
+ * chips alike: national, then the regions north to south, then the genres — each station on its
+ * region's shelf by its name, and on its genre's as well when its name says one. Built from every
+ * non-Russian station regardless of the current selection — see [AppUiState.radioAllChannels] —
+ * by [com.tivicopy.player.data.radio.RadioCategoryClassifier.menu], which leaves out any shelf
+ * nobody is on.
  */
 @Composable
 private fun radioCategoryBuckets(
     state: com.tivicopy.player.ui.AppUiState,
-): List<Pair<com.tivicopy.player.data.radio.RadioCategory, String>> {
-    val classifier = com.tivicopy.player.data.radio.RadioCategoryClassifier
-    val present = state.radioAllChannels.map { channel ->
-        val groupName = state.list.groups.firstOrNull { it.id == channel.groupId }?.name
-        classifier.classify(groupName, channel.displayName)
-    }.toSet()
-    val ordered = mutableListOf<Pair<com.tivicopy.player.data.radio.RadioCategory, String>>()
-    if (com.tivicopy.player.data.radio.RadioCategory.NATIONAL in present) {
-        ordered += com.tivicopy.player.data.radio.RadioCategory.NATIONAL to stringResource(R.string.radio_category_national)
+): List<Pair<com.tivicopy.player.data.radio.RadioShelf, String>> {
+    val shelves = remember(state.radioAllChannels, state.list.groups) {
+        com.tivicopy.player.data.radio.RadioCategoryClassifier.menu(
+            state.radioAllChannels.map { channel ->
+                state.list.groups.firstOrNull { it.id == channel.groupId }?.name to channel.displayName
+            },
+        )
     }
-    if (com.tivicopy.player.data.radio.RadioCategory.REGIONAL in present) {
-        ordered += com.tivicopy.player.data.radio.RadioCategory.REGIONAL to stringResource(R.string.radio_category_regional)
-    }
-    present.filterIsInstance<com.tivicopy.player.data.radio.RadioCategory.GENRE>()
-        .map { it.label }
-        .sorted()
-        .forEach { label -> ordered += com.tivicopy.player.data.radio.RadioCategory.GENRE(label) to label }
-    if (com.tivicopy.player.data.radio.RadioCategory.OTHER in present) {
-        ordered += com.tivicopy.player.data.radio.RadioCategory.OTHER to stringResource(R.string.radio_category_other)
-    }
-    return ordered
+    return shelves.map { shelf -> shelf to radioShelfLabel(shelf) }
+}
+
+/** What a shelf of the radio menu is called: the region's name, or the genre's own label. */
+@Composable
+private fun radioShelfLabel(shelf: com.tivicopy.player.data.radio.RadioShelf): String = when (shelf) {
+    com.tivicopy.player.data.radio.RadioShelf.National -> stringResource(R.string.radio_category_national)
+    is com.tivicopy.player.data.radio.RadioShelf.Regional -> stringResource(
+        when (shelf.region) {
+            com.tivicopy.player.data.radio.RadioRegion.NORTH -> R.string.radio_region_north
+            com.tivicopy.player.data.radio.RadioRegion.CENTER -> R.string.radio_region_center
+            com.tivicopy.player.data.radio.RadioRegion.JERUSALEM -> R.string.radio_region_jerusalem
+            com.tivicopy.player.data.radio.RadioRegion.SOUTH -> R.string.radio_region_south
+            com.tivicopy.player.data.radio.RadioRegion.UNKNOWN -> R.string.radio_region_other
+        },
+    )
+    is com.tivicopy.player.data.radio.RadioShelf.Genre -> shelf.label
 }
 
 @Composable
@@ -719,7 +726,7 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
                 // See the group list's own "All channels" row: a selected radio category leaves
                 // the group id on ALL, and two selected chips read as a bug.
                 selected = state.list.selectedGroupId == VirtualGroup.ALL &&
-                    state.list.selectedRadioCategory == null,
+                    state.list.selectedRadioShelf == null,
                 onClick = { vm.selectGroup(VirtualGroup.ALL) },
             )
         }
@@ -745,11 +752,11 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
             )
         }
         if (isRadio) {
-            items(radioCategories, key = { it.second }) { (category, label) ->
+            items(radioCategories, key = { it.second }) { (shelf, label) ->
                 PhoneChip(
                     label = label,
-                    selected = state.list.selectedRadioCategory == category,
-                    onClick = { vm.selectRadioCategory(category) },
+                    selected = state.list.selectedRadioShelf == shelf,
+                    onClick = { vm.selectRadioShelf(shelf) },
                 )
             }
         } else {

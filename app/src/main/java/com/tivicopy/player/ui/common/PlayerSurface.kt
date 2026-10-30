@@ -26,15 +26,6 @@ fun PlayerSurface(
     aspectMode: AspectMode,
     subtitleScale: Float,
     modifier: Modifier = Modifier,
-    /**
-     * Whether this surface is the small preview docked beside the guide rather than the screen.
-     *
-     * Two things have to change at that size. The user's aspect choice is ignored in favour of
-     * fitting, because the zooming modes crop hard enough at preview size to look like a fault;
-     * and subtitles are dropped, because their size is a fraction of the view's height and a
-     * fraction of 220dp is not readable. The full-size surface behind is where both belong.
-     */
-    docked: Boolean = false,
 ) {
     // Collected, not fetched: when the engine replaces its instance the view must re-attach,
     // and only a state read makes AndroidView's update block run again.
@@ -62,10 +53,10 @@ fun PlayerSurface(
         },
         update = { view ->
             view.player = exo ?: engine.exoPlayer()
-            view.resizeMode =
-                if (docked) AspectRatioFrameLayout.RESIZE_MODE_FIT else aspectMode.toResizeMode()
+            // Always the screen, at its size: the guide's docked preview, which ignored the aspect
+            // choice and dropped subtitles at 288dp across, is gone (ADR-051).
+            view.resizeMode = aspectMode.toResizeMode()
             view.subtitleView?.apply {
-                visibility = if (docked) android.view.View.GONE else android.view.View.VISIBLE
                 setFractionalTextSize(
                     androidx.media3.ui.SubtitleView.DEFAULT_TEXT_SIZE_FRACTION * subtitleScale,
                 )

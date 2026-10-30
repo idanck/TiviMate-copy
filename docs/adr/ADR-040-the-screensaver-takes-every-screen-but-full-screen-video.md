@@ -8,6 +8,10 @@ Decided by the owner on 2026-10-17, in two steps:
 2. *The guide and the menus too, so they do not burn in.* A guide or a menu left open over a
    playing channel is protected as well.
 
+Narrowed by ADR-049: a live channel left on full screen on the television has a screensaver of its
+own after a longer wait, which keeps the picture playing; and decision 3's stamp is taken when the
+screen turns still.
+
 ## Context
 
 Before this ADR, the screensaver left two things alone:

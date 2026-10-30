@@ -177,43 +177,42 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
 }
 
 /**
- * How tall a guide row is where the grid sits under the docked picture (`PictureInGuide`).
+ * How tall a guide row is on a television, where the grid sits under the band of the picture the
+ * guide leaves showing (`GuideOverPicture`, ADR-051).
  *
  * [TvMetrics.guideRowHeight] is cut from the whole panel: a seventh of its height. The television
- * guide never has the whole panel for its rows — the top bar, the preview beside the focused
- * programme, the day strip and the hour ruler come first — so on a 1080p panel that seventh left
- * room for fewer than two rows under them, and the guide read as a picture with a grid's edge
- * showing beneath it. This takes the height the grid actually has, less the strip and the ruler
- * the grid draws above its rows, and cuts it into [DOCKED_GUIDE_ROWS] instead: six, as the Studio
- * canvas (`Guide.dc.html`) draws under its preview.
+ * guide never has the whole panel for its rows — the top bar, the day switcher and the focused
+ * programme's strip come first, over the picture — so this takes the height the grid actually has,
+ * less the hour ruler and the hairlines it draws above its rows, and cuts it into
+ * [GUIDE_GRID_ROWS]: eight, where the guide with a docked preview (ADR-013) fitted fewer than five.
  *
  * Floored where a cell's two lines of Studio type still fit (`GuideCell.dc.html` draws a 29dp
  * cell; the floor keeps a little more air than that), and capped at the same ceiling as the
  * panel's own row, so a 4K panel buys rows rather than taller ones.
  *
- * @param gridHeightDp the height handed to the guide under the picture, strip and ruler included
+ * @param gridHeightDp the height handed to the grid under the band, its ruler included
  */
-fun dockedGuideRowHeightFor(gridHeightDp: Float): Dp {
-    val rows = (gridHeightDp - DOCKED_GUIDE_CHROME_HEIGHT).coerceAtLeast(0f)
-    return (rows / DOCKED_GUIDE_ROWS).coerceIn(MIN_DOCKED_ROW_HEIGHT, MAX_ROW_HEIGHT).dp
+fun guideGridRowHeightFor(gridHeightDp: Float): Dp {
+    val rows = (gridHeightDp - GUIDE_GRID_CHROME_HEIGHT).coerceAtLeast(0f)
+    return (rows / GUIDE_GRID_ROWS).coerceIn(MIN_GUIDE_GRID_ROW_HEIGHT, MAX_ROW_HEIGHT).dp
 }
 
-/** How many rows the guide under the docked picture aims to show at once. */
-private const val DOCKED_GUIDE_ROWS = 6
+/** How many rows the television's guide aims to show at once. */
+private const val GUIDE_GRID_ROWS = 8
 
 /**
- * What the guide draws above its rows on a television: the day strip with the window buttons
- * beside it, the hour ruler, and the hairlines between them. Estimated once rather than measured,
- * because a row height that depended on measuring the chrome would arrive one frame late and the
- * grid would be laid out twice on every opening.
+ * What the grid draws above its rows on a television: the hairline under the band, the hour
+ * ruler (26dp) and the hairline under it. Estimated once rather than measured, because a row
+ * height that depended on measuring the chrome would arrive one frame late and the grid would be
+ * laid out twice on every opening.
  */
-private const val DOCKED_GUIDE_CHROME_HEIGHT = 66f
+private const val GUIDE_GRID_CHROME_HEIGHT = 28f
 
 /**
- * The least a docked row may be: the ten-foot cell's title and time (21px and 17px on the 1080p
- * canvas, at Studio's line heights) with their padding, and a few dp of air.
+ * The least a television guide row may be: the ten-foot cell's title and time (21px and 17px on
+ * the 1080p canvas, at Studio's line heights) with their padding, and a few dp of air.
  */
-private const val MIN_DOCKED_ROW_HEIGHT = 40f
+private const val MIN_GUIDE_GRID_ROW_HEIGHT = 40f
 
 /**
  * How tall the home banner is on a given panel.

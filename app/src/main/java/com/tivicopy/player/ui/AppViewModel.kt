@@ -31,6 +31,7 @@ import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.data.prefs.PinAttemptLimiter
 import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
+import com.tivicopy.player.data.radio.RadioShelf
 import com.tivicopy.player.data.repo.EpgProgress
 import com.tivicopy.player.data.news.FreeCopies
 import com.tivicopy.player.data.news.IsraeliNewsChannels
@@ -102,11 +103,11 @@ data class ChannelListState(
     /** The channel-list filter box. Scoped to the selected group, and always visible when set. */
     val search: String = "",
     /**
-     * Radio only: narrows to one [RadioCategory] bucket, alongside [selectedGroupId] which stays
-     * at [VirtualGroup.ALL] while this is set — see [AppViewModel.selectRadioCategory]. Null shows
+     * Radio only: narrows to one shelf of the category menu (ADR-050), alongside [selectedGroupId]
+     * which stays at [VirtualGroup.ALL] while this is set — see [AppViewModel.selectRadioShelf]. Null shows
      * every (non-Russian) station.
      */
-    val selectedRadioCategory: RadioCategory? = null,
+    val selectedRadioShelf: RadioShelf? = null,
 )
 
 /**
@@ -157,7 +158,7 @@ data class AppUiState(
     /**
      * Every station in the radio playlist, Russian-language ones already excluded
      * ([RadioCategoryClassifier.isRussian]), independent of [ChannelListState.selectedGroupId] or
-     * [ChannelListState.selectedRadioCategory] — this is what the radio category menu itself is
+     * [ChannelListState.selectedRadioShelf] — this is what the radio category menu itself is
      * built from, not the currently filtered [ChannelListState.channels]. Empty outside Radio.
      */
     val radioAllChannels: List<Channel> = emptyList(),
@@ -345,15 +346,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun selectGroup(groupId: Long) {
         _state.value = _state.value.copy(
-            list = _state.value.list.copy(selectedGroupId = groupId, selectedRadioCategory = null),
+            list = _state.value.list.copy(selectedGroupId = groupId, selectedRadioShelf = null),
         )
         loadChannels()
     }
 
-    /** Radio only: narrow the list to one [RadioCategory] bucket, or null for every station. */
-    fun selectRadioCategory(category: RadioCategory?) {
+    /** Radio only: narrow the list to one shelf of the category menu (ADR-050), or null for every station. */
+    fun selectRadioShelf(shelf: RadioShelf?) {
         _state.value = _state.value.copy(
-            list = _state.value.list.copy(selectedGroupId = VirtualGroup.ALL, selectedRadioCategory = category),
+            list = _state.value.list.copy(selectedGroupId = VirtualGroup.ALL, selectedRadioShelf = shelf),
         )
         loadChannels()
     }
@@ -467,17 +468,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     )
                 }
                 // Radio: drop Russian-language stations everywhere (not just a specific category —
-                // see RadioCategoryClassifier), then narrow further to the selected category, if any.
+                // see RadioCategoryClassifier), then narrow further to the selected shelf of the
+                // category menu, if any (ADR-050): a station is on its region's and its genre's.
                 val radioFiltered = if (isRadio) {
                     fun groupNameOf(channel: Channel) = listState.groups.firstOrNull { it.id == channel.groupId }?.name
                     raw
                         .filterNot { RadioCategoryClassifier.isRussian(it.displayName, groupNameOf(it)) }
                         .let { stations ->
-                            val category = listState.selectedRadioCategory
-                            if (category == null) {
+                            val shelf = listState.selectedRadioShelf
+                            if (shelf == null) {
                                 stations
                             } else {
-                                stations.filter { RadioCategoryClassifier.classify(groupNameOf(it), it.displayName) == category }
+                                stations.filter { shelf in RadioCategoryClassifier.shelves(groupNameOf(it), it.displayName) }
                             }
                         }
                 } else {

@@ -1,6 +1,8 @@
 # ADR-013 — The television guide is laid out around the picture, not over it
 
-**Status:** accepted
+**Status:** accepted; the docked preview and the guide's layout around it superseded by ADR-051
+(2026-10-30), which draws the guide over the picture at full size. The full-bleed decision below
+stands.
 
 ## Decision
 

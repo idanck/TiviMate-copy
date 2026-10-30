@@ -32,7 +32,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -53,17 +52,20 @@ import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.PlayerMediaSession
 import com.tivicopy.player.player.RadioBackgroundService
 import com.tivicopy.player.ui.common.saverPlaying
+import com.tivicopy.player.ui.common.ChannelScreensaver
 import com.tivicopy.player.ui.common.NoticeTone
 import com.tivicopy.player.ui.common.NoticeVisuals
 import com.tivicopy.player.ui.common.PinRequestDialog
+import com.tivicopy.player.ui.common.SaverKind
 import com.tivicopy.player.ui.common.SaverPlaying
+import com.tivicopy.player.ui.common.SceneClock
 import com.tivicopy.player.ui.common.Screensaver
 import com.tivicopy.player.ui.common.StudioNoticeHost
 import com.tivicopy.player.ui.common.describe
 import com.tivicopy.player.ui.common.IdleScene
 import com.tivicopy.player.ui.common.idleScene
-import com.tivicopy.player.ui.common.screensaverApplies
-import com.tivicopy.player.ui.common.screensaverDueAt
+import com.tivicopy.player.ui.common.saverDueAt
+import com.tivicopy.player.ui.common.screensaverFor
 import com.tivicopy.player.ui.mobile.MobileRoot
 import com.tivicopy.player.ui.mobile.PlayerScreen
 import com.tivicopy.player.ui.settings.SettingsSection
@@ -354,7 +356,8 @@ class MainActivity : ComponentActivity() {
             }
 
             // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
-            // protecting (ADR-040); the countdown below decides when.
+            // protecting (ADR-040), and a live channel left on full screen on the television has a
+            // screensaver of its own after a longer wait (ADR-049); the countdown below decides when.
             val sportPlaying by vm.sport.anyPlaying.collectAsState()
             val inSport = if (isTelevision) overlay.isPanels else panelsOpen != null
             val scene = if (inSport) {
@@ -369,27 +372,49 @@ class MainActivity : ComponentActivity() {
                 // or a menu may be covering the picture or docking it into a corner, and on the
                 // phone there is no picture on screen at all unless the player screen is open.
                 videoFillsPanel = if (isTelevision) overlay.videoFillsPanel else playerOpen,
+                // ADR-049: a live channel, on the television. A film, a catch-up programme or a
+                // recording runs to an end somebody is waiting for, and the phone is held.
+                liveChannel = isTelevision && state.nowPlaying is NowPlayingInfo.Live,
             )
-            val applies = screensaverApplies(prefs.screensaverEnabled, scene, inPip)
-            // The last moment the screen was not a still one, so the moment it turned still
-            // (ADR-040, decision 3). Read inside the effect below rather than keyed on: a screen
-            // turning still restarts the countdown through `applies`, and the stamp itself never
-            // restarts anything.
-            val stillSince = remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+            val saver = screensaverFor(prefs.screensaverEnabled, prefs.channelSaverEnabled, scene, inPip)
+            // When the screen became the kind of screen it is — for the clock, the moment it
+            // turned still (ADR-040, decision 3). Stamped inside the effect below rather than
+            // keyed on: a change of kind restarts the countdown through `saver`, and the stamp
+            // itself never restarts anything.
+            val sceneClock = remember { SceneClock(SystemClock.elapsedRealtime()) }
             // One timer, armed and slept through, rather than a clock ticking every second: a
             // key press moves `lastInteractionAt`, which restarts this effect, so an idle
-            // television costs one suspended coroutine and nothing else. The countdown runs from
-            // the later of the last key press and the screen turning still: a picture watched
-            // for longer than the idle period used to be handed over the instant it stalled.
-            LaunchedEffect(applies, lastInteractionAt, prefs.screensaverIdleMinutes) {
-                if (!applies) {
+            // television costs one suspended coroutine and nothing else. Each screensaver has its
+            // own wait and counts it from its own moment (`saverDueAt`): the clock from the later
+            // of the last key press and the screen turning still, the channel's from the last key
+            // press alone, so a stream that rebuffers does not start the hour again.
+            LaunchedEffect(saver, lastInteractionAt, prefs.screensaverIdleMinutes, prefs.channelSaverMinutes) {
+                val now = SystemClock.elapsedRealtime()
+                val since = sceneClock.stamp(saver, now)
+                if (saver == null) {
                     screensaverOn = false
-                    stillSince.longValue = SystemClock.elapsedRealtime()
                     return@LaunchedEffect
                 }
-                val due = screensaverDueAt(lastInteractionAt, stillSince.longValue, prefs.screensaverIdleMinutes)
-                val wait = due - SystemClock.elapsedRealtime()
+                // A picture back under the clock's screensaver — a stream that recovered on its
+                // own, with nobody there to press anything — goes to the channel's at once: black
+                // over a channel that plays again is the worse of the two.
+                if (screensaverOn && saver == SaverKind.CHANNEL) {
+                    saverShown = SaverKind.CHANNEL
+                    return@LaunchedEffect
+                }
+                val due = saverDueAt(
+                    kind = saver,
+                    lastInteractionAt = lastInteractionAt,
+                    sceneSince = since,
+                    idleMinutes = prefs.screensaverIdleMinutes,
+                    channelIdleMinutes = prefs.channelSaverMinutes,
+                )
+                val wait = due - now
                 if (wait > 0) delay(wait)
+                // A screensaver already up stays up through a change of kind until the new one's
+                // own wait is over: a channel that stalls for a second under its screensaver is
+                // not blacked out for it, and one that fails for good is, after the clock's wait.
+                saverShown = saver
                 screensaverOn = true
             }
             // FR-UI-33: the headlines are fetched as the screensaver arms, and again on the
@@ -496,18 +521,32 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 emptyList()
                             }
-                            Screensaver(
-                                playing = behindSaver,
-                                flashes = flashes,
-                                flashesUpdatedUtc = newsDigests.values.maxOfOrNull { it.fetchedUtc } ?: 0L,
-                                colours = prefs.screensaverColours,
-                                speed = prefs.flashSpeed,
-                                modifier = Modifier.fillMaxSize(),
-                                // Only the radio gets the tasks (FR-UI-32). A paused film is a
-                                // screen somebody is coming back to in a minute, and not the place
-                                // for somebody's to-do list.
-                                tasks = if (saverTasks) taskFeed.items else emptyList(),
-                            )
+                            if (saverShown == SaverKind.CHANNEL) {
+                                // ADR-049: the channel keeps playing under it, dimmed, so it is
+                                // drawn over the shell like the clock's, and is as transparent to
+                                // the picture as the shell's own bars.
+                                ChannelScreensaver(
+                                    channel = (state.nowPlaying as? NowPlayingInfo.Live)?.channel,
+                                    programme = state.now,
+                                    headlines = flashes.isNotEmpty(),
+                                    opacity = prefs.overlayOpacity,
+                                    onProgrammeEnded = { vm.refreshNowNext() },
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            } else {
+                                Screensaver(
+                                    playing = behindSaver,
+                                    flashes = flashes,
+                                    flashesUpdatedUtc = newsDigests.values.maxOfOrNull { it.fetchedUtc } ?: 0L,
+                                    colours = prefs.screensaverColours,
+                                    speed = prefs.flashSpeed,
+                                    modifier = Modifier.fillMaxSize(),
+                                    // Only the radio gets the tasks (FR-UI-32). A paused film is a
+                                    // screen somebody is coming back to in a minute, and not the place
+                                    // for somebody's to-do list.
+                                    tasks = if (saverTasks) taskFeed.items else emptyList(),
+                                )
+                            }
                         }
                     }
                 }
@@ -545,6 +584,13 @@ class MainActivity : ComponentActivity() {
 
     /** Whether the screensaver is on screen. Owned here because key dispatch has to know. */
     private var screensaverOn by mutableStateOf(false)
+
+    /**
+     * Which screensaver [screensaverOn] puts up (ADR-049). Set as it comes up rather than read
+     * from the scene each frame, so the one on screen is kept through a change of scene until the
+     * other's own wait is over.
+     */
+    private var saverShown by mutableStateOf(SaverKind.CLOCK)
 
     /**
      * Keys whose remaining events belong to the press that dismissed the screensaver.

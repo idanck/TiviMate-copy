@@ -318,7 +318,7 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  * the viewer has been away for the idle time, the screensaver takes this screen like any other
  * that is not full-screen video, and carries the task list under its clock (ADR-040).
  *
- * Under a phone's surface, or docked into the guide, the same content is laid out small.
+ * Under a phone's surface the same content is laid out small.
  *
  * @param song the song the station says is on ([PlaybackStatus.streamTitle]), or null when it
  *   says nothing — most stations, and every catch-up.
@@ -784,8 +784,7 @@ private val COMPACT_HEIGHT: Dp = 400.dp
 
 /**
  * Below this the backdrop is a floating window rather than a video box: a phone's portrait video
- * box is about 220dp tall and the guide's docked preview a little over 200, a floating window
- * well under 150.
+ * box is about 220dp tall, a floating window well under 150.
  */
 private val TINY_HEIGHT: Dp = 180.dp
 
