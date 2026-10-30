@@ -21,8 +21,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.foundation.lazy.LazyListPrefetchScope
+import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.layout.NestedPrefetchScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
@@ -220,6 +225,7 @@ fun TvHomeScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
+            state = rememberLazyListState(prefetchStrategy = NoRowPrefetch),
             modifier = Modifier
                 .fillMaxSize()
                 .focusGroup(),
@@ -590,25 +596,44 @@ class HomeFocusReturn {
     /** Where the remote goes when the control it left from is no longer drawn: home's first stop. */
     var fallback: FocusRequester? = null
 
+    /**
+     * False from the moment home is left for the video until the remote is handed back. Home kept
+     * under the video (ADR-048) is placed again by Back, and the platform hands the remote to the
+     * first control it finds there before [restore] runs: on a Google TV Streamer that was the
+     * favourite button, every time, and noting it put the remote there instead of on "Full
+     * screen" (device check, 0.20.6). Nothing that takes the remote meanwhile is the viewer's
+     * choice, so none of it is noted.
+     */
+    private var listening = true
+
     fun note(requester: FocusRequester) {
-        last = requester
+        if (listening) last = requester
+    }
+
+    /** Stops noting until the next [restore]: home is being left for the video. */
+    fun hold() {
+        listening = false
     }
 
     /** Drops both, with the screen they belong to. */
     fun forget() {
         last = null
         fallback = null
+        listening = true
     }
 
     /**
      * Hands the remote back to home: to the control it left from, or to home's first stop when
      * that one has gone. False when neither can take it, so the press is left to the D-pad.
      */
-    fun restore(): Boolean = listOfNotNull(last, fallback).any { requester ->
-        // A requester whose control has left the composition — a card scrolled away, a rail
-        // rebuilt without it — throws rather than failing quietly. That is the "gone" case, and
-        // never worth a crash.
-        runCatching { requester.requestFocus() }.isSuccess
+    fun restore(): Boolean {
+        listening = true
+        return listOfNotNull(last, fallback).any { requester ->
+            // A requester whose control has left the composition — a card scrolled away, a rail
+            // rebuilt without it — throws rather than failing quietly. That is the "gone" case,
+            // and never worth a crash.
+            runCatching { requester.requestFocus() }.isSuccess
+        }
     }
 }
 
@@ -620,6 +645,25 @@ class HomeFocusReturn {
 internal fun Modifier.notesFocus(focusReturn: HomeFocusReturn): Modifier {
     val requester = remember { FocusRequester() }
     return focusRequester(requester).onFocusChanged { if (it.isFocused) focusReturn.note(requester) }
+}
+
+/**
+ * Home's list composes a row when it scrolls into view, never ahead of it.
+ *
+ * A lazy list composes the row past the edge in the idle time after a frame, and only when it
+ * expects that to fit before the next one; until it fits it asks again, every frame. A rail of
+ * cards takes longer than a frame to compose on a Google TV Streamer, so the request never fit:
+ * a scroll of two pixels as the remote crossed the banner left the app waking sixty times a
+ * second, on home and, since home waits under the video (ADR-048), all through the video, until
+ * the next scroll down the rails (device trace, 0.20.6). Composing the row as it arrives is what
+ * already happened on that box, so nothing is lost there. The rails' own lists keep theirs: a
+ * card fits.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private object NoRowPrefetch : LazyListPrefetchStrategy {
+    override fun LazyListPrefetchScope.onScroll(delta: Float, layoutInfo: LazyListLayoutInfo) = Unit
+    override fun LazyListPrefetchScope.onVisibleItemsUpdated(layoutInfo: LazyListLayoutInfo) = Unit
+    override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) = Unit
 }
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */

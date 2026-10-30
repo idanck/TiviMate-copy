@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6. Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -54,3 +54,20 @@ back; rails that come out the same change nothing on screen.
   plays. Nothing of it is drawn.
 - Home over the video no longer replays its content's rise when Back brings it up (the content
   rises when one browse screen replaces another, as before).
+
+## 0.20.7
+
+Checked on the living-room Google TV Streamer after 0.20.6 shipped.
+
+- **The fade.** One frame of 70–90ms as home is placed again (laying it out and recording its
+  draws: an unplaced screen keeps neither), then every frame of the fade on time, at 16.7ms. The
+  fade starts after that frame, so it begins from nothing rather than jumping in. Before, a 145ms
+  frame at the start and a 210ms one in the middle.
+- **The remote came back to the wrong place.** Placed again, home was handed the remote by the
+  platform before `HomeFocusReturn.restore` ran, on the favourite button every time, and that was
+  noted as where the viewer had been. Nothing is noted from the moment home is left for the video
+  until the hand-back (`HomeFocusReturn.hold`).
+- **The app woke sixty times a second.** Home's list kept asking, every frame, to compose the next
+  rail ahead of time, which never fits a frame on that box, so the request never ended; kept under
+  the video, it ran all through the video too. Home's list now composes a row as it arrives
+  (`NoRowPrefetch`), which is what the box was doing anyway.

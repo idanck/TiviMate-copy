@@ -248,7 +248,10 @@ fun TvRoot(
     // Home kept while the video played (ADR-048) does not claim the remote again on its own when it
     // comes back, as a home composed afresh does: it is handed it, where it last had it. Two
     // frames: one to place the screen, one for a home composed afresh to make its own claim first.
+    // Whatever takes the remote between leaving home for the video and that hand-back is not noted
+    // as where it was (`HomeFocusReturn.hold`).
     LaunchedEffect(overlay) {
+        if (overlay.isPassthrough) homeFocus.hold()
         if (overlay != TvOverlay.HOME) return@LaunchedEffect
         withFrameNanos { }
         withFrameNanos { }
