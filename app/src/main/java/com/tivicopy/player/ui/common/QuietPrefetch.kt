@@ -28,14 +28,17 @@ import androidx.compose.ui.platform.LocalView
  * TV Streamer — more than a whole frame — so it never fits: the card was composed in the frame
  * that scrolled to it (a 92ms frame on home, as four arrived at once), and the request, never
  * done, asked again every frame, waking the app sixty times a second for as long as the remote
- * stayed on that row (device trace, 0.20.8). Home's list of rows had the same loop and gave up
- * composing ahead altogether in 0.20.7 (`NoRowPrefetch`).
+ * stayed on that row (device trace, 0.20.8). Home's list of rails had the same loop (a rail takes
+ * far longer), and composed none ahead from 0.20.7 to 0.20.9 (`NoRowPrefetch`), so every rail was
+ * built in the frame that scrolled to it.
  *
  * This scheduler waits instead: for the screen to have drawn nothing for [QUIET_MS], which is
  * after the last frame of a press's motion and before the next press in all but a held key; then
- * it composes for up to [BUDGET_MS] at once, always at least one request, and gives the rest the
- * next quiet moment. A press arriving meanwhile waits for the card being composed, which is less
- * than the frame it would have cost.
+ * it works for up to [BUDGET_MS], one step of a request at a time (a step is composing or
+ * measuring one item), and leaves the rest to the next quiet moment. A step the lists expect to
+ * take longer than the budget is refused by them every time, so the first one of a quiet moment
+ * is never left waiting: refused, the request is finished there and then. A press arriving
+ * meanwhile waits for the step under way, which is less than the frame it would have cost.
  */
 @OptIn(ExperimentalFoundationApi::class)
 internal class QuietPrefetchScheduler(private val view: View) : PrefetchScheduler, Runnable {
@@ -44,7 +47,7 @@ internal class QuietPrefetchScheduler(private val view: View) : PrefetchSchedule
     private var posted = false
     private var released = false
 
-    /** Unbounded for the first request of a run, so every run finishes one; the budget after. */
+    /** The time a request may take: the run's budget, or unbounded when it is forced. */
     private val scope = object : PrefetchRequestScope {
         var deadline = Long.MAX_VALUE
         override fun availableTimeNanos(): Long = (deadline - System.nanoTime()).coerceAtLeast(0L)
@@ -71,14 +74,21 @@ internal class QuietPrefetchScheduler(private val view: View) : PrefetchSchedule
             post(QUIET_MS - still)
             return
         }
-        scope.deadline = Long.MAX_VALUE
         val stop = System.nanoTime() + BUDGET_MS * 1_000_000L
+        var first = true
         while (queue.isNotEmpty()) {
             val request = queue.first()
-            val more = with(request) { scope.execute() }
+            scope.deadline = stop
+            val before = System.nanoTime()
+            var more = with(request) { scope.execute() }
+            if (more && first && System.nanoTime() - before < REFUSED_NS) {
+                // Refused with the whole budget ahead of it: it would be refused every time.
+                scope.deadline = Long.MAX_VALUE
+                more = with(request) { scope.execute() }
+            }
+            first = false
             if (more) break
             queue.removeFirst()
-            scope.deadline = stop
             if (System.nanoTime() >= stop) break
         }
         if (queue.isNotEmpty()) post(QUIET_MS)
@@ -95,8 +105,11 @@ internal class QuietPrefetchScheduler(private val view: View) : PrefetchSchedule
         /** Longer than the gap between two frames of any motion, shorter than a press. */
         const val QUIET_MS = 120L
 
-        /** What one quiet moment composes: two or three cards. */
+        /** What one quiet moment does: a card or two, composed and measured. */
         const val BUDGET_MS = 40L
+
+        /** Less than any step takes: a request back this soon did nothing. */
+        const val REFUSED_NS = 1_000_000L
     }
 }
 
@@ -110,17 +123,21 @@ internal fun rememberQuietPrefetchScheduler(): QuietPrefetchScheduler {
 }
 
 /**
- * Keeps [ahead] items composed past each edge of a lazy row, on a [QuietPrefetchScheduler]: the
- * next cards either way are built before the remote gets there, whichever way it goes.
+ * Keeps [ahead] items composed past each edge of a lazy list, on a [QuietPrefetchScheduler]: the
+ * next ones either way are built before the remote gets there, whichever way it goes.
  *
  * One per list; it remembers what it asked for. Items that fall back from the edge are let go, so
- * a row keeps at most [ahead] cards a side composed beyond what it shows.
+ * a list keeps at most [ahead] items a side composed beyond what it shows (and what it pins).
+ *
+ * @param nested how many of its first items this list has built when a list it sits in builds it
+ *   ahead: the ones it shows, so it arrives whole
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Stable
 internal class AheadPrefetch(
     override val prefetchScheduler: PrefetchScheduler,
     private val ahead: Int = 2,
+    private val nested: Int = ahead,
 ) : LazyListPrefetchStrategy {
     private val handles = HashMap<Int, LazyLayoutPrefetchState.PrefetchHandle>()
     private var itemCount = -1
@@ -148,6 +165,6 @@ internal class AheadPrefetch(
     }
 
     override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) {
-        repeat(ahead) { schedulePrefetch(firstVisibleItemIndex + it) }
+        repeat(nested) { schedulePrefetch(firstVisibleItemIndex + it) }
     }
 }

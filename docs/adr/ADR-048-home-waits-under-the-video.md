@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6; amended 0.20.7, 0.20.8 and 0.20.9 (below). Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7, 0.20.8, 0.20.9 and 0.20.10 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -97,3 +97,19 @@ same box, ten presses down, along a rail and back up:
   for as long as the remote stayed on that rail — 0.20.7's loop, one level down. The rails now
   keep two cards composed past each edge, built while the screen is still
   (`QuietPrefetchScheduler`, `AheadPrefetch`).
+
+## 0.20.10
+
+Checked on the same box after 0.20.9: frames during a press's motion went from 13–17ms to 8–12ms,
+a press along a rail no longer froze, and the app was still once the remote stopped. A step up or
+down the rails, though, froze for 110–265ms: each rail coming into view was built from nothing in
+the frame the list began to scroll (about 28ms a card there: 12 to compose, 5 to apply, 10 to
+measure), and a rail scrolling away was let go, at 40–60ms more, to be built again on the way
+back. The 0.20.8 trace of the same presses showed no such frames, and why was not established.
+
+- **A rail, once built, stays built** (`KeepComposed`, pinning it in home's list): home is at most
+  five rails, and every step after the first only moves them.
+- **The next rail is built ahead**, while the screen is still, with the cards that fill it, on the
+  same scheduler as the cards (`AheadPrefetch` on home's list, replacing `NoRowPrefetch`).
+- **The scheduler works a step at a time** (composing or measuring one item) within its 40ms, and
+  finishes at once only a request whose next step it would otherwise refuse every time.

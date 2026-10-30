@@ -21,12 +21,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListLayoutInfo
-import androidx.compose.foundation.lazy.LazyListPrefetchScope
-import androidx.compose.foundation.lazy.LazyListPrefetchStrategy
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.layout.NestedPrefetchScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -45,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.layout.LocalPinnableContainer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -226,17 +223,20 @@ fun TvHomeScreen(
     // crosses into it.
     val railGutter = sideMenuInset()
 
-    // Composes each rail's next cards while the screen is still (`QuietPrefetch.kt`).
-    val cardPrefetch = rememberQuietPrefetchScheduler()
+    // Composes the next rail, and each rail's next cards, while the screen is still
+    // (`QuietPrefetch.kt`). One for the screen, so one quiet moment never does two lists' work.
+    val prefetch = rememberQuietPrefetchScheduler()
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
-            state = rememberLazyListState(prefetchStrategy = NoRowPrefetch),
+            // The rail past either edge, built before the remote gets there.
+            state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 1) }),
             modifier = Modifier
                 .fillMaxSize()
                 .focusGroup(),
         ) {
             item(key = "hero") {
+                KeepComposed()
                 HomeBanner(
                     channel = state.currentChannel,
                     now = state.now,
@@ -256,6 +256,7 @@ fun TvHomeScreen(
 
             if (apps.isNotEmpty()) {
                 item(key = "apps") {
+                    KeepComposed()
                     HomeAppStrip(
                         apps = apps,
                         background = scrim,
@@ -267,6 +268,7 @@ fun TvHomeScreen(
             }
 
             itemsIndexed(rails, key = { _, rail -> rail.id.name }) { index, rail ->
+                KeepComposed()
                 HomeCardRail(
                     title = titles[rail.id].orEmpty(),
                     // The rail's place in the list: under the banner, and under the apps when
@@ -279,7 +281,7 @@ fun TvHomeScreen(
                     firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
                     startInset = railGutter,
                     focusReturn = focusReturn,
-                    prefetch = cardPrefetch,
+                    prefetch = prefetch,
                     onOpen = open,
                 )
             }
@@ -489,8 +491,11 @@ private fun HomeCardRail(
     prefetch: QuietPrefetchScheduler,
     onOpen: (HomeCard) -> Unit,
 ) {
-    // Two cards built past each edge before the remote gets there; see `AheadPrefetch`.
-    val rowState = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch) })
+    // Two cards built past each edge before the remote gets there, and, when the rail itself is
+    // built ahead by home's list, the cards that fill it ([RAIL_CARDS_SHOWN]); see `AheadPrefetch`.
+    val rowState = rememberLazyListState(
+        prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2, nested = RAIL_CARDS_SHOWN) },
+    )
     Column(modifier = Modifier.fillMaxWidth().background(background)) {
         SectionHeader(
             text = title,
@@ -662,24 +667,27 @@ internal fun Modifier.notesFocus(focusReturn: HomeFocusReturn): Modifier {
 }
 
 /**
- * Home's list composes a row when it scrolls into view, never ahead of it.
+ * Keeps the row of home's list this is called in composed once it has been, wherever the list
+ * scrolls.
  *
- * A lazy list composes the row past the edge in the idle time after a frame, and only when it
- * expects that to fit before the next one; until it fits it asks again, every frame. A rail of
- * cards takes longer than a frame to compose on a Google TV Streamer, so the request never fit:
- * a scroll of two pixels as the remote crossed the banner left the app waking sixty times a
- * second, on home and, since home waits under the video (ADR-048), all through the video, until
- * the next scroll down the rails (device trace, 0.20.6). Composing the row as it arrives is what
- * already happened on that box, so nothing is lost there. A card does not fit a frame either
- * (15–18ms there); the rails' own lists compose theirs ahead while the screen is still instead
- * ([AheadPrefetch], 0.20.9).
+ * Home is five rails at most, under a banner. A lazy list lets a row go when it scrolls away and
+ * builds it again from nothing when it comes back: on a Google TV Streamer a rail of five cards
+ * took 200–250ms to build, in the frame the list began to scroll, at every step down the rails and
+ * back up, and letting it go cost 40–60ms more (device trace, 0.20.9). Kept, a rail is built once
+ * — ahead of the remote, while the screen is still, by home's [AheadPrefetch] — and every step
+ * after that only moves it. A rail that leaves the list (a rebuild without it) still goes.
  */
-@OptIn(ExperimentalFoundationApi::class)
-private object NoRowPrefetch : LazyListPrefetchStrategy {
-    override fun LazyListPrefetchScope.onScroll(delta: Float, layoutInfo: LazyListLayoutInfo) = Unit
-    override fun LazyListPrefetchScope.onVisibleItemsUpdated(layoutInfo: LazyListLayoutInfo) = Unit
-    override fun NestedPrefetchScope.onNestedPrefetch(firstVisibleItemIndex: Int) = Unit
+@Composable
+private fun KeepComposed() {
+    val container = LocalPinnableContainer.current
+    DisposableEffect(container) {
+        val handle = container?.pin()
+        onDispose { handle?.release() }
+    }
 }
+
+/** How many cards fill a rail across the screen, the part-shown one included, at 1080p. */
+private const val RAIL_CARDS_SHOWN = 5
 
 /** How often the rails are rebuilt so a now-caption cannot sit wrong for long. */
 private const val REBUILD_INTERVAL_MS = 5L * 60 * 1000
