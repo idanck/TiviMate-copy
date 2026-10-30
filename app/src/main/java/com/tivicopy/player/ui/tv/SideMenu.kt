@@ -1,5 +1,6 @@
 package com.tivicopy.player.ui.tv
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.spring
@@ -21,8 +22,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -45,10 +46,12 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -62,6 +65,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -81,7 +85,6 @@ import com.tivicopy.player.ui.common.Motion
 import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.TvMetrics
 import com.tivicopy.player.ui.common.drawerSurface
-import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.theme.StudioTheme
 import java.util.Locale
@@ -439,6 +442,7 @@ private fun Modifier.railSurface(rtl: Boolean, presence: () -> Float, reach: () 
  *
  * The name is always composed and laid out at its own width, and fades in with [openness]: the
  * rail clips it while it is closed. Composing it afresh on every opening was a frame of its own.
+ * It is decoration, and says nothing to TalkBack or the QA's tree.
  */
 @Composable
 private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
@@ -464,7 +468,8 @@ private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
             softWrap = false,
             modifier = Modifier
                 .wrapContentWidth(align = Alignment.Start, unbounded = true)
-                .graphicsLayer { alpha = openness() },
+                .graphicsLayer { alpha = openness() }
+                .clearAndSetSemantics { },
         )
     }
 }
@@ -481,6 +486,10 @@ private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
  *
  * The label is laid out at its own width whether or not there is room for it, so opening the menu
  * measures no text, and it fades in with [openness]; the entry clips it while the menu is a rail.
+ * The glyph and the label take their colour as they are drawn, so the crossing to dark ink as the
+ * plate arrives recomposes nothing a frame. The label adds nothing to the entry's semantics: the
+ * entry already carries its name, and a text merged in beside it split the name and the selected
+ * state onto two nodes, which the emulator QA reads as no screen being lit (QA-24).
  */
 @Composable
 private fun MenuEntry(
@@ -496,7 +505,19 @@ private fun MenuEntry(
     val metrics = LocalTvMetrics.current
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(metrics.controlCorner)
-    val content = filledContentColour(focused = focused, selected = current, muted = true)
+    val studio = StudioTheme.colors
+    val reduced = LocalReducedMotion.current
+    // `filledContentColour`'s colours, kept as a state and read where they are drawn.
+    val content = animateColorAsState(
+        targetValue = when {
+            focused -> studio.onCue
+            current -> studio.current
+            else -> studio.ink2
+        },
+        animationSpec = if (reduced) tween(Motion.REDUCED, easing = LinearEasing) else tween(Motion.FAST, easing = Motion.Ease),
+        label = "menuEntryContent",
+    )
+    val glyph = rememberVectorPainter(destination.icon)
     Box(modifier = Modifier.fillMaxWidth().height(ENTRY_HEIGHT)) {
         if (current) {
             Box(
@@ -537,23 +558,25 @@ private fun MenuEntry(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(9.dp),
         ) {
-            Icon(
-                imageVector = destination.icon,
-                contentDescription = null,
-                modifier = Modifier.size(ENTRY_ICON),
-                tint = content,
+            Box(
+                modifier = Modifier
+                    .size(ENTRY_ICON)
+                    .drawBehind {
+                        with(glyph) { draw(size = size, colorFilter = ColorFilter.tint(content.value)) }
+                    },
             )
-            Text(
+            BasicText(
                 text = destination.label,
                 style = StudioTheme.type.nav.copy(
                     fontWeight = if (focused || current) FontWeight.Bold else FontWeight.Medium,
                 ),
-                color = content,
+                color = { content.value },
                 maxLines = 1,
                 softWrap = false,
                 modifier = Modifier
                     .wrapContentWidth(align = Alignment.Start, unbounded = true)
-                    .graphicsLayer { alpha = openness() },
+                    .graphicsLayer { alpha = openness() }
+                    .clearAndSetSemantics { },
             )
         }
     }
