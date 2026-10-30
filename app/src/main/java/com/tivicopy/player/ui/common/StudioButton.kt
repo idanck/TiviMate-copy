@@ -1,9 +1,9 @@
 package com.tivicopy.player.ui.common
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,11 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -108,7 +116,11 @@ fun StudioButton(
     // Every resting value that has nothing to show is its own colour at alpha zero, never
     // `Color.Transparent` (`Motion.kt`): a ghost button's fill fades out of the lit surface, not
     // into black.
-    val fill = animatedColour(
+    // The three colours are read where they are drawn, not here: a crossing redraws the button and
+    // recomposes nothing. Read here, each frame of one recomposed two buttons at once as focus
+    // moved between them, 7–8ms a frame on a Google TV Streamer — over home's fade from the video,
+    // as the remote was handed back to "Full screen" (device trace, 0.20.7).
+    val fill = animatedColourState(
         when {
             focused -> studio.cue
             primary -> studio.light.copy(alpha = PRIMARY_GLASS_ALPHA)
@@ -116,14 +128,14 @@ fun StudioButton(
             else -> studio.control
         },
     )
-    val edge = animatedColour(
+    val edge = animatedColourState(
         when {
             focused -> studio.cue
             ghost -> studio.edgeLine.copy(alpha = 0f)
             else -> studio.edgeLine
         },
     )
-    val content = animatedColour(
+    val content = animatedColourState(
         when {
             focused -> studio.onCue
             ghost -> studio.ink2
@@ -138,9 +150,20 @@ fun StudioButton(
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .focusLift(focused, shape = shape)
             .clip(shape)
-            .background(fill)
-            // One width at rest and focused (`Focus.kt`); only the colour crosses.
-            .border(1.dp, edge, shape)
+            .drawBehind {
+                drawRect(fill.value)
+                // One width at rest and focused (`Focus.kt`); only the colour crosses. Inside the
+                // pill, as `border` draws it.
+                val stroke = BUTTON_EDGE.toPx()
+                drawRoundRect(
+                    color = edge.value,
+                    topLeft = Offset(stroke / 2, stroke / 2),
+                    // `this.size`: the drawing's, not this button's [StudioButtonSize].
+                    size = Size(this.size.width - stroke, this.size.height - stroke),
+                    cornerRadius = CornerRadius((this.size.minDimension - stroke) / 2),
+                    style = Stroke(stroke),
+                )
+            }
             .onFocusChanged { focused = it.isFocused }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             // `clickable` carries the focus target on its own; `focusable()` beside it would cost
@@ -152,27 +175,33 @@ fun StudioButton(
         horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally),
     ) {
         if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(if (large) 15.dp else 13.dp),
-                tint = content,
+            // The glyph is painted in the content colour as it is drawn, like the fill and the label.
+            val glyph = rememberVectorPainter(icon)
+            Box(
+                modifier = Modifier
+                    .size(if (large) 15.dp else 13.dp)
+                    .drawBehind {
+                        with(glyph) { draw(this@drawBehind.size, colorFilter = ColorFilter.tint(content.value)) }
+                    },
             )
         }
         if (!iconOnly) {
             val action = StudioTheme.type.action
-            Text(
+            BasicText(
                 text = label,
                 style = action.copy(
                     fontSize = if (large) action.fontSize else action.fontSize * MEDIUM_LABEL_SCALE,
                     fontWeight = if (focused || primary) FontWeight.Bold else FontWeight.SemiBold,
                 ),
-                color = content,
+                color = { content.value },
                 maxLines = 1,
             )
         }
     }
 }
+
+/** The television button's edge, at rest and focused alike. */
+private val BUTTON_EDGE = 1.dp
 
 /** The medium button's label is 24px against the large one's 28 at 1080p. */
 private const val MEDIUM_LABEL_SCALE = 24f / 28f

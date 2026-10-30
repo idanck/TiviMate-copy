@@ -15,6 +15,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -215,7 +216,16 @@ fun Modifier.focusLift(
  * With reduced motion on, the crossing is [Motion.REDUCED] and linear.
  */
 @Composable
-fun animatedColour(target: Color, durationMillis: Int = Motion.FAST): Color {
+fun animatedColour(target: Color, durationMillis: Int = Motion.FAST): Color =
+    animatedColourState(target, durationMillis).value
+
+/**
+ * [animatedColour] as the crossing's own state, for a colour read where it is drawn
+ * (`drawBehind`, a text's `ColorProducer`): its frames then redraw the one node and recompose
+ * nothing. Read in a composable body it is [animatedColour], and recomposes that body every frame.
+ */
+@Composable
+fun animatedColourState(target: Color, durationMillis: Int = Motion.FAST): State<Color> {
     val reduced = LocalReducedMotion.current
     return animateColorAsState(
         targetValue = target,
@@ -225,7 +235,7 @@ fun animatedColour(target: Color, durationMillis: Int = Motion.FAST): Color {
             tween<Color>(durationMillis, easing = Motion.Ease)
         },
         label = "colour",
-    ).value
+    )
 }
 
 /**

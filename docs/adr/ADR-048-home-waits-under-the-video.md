@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6; amended 0.20.7 (below). Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7 and 0.20.8 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -71,3 +71,12 @@ Checked on the living-room Google TV Streamer after 0.20.6 shipped.
   rail ahead of time, which never fits a frame on that box, so the request never ended; kept under
   the video, it ran all through the video too. Home's list now composes a row as it arrives
   (`NoRowPrefetch`), which is what the box was doing anyway.
+
+## 0.20.8
+
+Handing the remote back to "Full screen" moved focus during the fade, from the button the
+platform had picked to that one, and a television button recomposed itself on every frame of its
+colour crossing: two buttons, 7–8ms a frame, through 210ms of the 360ms fade, which ran at about
+20 frames a second. `StudioButton` now reads its fill, edge and content colours where they are
+drawn, so a crossing redraws the button and recomposes nothing, on home and wherever the button
+is used.
