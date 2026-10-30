@@ -1,6 +1,6 @@
 # ADR-051 — The guide is drawn over the picture
 
-**Status:** accepted. Decided by the owner on 2026-10-30: *no small preview window; the channel
+**Status:** accepted, 0.21.0; amended 0.21.1 (below). Decided by the owner on 2026-10-30: *no small preview window; the channel
 being watched plays full screen behind the guide, showing through a lightly dimmed band at the top;
 the grid on a dark backdrop; the focused programme on one thin line; the room freed spent on more
 rows and a more prominent day switcher; and the guide has to move smoothly.* Supersedes ADR-013's
@@ -96,3 +96,53 @@ scaffold's inset gave it, and is measured inside it, so an hour of guide is as w
   measured and built under the band), a step down and up the rows, a step along a row to a cell
   past the edge (the shared sideways scroll), and that nothing keeps drawing once the remote
   stops.
+
+## 0.21.1: the guide opens without freezing
+
+A trace of 0.21.0 on the living-room Google TV Streamer, opening the guide from home's banner,
+showed two frames of about 800ms each:
+
+1. Home was let go (183ms), and the guide was composed with all eight rows as "no guide data"
+   stripes, its data not yet arrived. 526ms of layout.
+2. The data arrived and all eight rows composed their cells at once, at 18–40ms a row, then
+   361ms of layout, which includes building them.
+
+Moving inside the guide was as intended: 26–54ms for a press's first frame, 17–21ms after it,
+nothing recomposed per frame, and no frames at all at rest.
+
+- **The rows come in one a frame** (`RowGate`, `GuideScreen.kt`). The guide opens with its band,
+  its ruler and its channel column, and an empty plate of glass in every lane.
+  - Once a row's programmes have arrived it waits its turn, top row first, one row a frame. The
+    write that lets it through is made inside the frame, so the row is composed in that frame.
+  - The rows wait from the opening, and again from each new window (a day, −2h, now, +2h), until
+    every row that was waiting has been through.
+  - A row composed after that draws its programmes at once: scrolled to, or built ahead while
+    the screen is still (`AheadPrefetch`).
+  - A row asks for frames only once its programmes are here, so nothing wakes while a fetch is
+    out.
+  - A lane whose fetch has not come back is an empty plate, not "no guide data".
+  - The phone's guide draws each row as its programmes arrive, as before.
+- **The landing waits for its row** to draw its programmes, and for that row to be on screen,
+  before it focuses the programme on air.
+- **A programme cell costs less to build.** What a cell was:
+  - **Modifiers:** the focus lift (a `zIndex`, a graphics layer, one `animateFloatAsState`);
+    width, height, padding; a clip (a second layer); its background; the lit edge (a border with
+    a remembered brush) on cells still to come; the focus surface (two `animateColorAsState`, a
+    third layer, a cached draw); a focus observer; the landing's requester on one cell; `clickable`;
+    padding.
+  - **Inside:** two `Row`s and two to four Material `Text`s.
+  - **Per cell, every time:** two copies of the body style, a new shape, and the catch-up word
+    looked up again.
+  - **So:** three animations each launching a coroutine, and three layers, in every cell of
+    every row.
+
+  What it is now:
+  - **The focus treatment is built the first time the remote reaches the cell**, and kept. A
+    cell at rest drew nothing with it anyway. It starts a frame at rest, so the first focus still
+    crosses in rather than cutting.
+  - **The shape, the four text styles and the catch-up word** are worked out once for the grid.
+  - **Bare text** with those styles, and a `Row` only around the live dot or a badge.
+  - **The result:** a cell at rest is one layer, two texts and no animations. The day chips keep
+    their treatment: they are a handful, and their resting state is a visible plate.
+- **Home is not let go** when the guide opens from it (ADR-048, 0.21.1).
+

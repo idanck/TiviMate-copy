@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -236,9 +237,10 @@ fun TvRoot(
     // comes back, as a home composed afresh does: it is handed it, where it last had it. Two
     // frames: one to place the screen, one for a home composed afresh to make its own claim first.
     // Whatever takes the remote between leaving home for the video and that hand-back is not noted
-    // as where it was (`HomeFocusReturn.hold`).
+    // as where it was (`HomeFocusReturn.hold`). The same for the guide, which home now waits under
+    // too (ADR-048, 0.21.1): home placed again on Back is handed the remote where it left it.
     LaunchedEffect(overlay) {
-        if (overlay.isPassthrough) homeFocus.hold()
+        if (overlay.isPassthrough || overlay == TvOverlay.GUIDE) homeFocus.hold()
         if (overlay != TvOverlay.HOME) return@LaunchedEffect
         withFrameNanos { }
         withFrameNanos { }
@@ -513,12 +515,38 @@ fun TvRoot(
         // Not a `MutableState`, on purpose: it has to change in the same composition as
         // `overlay` does, or the screen just left would be drawn once more on the way to the next.
         val lastBrowse = remember { arrayOf(overlay) }
-        if (overlay.isBrowse) lastBrowse[0] = overlay
+        // Home waits, composed, under the guide that replaced it (ADR-048, 0.21.1): opening the
+        // guide from home let home go, 183ms of an 811ms frame on a Google TV Streamer, and Back
+        // built it all again. Plain values like `lastBrowse`, for the same reason, settled with it.
+        val homeUnderGuide = remember { booleanArrayOf(false) }
+        // Whether home is composed at all, so the guide never builds a home to keep under it.
+        val homeComposed = remember { booleanArrayOf(false) }
+        // Set once a guide that home waits under has faded out for the video (ADR-036): then the
+        // guide goes, and home waits under the video on its own, as it does when left for it.
+        var guideFadedOverHome by remember { mutableStateOf(false) }
+        if (overlay.isBrowse && overlay != lastBrowse[0]) {
+            homeUnderGuide[0] = overlay == TvOverlay.GUIDE && lastBrowse[0] == TvOverlay.HOME && homeComposed[0]
+            lastBrowse[0] = overlay
+        }
+        if (guideFadedOverHome && overlay.isPassthrough && lastBrowse[0] == TvOverlay.GUIDE && homeUnderGuide[0]) {
+            lastBrowse[0] = TvOverlay.HOME
+            homeUnderGuide[0] = false
+        }
         val browse = lastBrowse[0]
+        LaunchedEffect(overlay) {
+            guideFadedOverHome = false
+            if (overlay.isPassthrough && lastBrowse[0] == TvOverlay.GUIDE && homeUnderGuide[0]) {
+                // The guide's fade out (`BrowsePresence`); reduced motion's is shorter still.
+                delay(Motion.EXIT.toLong())
+                guideFadedOverHome = true
+            }
+        }
         // Back from the video goes to home most of the time, and home built afresh took a 145ms
         // frame and then a 210ms one in the middle of its fade on a Google TV Streamer. Kept,
-        // composed but not placed, it comes back as a fade alone (ADR-048).
-        val keepHome = browse == TvOverlay.HOME && overlay.isPassthrough
+        // composed but not placed, it comes back as a fade alone (ADR-048) — and so does a guide
+        // home waits under, until it has faded and goes (above).
+        val keepHome = overlay.isPassthrough &&
+            (browse == TvOverlay.HOME || (browse == TvOverlay.GUIDE && homeUnderGuide[0]))
         BrowsePresence(visible = overlay.isBrowse, keep = keepHome) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
@@ -552,20 +580,28 @@ fun TvRoot(
                     )
                 },
             ) {
+                // The television's root surface (ADR-016), in a layer of its own under whichever
+                // screen is up: placed while it is the screen, and kept, unplaced, under the guide
+                // that replaced it (ADR-048, 0.21.1). Under any other screen it is let go, as before.
+                // The radio backdrop is not drawn behind it (ADR-047), so the banner keeps its own
+                // station identity and clock while a station plays.
+                if (browse == TvOverlay.HOME || (browse == TvOverlay.GUIDE && homeUnderGuide[0])) {
+                    HomeLayer(shown = browse == TvOverlay.HOME, composed = homeComposed) {
+                        TvHomeScreen(
+                            vm = vm,
+                            onOpen = onOverlayChange,
+                            onFullscreen = { onOverlayChange(TvOverlay.NONE) },
+                            focusReturn = homeFocus,
+                            modifier = Modifier.fillMaxSize(),
+                            active = overlay == TvOverlay.HOME,
+                        )
+                    }
+                }
                 when (browse) {
-                    // The television's root surface (ADR-016). Added here in the same edit as the
-                    // enum value on purpose: the `else -> Unit` at the bottom of this `when` means
-                    // a forgotten branch compiles and renders an empty scaffold over the video.
-                    // The radio backdrop is not drawn behind it (ADR-047), so the banner keeps its
-                    // own station identity and clock while a station plays.
-                    TvOverlay.HOME -> TvHomeScreen(
-                        vm = vm,
-                        onOpen = onOverlayChange,
-                        onFullscreen = { onOverlayChange(TvOverlay.NONE) },
-                        focusReturn = homeFocus,
-                        modifier = Modifier.fillMaxSize(),
-                        active = overlay == TvOverlay.HOME,
-                    )
+                    // Drawn above, in its own layer. Named here in the same edit as the enum value
+                    // on purpose: the `else -> Unit` at the bottom of this `when` means a forgotten
+                    // branch compiles and renders an empty scaffold over the video.
+                    TvOverlay.HOME -> Unit
 
                     // Where else to go is the side menu's, as on every other screen (ADR-035):
                     // the group column holds the list's own filters and groups and nothing else.
@@ -755,6 +791,49 @@ private fun BrowsePresence(
                             compositingStrategy = CompositingStrategy.ModulateAlpha
                         }
                     }
+                }
+            },
+    ) {
+        content()
+    }
+}
+
+/**
+ * Home's own layer in the scaffold (ADR-048, 0.21.1): placed while home is the screen, and
+ * unplaced while it waits under the guide that replaced it. Unplaced, as [BrowsePresence] leaves a
+ * screen under the video, it draws nothing, the remote's search for focus passes it by and it says
+ * nothing to accessibility; and if the remote was inside it as the guide came up — on the banner's
+ * guide button — it is let go, so the remote is never left on a control nobody can see. Home is
+ * handed it back on its return by `HomeFocusReturn`, as from the video.
+ *
+ * @param composed kept true while home is composed, so [TvRoot] knows there is a home to keep
+ */
+@Composable
+private fun HomeLayer(
+    shown: Boolean,
+    composed: BooleanArray,
+    content: @Composable () -> Unit,
+) {
+    val focusManager = LocalFocusManager.current
+    // Whether the remote is somewhere inside: true while any focus target below holds it.
+    var holdsFocus by remember { mutableStateOf(false) }
+    DisposableEffect(composed) {
+        composed[0] = true
+        onDispose { composed[0] = false }
+    }
+    LaunchedEffect(shown) {
+        if (!shown && holdsFocus) focusManager.clearFocus(force = true)
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onFocusChanged { holdsFocus = it.hasFocus }
+            .then(if (shown) Modifier else Modifier.focusProperties { canFocus = false })
+            .then(if (shown) Modifier else Modifier.clearAndSetSemantics { })
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    if (shown) placeable.place(0, 0)
                 }
             },
     ) {
