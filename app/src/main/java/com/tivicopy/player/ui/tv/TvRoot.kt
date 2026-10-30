@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,8 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -43,15 +40,10 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 import com.tivicopy.player.R
 import com.tivicopy.player.ServiceLocator
@@ -152,23 +144,17 @@ enum class TvOverlay {
     val leavesDpadToShell: Boolean
         get() = this == NONE || this == INFO
 
-    /**
-     * Whether the live picture shrinks into a preview slot rather than filling the screen.
-     *
-     * Only the guide, which docks it beside the grid. The home screen used to as well — ADR-016
-     * gave it a boxed hero — and ADR-020 took that back: its banner is the picture at full size
-     * with the screen's furniture drawn over it, so there is nothing to shrink into.
-     */
-    val docksPlayer: Boolean
-        get() = this == GUIDE
+    // Nothing shrinks the live picture into a slot any more. The home screen stopped with ADR-020
+    // and the guide with ADR-051, which draws its band and its grid over the picture at full size;
+    // the `docksPlayer` flag and the slot it measured went with it.
 
     /**
      * Whether this overlay draws its own backdrop over the live picture, and so wants no scrim
      * from [OverlayScaffold].
      *
-     * The guide paints panes around a preview it is deliberately keeping watchable; the home
-     * screen paints a gradient and a set of opaque rails over a picture that fills the panel.
-     * A scrim under either would tint the one thing the layout exists to keep visible.
+     * The guide dims the picture only lightly in its top band and lays its grid on the dark ground
+     * under it (ADR-051); the home screen paints a gradient and a set of opaque rails over a picture
+     * that fills the panel. A scrim under either would tint the picture both leave showing.
      */
     val paintsOwnBackdrop: Boolean
         get() = this == GUIDE || this == HOME
@@ -178,7 +164,7 @@ enum class TvOverlay {
      *
      * Not the same question as [isPassthrough], which is about the remote, even though the two
      * answers coincide: the picture is the screen only on the bare video and under the bars that
-     * ride over it. The guide shrinks it into a preview beside a grid that does not move for
+     * ride over it. The guide covers all but a dimmed band of it with a grid that does not move for
      * hours, and the home screen draws its top bar, caption and rails over it — still screens
      * with a moving stamp on them, which wear into a panel like any other (ADR-039, ADR-040).
      * Read by [com.tivicopy.player.ui.common.idleScene].
@@ -189,15 +175,16 @@ enum class TvOverlay {
     /**
      * Whether this overlay reaches the edges of the panel itself, rather than sitting inside
      * [TV_CONTENT_INSET]. A full-bleed banner cannot start 24dp from the edge, so the home screen
-     * takes the inset over as its own content padding (ADR-020).
+     * takes the inset over as its own content padding (ADR-020). So does the guide, whose band and
+     * grid backdrops have to reach the edges over a picture that does (ADR-051).
      */
     val fullBleed: Boolean
-        get() = this == HOME
+        get() = this == HOME || this == GUIDE
 
     /**
      * Whether this overlay draws Studio's top bar inside its own layout, so [OverlayScaffold]
-     * must not draw a second one. Home pins it over its banner; the guide heads the column beside
-     * its channel rail with it (`canvas/Guide.dc.html`). Every other browse screen takes the
+     * must not draw a second one. Home pins it over its banner; the guide heads the band it leaves
+     * over the picture with it (ADR-051). Every other browse screen takes the
      * scaffold's, at the same place and size as home's (ADR-035).
      */
     val drawsOwnTopBar: Boolean
@@ -301,44 +288,16 @@ fun TvRoot(
         }
     }
 
-    // Where the guide wants the live picture drawn, in root coordinates, and where this box
-    // itself sits so that rectangle can be made relative to it.
-    var dockBounds by remember { mutableStateOf<Rect?>(null) }
-    var rootOrigin by remember { mutableStateOf(Offset.Zero) }
-    val docked = overlay.docksPlayer
-    // Forget the slot whenever the overlay changes, not merely when docking stops. Keyed on
-    // `docked` alone, a move between the two docking surfaces — home to guide — kept the old
-    // rectangle, and the picture sat in the home screen's hero position until the guide got
-    // round to reporting its own.
-    LaunchedEffect(overlay) { dockBounds = null }
-
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(androidx.compose.ui.graphics.Color.Black)
-            .onGloballyPositioned { rootOrigin = it.positionInRoot() },
+            .background(androidx.compose.ui.graphics.Color.Black),
     ) {
-        // One surface, two sizes. It is never moved to another call site and never re-created:
-        // Compose measures the same node smaller, so the stream is not interrupted and nothing
-        // re-tunes. Reparenting it — or scaling it with a graphics layer, which does not move a
-        // SurfaceView's punched hole at all — would both have cost a black frame or worse.
-        val dock = dockBounds.takeIf { docked }
-        // Whatever stands in for the picture goes where the picture goes — the surface itself,
-        // and the radio backdrop that replaces it when there is no picture to draw.
-        val pictureBounds = if (dock == null) {
-            Modifier.fillMaxSize()
-        } else {
-            with(LocalDensity.current) {
-                Modifier
-                    .offset {
-                        IntOffset(
-                            (dock.left - rootOrigin.x).roundToInt(),
-                            (dock.top - rootOrigin.y).roundToInt(),
-                        )
-                    }
-                    .size(dock.width.toDp(), dock.height.toDp())
-            }
-        }
+        // One surface, at one size: the panel. It is never moved to another call site, re-created
+        // or resized — every surface, the guide included since ADR-051, is drawn over it — so the
+        // stream is not interrupted and nothing re-tunes. (The guide used to shrink it into a slot
+        // beside its grid, ADR-013; reparenting it or scaling it with a graphics layer, which does
+        // not move a SurfaceView's punched hole at all, would both have cost a black frame or worse.)
         // Sport mode is the one exception (ADR-041): its panels are video surfaces of their own,
         // and two surfaces covering the same pixels have no defined order — this one's last frame
         // could sit on top of the panels. The full-screen player is silent while it is up, and is
@@ -348,8 +307,7 @@ fun TvRoot(
                 engine = ServiceLocator.player,
                 aspectMode = prefs.aspectMode,
                 subtitleScale = prefs.subtitleTextScale,
-                docked = dock != null,
-                modifier = pictureBounds,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -374,13 +332,13 @@ fun TvRoot(
         // is focusable, and the remote's search for the next panel goes by position, not by what
         // is drawn on top — an arrow could land on a button nobody can see.
         val sport = overlay.isPanels
-        // On the radio's own screen only (ADR-047): the bare picture and the surfaces over it, and
-        // the guide's preview slot, where it is the picture. Not behind a browse screen, which
-        // covers it: drawn there, its moving light and equaliser cost a Google TV Streamer about
-        // 12ms of GPU a frame, every frame, and held every animation on home to some 35 a second.
-        // It fades as a browse screen arrives over it and returns as one leaves, rather than
-        // cutting to black under a screen still fading in.
-        SurfacePresence(visible = audioOnly && !sport && (!overlay.isBrowse || docked), rise = 0.dp) {
+        // On the radio's own screen only (ADR-047): the bare picture and the surfaces over it. Not
+        // behind a browse screen, which covers it — the guide included, whose band leaves the top
+        // of the panel showing (ADR-051): drawn there, its moving light and equaliser cost a Google
+        // TV Streamer about 12ms of GPU a frame, every frame, and held every animation on home to
+        // some 35 a second. It fades as a browse screen arrives over it and returns as one leaves,
+        // rather than cutting to black under a screen still fading in.
+        SurfacePresence(visible = audioOnly && !sport && !overlay.isBrowse, rise = 0.dp) {
             AudioOnlyNowPlaying(
                 channel = state.nowPlaying.audioOnlyChannel(),
                 title = status.title,
@@ -404,7 +362,7 @@ fun TvRoot(
                         }
                         strip
                     },
-                modifier = pictureBounds,
+                modifier = Modifier.fillMaxSize(),
             )
         }
 
@@ -564,9 +522,9 @@ fun TvRoot(
         BrowsePresence(visible = overlay.isBrowse, keep = keepHome) {
             OverlayScaffold(
                 opacity = prefs.overlayOpacity,
-                // The guide paints its own panes and leaves the preview slot bare; the home
-                // screen paints a gradient over a full-screen picture. A scrim under either would
-                // be drawn straight over the live picture the whole layout exists to keep visible.
+                // The guide dims the picture lightly in its band and grounds its grid itself; the
+                // home screen paints a gradient over a full-screen picture. A scrim under either
+                // would be drawn straight over the live picture both leave showing.
                 scrim = !browse.paintsOwnBackdrop,
                 inset = !browse.fullBleed,
                 // Replayed whenever the browse screen changes, which is what makes one browse
@@ -645,10 +603,9 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    TvOverlay.GUIDE -> PictureInGuide(
+                    TvOverlay.GUIDE -> GuideOverPicture(
                         vm = vm,
-                        onDockBounds = { dockBounds = it },
-                        // The guide stays up, with the new channel in its picture. Re-asserting
+                        // The guide stays up, with the new channel playing behind it. Re-asserting
                         // it is what counts the OK as a move made here: Back then rises to home
                         // like any browse surface, even if the guide came from the video (ADR-036).
                         onPlay = { channel ->
@@ -829,8 +786,8 @@ private fun BrowsePresence(
 private fun OverlayScaffold(
     opacity: Float,
     /**
-     * Whether to dim the video behind. The guide says no: it draws its own panes around a live
-     * preview, and a scrim here would tint the one thing it is trying to keep watchable.
+     * Whether to dim the video behind. The guide says no: it dims its band over the picture
+     * lightly and grounds its grid itself (ADR-051), and a scrim here would darken both.
      */
     scrim: Boolean = true,
     /**

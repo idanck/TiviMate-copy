@@ -72,19 +72,20 @@ export const REGION_ORDER: RadioRegion[] = ['NORTH', 'CENTER', 'JERUSALEM', 'SOU
 
 const REGIONAL_GROUP_MARKERS = ['אזורי', 'regional'];
 const NATIONAL_GROUP_MARKERS = ['ארצי', 'ישראלי', 'national'];
+// "יוון" as well as "יווני": the feed's Greek station is named after the country, which (final nun) is not inside the adjective.
 const GENRE_MARKERS: Array<[string, string[]]> = [
-  ['יווני', ['יווני', 'greek']],
+  ['יווני', ['יווני', 'יוון', 'greek']],
   ['מזרחי', ['מזרחי', 'mizrahi']],
 ];
 const REGION_MARKERS: Array<[RadioRegion, string[]]> = [
   ['NORTH', [
     'צפון', 'חיפה', 'גליל', 'כרמל', 'כנרת', 'טבריה', 'נצרת', 'עכו', 'צפת', 'קריות',
-    'קול רגע', 'עמק יזרעאל', '104.5',
-    'north', 'tzafon', 'haifa', 'galil', 'galilee', 'kinneret', 'kol rega',
+    'קול רגע', 'יזרעאל', 'גולן', '104.5',
+    'north', 'tzafon', 'haifa', 'galil', 'galilee', 'kinneret', 'kol rega', 'golan',
   ]],
   ['CENTER', [
     'מרכז', 'תל אביב', 'ת"א', 'שרון', 'לב המדינה', 'גוש דן', 'רמת גן', 'פתח תקווה',
-    'נתניה', 'הרצליה', 'רחובות', 'מודיעין', 'עמק חפר', 'רדיו 90', '90fm', '90 fm',
+    'נתניה', 'הרצליה', 'רחובות', 'מודיעין', 'עמק חפר', 'רדיו 90', 'רדיו תשעים', '90fm', '90 fm',
     'center', 'central', 'tel aviv', 'sharon', 'merkaz', 'hefer',
   ]],
   ['JERUSALEM', ['ירושלים', 'jerusalem', 'yerushalayim']],
@@ -100,11 +101,21 @@ export function isRussianStation(name: string, group?: string): boolean {
   return RUSSIAN_MARKERS.some((m) => haystack.includes(m)) || /[Ѐ-ӿ]/.test(name);
 }
 
-export function radioCategory(group: string | undefined, name: string): RadioCategory {
+function genreOf(name: string): string | undefined {
   const n = name.toLowerCase();
-  for (const [label, markers] of GENRE_MARKERS) if (markers.some((m) => n.includes(m))) return { kind: 'GENRE', label };
+  return GENRE_MARKERS.find(([, markers]) => markers.some((m) => n.includes(m)))?.[0];
+}
+
+function filedAsRegional(group: string | undefined): boolean {
   const g = (group ?? '').toLowerCase();
-  if (REGIONAL_GROUP_MARKERS.some((m) => g.includes(m))) return { kind: 'REGIONAL' };
+  return REGIONAL_GROUP_MARKERS.some((m) => g.includes(m));
+}
+
+export function radioCategory(group: string | undefined, name: string): RadioCategory {
+  const genre = genreOf(name);
+  if (genre !== undefined) return { kind: 'GENRE', label: genre };
+  if (filedAsRegional(group)) return { kind: 'REGIONAL' };
+  const g = (group ?? '').toLowerCase();
   if (NATIONAL_GROUP_MARKERS.some((m) => g.includes(m))) return { kind: 'NATIONAL' };
   return { kind: 'OTHER' };
 }
@@ -113,4 +124,42 @@ export function radioRegion(name: string): RadioRegion {
   const n = name.toLowerCase();
   for (const [region, markers] of REGION_MARKERS) if (markers.some((m) => n.includes(m))) return region;
   return 'UNKNOWN';
+}
+
+/**
+ * A shelf of the Android radio list's category menu (ADR-050), ported with its rules: every
+ * station on one place shelf — the region its name names, "other regions" when the feed files it
+ * as regional without saying where, national otherwise — and on its genre's shelf as well.
+ */
+export type RadioShelf =
+  | { kind: 'NATIONAL' }
+  | { kind: 'REGIONAL'; region: RadioRegion }
+  | { kind: 'GENRE'; label: string };
+
+export function radioRegionShelf(group: string | undefined, name: string): RadioShelf {
+  const region = radioRegion(name);
+  if (region !== 'UNKNOWN') return { kind: 'REGIONAL', region };
+  if (filedAsRegional(group)) return { kind: 'REGIONAL', region: 'UNKNOWN' };
+  return { kind: 'NATIONAL' };
+}
+
+export function radioShelves(group: string | undefined, name: string): RadioShelf[] {
+  const genre = genreOf(name);
+  return genre === undefined
+    ? [radioRegionShelf(group, name)]
+    : [radioRegionShelf(group, name), { kind: 'GENRE', label: genre }];
+}
+
+const shelfKey = (s: RadioShelf): string =>
+  s.kind === 'NATIONAL' ? 'NATIONAL' : s.kind === 'REGIONAL' ? `REGIONAL:${s.region}` : `GENRE:${s.label}`;
+
+/** National, the regions from the north, then the genres alphabetically; shelves nobody is on left out. */
+export function radioMenu(stations: Array<{ group?: string; name: string }>): RadioShelf[] {
+  const present = new Map<string, RadioShelf>();
+  for (const s of stations) for (const shelf of radioShelves(s.group, s.name)) present.set(shelfKey(shelf), shelf);
+  const places: RadioShelf[] = [{ kind: 'NATIONAL' }, ...REGION_ORDER.map((region): RadioShelf => ({ kind: 'REGIONAL', region }))];
+  const genres = [...present.values()]
+    .filter((s): s is Extract<RadioShelf, { kind: 'GENRE' }> => s.kind === 'GENRE')
+    .sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
+  return [...places.filter((p) => present.has(shelfKey(p))), ...genres];
 }

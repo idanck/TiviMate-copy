@@ -3,7 +3,8 @@
 **Status:** accepted, 0.20.5. Decided by the owner on 2026-10-30, from three options: *don't draw
 the radio backdrop behind the browse screens; it appears only on the radio's own screen.*
 Narrows ADR-015's backdrop, which until now filled the panel behind home and every browse screen
-whenever an audio-only stream played.
+whenever an audio-only stream played. Since ADR-051 the guide has no preview slot, so the backdrop
+is not drawn in the guide either.
 
 ## Context
 

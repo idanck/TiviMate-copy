@@ -416,6 +416,9 @@
     <string name="settings_screensaver_sub">מחליף את המסך בשעון אולפן על רקע שחור בכל מצב, חוץ מצפייה בערוץ או בסרט, כדי ששום דבר לא ייצרב במסך</string>
     <string name="settings_screensaver_idle">הפעלת שומר המסך אחרי</string>
     <string name="settings_minutes">%1$d דק׳</string>
+    <string name="settings_channel_saver">שומר מסך בצפייה בערוץ</string>
+    <string name="settings_channel_saver_sub">אחרי זמן ארוך בלי השלט, הערוץ ממשיך להתנגן מעומעם, ומעליו השעה, התוכנית והמבזקים</string>
+    <string name="settings_channel_saver_idle">בצפייה בערוץ, הפעלה אחרי</string>
     <string name="settings_screensaver_tasks">הצגת המשימות שלי בשומר המסך של הרדיו</string>
     <string name="settings_screensaver_tasks_sub">משימה פתוחה אחת בכל פעם, מתחת לשעון כשתחנה מתנגנת</string>
     <string name="settings_task_url">כתובת רשימת המשימות</string>

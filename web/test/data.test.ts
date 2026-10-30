@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readBackup, stripCredentials, writeBackup } from '../src/data/backup';
-import { isIsraeliNews, isIsraeliSport, isRussianStation, radioCategory, radioRegion } from '../src/data/classify';
+import { isIsraeliNews, isIsraeliSport, isRussianStation, radioCategory, radioMenu, radioRegion, radioRegionShelf, radioShelves } from '../src/data/classify';
 import { indexAt, nowNext } from '../src/data/guide';
 import { identityOf, parseM3u, parseShiftMinutes } from '../src/data/m3u';
 import { matchChannels } from '../src/data/matcher';
@@ -269,6 +269,46 @@ describe('classifiers', () => {
     expect(radioRegion('רדיו כלשהו')).toBe('UNKNOWN');
     expect(isRussianStation('Радио', undefined)).toBe(true);
     expect(isRussianStation('רדיו חיפה', 'רדיו אזורי')).toBe(false);
+  });
+
+  it('radio menu by region (ADR-050)', () => {
+    expect(radioRegion('רדיו קול יזרעאל 106FM')).toBe('NORTH');
+    expect(radioRegion('רדיו קול הגולן')).toBe('NORTH');
+    expect(radioRegion('רדיו תשעים')).toBe('CENTER');
+    expect(radioRegion('רדיו שנות התשעים')).toBe('UNKNOWN');
+    expect(radioCategory('יווני', 'רדיו כחול יוון')).toEqual({ kind: 'GENRE', label: 'יווני' });
+    expect(radioRegionShelf('מוזיקה', 'גלגלצ')).toEqual({ kind: 'NATIONAL' });
+    expect(radioRegionShelf('אזורי', 'רדיו קול גלים')).toEqual({ kind: 'REGIONAL', region: 'UNKNOWN' });
+    expect(radioRegionShelf('אזורי', 'רדיו דרום')).toEqual({ kind: 'REGIONAL', region: 'SOUTH' });
+    expect(radioShelves('מוזיקה', 'רדיו מזרחי חיפה')).toEqual([
+      { kind: 'REGIONAL', region: 'NORTH' },
+      { kind: 'GENRE', label: 'מזרחי' },
+    ]);
+    const stations = [
+      { group: 'מוזיקה', name: 'רדיו מזרחי' },
+      { group: 'מוזיקה', name: 'רדיו דרום' },
+      { group: 'יווני', name: 'רדיו כחול יוון' },
+      { group: 'אזורי', name: 'רדיו קול השפלה' },
+      { group: 'אקטואליה', name: 'רדיו ירושלים' },
+      { group: 'מוזיקה', name: 'רדיו 102 תל אביב' },
+      { group: 'מוזיקה', name: 'רדיו חיפה' },
+      { group: 'מוזיקה', name: 'גלגלצ' },
+    ];
+    expect(radioMenu(stations)).toEqual([
+      { kind: 'NATIONAL' },
+      { kind: 'REGIONAL', region: 'NORTH' },
+      { kind: 'REGIONAL', region: 'CENTER' },
+      { kind: 'REGIONAL', region: 'JERUSALEM' },
+      { kind: 'REGIONAL', region: 'SOUTH' },
+      { kind: 'REGIONAL', region: 'UNKNOWN' },
+      { kind: 'GENRE', label: 'יווני' },
+      { kind: 'GENRE', label: 'מזרחי' },
+    ]);
+    expect(radioMenu([{ group: 'מוזיקה', name: 'גלגלצ' }, { group: 'מוזיקה', name: 'רדיו אילת 102FM' }])).toEqual([
+      { kind: 'NATIONAL' },
+      { kind: 'REGIONAL', region: 'SOUTH' },
+    ]);
+    expect(radioMenu([])).toEqual([]);
   });
 });
 

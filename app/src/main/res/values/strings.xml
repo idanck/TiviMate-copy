@@ -448,6 +448,9 @@
     <string name="settings_screensaver_sub">Replaces the screen with a studio clock on black, except while you watch a channel or a film, so nothing wears into the panel</string>
     <string name="settings_screensaver_idle">Start the screensaver after</string>
     <string name="settings_minutes">%1$d min</string>
+    <string name="settings_channel_saver">Screensaver while watching a channel</string>
+    <string name="settings_channel_saver_sub">After a long time without the remote, the channel keeps playing, dimmed, under the time, the programme and the headlines</string>
+    <string name="settings_channel_saver_idle">While watching a channel, start after</string>
     <string name="settings_screensaver_tasks">Show my tasks on the radio screensaver</string>
     <string name="settings_screensaver_tasks_sub">One open task at a time, under the clock while a station plays</string>
     <string name="settings_task_url">Task list address</string>

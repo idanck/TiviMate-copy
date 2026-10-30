@@ -25,14 +25,64 @@ class ScreensaverTest {
     // ------------------------------------------------------------------ scenes
 
     /**
-     * The owner's rule (ADR-040): the screensaver comes on in every state except while a channel
-     * is being watched — full screen, with at most the bars that ride over the video.
+     * The owner's rule (ADR-040): the screensaver comes on in every state except while a picture
+     * is being watched — full screen, with at most the bars that ride over the video. A film, a
+     * catch-up programme or a recording is left alone for as long as it plays (ADR-049).
      */
     @Test
-    fun `a channel playing full screen is left alone`() {
+    fun `a film playing full screen is left alone`() {
         assertEquals(
             IdleScene.MOVING,
             idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = true),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = true, channelEnabled = true, scene = IdleScene.MOVING, inPip = false),
+        )
+    }
+
+    /**
+     * ADR-049: a live channel full screen on the television is a picture being watched too, but it
+     * is also what a room plays to nobody all evening, so it has a screensaver of its own.
+     */
+    @Test
+    fun `a live channel playing full screen is watched, and goes to the channel's screensaver`() {
+        val scene = idleScene(
+            playing = true,
+            hasPicture = true,
+            failed = false,
+            videoFillsPanel = true,
+            liveChannel = true,
+        )
+        assertEquals(IdleScene.WATCHING, scene)
+        assertEquals(
+            SaverKind.CHANNEL,
+            screensaverFor(enabled = true, channelEnabled = true, scene = scene, inPip = false),
+        )
+    }
+
+    /**
+     * Not radio, not menus, not paused (ADR-049): a live channel that is not filling the panel, not
+     * playing, or that failed is a still screen like any other, and gets the clock as before.
+     */
+    @Test
+    fun `a live channel under a menu, paused, failed or with no picture is still`() {
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = true, failed = false, videoFillsPanel = false, liveChannel = true),
+        )
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = false, hasPicture = true, failed = false, videoFillsPanel = true, liveChannel = true),
+        )
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = true, failed = true, videoFillsPanel = true, liveChannel = true),
+        )
+        // A station is a live channel with no picture: the radio keeps the clock's screensaver.
+        assertEquals(
+            IdleScene.STILL,
+            idleScene(playing = true, hasPicture = false, failed = false, videoFillsPanel = true, liveChannel = true),
         )
     }
 
@@ -118,11 +168,47 @@ class ScreensaverTest {
     // ------------------------------------------------------------------ arming
 
     @Test
-    fun `the guard is off when the setting is off, in picture-in-picture, and over a channel being watched`() {
-        assertTrue(screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = false))
-        assertTrue(!screensaverApplies(enabled = false, scene = IdleScene.STILL, inPip = false))
-        assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.STILL, inPip = true))
-        assertTrue(!screensaverApplies(enabled = true, scene = IdleScene.MOVING, inPip = false))
+    fun `the guard is off when the setting is off, in picture-in-picture, and over a film being watched`() {
+        assertEquals(
+            SaverKind.CLOCK,
+            screensaverFor(enabled = true, channelEnabled = true, scene = IdleScene.STILL, inPip = false),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = false, channelEnabled = true, scene = IdleScene.STILL, inPip = false),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = true, channelEnabled = true, scene = IdleScene.STILL, inPip = true),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = true, channelEnabled = true, scene = IdleScene.MOVING, inPip = false),
+        )
+    }
+
+    /**
+     * ADR-049: the master switch turns both screensavers off; the channel's own switch turns off
+     * only the channel's, and leaves a still screen to the clock as before.
+     */
+    @Test
+    fun `the channel's screensaver answers to both switches, the clock's to the master one alone`() {
+        assertEquals(
+            null,
+            screensaverFor(enabled = false, channelEnabled = true, scene = IdleScene.WATCHING, inPip = false),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = true, channelEnabled = false, scene = IdleScene.WATCHING, inPip = false),
+        )
+        assertEquals(
+            null,
+            screensaverFor(enabled = true, channelEnabled = true, scene = IdleScene.WATCHING, inPip = true),
+        )
+        assertEquals(
+            SaverKind.CLOCK,
+            screensaverFor(enabled = true, channelEnabled = false, scene = IdleScene.STILL, inPip = false),
+        )
     }
 
     @Test
@@ -153,6 +239,83 @@ class ScreensaverTest {
         val still = 1_000_000L
         val pressed = still + 120_000L
         assertEquals(pressed + 600_000L, screensaverDueAt(pressed, still, 10))
+    }
+
+    /** ADR-049: each screensaver waits its own idle period — ten minutes for the clock, an hour for the channel. */
+    @Test
+    fun `each screensaver waits its own idle period`() {
+        val pressed = 1_000_000L
+        assertEquals(
+            pressed + 10 * 60_000L,
+            saverDueAt(SaverKind.CLOCK, pressed, sceneSince = pressed, idleMinutes = 10, channelIdleMinutes = 60),
+        )
+        assertEquals(
+            pressed + 60 * 60_000L,
+            saverDueAt(SaverKind.CHANNEL, pressed, sceneSince = pressed, idleMinutes = 10, channelIdleMinutes = 60),
+        )
+        assertEquals(
+            pressed + 120 * 60_000L,
+            saverDueAt(SaverKind.CHANNEL, pressed, sceneSince = pressed, idleMinutes = 10, channelIdleMinutes = 120),
+        )
+    }
+
+    /**
+     * ADR-049: the channel's hour runs from the last key press, not from the moment the picture
+     * last came back. A live stream that rebuffered forty minutes in is still due at the hour.
+     */
+    @Test
+    fun `a stall does not restart the channel's hour`() {
+        val pressed = 1_000_000L
+        val recovered = pressed + 40 * 60_000L
+        assertEquals(
+            pressed + 60 * 60_000L,
+            saverDueAt(SaverKind.CHANNEL, pressed, sceneSince = recovered, idleMinutes = 10, channelIdleMinutes = 60),
+        )
+    }
+
+    /**
+     * The clock's countdown, though, runs from the moment the screen turned still (ADR-040,
+     * decision 3): a channel watched for fifty minutes and then failing is not blacked out at the
+     * failure, but ten minutes after it.
+     */
+    @Test
+    fun `a channel that fails after a long watch is given the clock's full wait`() {
+        val pressed = 1_000_000L
+        val failed = pressed + 50 * 60_000L
+        assertEquals(
+            failed + 10 * 60_000L,
+            saverDueAt(SaverKind.CLOCK, pressed, sceneSince = failed, idleMinutes = 10, channelIdleMinutes = 60),
+        )
+    }
+
+    /**
+     * The stamp `sceneSince` is read from moves only when the kind of screen changes — so a key
+     * press keeps the moment the screen turned still, and a screen turning still after a long
+     * watch is stamped when that happens rather than when the watch began.
+     */
+    @Test
+    fun `the scene clock moves only when the kind of screen changes`() {
+        val clock = SceneClock(startedAt = 0L)
+        assertEquals(0L, clock.stamp(null, now = 50L))
+        assertEquals(100L, clock.stamp(SaverKind.CHANNEL, now = 100L))
+        // A key press while the channel plays: still the same kind of screen.
+        assertEquals(100L, clock.stamp(SaverKind.CHANNEL, now = 2_000L))
+        // An hour later the channel fails: the screen turned still now.
+        assertEquals(3_600_000L, clock.stamp(SaverKind.CLOCK, now = 3_600_000L))
+        // A key press on the still screen does not move it.
+        assertEquals(3_600_000L, clock.stamp(SaverKind.CLOCK, now = 3_700_000L))
+        // A film: nothing to hand over; then a pause, which turns the screen still again.
+        assertEquals(3_800_000L, clock.stamp(null, now = 3_800_000L))
+        assertEquals(3_900_000L, clock.stamp(SaverKind.CLOCK, now = 3_900_000L))
+    }
+
+    @Test
+    fun `the programme's bar runs from its start to its end and no further`() {
+        assertEquals(0f, airedFraction(startUtc = 1_000L, endUtc = 2_000L, nowUtc = 500L), 0f)
+        assertEquals(0.25f, airedFraction(startUtc = 1_000L, endUtc = 2_000L, nowUtc = 1_250L), 1e-6f)
+        assertEquals(1f, airedFraction(startUtc = 1_000L, endUtc = 2_000L, nowUtc = 9_000L), 0f)
+        // A programme with no length is over the moment after it starts, not a division by zero.
+        assertEquals(1f, airedFraction(startUtc = 1_000L, endUtc = 1_000L, nowUtc = 1_001L), 0f)
     }
 
     // ------------------------------------------------------------------- drift

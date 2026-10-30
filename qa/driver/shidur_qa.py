@@ -1103,9 +1103,10 @@ class Runner:
             inside = [m.label for f in focused for m in nodes if m.label and m.x1 >= f.x1 and m.x2 <= f.x2
                       and m.y1 >= f.y1 and m.y2 <= f.y2]
             on_row = any("qa.ch01 show" in t for t in inside)
-            # The panel beside the picture describes the focused programme once there is one, so with
+            # The strip over the picture describes the focused programme once there is one, so with
             # a focused cell on the playing row, "On air · …" there says that cell is the airing one.
-            airing = any(n.label.startswith("On air") for n in nodes)
+            # The strip is one line of text (ADR-051): the status sits after the title, not first.
+            airing = any("On air" in n.label for n in nodes)
             status = "PASS" if on_row and airing else "FAIL"
             self.record(sid, title, status,
                         f"focused: {inside[:4] or 'nothing'}; panel says on air: {airing}", [shot], area)

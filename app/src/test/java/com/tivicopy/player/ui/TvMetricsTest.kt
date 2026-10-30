@@ -1,7 +1,7 @@
 package com.tivicopy.player.ui
 
 import com.tivicopy.player.ui.common.TvMetrics
-import com.tivicopy.player.ui.common.dockedGuideRowHeightFor
+import com.tivicopy.player.ui.common.guideGridRowHeightFor
 import com.tivicopy.player.ui.common.tvMetricsFor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -48,36 +48,35 @@ class TvMetricsTest {
      * a home screen nobody here can look at.
      */
     /**
-     * The guide under the docked picture (`PictureInGuide`). On a 1080p panel the top bar and the
-     * picture's row take 242dp of 540, and what is left has to hold the strip, the ruler and a
-     * grid worth opening the guide for: the panel's own row height fitted fewer than two rows
-     * there, which is what the owner reported as barely seeing the guide at all.
+     * The guide over the picture (`GuideOverPicture`, ADR-051). On a 1080p panel the band at the
+     * top — the top bar, the day switcher and the focused programme's strip — takes 156dp of 540,
+     * and the grid keeps 24dp at its foot; what is left holds the ruler and the rows. The guide
+     * with a docked preview (ADR-013) fitted fewer than five rows there; this one fits eight.
      */
     @Test
-    fun `the docked guide fits at least five rows on a 1080p panel`() {
-        val top = 64f
-        val preview = 162f + 16f
-        val height = hd.second - top - preview
-        val rows = (height - 66f) / dockedGuideRowHeightFor(height).value
-        assertTrue("$rows rows", rows >= 5f)
+    fun `the guide over the picture fits eight rows on a 1080p panel`() {
+        val band = 64f + 52f + 32f + 8f
+        val height = hd.second - band - 24f
+        val rows = (height - 28f) / guideGridRowHeightFor(height).value
+        assertTrue("$rows rows", rows >= 7.99f)
         // And the rows are not the panel's: the seventh of the panel the shared metric cuts.
-        assertTrue(dockedGuideRowHeightFor(height).value < tvMetricsFor(hd.first, hd.second).guideRowHeight.value)
+        assertTrue(guideGridRowHeightFor(height).value < tvMetricsFor(hd.first, hd.second).guideRowHeight.value)
     }
 
     @Test
-    fun `a docked row never falls below the height its two lines of type need`() {
+    fun `a guide row never falls below the height its two lines of type need`() {
         listOf(0f, 1f, 100f, 200f).forEach { height ->
-            assertTrue(dockedGuideRowHeightFor(height).value >= 40f)
+            assertTrue(guideGridRowHeightFor(height).value >= 40f)
         }
     }
 
     @Test
-    fun `a docked row never grows past the panel row's own ceiling`() {
+    fun `a guide row never grows past the panel row's own ceiling`() {
         panels.forEach { (_, h) ->
-            val docked = dockedGuideRowHeightFor(h - 64f - 178f).value
-            assertTrue("$docked", docked <= 112f)
+            val row = guideGridRowHeightFor(h - 156f - 24f).value
+            assertTrue("$row", row <= 112f)
         }
-        assertEquals(112f, dockedGuideRowHeightFor(10_000f).value, 0.01f)
+        assertEquals(112f, guideGridRowHeightFor(10_000f).value, 0.01f)
     }
 
     @Test

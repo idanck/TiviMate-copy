@@ -1,5 +1,7 @@
 package com.tivicopy.player.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.CircleShape
@@ -12,10 +14,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -26,15 +26,18 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -43,18 +46,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.core.TimeModel
@@ -63,15 +68,17 @@ import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.data.model.Recording
 import com.tivicopy.player.data.model.RecordingState
 import com.tivicopy.player.ui.AppViewModel
+import com.tivicopy.player.ui.common.AheadPrefetch
 import com.tivicopy.player.ui.common.ChannelLogo
 import com.tivicopy.player.ui.common.ClockText
 import com.tivicopy.player.ui.common.EmptyState
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.QuietPrefetchScheduler
 import com.tivicopy.player.ui.common.StudioButton
 import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.common.StudioButtonVariant
-import com.tivicopy.player.ui.common.filledContentColour
+import com.tivicopy.player.ui.common.animatedColourState
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
 import com.tivicopy.player.ui.common.litEdge
@@ -84,7 +91,50 @@ import com.tivicopy.player.ui.common.StudioIcons
 // leaves the default in place, so the phone's grid is unchanged.
 
 /**
- * The grid guide: channels down, time across (FR-UI-05).
+ * The hours the guide shows: where its window starts, and the three ways it moves — to now, by
+ * two hours, to a day.
+ *
+ * Held apart from the grid so the two shells can lay the guide out differently around the one
+ * window. The phone stacks the toolbar, the strip of days and the grid ([GuideScreen]); the
+ * television puts the days in a band over the picture and the grid on a backdrop of its own under
+ * it (`ui/tv/GuideOverPicture.kt`, ADR-051), and both halves have to move the same window.
+ */
+@Stable
+internal class GuideWindow(initialStart: Long) {
+    /** The window's origin, on a half hour so the time axis lines up with the grid. */
+    var start by mutableLongStateOf(initialStart)
+        private set
+
+    /** Where the window ends: [WINDOW_HOURS] after [start]. */
+    val end: Long get() = start + WINDOW_HOURS * HOUR_MILLIS
+
+    fun jumpNow() {
+        start = nowWindowStart(System.currentTimeMillis())
+    }
+
+    fun shift(hours: Int) {
+        start += hours * HOUR_MILLIS
+    }
+
+    /**
+     * Opens [day], a local midnight from the strip. Picking today means "now", not 00:00 — nobody
+     * opens the guide to read what was on at midnight.
+     */
+    fun pick(day: Long) {
+        val now = System.currentTimeMillis()
+        start = if (day == TimeModel.startOfLocalDay(now)) nowWindowStart(now) else day
+    }
+}
+
+/** A [GuideWindow] that opens on the half hour before now, kept for as long as the guide is. */
+@Composable
+internal fun rememberGuideWindow(): GuideWindow =
+    remember { GuideWindow(nowWindowStart(System.currentTimeMillis())) }
+
+/**
+ * The grid guide: channels down, time across (FR-UI-05), as the phone lays it out — a toolbar,
+ * the strip of days and the grid under them. The television draws the same parts over the picture
+ * instead ([GuideDayRow], [GuideGrid]; ADR-051).
  *
  * Two things keep this responsive on a mid-range TV box with a 500-channel, 7-day guide
  * (FR-UI-07, NFR-PERF-03):
@@ -103,30 +153,119 @@ fun GuideScreen(
     onPlay: (Channel) -> Unit,
     onOpenProgramme: (Channel, Programme) -> Unit,
     modifier: Modifier = Modifier,
-    /**
-     * Told which programme the remote is on, so a panel beside the grid can describe it
-     * (`canvas/Guide.dc.html`'s focused programme). Null where nothing is listening.
-     */
+    /** Told which programme the remote is on. Null where nothing is listening. */
     onFocusProgramme: ((Channel, Programme) -> Unit)? = null,
     /** Off where a Studio top bar above this screen already carries the clock. */
     showClock: Boolean = true,
     /**
-     * The channel whose programme on air the guide opens on, focused; null for none. The playing
-     * channel when the guide comes from the video (`canvas/GuideFromVideo.dc.html`, ADR-036), or
-     * the one the channel list's preview asked for. Read once, when the guide opens.
+     * The channel whose programme on air the guide opens on, focused; null for none. Read once,
+     * when the guide opens.
      */
     landOn: Long? = null,
 ) {
+    val window = rememberGuideWindow()
+    Column(modifier = modifier.fillMaxSize()) {
+        // FR-UI-05's jump-to-date, as the strip of days the benchmark puts above its grid rather
+        // than the dialog this used to open (ADR-020): reaching next Tuesday is now one press
+        // sideways and one press of OK, from a row that also says what today is.
+        GuideToolbar(
+            windowStart = window.start,
+            showClock = showClock,
+            onJumpNow = window::jumpNow,
+            onShift = window::shift,
+        )
+        GuideDayStrip(window = window)
+        HorizontalDivider()
+        GuideGrid(
+            vm = vm,
+            window = window,
+            onPlay = onPlay,
+            onOpenProgramme = onOpenProgramme,
+            onFocusProgramme = onFocusProgramme,
+            landOn = landOn,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+/**
+ * The television's day switcher (ADR-051): the strip of days, its chips at the large control
+ * height with the chosen day in amber, and the window's moves inside a day at its end.
+ *
+ * One row, as it has been since ADR-013's addendum: the date the phone's toolbar prints is what
+ * the chosen chip says, and the clock is in the top bar.
+ *
+ * @param prefetch builds the chips past either edge while the screen is still; see [GuideGrid]
+ */
+@Composable
+internal fun GuideDayRow(
+    window: GuideWindow,
+    prefetch: QuietPrefetchScheduler?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        GuideDayStrip(
+            window = window,
+            prefetch = prefetch,
+            prominent = true,
+            modifier = Modifier.weight(1f),
+        )
+        // Plates rather than ghosts here: this row sits on the picture, dimmed only lightly, and a
+        // bare label over a bright frame is not something anyone can read across a room.
+        WindowButtons(
+            onJumpNow = window::jumpNow,
+            onShift = window::shift,
+            variant = StudioButtonVariant.SECONDARY,
+        )
+    }
+}
+
+/**
+ * The grid itself: the hour ruler, the channel rows and the line at the current time, for
+ * [window]. Draws no strip of days and no toolbar; [GuideScreen] and the television's guide put
+ * those where each wants them.
+ *
+ * @param onFocusProgramme told which programme the remote is on, so a strip or a sheet beside the
+ *   grid can describe it. Null where nothing is listening.
+ * @param landOn the channel whose programme on air the guide opens on, focused: the playing one
+ *   when the guide comes from the video (`canvas/GuideFromVideo.dc.html`, ADR-036), or the one the
+ *   channel list's preview asked for. Read once, when the guide opens.
+ * @param prefetch the television's: builds the rows past either edge of the list while the screen
+ *   is still, rather than in the frame the remote scrolls to them (`QuietPrefetch.kt`, ADR-048's
+ *   0.20.9–0.20.11). Null keeps the lazy list's own prefetch, which a phone's fling wants.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun GuideGrid(
+    vm: AppViewModel,
+    window: GuideWindow,
+    onPlay: (Channel) -> Unit,
+    onOpenProgramme: (Channel, Programme) -> Unit,
+    modifier: Modifier = Modifier,
+    onFocusProgramme: ((Channel, Programme) -> Unit)? = null,
+    landOn: Long? = null,
+    prefetch: QuietPrefetchScheduler? = null,
+) {
     val state by vm.state.collectAsState()
     val channels = state.list.channels
+    val metrics = LocalTvMetrics.current
 
-    // Window origin, snapped to the half hour so the time axis lines up with the grid.
-    var windowStart by remember {
-        mutableStateOf(snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L))
+    // A row of the guide is a channel cell and every programme in six hours, each with its own
+    // focus treatment: on a Google TV Streamer it takes longer to build than a frame has, so the
+    // list's own prefetch would never fit one and would ask again every frame, waking the app
+    // sixty times a second for as long as the guide stayed open (as home's rails did, ADR-048).
+    // The rows past each edge are built while the screen is still instead.
+    val listState = if (prefetch != null) {
+        rememberLazyListState(
+            prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = ROWS_AHEAD) },
+        )
+    } else {
+        rememberLazyListState()
     }
-    val windowEnd by remember { derivedStateOf { windowStart + WINDOW_HOURS * 60 * 60_000L } }
-
-    val listState = rememberLazyListState()
     val timeScroll = rememberScrollState()
     var programmes by remember { mutableStateOf<Map<Long, List<Programme>>>(emptyMap()) }
 
@@ -166,12 +305,19 @@ fun GuideScreen(
         if (index > 0) listState.scrollToItem(index - 1)
     }
 
+    val windowStart = window.start
+    val windowEnd = window.end
+
     LaunchedEffect(visibleChannels, windowStart) {
         // Replaced rather than accumulated: the map is bounded by what is on screen, so a
         // long scroll through a 500-channel guide cannot grow the heap without limit.
-        val window: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
+        val fetched: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
         else vm.guideWindow(visibleChannels, windowStart, windowEnd)
-        programmes = window
+        // A channel whose programmes came back the same keeps the list it had, so its row is
+        // skipped rather than recomposed: a step down the list refetches the whole visible slice,
+        // and every row in it used to be recomposed for a new list of the same programmes.
+        val previous = programmes
+        programmes = fetched.mapValues { (id, list) -> previous[id]?.takeIf { it == list } ?: list }
         // The landing waits for the first fetch that covers that channel while its row is on
         // screen — a row only in the prefetch margin has no cells to focus yet — and has one
         // try: a channel with nothing on air now leaves the guide opening as it always has, and
@@ -180,7 +326,7 @@ fun GuideScreen(
         val rowShown = listState.layoutInfo.visibleItemsInfo.any { it.key == landingId }
         if (!landed && landingId != null && covered && rowShown) {
             val now = System.currentTimeMillis()
-            if (window[landingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
+            if (fetched[landingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
                 // Two frames: one for the row to compose its cells, one for the requester to attach.
                 withFrameNanos { }
                 withFrameNanos { }
@@ -197,47 +343,19 @@ fun GuideScreen(
     // of rows — far cheaper than re-querying on every scroll tick.
     LaunchedEffect(windowStart) { recordings = vm.recordingsIn(windowStart, windowEnd) }
 
-    val jumpNow = { windowStart = snapToHalfHour(System.currentTimeMillis() - 30 * 60_000L) }
-    val shift = { hours: Int -> windowStart += hours * 60 * 60_000L }
-    val pickDay = { day: Long ->
-        val now = System.currentTimeMillis()
-        // Picking today means "now", not 00:00 — nobody opens the guide to read what was
-        // on at midnight.
-        windowStart = if (day == TimeModel.startOfLocalDay(now)) {
-            snapToHalfHour(now - 30 * 60_000L)
-        } else {
-            day
+    // The current time, for the line down the grid (FR-UI-05). It ticks on its own rather than
+    // only when the grid recomposes, because it is a clock: left to the guide's own recompositions
+    // it would freeze wherever it happened to be when the guide opened. Read only where the line
+    // is drawn, so a tick redraws the grid and recomposes nothing.
+    val now = remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(NOW_MARKER_TICK_MS)
+            now.longValue = System.currentTimeMillis()
         }
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // FR-UI-05's jump-to-date, as the strip of days the benchmark puts above its grid rather
-        // than the dialog this used to open (ADR-020): reaching next Tuesday is now one press
-        // sideways and one press of OK, from a row that also says what today is.
-        if (StudioTheme.television) {
-            // One row, not two. On a television this sits under the docked picture and above
-            // the rows, and the toolbar's own line — the date, which the chosen chip already
-            // says, and the clock, which the top bar carries — cost the grid a row of its own.
-            // The pair that moves inside a day keeps its place at the end of the strip.
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(end = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GuideDayStrip(windowStart = windowStart, onPick = pickDay, modifier = Modifier.weight(1f))
-                WindowButtons(onJumpNow = jumpNow, onShift = shift)
-            }
-        } else {
-            GuideToolbar(
-                windowStart = windowStart,
-                showClock = showClock,
-                onJumpNow = jumpNow,
-                onShift = shift,
-            )
-            GuideDayStrip(windowStart = windowStart, onPick = pickDay)
-        }
-        HorizontalDivider()
-
         if (channels.isEmpty()) {
             EmptyState(stringResource(R.string.empty_no_channels), icon = StudioIcons.Tv)
             return@Column
@@ -246,9 +364,21 @@ fun GuideScreen(
         TimeAxis(windowStart = windowStart, scrollState = timeScroll)
         HorizontalDivider()
 
-        // The grid and the current-time marker share a box so the marker can be drawn across
-        // every row at once, rather than each row drawing its own slice of a line.
-        Box(modifier = Modifier.fillMaxSize()) {
+        // The grid and the current-time line share a box so the line can be drawn across every
+        // row at once, rather than each row drawing its own slice of it.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .nowLine(
+                    window = window,
+                    now = { now.longValue },
+                    scrollState = timeScroll,
+                    columnWidth = metrics.guideChannelColumnWidth,
+                    hourWidth = metrics.guideHourWidth,
+                    // The tally: "now" is what is on air (`canvas/Guide.dc.html`).
+                    colour = StudioTheme.colors.tally,
+                ),
+        ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize(),
@@ -270,62 +400,52 @@ fun GuideScreen(
                     )
                 }
             }
-            NowMarker(
-                windowStart = windowStart,
-                windowEnd = windowEnd,
-                scrollState = timeScroll,
-            )
         }
     }
 }
 
 /**
- * The line down the grid at the current time (FR-UI-05).
+ * The line down the grid at the current time (FR-UI-05), over the rows.
  *
  * A grid guide without one asks the viewer to read the hour ruler and work out where "now" falls,
  * every time they open it. The requirement has always named it; the code never drew it, and
  * `docs/10` recorded the row as Done regardless.
  *
- * It ticks on its own rather than only when the grid recomposes, because it is a clock: left to
- * the guide's own recompositions it would freeze wherever it happened to be when the guide opened.
+ * Drawn rather than composed. It used to be a composable of its own that read the clock and the
+ * grid's horizontal scroll where it was composed, so every frame of a sideways scroll recomposed
+ * it; here both are read where the line is drawn, and a tick or a scroll only redraws (ADR-051).
+ *
+ * The position is worked out from the start edge, as the rows are laid out, and mirrored in a
+ * right-to-left layout, where the channel column and the first hour are on the right.
  */
-@Composable
-private fun BoxScope.NowMarker(
-    windowStart: Long,
-    windowEnd: Long,
-    scrollState: androidx.compose.foundation.ScrollState,
-) {
-    val metrics = LocalTvMetrics.current
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(NOW_MARKER_TICK_MS)
-            now = System.currentTimeMillis()
-        }
-    }
-    if (now < windowStart || now > windowEnd) return
-
-    // `ScrollState.value` is in pixels; every other measurement here is in dp.
-    val scrolled = with(LocalDensity.current) { scrollState.value.toDp() }
-    val x = metrics.guideChannelColumnWidth +
-        millisToDp(now - windowStart, metrics.guideHourWidth) - scrolled
+private fun Modifier.nowLine(
+    window: GuideWindow,
+    now: () -> Long,
+    scrollState: ScrollState,
+    columnWidth: Dp,
+    hourWidth: Dp,
+    colour: Color,
+): Modifier = drawWithContent {
+    drawContent()
+    val time = now()
+    val start = window.start
+    if (time < start || time > window.end) return@drawWithContent
+    val column = columnWidth.toPx()
+    // `ScrollState.value` is in pixels, as everything else here now is.
+    val x = column + hourWidth.toPx() * ((time - start) / HOUR_MILLIS.toFloat()) - scrollState.value
     // Scrolled far enough forward and "now" sits behind the channel column, where a line would
     // read as a border on the names rather than a time.
-    if (x < metrics.guideChannelColumnWidth) return
-
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .offset(x = x)
-            // The tally: "now" is what is on air (`canvas/Guide.dc.html`).
-            .width(1.5.dp)
-            .fillMaxHeight()
-            .background(StudioTheme.colors.tally),
-    )
+    if (x < column) return@drawWithContent
+    val width = NOW_LINE_WIDTH.toPx()
+    val left = if (layoutDirection == LayoutDirection.Rtl) size.width - x - width else x
+    drawRect(color = colour, topLeft = Offset(left, 0f), size = Size(width, size.height))
 }
 
 /** How often the current-time line moves. A guide hour is wide; a minute is plenty. */
 private const val NOW_MARKER_TICK_MS = 60_000L
+
+/** The current-time line's width. */
+private val NOW_LINE_WIDTH = 1.5.dp
 
 @Composable
 private fun GuideToolbar(
@@ -358,27 +478,35 @@ private fun GuideToolbar(
     }
 }
 
-/** Two hours back, now, two hours on: the window's moves inside a day. */
+/**
+ * Two hours back, now, two hours on: the window's moves inside a day.
+ *
+ * @param variant ghosts on the phone (MIGRATION.md §2): moving the window is not this screen's
+ *   main action. The television's day row sits on the picture and asks for plates.
+ */
 @Composable
-private fun WindowButtons(onJumpNow: () -> Unit, onShift: (Int) -> Unit) {
-    // Ghosts, all three (MIGRATION.md §2): moving the window is not this screen's main action.
+private fun WindowButtons(
+    onJumpNow: () -> Unit,
+    onShift: (Int) -> Unit,
+    variant: StudioButtonVariant = StudioButtonVariant.GHOST,
+) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         StudioButton(
             label = stringResource(R.string.guide_shift_back_hours),
             onClick = { onShift(-2) },
-            variant = StudioButtonVariant.GHOST,
+            variant = variant,
             size = StudioButtonSize.MEDIUM,
         )
         StudioButton(
             label = stringResource(R.string.guide_jump_now),
             onClick = onJumpNow,
-            variant = StudioButtonVariant.GHOST,
+            variant = variant,
             size = StudioButtonSize.MEDIUM,
         )
         StudioButton(
             label = stringResource(R.string.guide_shift_forward_hours),
             onClick = { onShift(2) },
-            variant = StudioButtonVariant.GHOST,
+            variant = variant,
             size = StudioButtonSize.MEDIUM,
         )
     }
@@ -391,21 +519,42 @@ private fun WindowButtons(onJumpNow: () -> Unit, onShift: (Int) -> Unit) {
  * weekday plus date beyond that, which is how anyone actually asks for a day. The whole strip is
  * a `LazyRow` starting one chip before today, so today is on screen without being flush against
  * the edge, and the days behind it are one press away for catch-up (FR-CU-02).
+ *
+ * @param prefetch the television's quiet prefetch (see [GuideGrid]); null keeps the list's own
+ * @param prominent the television's day switcher (ADR-051): chips at the large control height
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit, modifier: Modifier = Modifier) {
+private fun GuideDayStrip(
+    window: GuideWindow,
+    modifier: Modifier = Modifier,
+    prefetch: QuietPrefetchScheduler? = null,
+    prominent: Boolean = false,
+) {
     // One reading of the clock for the whole strip: taken again per chip, a day boundary crossed
     // mid-composition would put two different "today"s on the same row.
     val reference = remember { System.currentTimeMillis() }
-    val selectedDay = TimeModel.startOfLocalDay(windowStart)
-    val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = (GUIDE_DAYS.indexOf(0) - 1).coerceAtLeast(0),
-    )
+    val selectedDay = TimeModel.startOfLocalDay(window.start)
+    val firstShown = (GUIDE_DAYS.indexOf(0) - 1).coerceAtLeast(0)
+    val listState = if (prefetch != null) {
+        rememberLazyListState(
+            initialFirstVisibleItemIndex = firstShown,
+            prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = DAYS_AHEAD) },
+        )
+    } else {
+        rememberLazyListState(initialFirstVisibleItemIndex = firstShown)
+    }
     LazyRow(
         state = listState,
         modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        // On the television the chips line up with the grid's edge under them, with room only
+        // for a focused chip's growth; the strip clips at its own edges.
+        contentPadding = if (prominent) {
+            PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+        } else {
+            PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+        },
+        horizontalArrangement = Arrangement.spacedBy(if (prominent) 10.dp else 8.dp),
     ) {
         items(GUIDE_DAYS.toList(), key = { it }) { offset ->
             // Normalised through `startOfLocalDay` rather than by adding whole days to a
@@ -422,44 +571,71 @@ private fun GuideDayStrip(windowStart: Long, onPick: (Long) -> Unit, modifier: M
                 label = label,
                 date = TimeModel.formatDay(day),
                 selected = day == selectedDay,
-                onClick = { onPick(day) },
+                prominent = prominent,
+                onClick = { window.pick(day) },
             )
         }
     }
 }
 
 @Composable
-private fun DayChip(label: String, date: String, selected: Boolean, onClick: () -> Unit) {
+private fun DayChip(
+    label: String,
+    date: String,
+    selected: Boolean,
+    /** The television's day switcher: the large control height, and the label at the action step. */
+    prominent: Boolean,
+    onClick: () -> Unit,
+) {
     var focused by remember { mutableStateOf(false) }
-    // Studio's chip (`canvas/Chip.dc.html`): a quiet surface at rest, ink when it is the chosen
-    // day, the cue when focus is on it.
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    // Studio's chip (`canvas/Chip.dc.html`): a quiet plate at rest, amber when it is the chosen
+    // day (Merhav's "current", as the side menu marks the screen you are on), the lit surface when
+    // focus is on it. The plate and the ring are drawn by `focusSurface`; the words' colours are
+    // read where they are drawn too, so a press along the strip recomposes each chip once and
+    // nothing at all through the crossing (`StudioButton`, ADR-048's 0.20.8).
+    val labelColour = animatedColourState(
+        when {
+            focused -> studio.onCue
+            selected -> studio.current
+            else -> studio.ink
+        },
+    )
+    val dateColour = animatedColourState(
+        when {
+            focused -> studio.onCue
+            selected -> studio.current
+            else -> studio.ink2
+        },
+    )
     val shape = RoundedCornerShape(LocalTvMetrics.current.chipCorner)
-    // One line, not two. This strip sits between the guide's preview and its grid on a
-    // television, where every dp it takes is taken from the rows — and a row is what anyone
-    // opened the guide to read.
     Row(
         modifier = Modifier
+            .then(if (prominent) Modifier.height(DAY_CHIP_HEIGHT) else Modifier)
             .focusLift(focused, shape = shape)
             .focusSurface(focused = focused, shape = shape, selected = selected, fill = FocusFill.FILLED)
             .onFocusChanged { focused = it.isFocused }
             // As everywhere else in this grid: `clickable` is the focus target on its own.
             .clickable(onClick = onClick)
             .semantics { contentDescription = "$label $date" }
-            .padding(horizontal = 14.dp, vertical = 5.dp),
+            .padding(horizontal = if (prominent) 18.dp else 14.dp, vertical = if (prominent) 0.dp else 5.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (prominent) 8.dp else 6.dp),
     ) {
-        Text(
+        BasicText(
             text = label,
-            style = MaterialTheme.typography.labelLarge,
-            color = filledContentColour(focused, selected),
+            style = type.action.copy(
+                fontWeight = if (prominent && (selected || focused)) FontWeight.Bold else type.action.fontWeight,
+            ),
+            color = { labelColour.value },
             maxLines = 1,
         )
-        Text(
+        BasicText(
             // `dd/MM` beside Hebrew reorders unless it is isolated (FR-UI-21).
             text = TimeModel.ltr(date),
-            style = MaterialTheme.typography.labelSmall,
-            color = filledContentColour(focused, selected, muted = true),
+            style = if (prominent) type.meta else type.caption,
+            color = { dateColour.value },
             maxLines = 1,
         )
     }
@@ -470,13 +646,13 @@ private fun DayChip(label: String, date: String, selected: Boolean, onClick: () 
  * lock-step without a custom layout or a nested scroll contract.
  */
 @Composable
-private fun TimeAxis(windowStart: Long, scrollState: androidx.compose.foundation.ScrollState) {
+private fun TimeAxis(windowStart: Long, scrollState: ScrollState) {
     val metrics = LocalTvMetrics.current
     Row(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.width(metrics.guideChannelColumnWidth))
         Row(modifier = Modifier.horizontalScroll(scrollState)) {
             repeat(WINDOW_HOURS) { hour ->
-                val at = windowStart + hour * 60 * 60_000L
+                val at = windowStart + hour * HOUR_MILLIS
                 // Each hour is marked by a tick on its edge, as the canvas draws it.
                 Row(
                     modifier = Modifier
@@ -505,13 +681,13 @@ private fun GuideRow(
     recordings: List<Recording>,
     windowStart: Long,
     windowEnd: Long,
-    scrollState: androidx.compose.foundation.ScrollState,
+    scrollState: ScrollState,
     /** Whether this is the channel on screen, which the tally marks. */
     onScreen: Boolean,
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
     onProgrammeFocused: (Programme) -> Unit,
-    /** Attached to whichever of this row's cells is on air now; see `GuideScreen`'s `landOn`. */
+    /** Attached to whichever of this row's cells is on air now; see `GuideGrid`'s `landOn`. */
     onAirFocus: FocusRequester? = null,
 ) {
     val metrics = LocalTvMetrics.current
@@ -661,7 +837,6 @@ private fun TimeGap(widthMillis: Long) {
     )
 }
 
-@Composable
 /**
  * Which recording, if any, covers this programme.
  *
@@ -728,7 +903,7 @@ private fun ProgrammeCell(
             .then(if (programme.endUtc > now) Modifier.litEdge(cellShape) else Modifier)
             // The app's one focus treatment. This cell used to ring itself at a hard-coded 2dp,
             // so on a television every row in the channel list was ringed at 3dp and every cell
-            // in the guide beside it at 2dp.
+            // in the guide beside it at 2dp. Its colours are drawn, not composed (ADR-048, 0.20.9).
             .focusSurface(focused = focused, shape = cellShape)
             .onFocusChanged {
                 focused = it.isFocused
@@ -738,15 +913,15 @@ private fun ProgrammeCell(
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
             // with `focusable()` made every cell cost two D-pad presses to pass.
             .clickable(onClick = onClick)
-            // Less air on a television, where the row is cut to fit six under the docked picture
-            // (`dockedGuideRowHeightFor`); the phone's row keeps its height, and its padding.
+            // Less air on a television, where the row is cut to fit eight under the band over the
+            // picture (`guideGridRowHeightFor`); the phone's row keeps its height, and its padding.
             .padding(horizontal = 8.dp, vertical = if (StudioTheme.television) 3.dp else 6.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         val past = programme.endUtc <= now
         // The line height follows the size. Copied from the body step with the size alone
         // changed, both lines kept the body's line height, and the two of them stood taller than
-        // a row the television can fit six of.
+        // a television row.
         val body = StudioTheme.type.body
         val cellTitle = body.copy(
             fontSize = body.fontSize * CELL_TITLE_SCALE,
@@ -807,9 +982,17 @@ private const val CELL_TITLE_SCALE = 21f / 24f
 private const val CELL_TIME_SCALE = 17f / 24f
 private val GUIDE_NUMBER_WIDTH = 15.dp
 
-private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / 3_600_000f)
+/** The television's day chip: `--st-h-control-l`, 80px at 1080p, the height of a large button. */
+private val DAY_CHIP_HEIGHT = 40.dp
+
+private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / HOUR_MILLIS.toFloat())
 
 private fun snapToHalfHour(utcMillis: Long): Long = (utcMillis / 1_800_000L) * 1_800_000L
+
+/** Where a window opened "now" starts: the half hour before the half hour before [now]. */
+private fun nowWindowStart(now: Long): Long = snapToHalfHour(now - 30 * 60_000L)
+
+private const val HOUR_MILLIS = 60 * 60_000L
 
 /**
  * A day, for the strip's arithmetic. The strip normalises every result through
@@ -839,5 +1022,15 @@ private const val WINDOW_HOURS = 6
  */
 private const val FALLBACK_ROWS = 8
 
-/** Prefetch margin either side of what is on screen. */
+/** Prefetch margin either side of what is on screen, for the guide data (not for composing). */
 private const val PREFETCH_ROWS = 6
+
+/**
+ * How many rows the television keeps built past each edge of the list ([AheadPrefetch]). Two, as
+ * home keeps two rails: the next press either way finds its row built, and a held key outruns any
+ * number. Fewer than [PREFETCH_ROWS], so a row built ahead is built with its programmes.
+ */
+private const val ROWS_AHEAD = 2
+
+/** How many day chips the television keeps built past each edge of the strip. */
+private const val DAYS_AHEAD = 2

@@ -95,7 +95,9 @@ import kotlin.math.sin
  * left open is a wall of unmoving text. The one thing it leaves alone is a channel or a film
  * playing full screen (ADR-040): somebody is watching it, and the picture is its own protection.
  * Everything else is handed over after the idle period — a guide or a menu left open over a
- * playing channel, the home screen, and the radio's own screen included.
+ * playing channel, the home screen, and the radio's own screen included. A live channel left on
+ * full screen on the television has a screensaver of its own, after a longer wait, that keeps the
+ * picture playing under a clock (ADR-049, `ChannelScreensaver.kt`).
  *
  * What replaces the still screen is the canvas's `TvScreensaverCombo`: a black panel with a
  * studio clock at the start side — a ring of sixty dots filling with the seconds, twelve hour
@@ -121,10 +123,19 @@ import kotlin.math.sin
 /** What the panel is showing, for the purposes of deciding whether it needs protecting. */
 enum class IdleScene {
     /**
-     * A channel or a film playing full screen — with, at most, the bars that ride over it. Left
-     * alone.
+     * A film, a catch-up programme or a recording playing full screen — with, at most, the bars
+     * that ride over it — or Sport and News modes' panels. Left alone: somebody is watching a
+     * story with a beginning and an end, and the picture is its own protection.
      */
     MOVING,
+
+    /**
+     * A live channel playing full screen on the television, with at most the bars that ride over
+     * it (ADR-049). Its picture moves, but a channel left on is also what a room plays to nobody
+     * all evening: after its own, longer idle period it is handed to the channel's screensaver
+     * ([SaverKind.CHANNEL]), which keeps it playing, dimmed.
+     */
+    WATCHING,
 
     /**
      * Anything else: a frozen frame, a station, a guide or a menu (over a playing channel or
@@ -150,14 +161,48 @@ enum class IdleScene {
  *   menu or the home screen has covered, docked into a corner or drawn its rails over. The guide's
  *   grid and the home screen's rails do not move for hours however lively the picture beside or
  *   behind them (ADR-024, ADR-039).
+ * @param liveChannel what is playing is a live channel, on the television (ADR-049) — not a film,
+ *   a catch-up programme or a recording, which run to an end somebody is waiting for, and not the
+ *   phone, whose player is held in a hand rather than left on across a room.
  */
 fun idleScene(
     playing: Boolean,
     hasPicture: Boolean,
     failed: Boolean,
     videoFillsPanel: Boolean,
-): IdleScene =
-    if (playing && hasPicture && !failed && videoFillsPanel) IdleScene.MOVING else IdleScene.STILL
+    liveChannel: Boolean = false,
+): IdleScene = when {
+    !(playing && hasPicture && !failed && videoFillsPanel) -> IdleScene.STILL
+    liveChannel -> IdleScene.WATCHING
+    else -> IdleScene.MOVING
+}
+
+/** Which of the two screensavers a screen is handed to (ADR-049). */
+enum class SaverKind {
+    /** Studio's clock on black, with the headlines beside it (ADR-037): every still screen. */
+    CLOCK,
+
+    /**
+     * The channel itself, still playing and dimmed, under a clock, the channel and its programme,
+     * with the headlines running across the top (ADR-049): a live channel left on full screen.
+     */
+    CHANNEL,
+}
+
+/**
+ * Which screensaver, if any, a screen is handed to once its idle period has run out (ADR-049).
+ *
+ * The master switch ([enabled]) governs both; [channelEnabled] is the channel's own, because
+ * dimming a picture somebody may be watching from across the room is a different thing to ask
+ * of a television than blacking out a menu nobody is reading. Picture-in-picture is never
+ * handed over: the window is somebody else's screen.
+ */
+fun screensaverFor(enabled: Boolean, channelEnabled: Boolean, scene: IdleScene, inPip: Boolean): SaverKind? = when {
+    !enabled || inPip -> null
+    scene == IdleScene.STILL -> SaverKind.CLOCK
+    scene == IdleScene.WATCHING && channelEnabled -> SaverKind.CHANNEL
+    else -> null
+}
 
 /** How long a still screen is left alone before the screensaver takes it, in milliseconds. */
 fun screensaverDelayMillis(idleMinutes: Int): Long = idleMinutes.coerceIn(1, 120) * 60_000L
@@ -173,13 +218,50 @@ fun screensaverDueAt(lastInteractionAt: Long, stillSince: Long, idleMinutes: Int
     maxOf(lastInteractionAt, stillSince) + screensaverDelayMillis(idleMinutes)
 
 /**
- * Whether the screensaver has anything to do at all right now.
+ * When the screensaver of [kind] is due (ADR-049): each on its own idle period, and from a
+ * different moment.
  *
- * Separate from the countdown itself so the caller can arm one timer and forget it: this answers
- * "is this a screen worth protecting", the timer answers "has it been long enough".
+ * - **The clock** counts from the later of the last key press and the moment the screen became
+ *   still ([sceneSince]), as ADR-040's decision 3 set: a picture watched for an hour and then
+ *   stalling is not handed over at the stall.
+ * - **The channel** counts from the last key press alone. A live stream rebuffers now and then,
+ *   which for that moment is a still screen; counting from when the picture came back would
+ *   start the hour again at every stall, and on a provider that drops a frame every twenty
+ *   minutes it would never come at all. Nobody has touched the remote: that is the whole test.
  */
-fun screensaverApplies(enabled: Boolean, scene: IdleScene, inPip: Boolean): Boolean =
-    enabled && !inPip && scene == IdleScene.STILL
+fun saverDueAt(
+    kind: SaverKind,
+    lastInteractionAt: Long,
+    sceneSince: Long,
+    idleMinutes: Int,
+    channelIdleMinutes: Int,
+): Long = when (kind) {
+    SaverKind.CLOCK -> screensaverDueAt(lastInteractionAt, sceneSince, idleMinutes)
+    SaverKind.CHANNEL -> lastInteractionAt + screensaverDelayMillis(channelIdleMinutes)
+}
+
+/**
+ * The moment the screen became the kind of screen it is, for [saverDueAt]'s `sceneSince`
+ * (ADR-040, decision 3; ADR-049).
+ *
+ * The countdown [stamp]s it every time it runs — on every key press and every change of scene —
+ * and it moves only when the kind of screen changes, so a key press on a still screen keeps the
+ * moment it turned still. Not Compose state: nothing composes from it, and a write that
+ * recomposed the root would restart the countdown that wrote it.
+ */
+class SceneClock(startedAt: Long) {
+    private var kind: SaverKind? = null
+    private var since: Long = startedAt
+
+    /** Notes that the screen is now handed to [kind] (null for none) at [now]; when it became so. */
+    fun stamp(kind: SaverKind?, now: Long): Long {
+        if (kind != this.kind) {
+            this.kind = kind
+            since = now
+        }
+        return since
+    }
+}
 
 /** What the screensaver says is behind it (ADR-037, decision 4). */
 sealed interface SaverPlaying {
@@ -1128,10 +1210,11 @@ private const val CHIP_LINE_ALPHA = 0.40f
 /**
  * The anti burn-in step: how far, how often and how slowly (ADR-037). Six dp is about twelve
  * pixels on a 1080p panel — more than a ring dot is wide, so none of them lands where it was.
+ * The channel's screensaver steps as often and as slowly, further (ADR-049).
  */
 private const val SHIFT_DP = 6f
-private const val SHIFT_EVERY_MS = 3L * 60 * 1000
-private const val SHIFT_MS = 2_000
+internal const val SHIFT_EVERY_MS = 3L * 60 * 1000
+internal const val SHIFT_MS = 2_000
 
 /** How long one task holds the card, and how long the change between two of them takes. */
 private const val TASK_DWELL_MS = 12_000L

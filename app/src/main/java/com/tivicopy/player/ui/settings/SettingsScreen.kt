@@ -34,6 +34,7 @@ import com.tivicopy.player.data.prefs.BufferPreset
 import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ExternalPlayerScope
 import com.tivicopy.player.data.prefs.FlashSpeed
+import com.tivicopy.player.data.prefs.Settings
 import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
@@ -41,6 +42,7 @@ import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.findActivity
 import com.tivicopy.player.tv.WatchNext
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -398,6 +400,26 @@ fun SettingsScreen(
                     range = 1f..60f,
                     keyStep = 1f,
                 ) { settings.setScreensaverIdleMinutes(it.toInt()) }
+                // ADR-049: a live channel left on full screen, on a clock of its own. Only the
+                // television has it — the phone's player is held, not left on across a room — so
+                // only the television offers it. Under the switch above, which turns both off.
+                if (StudioTheme.television) {
+                    SettingsSwitch(
+                        title = stringResource(R.string.settings_channel_saver),
+                        subtitle = stringResource(R.string.settings_channel_saver_sub),
+                        checked = s.channelSaverEnabled,
+                        onChange = settings::setChannelSaverEnabled,
+                    )
+                    SettingsSlider(
+                        title = stringResource(R.string.settings_channel_saver_idle),
+                        valueLabel = stringResource(R.string.settings_minutes, s.channelSaverMinutes),
+                        value = s.channelSaverMinutes.toFloat(),
+                        range = Settings.CHANNEL_SAVER_MIN_MINUTES.toFloat()..Settings.CHANNEL_SAVER_MAX_MINUTES.toFloat(),
+                        // 30, 60, 90 and 120: two stops between the ends, and one stop a press.
+                        steps = 2,
+                        keyStep = Settings.CHANNEL_SAVER_STEP_MINUTES.toFloat(),
+                    ) { settings.setChannelSaverMinutes(it.roundToInt()) }
+                }
                 // FR-UI-33 / ADR-037: the headlines beside the clock. On by default, because
                 // without a source added below there are none to show.
                 SettingsSwitch(

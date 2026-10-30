@@ -68,9 +68,10 @@ television that still overscans, content near the edge can be cropped. See `docs
    horizontal scroll by hours, a strip of days above it, a clock in the toolbar, and a focused
    cell that lifts slightly out of the grid so it can be found from across the room. Jump-to-date
    is that strip — yesterday, today, tomorrow and then weekdays with their dates — rather than
-   the dialog it used to open (ADR-020). On the television it is laid out *around* the picture
-   rather than over it — a persistent channel rail on one side, a docked live preview that keeps
-   playing, and the grid below (`docs/adr/ADR-013`).
+   the dialog it used to open (ADR-020). On the television it is drawn *over* the picture, which
+   keeps playing at full size: a band at the top where the picture shows through, dimmed, with the
+   top bar, a prominent day switcher and the focused programme on one line, and the grid under it
+   on a dark backdrop (`docs/adr/ADR-051`, superseding ADR-013's docked preview).
 6. **Programme details** — title, times, description, category, series/episode, poster,
    plus actions: watch, record, schedule series, catch-up, remind, add to favourites.
 7. **Search** — across channels, programmes (future and past-in-catch-up), VOD and series. It
@@ -111,8 +112,9 @@ source has any, as on the phone.
 
 Radio (ADR-015) is its own destination on both shells, not a group inside Channels: it opens the
 same channel-list screen pointed at the bundled radio playlist instead of the active one, so its
-own groups (e.g. "רדיו ישראלי" / "רדיו אזורי") and favourites live in the group column there,
-never mixed into the TV channel list.
+own categories and favourites live in the group column there, never mixed into the TV channel list.
+The categories are by place, from each station's name — national, north, centre, Jerusalem, south —
+then the genres (ADR-050).
 
 While an audio-only stream plays, both shells replace the empty video surface with a **station
 backdrop**: a gradient in a colour sampled from that station's own logo (falling back to the
