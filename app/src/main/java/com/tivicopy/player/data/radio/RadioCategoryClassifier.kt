@@ -75,11 +75,11 @@ object RadioCategoryClassifier {
     /**
      * Station-name keywords for genre buckets, checked before the group-level split above.
      *
-     * "יוון" rather than "יווני": it is in "יווני" too, and the feed's Greek station is
-     * "רדיו כחול יוון", named after the country rather than the music.
+     * "יוון" as well as "יווני": the feed's Greek station is "רדיו כחול יוון", named after the
+     * country rather than the music, and the country (final nun) is not inside the adjective.
      */
     private val GENRE_MARKERS: List<Pair<String, List<String>>> = listOf(
-        "יווני" to listOf("יוון", "greek"),
+        "יווני" to listOf("יווני", "יוון", "greek"),
         "מזרחי" to listOf("מזרחי", "mizrahi"),
     )
 

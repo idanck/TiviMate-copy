@@ -52,7 +52,7 @@ names need it):
   "רדיו קול הגולן";
 - centre: "רדיו תשעים", the feed's spelling of the Radio 90 the list already placed in the centre
   as "רדיו 90" — as a phrase, so a station for the nineties is not;
-- the Greek genre: "יוון" in place of "יווני" (it is in "יווני" too).
+- the Greek genre: "יוון" added beside "יווני" (the country, final nun, is not inside the adjective).
 
 The Greek keyword reaches the car too, which gains a "יווני" folder. The place names change nothing
 there today: the car splits by place only the two stations the feed files as regional. The radio

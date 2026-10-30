@@ -72,9 +72,9 @@ export const REGION_ORDER: RadioRegion[] = ['NORTH', 'CENTER', 'JERUSALEM', 'SOU
 
 const REGIONAL_GROUP_MARKERS = ['אזורי', 'regional'];
 const NATIONAL_GROUP_MARKERS = ['ארצי', 'ישראלי', 'national'];
-// "יוון" rather than "יווני": it is in "יווני" too, and the feed's Greek station is named after the country.
+// "יוון" as well as "יווני": the feed's Greek station is named after the country, which (final nun) is not inside the adjective.
 const GENRE_MARKERS: Array<[string, string[]]> = [
-  ['יווני', ['יוון', 'greek']],
+  ['יווני', ['יווני', 'יוון', 'greek']],
   ['מזרחי', ['מזרחי', 'mizrahi']],
 ];
 const REGION_MARKERS: Array<[RadioRegion, string[]]> = [
