@@ -1,6 +1,6 @@
 # ADR-048 — Home waits under the video
 
-**Status:** accepted, 0.20.6; amended 0.20.7 to 0.20.11 (below). Decided by the owner on 2026-10-30, from two options: *home stays
+**Status:** accepted, 0.20.6; amended 0.20.7 to 0.20.11 and 0.21.1 (below). Decided by the owner on 2026-10-30, from two options: *home stays
 built and hidden while the video plays.* Narrows ADR-043, under which the only browse screen
 composed while it is not on screen is the one fading out.
 
@@ -122,3 +122,25 @@ first way down after home was built still froze for 80–125ms at two of the rai
 apart left too little stillness for the rail ahead to be finished, the scheduler waiting a full
 quiet period between two runs. It now goes on 16ms after a run while nothing has drawn, and home's
 list builds two rails ahead rather than one.
+
+## 0.21.1: home waits under the guide too
+
+A trace of 0.21.0 on the same box, opening the guide from home's banner: the first frame took
+811ms, and 183ms of it was home being let go. Its rails are pinned since 0.20.10, so all of them
+were torn down. Back from the guide then built home again from nothing.
+
+- **Home waits, composed, under the guide that replaced it.** Home has a layer of its own in the
+  scaffold (`HomeLayer`, `TvRoot.kt`), under whichever screen is up. While the guide is up it is
+  not placed: it draws nothing, the remote's search for focus passes it by, and it says nothing to
+  accessibility. If the remote was in it as the guide came up (on the banner's guide button), the
+  remote is let go.
+- **Back brings home back where it was.** Back, or Home in the side menu, places home again, and
+  `HomeFocusReturn` hands the remote back to the control it left from. Nothing is noted from the
+  moment the guide opens, as from the moment home is left for the video (`hold`).
+- **A guide opened from the video** while home waited under it keeps home too. Back to the video
+  fades the guide out; once it has gone, the guide is let go and home waits under the video as
+  before.
+- **Every other screen is as before.** Home is let go when any other browse screen replaces it,
+  and when any other screen replaces the guide. Going from the guide to such a screen now lets go
+  of both in that frame, where before home went as the guide opened.
+

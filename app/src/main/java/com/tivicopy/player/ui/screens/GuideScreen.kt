@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
@@ -32,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -50,6 +52,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -57,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -253,6 +257,12 @@ internal fun GuideGrid(
     val state by vm.state.collectAsState()
     val channels = state.list.channels
     val metrics = LocalTvMetrics.current
+    // What every cell shares, worked out here once rather than in each of a few hundred cells.
+    val look = rememberCellLook(metrics.cellCorner)
+    // Lets the rows' programmes in a row a frame as the guide opens and as its window moves. On a
+    // television only: a phone builds a row well inside a frame, and a fling wants them all.
+    val staged = StudioTheme.television
+    val gate = remember(staged) { RowGate(staged) }
 
     // A row of the guide is a channel cell and every programme in six hours, each with its own
     // focus treatment: on a Google TV Streamer it takes longer to build than a frame has, so the
@@ -268,6 +278,10 @@ internal fun GuideGrid(
     }
     val timeScroll = rememberScrollState()
     var programmes by remember { mutableStateOf<Map<Long, List<Programme>>>(emptyMap()) }
+    // Which channels the last fetch was for, and which window: a row outside it is still waiting
+    // for its programmes, which is not the same as having none, and draws an empty lane rather
+    // than "no guide data".
+    var covered by remember { mutableStateOf(Coverage(Long.MIN_VALUE, emptySet())) }
 
     // The visible slice of the channel axis drives the query, so a 500-channel guide costs the
     // same as a 20-channel one.
@@ -296,6 +310,10 @@ internal fun GuideGrid(
     val landingId = remember { landOn }
     var landed by remember { mutableStateOf(landingId == null) }
     val onAirFocus = remember { FocusRequester() }
+    // Set by that channel's row once its programmes are drawn: before that its airing cell does
+    // not exist to be focused, the rows being let in a frame at a time (`RowGate`).
+    var landingReady by remember { mutableStateOf(false) }
+    val markLanding: () -> Unit = remember { { landingReady = true } }
 
     // That channel's row on screen first, with the row above it in view, as the canvas sets it.
     // Keyed on the list: the guide can compose before the channels have arrived.
@@ -307,35 +325,39 @@ internal fun GuideGrid(
 
     val windowStart = window.start
     val windowEnd = window.end
+    // A new window has its rows' programmes let in a row a frame again, as the opening does.
+    gate.stageFor(windowStart)
 
     LaunchedEffect(visibleChannels, windowStart) {
         // Replaced rather than accumulated: the map is bounded by what is on screen, so a
         // long scroll through a 500-channel guide cannot grow the heap without limit.
-        val fetched: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
+        val slice: Map<Long, List<Programme>> = if (visibleChannels.isEmpty()) emptyMap()
         else vm.guideWindow(visibleChannels, windowStart, windowEnd)
         // A channel whose programmes came back the same keeps the list it had, so its row is
         // skipped rather than recomposed: a step down the list refetches the whole visible slice,
         // and every row in it used to be recomposed for a new list of the same programmes.
         val previous = programmes
-        programmes = fetched.mapValues { (id, list) -> previous[id]?.takeIf { it == list } ?: list }
-        // The landing waits for the first fetch that covers that channel while its row is on
-        // screen — a row only in the prefetch margin has no cells to focus yet — and has one
-        // try: a channel with nothing on air now leaves the guide opening as it always has, and
-        // a later refetch never pulls the remote back from wherever the viewer has taken it.
-        val covered = visibleChannels.any { it.id == landingId }
-        val rowShown = listState.layoutInfo.visibleItemsInfo.any { it.key == landingId }
-        if (!landed && landingId != null && covered && rowShown) {
-            val now = System.currentTimeMillis()
-            if (fetched[landingId].orEmpty().any { now in it.startUtc until it.endUtc }) {
-                // Two frames: one for the row to compose its cells, one for the requester to attach.
-                withFrameNanos { }
-                withFrameNanos { }
-                runCatching { onAirFocus.requestFocus() }
-            }
-            // Only once the try is made: a scroll that cancels this effect mid-wait leaves the
-            // landing to the run that replaces it.
-            landed = true
+        programmes = slice.mapValues { (id, list) -> previous[id]?.takeIf { it == list } ?: list }
+        covered = Coverage(windowStart, visibleChannels.mapTo(HashSet<Long>(visibleChannels.size)) { it.id })
+    }
+
+    // The landing waits for that channel's row to draw its programmes while it is on screen — a
+    // row only in the prefetch margin, or still waiting its turn, has no cells to focus — and has
+    // one try: a channel with nothing on air now leaves the guide opening as it always has, and a
+    // later refetch never pulls the remote back from wherever the viewer has taken it.
+    LaunchedEffect(landingReady, visibleChannels) {
+        if (landed || !landingReady) return@LaunchedEffect
+        val id = landingId ?: return@LaunchedEffect
+        // Two frames: one for the row's cells to be laid out, one for the requester to attach.
+        withFrameNanos { }
+        withFrameNanos { }
+        // Not on screen yet: the scroll to it is still to come, and this runs again when it has.
+        if (listState.layoutInfo.visibleItemsInfo.none { it.key == id }) return@LaunchedEffect
+        val now = System.currentTimeMillis()
+        if (programmes[id].orEmpty().any { now in it.startUtc until it.endUtc }) {
+            runCatching { onAirFocus.requestFocus() }
         }
+        landed = true
     }
 
     // FR-UI-10: recording state belongs in the grid beside catch-up availability. Keyed on the
@@ -384,19 +406,24 @@ internal fun GuideGrid(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
-                items(channels, key = { it.id }) { channel ->
+                itemsIndexed(channels, key = { _, channel -> channel.id }) { index, channel ->
                     GuideRow(
                         channel = channel,
                         programmes = programmes[channel.id].orEmpty(),
+                        fetched = covered.start == windowStart && channel.id in covered.ids,
                         recordings = recordings[channel.id].orEmpty(),
                         windowStart = windowStart,
                         windowEnd = windowEnd,
                         scrollState = timeScroll,
                         onScreen = channel.id == state.currentChannel?.id,
+                        gate = gate,
+                        order = index,
+                        look = look,
                         onChannelClick = { onPlay(channel) },
                         onProgrammeClick = { onOpenProgramme(channel, it) },
                         onProgrammeFocused = { onFocusProgramme?.invoke(channel, it) },
                         onAirFocus = onAirFocus.takeIf { channel.id == landingId },
+                        onShown = if (channel.id == landingId && !landed) markLanding else null,
                     )
                 }
             }
@@ -677,6 +704,11 @@ private fun TimeAxis(windowStart: Long, scrollState: ScrollState) {
 private fun GuideRow(
     channel: Channel,
     programmes: List<Programme>,
+    /**
+     * Whether [programmes] have been fetched for this channel and this window. Until they have,
+     * the lane waits as an empty plate rather than saying there is no guide data.
+     */
+    fetched: Boolean,
     /** What is scheduled or recorded on this channel in the visible window (FR-UI-10). */
     recordings: List<Recording>,
     windowStart: Long,
@@ -684,14 +716,31 @@ private fun GuideRow(
     scrollState: ScrollState,
     /** Whether this is the channel on screen, which the tally marks. */
     onScreen: Boolean,
+    gate: RowGate,
+    /** The row's place in the list, which is its place in the gate's queue: top first. */
+    order: Int,
+    look: GuideCellLook,
     onChannelClick: () -> Unit,
     onProgrammeClick: (Programme) -> Unit,
     onProgrammeFocused: (Programme) -> Unit,
     /** Attached to whichever of this row's cells is on air now; see `GuideGrid`'s `landOn`. */
     onAirFocus: FocusRequester? = null,
+    /** Told once this row's programmes are drawn; the grid's landing waits for it. */
+    onShown: (() -> Unit)? = null,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
+    // Which window this row has drawn its programmes for. A row composed while the gate is staging
+    // — the guide opening, or its window moving — waits its turn (`RowGate`); one composed after,
+    // scrolled to or built ahead while the screen was still, draws them as soon as they are here.
+    var shownFor by remember { mutableLongStateOf(if (gate.staging) NOT_SHOWN else windowStart) }
+    val shown = fetched && (shownFor == windowStart || !gate.staged)
+    if (fetched && !shown) {
+        LaunchedEffect(windowStart) { gate.await(order) { shownFor = windowStart } }
+    }
+    if (shown && onShown != null) {
+        LaunchedEffect(Unit) { onShown() }
+    }
     Row(modifier = Modifier.fillMaxWidth().height(metrics.guideRowHeight)) {
         // Studio's channel cell: a `surface` card with the number, the name, and the tally when
         // this is the channel on screen.
@@ -700,7 +749,7 @@ private fun GuideRow(
                 .width(metrics.guideChannelColumnWidth)
                 .fillMaxHeight()
                 .padding(2.dp)
-                .clip(RoundedCornerShape(metrics.cellCorner))
+                .clip(look.shape)
                 .background(studio.surface)
                 // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
                 // so the pair produced two focus targets and cost a remote an invisible extra
@@ -735,13 +784,23 @@ private fun GuideRow(
 
         // What falls inside the hours on screen. A channel whose programmes are all outside them
         // has as little to show here as one with none at all, and says so the same way.
-        val visible = programmes.filter { it.endUtc > windowStart && it.startUtc < windowEnd }
+        val visible = if (shown) programmes.filter { it.endUtc > windowStart && it.startUtc < windowEnd } else emptyList()
         Box(modifier = Modifier.horizontalScroll(scrollState)) {
-            if (visible.isEmpty()) {
+            if (!shown) {
+                // Waiting for its programmes, or for its turn to draw them: an empty plate of
+                // glass the width of the window, one shape and no text — nothing to compose.
+                Box(
+                    modifier = Modifier
+                        .width(metrics.guideHourWidth * WINDOW_HOURS)
+                        .height(metrics.guideRowHeight)
+                        .padding(2.dp)
+                        .background(studio.card, look.shape),
+                )
+            } else if (visible.isEmpty()) {
                 // FR-EPG-16: say so, rather than leaving an unexplained empty lane. Studio's
                 // diagonal stripes (`TvGuideNoData`, ADR-034), so the row reads as "nothing known"
                 // rather than as a programme that has ended, and keeps its place in the order.
-                val shape = RoundedCornerShape(metrics.cellCorner)
+                val shape = look.shape
                 Box(
                     modifier = Modifier
                         .width(metrics.guideHourWidth * WINDOW_HOURS)
@@ -787,6 +846,7 @@ private fun GuideRow(
                                         programme.endUtc < System.currentTimeMillis(),
                                     recordingState = recordings.stateFor(programme),
                                     onScreen = onScreen,
+                                    look = look,
                                     onClick = { onProgrammeClick(programme) },
                                     onFocused = { onProgrammeFocused(programme) },
                                     focusRequester = onAirFocus?.takeIf {
@@ -863,11 +923,25 @@ private fun ProgrammeCell(
     recordingState: RecordingState?,
     /** Whether this cell's channel is the one on screen; its airing cell then carries the tally. */
     onScreen: Boolean,
+    look: GuideCellLook,
     onClick: () -> Unit,
     onFocused: () -> Unit,
     focusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
+    // The focus treatment — the lift with its shadow, the plate and the ring: three animations,
+    // each with a coroutine of its own, and two more layers — is built the first time the remote
+    // comes to this cell, not with every cell in the grid. At rest it draws nothing at all, so a
+    // cell the remote has never been on looks the same without it, and a row of them is that much
+    // quicker to build (ADR-051, 0.21.1). Built, it stays.
+    var engaged by remember { mutableStateOf(false) }
+    // A frame at rest first, so the first focus crosses in like every later one instead of
+    // cutting to it: the animations start from where they are created.
+    var settled by remember { mutableStateOf(false) }
+    if (engaged && !settled) {
+        LaunchedEffect(Unit) { withFrameNanos<Unit> { settled = true } }
+    }
+    val lit = focused && settled
     val now = System.currentTimeMillis()
     val live = now in programme.startUtc until programme.endUtc
     // The cell's own body colour, which is about the programme rather than about focus: a block
@@ -876,14 +950,15 @@ private fun ProgrammeCell(
     // which is what lets a focused cell still say whether it is the live one.
     // Studio's three cell tones (`canvas/GuideCell.dc.html`): aired, airing now, still to come.
     val studio = StudioTheme.colors
+    val past = programme.endUtc <= now
     val body = when {
         live -> studio.airing
-        programme.endUtc <= now -> studio.past
+        past -> studio.past
         else -> studio.future
     }
     val metrics = LocalTvMetrics.current
     // A cell is a card on a television, and is cut like one; on a phone its corner is tighter.
-    val cellShape = RoundedCornerShape(metrics.cellCorner)
+    val cellShape = look.shape
     Column(
         modifier = Modifier
             // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
@@ -892,7 +967,7 @@ private fun ProgrammeCell(
             // rather than as one of them rising (`ui/common/Motion.kt`).
             // Studio does not grow a cell — on a grid this dense it would cover its neighbours —
             // but it does lift it: the shadow and the cue ring are the answer.
-            .focusLift(focused, scale = 1f, shape = cellShape)
+            .then(if (engaged) Modifier.focusLift(lit, scale = 1f, shape = cellShape) else Modifier)
             .width(millisToDp(widthMillis, metrics.guideHourWidth))
             .height(metrics.guideRowHeight)
             .padding(2.dp)
@@ -900,14 +975,17 @@ private fun ProgrammeCell(
             .background(body)
             // `GuideCell`: a cell still to come or on air has the glass's lit edge; one that has
             // aired has none, and recedes.
-            .then(if (programme.endUtc > now) Modifier.litEdge(cellShape) else Modifier)
+            .then(if (!past) Modifier.litEdge(cellShape) else Modifier)
             // The app's one focus treatment. This cell used to ring itself at a hard-coded 2dp,
             // so on a television every row in the channel list was ringed at 3dp and every cell
             // in the guide beside it at 2dp. Its colours are drawn, not composed (ADR-048, 0.20.9).
-            .focusSurface(focused = focused, shape = cellShape)
+            .then(if (engaged) Modifier.focusSurface(focused = lit, shape = cellShape) else Modifier)
             .onFocusChanged {
                 focused = it.isFocused
-                if (it.isFocused) onFocused()
+                if (it.isFocused) {
+                    engaged = true
+                    onFocused()
+                }
             }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
             // As in the channel cell above: `clickable` carries the focus target, and pairing it
@@ -915,60 +993,45 @@ private fun ProgrammeCell(
             .clickable(onClick = onClick)
             // Less air on a television, where the row is cut to fit eight under the band over the
             // picture (`guideGridRowHeightFor`); the phone's row keeps its height, and its padding.
-            .padding(horizontal = 8.dp, vertical = if (StudioTheme.television) 3.dp else 6.dp),
+            .padding(horizontal = 8.dp, vertical = look.verticalPadding),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        val past = programme.endUtc <= now
-        // The line height follows the size. Copied from the body step with the size alone
-        // changed, both lines kept the body's line height, and the two of them stood taller than
-        // a television row.
-        val body = StudioTheme.type.body
-        val cellTitle = body.copy(
-            fontSize = body.fontSize * CELL_TITLE_SCALE,
-            lineHeight = body.lineHeight * CELL_TITLE_SCALE,
-            fontWeight = FontWeight.SemiBold,
-        )
-        val cellTime = body.copy(
-            fontSize = body.fontSize * CELL_TIME_SCALE,
-            lineHeight = body.lineHeight * CELL_TIME_SCALE,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (live && onScreen) {
-                Box(modifier = Modifier.size(5.dp).clip(CircleShape).background(studio.tally))
+        // Bare text with the grid's own styles (`GuideCellLook`), and a row around it only where
+        // there is something beside it: two lines of text are what most cells are.
+        val title = if (past) look.titlePast else look.title
+        if (live && onScreen) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(5.dp).background(studio.tally, CircleShape))
+                BasicText(text = programme.title, style = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(
-                text = programme.title,
-                style = cellTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (past) studio.ink2 else studio.ink,
-            )
+        } else {
+            BasicText(text = programme.title, style = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = TimeModel.formatClock(programme.startUtc),
-                style = cellTime,
-                color = if (past) studio.ink3 else studio.ink2,
-            )
-            // FR-UI-10: archive availability is badged in the grid itself.
-            if (archived) {
-                Text(
-                    text = stringResource(R.string.catchup_available),
-                    style = cellTime,
-                    color = studio.next,
-                )
-            }
-            // The other half of FR-UI-10, which was never drawn: a programme you had scheduled
-            // looked exactly like one you had not.
-            recordingState?.let { state ->
-                Text(
-                    text = stringResource(state.label()),
-                    style = cellTime,
-                    color = when (state) {
-                        RecordingState.RECORDING -> studio.tally
-                        else -> studio.ink2
-                    },
-                )
+        val time = TimeModel.formatClock(programme.startUtc)
+        val timeStyle = if (past) look.timePast else look.time
+        if (!archived && recordingState == null) {
+            BasicText(text = time, style = timeStyle, maxLines = 1)
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                BasicText(text = time, style = timeStyle, maxLines = 1)
+                // FR-UI-10: archive availability is badged in the grid itself.
+                if (archived) {
+                    BasicText(text = look.catchup, style = look.time.copy(color = studio.next), maxLines = 1)
+                }
+                // The other half of FR-UI-10, which was never drawn: a programme you had
+                // scheduled looked exactly like one you had not.
+                recordingState?.let { state ->
+                    BasicText(
+                        text = stringResource(state.label()),
+                        style = look.time.copy(
+                            color = when (state) {
+                                RecordingState.RECORDING -> studio.tally
+                                else -> studio.ink2
+                            },
+                        ),
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -981,6 +1044,137 @@ private fun ProgrammeCell(
 private const val CELL_TITLE_SCALE = 21f / 24f
 private const val CELL_TIME_SCALE = 17f / 24f
 private val GUIDE_NUMBER_WIDTH = 15.dp
+
+/**
+ * What every programme cell in the grid shares: its shape, the four styles of its two lines (the
+ * title and the time, aired and not, colour included) and the catch-up badge's word.
+ *
+ * Worked out once for the grid. Each cell used to copy the body step twice, cut its own shape
+ * and look its badge up again, a few hundred times on every opening.
+ */
+@Immutable
+private class GuideCellLook(
+    val shape: Shape,
+    val title: TextStyle,
+    val titlePast: TextStyle,
+    val time: TextStyle,
+    val timePast: TextStyle,
+    val catchup: String,
+    /** Less air on a television, where the row is cut to fit eight under the band. */
+    val verticalPadding: Dp,
+)
+
+@Composable
+private fun rememberCellLook(corner: Dp): GuideCellLook {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val television = StudioTheme.television
+    val catchup = stringResource(R.string.catchup_available)
+    return remember(corner, studio, type, television, catchup) {
+        // The line height follows the size. Copied from the body step with the size alone
+        // changed, both lines kept the body's line height, and the two of them stood taller than
+        // a television row.
+        val body = type.body
+        val title = body.copy(
+            fontSize = body.fontSize * CELL_TITLE_SCALE,
+            lineHeight = body.lineHeight * CELL_TITLE_SCALE,
+            fontWeight = FontWeight.SemiBold,
+        )
+        val time = body.copy(
+            fontSize = body.fontSize * CELL_TIME_SCALE,
+            lineHeight = body.lineHeight * CELL_TIME_SCALE,
+        )
+        GuideCellLook(
+            shape = RoundedCornerShape(corner),
+            title = title.copy(color = studio.ink),
+            titlePast = title.copy(color = studio.ink2),
+            time = time.copy(color = studio.ink2),
+            timePast = time.copy(color = studio.ink3),
+            catchup = catchup,
+            verticalPadding = if (television) 3.dp else 6.dp,
+        )
+    }
+}
+
+/**
+ * Lets the rows' programmes in one row a frame, top first, as the guide opens and each time its
+ * window moves (ADR-051, 0.21.1).
+ *
+ * A row of programmes took 18–40ms to compose on a Google TV Streamer, and the guide built every
+ * row on screen in one frame: once as it opened, before the guide data had arrived, as "no guide
+ * data" stripes, and again in the frame it did, with their cells — about 800ms each (device trace,
+ * 0.21.0). Now the guide opens with its band, its ruler and its channel column and an empty plate
+ * of glass in every lane, and each row's programmes are composed in a frame of their own once
+ * they have arrived.
+ *
+ * Only a row composed while the gate is *staging* waits: from the guide's opening and from each
+ * new window, until every row that was waiting has had its turn. A row composed after that —
+ * scrolled to, or built ahead while the screen is still (`AheadPrefetch`) — draws its programmes
+ * at once, which is what building it ahead is for. A row waits only once its programmes are
+ * here, so nothing asks for frames while a fetch is out.
+ */
+private class RowGate(
+    /** Whether rows wait at all; false draws every row's programmes as soon as they are here. */
+    val staged: Boolean,
+) {
+    /** Whether a row composed now waits its turn before it draws its programmes. */
+    var staging = staged
+        private set
+
+    private var window = Long.MIN_VALUE
+    private val waiting = ArrayList<Waiter>()
+    private var frame = Long.MIN_VALUE
+    private var given = 0
+
+    private class Waiter(val order: Int)
+
+    /** Called as the grid composes: a new window lets every row's programmes in again, in turn. */
+    fun stageFor(windowStart: Long) {
+        if (windowStart == window) return
+        window = windowStart
+        staging = staged
+    }
+
+    /**
+     * Waits for this row's turn: [ROWS_PER_FRAME] a frame, lowest [order] first, which is the top
+     * of the list. [onTurn] runs inside the frame, so what it changes is composed in that frame.
+     */
+    suspend fun await(order: Int, onTurn: () -> Unit) {
+        val me = Waiter(order)
+        waiting.add(me)
+        var through = false
+        try {
+            while (!through) {
+                withFrameNanos<Unit> { frameTime ->
+                    if (frameTime != frame) {
+                        frame = frameTime
+                        given = 0
+                    }
+                    if (given < ROWS_PER_FRAME && waiting.minByOrNull { it.order } === me) {
+                        given++
+                        waiting.remove(me)
+                        through = true
+                        onTurn()
+                    }
+                }
+            }
+        } finally {
+            // A row let go before its turn — scrolled away, or its window moved on — leaves the
+            // queue without ending the staging; the last one through ends it.
+            if (!through) waiting.remove(me)
+            if (through && waiting.isEmpty()) staging = false
+        }
+    }
+}
+
+/** Rows let through [RowGate] in one frame. */
+private const val ROWS_PER_FRAME = 1
+
+/** A row that has drawn its programmes for no window yet. */
+private const val NOT_SHOWN = Long.MIN_VALUE
+
+/** The channels a fetch brought programmes back for, and the window it was for. */
+private data class Coverage(val start: Long, val ids: Set<Long>)
 
 /** The television's day chip: `--st-h-control-l`, 80px at 1080p, the height of a large button. */
 private val DAY_CHIP_HEIGHT = 40.dp
