@@ -69,7 +69,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -492,9 +491,9 @@ private fun MenuHeader(openness: () -> Float, startPadding: Dp) {
  * The label is laid out at its own width whether or not there is room for it, so opening the menu
  * measures no text, and it fades in with [openness]; the entry clips it while the menu is a rail.
  * The glyph and the label take their colour as they are drawn, so the crossing to dark ink as the
- * plate arrives recomposes nothing a frame. The label adds nothing to the entry's semantics: the
- * entry already carries its name, and a text merged in beside it split the name and the selected
- * state onto two nodes, which the emulator QA reads as no screen being lit (QA-24).
+ * plate arrives recomposes nothing a frame. The entry clears what is under it from the semantics
+ * tree and carries its own name: anything under it with semantics of its own split the name and the
+ * selected state onto two nodes, which the emulator QA reads as no screen being lit (QA-24).
  */
 @Composable
 private fun MenuEntry(
@@ -554,7 +553,10 @@ private fun MenuEntry(
                 .clickable { onChoose(destination.overlay) }
                 // Selected the way Material's own navigation rail marks its item: TalkBack says which
                 // screen this is, and the emulator QA reads it to tell the screens apart (QA-24).
-                .semantics {
+                // Clearing, so nothing under the entry adds a node of its own: with the label in the
+                // tree, even one with its own semantics cleared, the name went to a child node and
+                // the selected state stayed on the entry, and the QA saw no screen lit (0.20.1-0.20.3).
+                .clearAndSetSemantics {
                     contentDescription = destination.label
                     role = Role.Tab
                     selected = current
@@ -570,12 +572,10 @@ private fun MenuEntry(
                         with(glyph) { draw(size = size, colorFilter = ColorFilter.tint(content.value)) }
                     },
             )
-            // Wrapped, so the clearing reaches the text itself (see [MenuHeader]).
             Box(
                 modifier = Modifier
                     .wrapContentWidth(align = Alignment.Start, unbounded = true)
-                    .graphicsLayer { alpha = openness() }
-                    .clearAndSetSemantics { },
+                    .graphicsLayer { alpha = openness() },
             ) {
                 BasicText(
                     text = destination.label,
