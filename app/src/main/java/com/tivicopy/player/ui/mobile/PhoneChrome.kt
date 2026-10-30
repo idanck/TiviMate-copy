@@ -24,7 +24,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,27 +48,31 @@ import com.tivicopy.player.R
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.NowPlayingInfo
 import com.tivicopy.player.ui.common.ChannelLogo
-import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.GlassMaterial
+import com.tivicopy.player.ui.common.LiveDot
+import com.tivicopy.player.ui.common.StudioIcons
 import com.tivicopy.player.ui.common.animatedColour
+import com.tivicopy.player.ui.common.glass
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
-import com.tivicopy.player.ui.common.StudioIcons
 
 /**
- * Studio's phone chrome (`docs/design/studio/canvas/PTopBar`, `PNavBar`, `PMiniPlayer`): the bar
- * over a tab, the five tabs under it, and what is playing docked between the two.
+ * The phone's chrome (`PTopBar`, `PNavBar`, `PMiniPlayer`; Merhav, ADR-046): the bar over a tab, the
+ * five tabs under it in a floating capsule of glass, and what is playing docked between the two in
+ * a capsule of its own.
  *
- * On a phone there is no remote, so the cue (amber) marks what is active — the current tab's pill —
- * and the tally (red) keeps its one meaning: what is playing now.
+ * On a phone there is no remote, so the cue (amber) marks what is active — the current tab, the
+ * play button — and the tally (red) keeps its one meaning: what is playing live.
  */
 
 /** One tab in [PhoneNavBar]. */
 internal data class PhoneTab(val tab: MobileTab, val label: String, val icon: ImageVector)
 
 /**
- * `PTopBar`: back at the start when there is somewhere to go back to, the title in Karantina, and
- * Sport mode, News mode and search at the end. [title] is null where the screen underneath draws
- * its own heading, so the same words never sit twice, one above the other.
+ * `PTopBar`: back at the start when there is somewhere to go back to, the title at the display
+ * weight (the hero step on a tab, the title step under a back button), and Sport mode, News mode
+ * and search at the end, each a round button of thin glass. [title] is null where the screen
+ * underneath draws its own heading, so the same words never sit twice, one above the other.
  */
 @Composable
 internal fun PhoneTopBar(
@@ -81,67 +84,64 @@ internal fun PhoneTopBar(
     onNews: (() -> Unit)? = null,
 ) {
     val studio = StudioTheme.colors
+    val type = StudioTheme.type
     Row(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
             .height(TOP_BAR_HEIGHT)
-            .padding(horizontal = 6.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = StudioIcons.Back,
-                    contentDescription = stringResource(R.string.action_back),
-                    tint = studio.ink,
-                )
-            }
+            GlassIconButton(
+                icon = StudioIcons.Back,
+                description = stringResource(R.string.action_back),
+                onClick = onBack,
+            )
         }
         Text(
             text = title.orEmpty(),
-            style = StudioTheme.type.titleSmall,
+            style = if (onBack != null) type.title else type.hero,
             color = studio.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
+            modifier = Modifier.weight(1f),
         )
         // Sport and News modes have no tab of their own: the five are taken (ADR-032, ADR-041).
         if (onNews != null) {
-            IconButton(onClick = onNews) {
-                Icon(
-                    imageVector = StudioIcons.News,
-                    contentDescription = stringResource(R.string.nav_news),
-                    tint = studio.ink,
-                )
-            }
+            GlassIconButton(icon = StudioIcons.News, description = stringResource(R.string.nav_news), onClick = onNews)
         }
         if (onSport != null) {
-            IconButton(onClick = onSport) {
-                Icon(
-                    imageVector = StudioIcons.Sport,
-                    contentDescription = stringResource(R.string.nav_sport),
-                    tint = studio.ink,
-                )
-            }
+            GlassIconButton(icon = StudioIcons.Sport, description = stringResource(R.string.nav_sport), onClick = onSport)
         }
         if (onSearch != null) {
-            IconButton(onClick = onSearch) {
-                Icon(
-                    imageVector = StudioIcons.Search,
-                    contentDescription = stringResource(R.string.nav_search),
-                    tint = studio.ink,
-                )
-            }
+            GlassIconButton(icon = StudioIcons.Search, description = stringResource(R.string.nav_search), onClick = onSearch)
         }
     }
 }
 
+/** A round button of thin glass, 44dp — the least a finger should be offered — with a 22dp glyph. */
+@Composable
+private fun GlassIconButton(icon: ImageVector, description: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(TOUCH)
+            .glass(GlassMaterial.THIN, CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = StudioTheme.colors.ink, modifier = Modifier.size(22.dp))
+    }
+}
+
 /**
- * `PNavBar`: five tabs on the surface, a hairline above them. The current tab's icon sits in a
- * cue pill 56×30 and its label is bold; the others are ink-2. [selected] may be none of them —
- * the on-demand screen, reached only from search, has no tab of its own.
+ * `PNavBar`: five tabs in a capsule of thick glass that floats just above the foot of the screen.
+ * The current tab is amber — its glyph and label, on a wash of amber glass inside an amber edge;
+ * the others are the second ink. [selected] may be none of them — the on-demand screen, reached
+ * only from search, has no tab of its own.
  */
 @Composable
 internal fun PhoneNavBar(
@@ -151,50 +151,47 @@ internal fun PhoneNavBar(
     modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(studio.surface)
-            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)),
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp),
     ) {
-        // `box-shadow: inset 0 1px 0 var(--st-hairline-soft)`.
-        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(studio.hairlineSoft))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(NAV_BAR_HEIGHT - 1.dp)
-                .padding(start = 4.dp, end = 4.dp, top = 5.dp, bottom = 8.dp)
+                .height(NAV_BAR_HEIGHT)
+                .glass(GlassMaterial.THICK, CircleShape)
+                .padding(6.dp)
                 .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             tabs.forEach { item ->
                 val active = item.tab == selected
-                val pill = animatedColour(if (active) studio.cue else studio.cue.copy(alpha = 0f))
+                val fill = animatedColour(if (active) studio.currentGlass else studio.currentGlass.copy(alpha = 0f))
+                val edge = animatedColour(if (active) studio.currentEdge else studio.currentEdge.copy(alpha = 0f))
+                val content = animatedColour(if (active) studio.cue else studio.ink2)
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .clip(CircleShape)
+                        .background(fill)
+                        .border(1.dp, edge, CircleShape)
                         .selectable(selected = active, role = Role.Tab, onClick = { onSelect(item.tab) }),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                    verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(width = 56.dp, height = 30.dp)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(pill),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = item.icon,
-                            contentDescription = null,
-                            tint = if (active) studio.onCue else studio.ink2,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = content,
+                        modifier = Modifier.size(22.dp),
+                    )
                     Text(
                         text = item.label,
                         style = StudioTheme.type.nav.copy(fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold),
-                        color = if (active) studio.ink else studio.ink2,
+                        color = content,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -206,9 +203,10 @@ internal fun PhoneNavBar(
 
 /**
  * `PMiniPlayer`: what is playing, docked above the tabs while the player screen is collapsed — the
- * music-app pattern, so browsing never silences or hides the stream (ADR-011). A card 64dp high
- * with a hairline and a lift; the channel's plate (a disc for a station), the channel under a tally
- * dot, the title, play/pause, and a 2dp progress line along the bottom edge.
+ * music-app pattern, so browsing never silences or hides the stream (ADR-011). A capsule of thick
+ * glass 64dp high: the channel's plate (a disc for a station), the channel after a live dot, the
+ * title, play/pause on the cue, and while a live programme is known a 2dp line of its progress in
+ * the tally along the foot.
  *
  * The canvas shows a frame of the video where the plate is. The video track is not decoded while
  * the player is collapsed (battery and bandwidth, see `MobileRoot`), so the plate is the channel's
@@ -225,22 +223,20 @@ internal fun PhoneMiniPlayer(
     onTogglePlay: () -> Unit,
 ) {
     val studio = StudioTheme.colors
-    val shape = RoundedCornerShape(LocalTvMetrics.current.controlCorner)
+    val shape = CircleShape
     val label = stringResource(R.string.now_playing)
-    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+    val toggleLabel = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play)
+    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(MINI_HEIGHT)
-                .shadow(elevation = 8.dp, shape = shape)
-                .clip(shape)
-                .background(studio.card)
-                .border(1.dp, studio.hairlineSoft, shape)
+                .glass(GlassMaterial.THICK, shape)
                 .clickable(onClick = onExpand)
                 .semantics { contentDescription = label },
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(start = 10.dp, end = 4.dp),
+                modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(start = 12.dp, end = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 MiniPlate(nowPlaying = nowPlaying, radio = radio)
@@ -255,13 +251,13 @@ internal fun PhoneMiniPlayer(
                     if (channelLine.isNotBlank()) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             // The tally only where something is live: a recording or a film is
-                            // playing, but it is not on air.
+                            // playing, but it is not on air. It says so in words to TalkBack.
                             if (nowPlaying is NowPlayingInfo.Live) {
-                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(studio.tally))
+                                LiveDot(description = stringResource(R.string.playback_live_badge))
                             }
                             Text(
                                 text = channelLine,
-                                style = StudioTheme.type.caption,
+                                style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
                                 color = studio.ink2,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
@@ -270,18 +266,29 @@ internal fun PhoneMiniPlayer(
                     }
                     Text(
                         text = titleLine,
-                        style = StudioTheme.type.rowLabel.copy(fontSize = StudioTheme.type.meta.fontSize * 15f / 14f),
+                        style = StudioTheme.type.rowLabel.copy(fontWeight = FontWeight.Bold),
                         color = studio.ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(onClick = onTogglePlay) {
+                Spacer(modifier = Modifier.width(10.dp))
+                // The one action here, on the cue: amber is what is active on a phone.
+                Box(
+                    modifier = Modifier
+                        .size(TOUCH)
+                        .shadow(elevation = 6.dp, shape = CircleShape)
+                        .clip(CircleShape)
+                        .background(studio.cue)
+                        .clickable(role = Role.Button, onClick = onTogglePlay)
+                        .semantics { contentDescription = toggleLabel },
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
                         imageVector = if (wantsPlay) StudioIcons.Pause else StudioIcons.Play,
-                        contentDescription = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play),
-                        tint = studio.ink,
-                        modifier = Modifier.size(26.dp),
+                        contentDescription = null,
+                        tint = studio.onCue,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
@@ -300,12 +307,14 @@ internal fun PhoneMiniPlayer(
                     val fraction = ((System.currentTimeMillis() - now.startUtc).toFloat() / span).coerceIn(0f, 1f)
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomStart)
+                            .align(Alignment.BottomCenter)
+                            .padding(start = 26.dp, end = 26.dp, bottom = 4.dp)
                             .fillMaxWidth()
                             .height(2.dp)
+                            .clip(CircleShape)
                             .background(studio.track),
                     ) {
-                        Box(modifier = Modifier.fillMaxWidth(fraction).height(2.dp).background(studio.ink))
+                        Box(modifier = Modifier.fillMaxWidth(fraction).height(2.dp).background(studio.tally))
                     }
                 }
             }
@@ -326,9 +335,7 @@ private fun MiniPlate(nowPlaying: NowPlayingInfo, radio: Boolean) {
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
-                .background(studio.surface)
-                .border(1.dp, studio.hairline, CircleShape),
+                .glass(GlassMaterial.THIN, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             ChannelLogo(channel = channel, sizeDp = 36, circular = true)
@@ -338,8 +345,7 @@ private fun MiniPlate(nowPlaying: NowPlayingInfo, radio: Boolean) {
     Box(
         modifier = Modifier
             .size(width = 72.dp, height = 40.dp)
-            .clip(RoundedCornerShape(6.dp))
-            .background(studio.surface),
+            .glass(GlassMaterial.THIN, RoundedCornerShape(12.dp)),
         contentAlignment = Alignment.Center,
     ) {
         if (channel != null) {
@@ -353,11 +359,14 @@ private fun MiniPlate(nowPlaying: NowPlayingInfo, radio: Boolean) {
 /** `--st-h-topbar`. */
 private val TOP_BAR_HEIGHT = 56.dp
 
-/** `--st-h-navbar`. */
-private val NAV_BAR_HEIGHT = 72.dp
+/** `--st-h-navbar`: the capsule itself. */
+private val NAV_BAR_HEIGHT = 68.dp
 
 /** `--st-h-mini`. */
 private val MINI_HEIGHT = 64.dp
+
+/** `--st-touch`: the least a finger should be offered. */
+private val TOUCH = 44.dp
 
 /** How often the mini player's progress line advances on its own. */
 private const val PROGRESS_TICK_MS = 60_000L

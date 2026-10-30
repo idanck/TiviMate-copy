@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
@@ -268,12 +269,20 @@ internal fun PanelCaption(
             )
         }
         if (audible) {
-            Icon(
-                imageVector = StudioIcons.Audio,
-                contentDescription = stringResource(R.string.sport_sound_here),
-                tint = studio.cue,
-                modifier = Modifier.size(22.dp),
-            )
+            // In the cue (`TvModePanel`, `PModePanel`): the lit colour on a television, on a disc of
+            // thin glass; amber on a phone, where the cue marks what is active.
+            val tv = StudioTheme.television
+            Box(
+                modifier = if (tv) Modifier.size(32.dp).glass(GlassMaterial.THIN, CircleShape) else Modifier,
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = StudioIcons.Audio,
+                    contentDescription = stringResource(R.string.sport_sound_here),
+                    tint = studio.cue,
+                    modifier = Modifier.size(if (tv) 18.dp else 22.dp),
+                )
+            }
         }
         if (onChange != null) {
             PanelChangeButton(onClick = onChange)
@@ -359,7 +368,9 @@ internal fun FlashesPanel(live: Boolean, modifier: Modifier = Modifier) {
             // The screensaver's column is drawn for a 380dp column at its scale of one; a panel
             // is read from nearer, so it takes its scale from a wider one (`FLASH_PANEL_WIDTH_DP`).
             val scale = (maxWidth.value / FLASH_PANEL_WIDTH_DP).coerceIn(FLASH_MIN_SCALE, FLASH_MAX_SCALE)
-            val units = SaverUnits(scale, LocalDensity.current)
+            // A panel is read, so the smallest parts keep a floor (`TvModeHeadlines`, `PModeHeadlines`).
+            val floors = if (StudioTheme.television) FlashFloors.TELEVISION else FlashFloors.PHONE
+            val units = SaverUnits(scale, LocalDensity.current, floors)
             FlashColumn(
                 flashes = flashes,
                 updatedUtc = digests.values.maxOfOrNull { it.fetchedUtc } ?: 0L,
@@ -414,17 +425,20 @@ internal fun NewsTicker(live: Boolean, modifier: Modifier = Modifier) {
             .semantics { contentDescription = label },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // `TvModeTicker`: a plate of lit glass with white words — a label, so never the cue, which
+        // is focus on a television and what is active on a phone.
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxHeight()
-                .background(studio.cue)
+                .background(studio.glassLit)
+                .litEdge(RectangleShape)
                 .padding(horizontal = 14.dp),
         ) {
             Text(
                 text = label,
                 style = type.h1.copy(fontWeight = FontWeight.SemiBold),
-                color = studio.onCue,
+                color = studio.ink,
                 maxLines = 1,
             )
         }

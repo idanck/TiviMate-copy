@@ -30,6 +30,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
@@ -52,7 +53,6 @@ import com.tivicopy.player.ui.UiMessage
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LiveBadge
 import com.tivicopy.player.ui.common.LocalTvMetrics
-import com.tivicopy.player.ui.common.MENU_MIN_OPACITY
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
@@ -115,12 +115,14 @@ fun TransportBar(
     }
     val labels = nowPlayingLabels(state.nowPlaying, state.now?.title) ?: return
 
-    // `PlayerTransport`: no plate. A lower third over the canvas's bottom scrim, the controls
-    // under it as square buttons, and the hint for the long press under those. The scrim follows
-    // the viewer's overlay opacity (FR-UI-18), with a floor so the text over it stays legible.
+    // `PlayerTransport` (ADR-046): the lower third as a panel of glass over the canvas's bottom
+    // scrim, the controls under it as glass pills, and the hint for the long press under those.
+    // The scrim and the panel follow the viewer's overlay opacity (FR-UI-18), each with a floor so
+    // the text stays legible.
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     val scrim = prefs.overlayOpacity.coerceAtLeast(0.5f)
+    val panel = prefs.overlayOpacity.coerceAtLeast(TRANSPORT_PANEL_MIN_OPACITY)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -135,53 +137,63 @@ fun TransportBar(
             .padding(start = 48.dp, end = 48.dp, top = 72.dp, bottom = 27.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Live *and* not paused, the same rule the station backdrop applies to the same badge:
-        // this bar is the one place a viewer can stop a live stream, so it is the last place that
-        // should go on calling it live afterwards.
-        //
-        // Hidden rather than removed, because this bar is anchored to the foot of the screen and
-        // grows upwards: dropping a line would slide the focused play/pause button down at the
-        // exact moment it is being pressed, and back up on the next press. `alpha` keeps the row
-        // measured at any font scale; the semantics go with the pixels, so a screen reader is not
-        // told about a badge nobody can see.
-        if (live != null) {
-            val onAir = playback.playWhenReady
-            LiveBadge(
-                modifier = Modifier
-                    .alpha(if (onAir) 1f else 0f)
-                    .then(if (onAir) Modifier else Modifier.clearAndSetSemantics {}),
-            )
-        }
-        labels.second?.let {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // The panel corner by the theme: the bar is drawn over the video, outside the
+                // browse screens' metrics.
+                .tvGlassPanel(opacity = panel, shape = MaterialTheme.shapes.large)
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            // Live *and* not paused, the same rule the station backdrop applies to the same badge:
+            // this bar is the one place a viewer can stop a live stream, so it is the last place that
+            // should go on calling it live afterwards.
+            //
+            // Hidden rather than removed, because this bar is anchored to the foot of the screen and
+            // grows upwards: dropping a line would slide the focused play/pause button down at the
+            // exact moment it is being pressed, and back up on the next press. `alpha` keeps the row
+            // measured at any font scale; the semantics go with the pixels, so a screen reader is not
+            // told about a badge nobody can see.
+            if (live != null) {
+                val onAir = playback.playWhenReady
+                LiveBadge(
+                    modifier = Modifier
+                        .alpha(if (onAir) 1f else 0f)
+                        .then(if (onAir) Modifier else Modifier.clearAndSetSemantics {}),
+                )
+            }
+            labels.second?.let {
+                Text(
+                    text = it,
+                    style = type.rowLabel,
+                    color = studio.ink2,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
-                text = it,
-                style = type.rowLabel,
-                color = studio.ink2,
+                text = labels.first,
+                // The lower third's title: the title step (`LowerThird.dc.html`).
+                style = type.title,
+                color = studio.ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-        }
-        Text(
-            text = labels.first,
-            // The lower third's title: Karantina, between the small title step and the title.
-            style = type.title.copy(fontSize = type.title.fontSize * LOWER_THIRD_TITLE_SCALE),
-            color = studio.ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
 
-        // Only live has a programme to be part-way through. Catch-up and on-demand have a
-        // position, but this app has no scrubber yet and docs/10 says so rather than drawing one
-        // that cannot be dragged.
-        if (live != null) {
-            state.now?.let { now ->
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = TimeModel.ltr(TimeModel.formatClockRange(now.startUtc, now.endUtc)),
-                        style = type.meta,
-                        color = studio.ink2,
-                    )
-                    ProgrammeProgress(now.startUtc, now.endUtc, modifier = Modifier.width(220.dp))
+            // Only live has a programme to be part-way through. Catch-up and on-demand have a
+            // position, but this app has no scrubber yet and docs/10 says so rather than drawing one
+            // that cannot be dragged.
+            if (live != null) {
+                state.now?.let { now ->
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = TimeModel.ltr(TimeModel.formatClockRange(now.startUtc, now.endUtc)),
+                            style = type.meta,
+                            color = studio.ink2,
+                        )
+                        ProgrammeProgress(now.startUtc, now.endUtc, modifier = Modifier.width(280.dp))
+                    }
                 }
             }
         }
@@ -216,9 +228,10 @@ fun TransportBar(
             // The canvas's rule between moving through the stream and everything else.
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 6.dp)
+                    .padding(horizontal = 5.dp)
                     .width(1.dp)
-                    .height(22.dp)
+                    .height(20.dp)
+                    .clip(CircleShape)
                     .background(studio.hairline),
             )
             // `PlayerTransport`'s two labelled actions on what is on air now (ADR-034). Without a
@@ -270,16 +283,16 @@ fun TransportBar(
         Text(
             text = stringResource(R.string.playback_menu_hint),
             style = type.caption,
-            color = studio.ink2,
-            modifier = Modifier.clickable(onClick = onOpenMenu),
+            color = studio.ink3,
+            modifier = Modifier.padding(start = 4.dp).clickable(onClick = onOpenMenu),
         )
     }
 }
 
 /**
- * One control on the transport bar: Studio's medium button (`PlayerTransport`), square when it is
- * a glyph alone, becoming the cue when the remote is on it. Every one is the same weight; the
- * canvas gives play and pause no plate of their own.
+ * One control on the transport bar: the medium button (`PlayerTransport`), a circle when it is a
+ * glyph alone, becoming the lit surface when the remote is on it. Every one is the same weight;
+ * the canvas gives play and pause no plate of their own.
  *
  * @param labelled the canvas's details, record and guide, which carry their name beside the glyph
  */
@@ -342,19 +355,20 @@ fun PlaybackMenu(
         // glanced at over video, and this one would be unreadable.
         //
         // `PlayerMenu`: a drawer the full height of the screen against its end edge, as the
-        // channel menu is — the picture stays in view beside it.
+        // channel menu is — the picture stays in view beside it. Solid next to the edge and fading
+        // towards the picture (`Glass.kt`), never blurred.
         modifier = modifier
             .width(310.dp)
             .fillMaxHeight()
-            .background(StudioTheme.colors.drawer.copy(alpha = prefs.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY)))
+            .tvDrawer(atStart = false)
             .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Text(
             text = stringResource(R.string.playback_menu),
-            style = StudioTheme.type.titleSmall.copy(fontSize = StudioTheme.type.titleSmall.fontSize * 0.75f),
+            style = StudioTheme.type.h1,
             color = StudioTheme.colors.ink,
-            modifier = Modifier.padding(horizontal = 12.dp),
+            modifier = Modifier.padding(horizontal = 12.dp).padding(top = 5.dp, bottom = 2.dp),
         )
         labels?.let {
             Text(
@@ -450,7 +464,7 @@ private fun MenuHeading(text: String) {
     )
 }
 
-/** One entry in the playback menu: Studio's list row, with its glyph, value or check. */
+/** One entry in the playback menu: the list row, with its glyph, value or check. */
 @Composable
 private fun MenuEntry(
     title: String,
@@ -476,5 +490,5 @@ private fun MenuEntry(
     )
 }
 
-/** The lower third's programme title: 96px at 1080p against the title step's 108. */
-private const val LOWER_THIRD_TITLE_SCALE = 96f / 108f
+/** The least opaque the transport bar's panel is drawn, whatever the setting says. */
+private const val TRANSPORT_PANEL_MIN_OPACITY = 0.8f

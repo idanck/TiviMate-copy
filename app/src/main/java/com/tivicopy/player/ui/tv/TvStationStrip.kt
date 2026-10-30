@@ -163,7 +163,7 @@ private fun StripStation(station: Channel, onAir: Boolean, onClick: () -> Unit) 
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         val ring = when {
-            focused -> Modifier.border(2.5.dp, studio.cue, CircleShape)
+            focused -> Modifier.border(2.dp, studio.cue, CircleShape)
             onAir -> Modifier.border(2.dp, studio.tally, CircleShape)
             else -> Modifier
         }
@@ -173,7 +173,7 @@ private fun StripStation(station: Channel, onAir: Boolean, onClick: () -> Unit) 
                 .then(ring)
                 .padding(3.dp),
         ) {
-            StationDisc(channel = station, size = DISC_SIZE)
+            StationDisc(channel = station, size = DISC_SIZE, focused = focused, onAir = onAir)
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (onAir) {
@@ -199,5 +199,5 @@ private val STRIP_SAFE_X = 48.dp
 private val DISC_SIZE = 75.dp
 private val STATION_WIDTH = 90.dp
 
-/** `StationDisc`'s focus state: `scale(1.08)`. */
-private const val DISC_FOCUS_SCALE = 1.08f
+/** `StationDisc`'s focus state: `--st-focus-scale`. */
+private const val DISC_FOCUS_SCALE = 1.06f

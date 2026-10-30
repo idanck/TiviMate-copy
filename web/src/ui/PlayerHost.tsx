@@ -96,7 +96,7 @@ export function PlayerHost() {
             <Logo url={channel.logoUrl} name={channel.name} size={36} round={radio} />
             <span class="title" dir="auto">{channel.name}</span>
             {pb.status === 'playing' && <span class="badge-live">חי</span>}
-            {pb.remuxed && <span class="faint" title="השמע מומר בשרת ל-AAC">AAC</span>}
+            {pb.remuxed && <span class="tag" title="השמע מומר בשרת ל-AAC">AAC</span>}
             <span class="spacer" />
             {mini && (
               <button class="icon-btn" onClick={() => engine.stop()} aria-label="עצור" title="עצור">

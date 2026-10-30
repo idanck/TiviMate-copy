@@ -73,7 +73,7 @@ fun UpdatePrompt() {
             val megabytes = manifest.sizeBytes / (1024.0 * 1024.0)
             val notes = manifest.notesFor(Locale.getDefault().toLanguageTag())
 
-            // `TvUpdatePrompt`: an announcement, so a Karantina title, and three equal choices —
+            // `TvUpdatePrompt`: an announcement, so a display title, and three equal choices —
             // all secondary, with focus on "update now".
             StudioDialog(
                 onDismissRequest = { postponed = true },

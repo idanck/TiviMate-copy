@@ -49,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -76,9 +75,9 @@ import androidx.compose.ui.unit.dp
 import com.tivicopy.player.ui.theme.StudioTheme
 
 /*
- * Studio's base components (MIGRATION.md, round 2 §2 and stage 7): what replaced Material's text
- * field, switch, choice, spinner, snackbar and empty message. The button is `StudioButton.kt`, the
- * progress bar `Components.kt`, the dialog `Panel.kt`.
+ * The base components (Studio's MIGRATION.md, round 2 §2 and stage 7; restyled for Merhav by
+ * ADR-046): what replaced Material's text field, switch, choice, spinner, snackbar and empty
+ * message. The button is `StudioButton.kt`, the progress bar `Components.kt`, the dialog `Panel.kt`.
  *
  * Every one of them is shared by both shells and draws the canvas's ten-foot or touch version from
  * `StudioTheme.television`. The television's sizes are the canvas's 1080p pixels halved; the
@@ -87,11 +86,13 @@ import com.tivicopy.player.ui.theme.StudioTheme
  */
 
 /**
- * `Field` and `PField`: a labelled input on the surface colour, inside a hairline.
+ * `Field` and `PField`: a labelled input on thin glass, with the glass's lit edge.
  *
- * Focus rings it in the cue — on a television the plate also steps up to `card-focus`; on a phone,
- * where focus means the keyboard is up, it does not. An error rings it in the error colour and
- * turns the helper line into the reason, with an alert glyph so it is not carried by colour alone.
+ * On a television a focused field is a control like any other: it becomes the lit surface, its
+ * text turns dark and it grows a little (`--st-focus-scale-row`). On a phone, where focus means
+ * the keyboard is up, it is ringed in the cue — amber there, what is active. An error rings it in
+ * the error colour and turns the helper line into the reason, with an alert glyph so it is not
+ * carried by colour alone.
  *
  * Built on [BasicTextField] rather than restyling Material's: the outlined field's floating label,
  * its notch and its indicator are three things the canvas does not draw.
@@ -142,17 +143,23 @@ fun StudioField(
         if (editRequests > 0) inputFocus.requestFocus()
     }
     val focused = inputFocused || (pressToEdit && outerFocused)
+    val lit = focused && tv
     val shape = MaterialTheme.shapes.medium
     val ringWidth = if (tv) TV_RING else PHONE_RING
+    // On the lit surface the plate itself says "focus"; the ring is kept for an error, and for the
+    // phone, where focus is a ring of the cue.
     val ring = animatedColour(
         when {
-            focused -> studio.cue
+            focused && !tv -> studio.cue
             isError -> studio.error
             else -> studio.cue.copy(alpha = 0f)
         },
     )
-    val plate = animatedColour(if (focused && tv) studio.cardFocus else studio.surface)
-    val inputStyle = type.rowLabel.copy(fontWeight = FontWeight.Normal, color = studio.ink)
+    val plate = animatedColour(if (lit) studio.cue else studio.card)
+    val edge = animatedColour(if (lit) studio.edgeLine.copy(alpha = 0f) else studio.edgeLine)
+    val inputInk = animatedColour(if (lit) studio.onCue else studio.ink)
+    val glyphInk = animatedColour(if (lit) studio.onCue else studio.ink2)
+    val inputStyle = type.rowLabel.copy(fontWeight = if (lit) FontWeight.SemiBold else FontWeight.Medium, color = inputInk)
 
     Column(
         modifier = modifier
@@ -183,7 +190,7 @@ fun StudioField(
             enabled = enabled && (!pressToEdit || editing),
             singleLine = singleLine,
             textStyle = inputStyle,
-            cursorBrush = SolidColor(studio.cue),
+            cursorBrush = SolidColor(if (lit) studio.onCue else studio.cue),
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             visualTransformation = visualTransformation,
@@ -206,13 +213,15 @@ fun StudioField(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (tv) 36.dp else 48.dp)
+                        // A control lifts and grows a little under focus on a television.
+                        .focusLift(lit, scale = LocalTvMetrics.current.rowFocusScale, shape = shape)
                         .clip(shape)
                         .background(plate)
-                        // The resting hairline and the ring are two lines, each one width for
-                        // good: only their colours cross (`Focus.kt`).
-                        .border(1.dp, studio.hairline, shape)
+                        // The glass's edge and the ring are two lines, each one width for good:
+                        // only their colours cross (`Focus.kt`).
+                        .border(1.dp, edge, shape)
                         .border(ringWidth, ring, shape)
-                        .padding(horizontal = if (tv) 11.dp else 14.dp),
+                        .padding(horizontal = if (tv) 12.dp else 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(if (tv) 7.dp else 10.dp),
                 ) {
@@ -220,13 +229,18 @@ fun StudioField(
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = studio.ink2,
+                            tint = glyphInk,
                             modifier = Modifier.size(if (tv) 14.dp else 20.dp),
                         )
                     }
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                         if (value.isEmpty() && !placeholder.isNullOrEmpty()) {
-                            Text(placeholder, style = inputStyle, color = studio.ink3, maxLines = 1)
+                            Text(
+                                placeholder,
+                                style = inputStyle,
+                                color = if (lit) studio.onCue.copy(alpha = LIT_MUTED_ALPHA) else studio.ink3,
+                                maxLines = 1,
+                            )
                         }
                         input()
                     }
@@ -257,13 +271,14 @@ fun StudioField(
 /**
  * `Toggle` and `PToggle`: the switch at the end of a setting's row.
  *
- * On, it is ink with a dark knob on a television — the cue is focus there — and the cue with a
- * dark knob on a phone, where the cue marks what is on. Off, it is the faint track with a grey
+ * On, it is ink with a dark knob on a television and the cue with a dark knob on a phone, where
+ * the cue (amber) marks what is on. Off, it is the faint track inside the glass's edge, with a grey
  * knob. The knob sits at the start when off and slides to the end when on, so it follows the
  * reading direction.
  *
- * Only a picture of the state: the row it sits in is what takes focus and the press. [focused]
- * draws the canvas's own ring for the rare toggle that is focusable by itself.
+ * Only a picture of the state: the row it sits in is what takes focus and the press. [lit] draws it
+ * on that row's lit surface, in dark ink (`Toggle`'s `lit`). [focused] draws the canvas's own ring
+ * for the rare toggle that is focusable by itself.
  */
 @Composable
 fun StudioToggle(
@@ -271,6 +286,7 @@ fun StudioToggle(
     modifier: Modifier = Modifier,
     focused: Boolean = false,
     enabled: Boolean = true,
+    lit: Boolean = false,
 ) {
     val studio = StudioTheme.colors
     val tv = StudioTheme.television
@@ -278,10 +294,27 @@ fun StudioToggle(
     val height = if (tv) 18.dp else 26.dp
     val knob = if (tv) 14.dp else 20.dp
     val inset = if (tv) 2.dp else 3.dp
-    val on = if (tv) studio.ink else studio.cue
-    val onKnob = if (tv) studio.ground else studio.onCue
-    val track = animatedColour(if (checked) on else studio.track)
-    val knobColour = animatedColour(if (checked) onKnob else studio.ink2)
+    val on = when {
+        lit -> studio.onCue
+        tv -> studio.ink
+        else -> studio.cue
+    }
+    val onKnob = when {
+        lit -> studio.cue
+        tv -> studio.ground
+        else -> studio.onCue
+    }
+    val off = if (lit) studio.onCue.copy(alpha = 0.16f) else studio.track
+    val offKnob = if (lit) studio.onCue.copy(alpha = 0.55f) else studio.ink2
+    val track = animatedColour(if (checked) on else off)
+    val knobColour = animatedColour(if (checked) onKnob else offKnob)
+    val trackEdge = animatedColour(
+        when {
+            checked -> studio.edgeLine.copy(alpha = 0f)
+            lit -> studio.onCue.copy(alpha = 0.22f)
+            else -> studio.edgeLine
+        },
+    )
     val ring = animatedColour(if (focused) studio.cue else studio.cue.copy(alpha = 0f))
     val travel by animateDpAsState(
         targetValue = if (checked) width - knob - inset else inset,
@@ -308,6 +341,7 @@ fun StudioToggle(
             }
             .clip(CircleShape)
             .background(track)
+            .border(1.dp, trackEdge, CircleShape)
             .semantics {
                 role = Role.Switch
                 toggleableState = ToggleableState(checked)
@@ -326,8 +360,9 @@ fun StudioToggle(
 /**
  * `Segmented`: a short, mutually exclusive choice laid out in one row — the decoder for a channel.
  *
- * The chosen segment is ink; a focused one becomes the cue and lifts, as every focusable control
- * does. One component for both shells (the canvas's `size="phone"`): only the sizes change.
+ * The chosen segment is amber (`--st-current`: amber glass, amber text); a focused one becomes the
+ * lit surface and lifts, as every focusable control does. One component for both shells (the
+ * canvas's `size="phone"`): only the sizes change.
  */
 @Composable
 fun <T> StudioSegmented(
@@ -344,7 +379,7 @@ fun <T> StudioSegmented(
         modifier = modifier
             .clip(outer)
             .background(studio.surface)
-            .border(1.dp, studio.hairlineSoft, outer)
+            .border(1.dp, studio.edgeLine, outer)
             .padding(if (tv) 2.dp else 4.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(if (tv) 2.dp else 4.dp),
@@ -355,17 +390,11 @@ fun <T> StudioSegmented(
             val fill = animatedColour(
                 when {
                     focused -> studio.cue
-                    chosen -> studio.ink
-                    else -> studio.ink.copy(alpha = 0f)
+                    chosen -> studio.currentGlass
+                    else -> studio.currentGlass.copy(alpha = 0f)
                 },
             )
-            val content = animatedColour(
-                when {
-                    focused -> studio.onCue
-                    chosen -> studio.ground
-                    else -> studio.ink2
-                },
-            )
+            val content = filledContentColour(focused = focused, selected = chosen, muted = true)
             Box(
                 modifier = Modifier
                     .height(if (tv) 28.dp else 32.dp)
@@ -431,8 +460,8 @@ fun Loader(modifier: Modifier = Modifier, size: Dp = 32.dp, label: String? = nul
 enum class NoticeTone { DEFAULT, OK, ERROR }
 
 /**
- * `Notice` and `PNotice`: a short message that comes and goes by itself, on the panel colour
- * inside a hairline, lifted off what is under it. What replaced Material's snackbar.
+ * `Notice` and `PNotice`: a short message that comes and goes by itself, floating over the
+ * picture in thick glass at the panel corner. What replaced Material's snackbar.
  */
 @Composable
 fun StudioNotice(
@@ -443,15 +472,12 @@ fun StudioNotice(
 ) {
     val studio = StudioTheme.colors
     val tv = StudioTheme.television
-    val shape = RoundedCornerShape(if (tv) 9.dp else 14.dp)
+    val shape = MaterialTheme.shapes.large
     Row(
         modifier = modifier
             .widthIn(max = if (tv) 550.dp else 358.dp)
-            .shadow(if (tv) 8.dp else 6.dp, shape)
-            .clip(shape)
-            .background(studio.panel)
-            .border(1.dp, studio.hairline, shape)
-            .padding(horizontal = if (tv) 14.dp else 16.dp, vertical = if (tv) 10.dp else 12.dp)
+            .glass(GlassMaterial.THICK, shape)
+            .padding(horizontal = if (tv) 15.dp else 16.dp, vertical = if (tv) 10.dp else 12.dp)
             .semantics { contentDescription = text },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(if (tv) 8.dp else 10.dp),
@@ -532,9 +558,8 @@ fun EmptyState(
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (tv) 56.dp else 64.dp)
-                    .clip(CircleShape)
-                    .background(studio.card),
+                    .size(if (tv) 56.dp else 72.dp)
+                    .glass(GlassMaterial.THIN, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -545,19 +570,18 @@ fun EmptyState(
                 )
             }
             if (!title.isNullOrEmpty()) {
-                // 32px at 1080p and 18 on a phone: the h1 step, a little smaller in each shell.
-                val h1 = type.h1
+                // The h1 step in both shells (`EmptyState`, `PEmptyState`).
                 Text(
                     text = title,
-                    style = h1.copy(fontSize = h1.fontSize * (if (tv) 16f / 17f else 18f / 20f)),
+                    style = type.h1,
                     color = studio.ink,
                     textAlign = TextAlign.Center,
                 )
             }
             Text(
                 text = text,
-                // 26px at 1080p is the television's row-label size; 14 on a phone is its meta.
-                style = if (tv) type.rowLabel.copy(fontWeight = FontWeight.Normal) else type.meta,
+                // 24px at 1080p is the television's body step; 14 on a phone is its meta.
+                style = if (tv) type.body else type.meta,
                 color = studio.ink2,
                 textAlign = TextAlign.Center,
             )
@@ -582,9 +606,9 @@ private val PHONE_RING = 2.dp
 private const val LOADER_TURN_MS = 900
 
 /**
- * `Chip` and `PChip`: one of a short row of choices — a day, a group, a kind of source. A quiet
- * surface at rest, ink when it is the chosen one, and on a television the cue with a lift when
- * focus is on it.
+ * `Chip` and `PChip`: one of a short row of choices — a day, a group, a kind of source. A pill of
+ * thin glass at rest, amber when it is the chosen one (`--st-current`), and on a television the
+ * lit surface with a lift when focus is on it.
  */
 @Composable
 fun StudioChip(
@@ -593,30 +617,16 @@ fun StudioChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val studio = StudioTheme.colors
     val tv = StudioTheme.television
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(if (tv) 6.dp else 18.dp)
-    val fill = animatedColour(
-        when {
-            focused && tv -> studio.cue
-            selected -> studio.ink
-            else -> studio.surface
-        },
-    )
-    val content = animatedColour(
-        when {
-            focused && tv -> studio.onCue
-            selected -> studio.ground
-            else -> studio.ink2
-        },
-    )
+    val lit = focused && tv
+    val shape = CircleShape
     Box(
         modifier = modifier
-            .height(if (tv) 26.dp else 36.dp)
-            .focusLift(focused, shape = shape)
-            .clip(shape)
-            .background(fill)
+            // `--st-h-chip`: 56px at 1080p; 44 on a phone, the least a finger should be offered.
+            .height(if (tv) 28.dp else 44.dp)
+            .focusLift(lit, shape = shape)
+            .focusSurface(focused = lit, shape = shape, selected = selected, fill = FocusFill.FILLED)
             .onFocusChanged { focused = it.isFocused }
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .padding(horizontal = if (tv) 12.dp else 16.dp),
@@ -624,8 +634,10 @@ fun StudioChip(
     ) {
         Text(
             text = label,
-            style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
-            color = content,
+            style = StudioTheme.type.meta.copy(
+                fontWeight = if (lit || selected) FontWeight.Bold else if (tv) FontWeight.Medium else FontWeight.SemiBold,
+            ),
+            color = filledContentColour(focused = lit, selected = selected, muted = true),
             maxLines = 1,
         )
     }

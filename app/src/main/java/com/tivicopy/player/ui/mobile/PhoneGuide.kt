@@ -36,7 +36,7 @@ import com.tivicopy.player.ui.common.StudioIcons
 
 /**
  * The phone's guide (`docs/design/studio/canvas/PGuide.dc.html`): the shared grid, and under it a
- * sheet for the programme that was tapped — channel, time and category, the title in Karantina,
+ * sheet for the programme that was tapped — channel, time and category, the title at the display weight,
  * where it stands, and what can be done with it: watch it or start it over while it airs, watch
  * the replay once it has aired, record it while it is still to come, and its full details. Back
  * closes the sheet before it leaves the guide.

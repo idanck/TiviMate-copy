@@ -4,7 +4,7 @@
 // launch, and falls back to the cached copy offline. Built assets carry a content hash in their
 // name, so they are cached the first time they are fetched and never revalidated. Nothing under
 // /api/ is ever cached: those are live playlists, guides and streams, proxied by the server.
-const CACHE = 'shidur-shell-v2';
+const CACHE = 'shidur-shell-v3';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {

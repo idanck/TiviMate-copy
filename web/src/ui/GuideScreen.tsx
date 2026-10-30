@@ -94,7 +94,7 @@ export function GuideScreen() {
       <div class="guide-top">
         <div class="controls">
           <div class="row">
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>לוח שידורים</h1>
+            <h1 class="screen-title">לוח שידורים</h1>
             <span class="faint">{dayLabel(day)}</span>
           </div>
           <div class="row">
@@ -134,6 +134,9 @@ export function GuideScreen() {
                   {clock(t)}
                 </span>
               ))}
+            {now.value >= day && now.value < day + HOURS * 3600_000 && (
+              <span class="epg-now-pill" style={{ insetInlineStart: xOf(now.value) }}>{clock(now.value)}</span>
+            )}
           </div>
           {channels.slice(first, last).map((c, k) => (
             <GuideRow
@@ -185,12 +188,16 @@ function GuideRow(props: {
     const w = xOf(end) - x;
     if (w < 6) continue;
     const state = end <= t ? ' past' : start <= t ? ' airing' : '';
+    const open = () => onOpen({ ...p, start, end });
     cells.push(
       <div
         key={p.start}
         class={`epg-cell${state}`}
         style={{ insetInlineStart: x + 2, width: w - 4 }}
-        onClick={() => onOpen({ ...p, start, end })}
+        role="button"
+        tabIndex={0}
+        onClick={open}
+        onKeyDown={(e) => activate(e, open)}
         title={`${p.title} · ${clock(start)}`}
       >
         <span class="t" dir="auto">{p.title}</span>
@@ -200,9 +207,19 @@ function GuideRow(props: {
   }
   return (
     <div class="epg-row" style={{ top, width, height: ROW_H }}>
-      <div class={`epg-ch${selected ? ' selected' : ''}`} style={{ width: CH_COL }} onClick={() => play(channel)} title={`צפייה ב${channel.name}`}>
+      <div
+        class={`epg-ch${selected ? ' selected' : ''}`}
+        style={{ width: CH_COL }}
+        role="button"
+        tabIndex={0}
+        aria-current={selected ? 'true' : undefined}
+        onClick={() => play(channel)}
+        onKeyDown={(e) => activate(e, () => play(channel))}
+        title={`צפייה ב${channel.name}`}
+      >
         <Logo url={channel.logoUrl} name={channel.name} size={36} />
         <span class="name" dir="auto">{channel.name}</span>
+        {selected && <span class="onscreen-dot" role="img" aria-label="על המסך" />}
       </div>
       {list.length === 0 ? (
         <div class="epg-cell nodata" style={{ insetInlineStart: xOf(Math.max(from, dayStart)) + 2, width: Math.max(0, xOf(to) - xOf(Math.max(from, dayStart)) - 4) }}>
@@ -213,6 +230,14 @@ function GuideRow(props: {
       )}
     </div>
   );
+}
+
+/** Enter or Space on a cell or a channel does what a click does: the guide works from the keyboard. */
+function activate(e: KeyboardEvent, run: () => void) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  e.preventDefault();
+  e.stopPropagation();
+  run();
 }
 
 function PreviewInfo({ channel }: { channel: Channel }) {
@@ -236,13 +261,13 @@ function ProgrammeDialog({ channel, programme, onClose }: { channel: Channel; pr
   const episode = programme.season || programme.episode ? `עונה ${programme.season ?? '?'} פרק ${programme.episode ?? '?'}` : '';
   return (
     <Dialog onClose={onClose} label={programme.title}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div class="head">
         <Logo url={channel.logoUrl} name={channel.name} size={40} />
         <span class="muted">{channel.name}</span>
         {airing && <span class="badge-live">משודר עכשיו</span>}
       </div>
       <h2 class="p-title" dir="auto">{programme.title}</h2>
-      <div class="muted">
+      <div class="muted meta">
         {dayLabel(programme.start)} · {clockRange(programme.start, programme.end)}
         {programme.subtitle ? ` · ${programme.subtitle}` : ''}
         {episode ? ` · ${episode}` : ''}

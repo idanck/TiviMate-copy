@@ -1,7 +1,6 @@
 package com.tivicopy.player.ui.common
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,6 +9,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,11 +72,10 @@ import com.tivicopy.player.ui.theme.StudioTheme
  */
 
 /*
- * The hairline around a panel (Studio `--st-hairline`).
- *
- * Load-bearing rather than decorative. A translucent plate over a dark scene has an edge; over a
- * bright one it does not, and the interface appears to bleed into the picture. A single low-alpha
- * white line reads on both without ever becoming a frame.
+ * Glass rather than a hairline (ADR-046). Studio drew a 1px white line round every panel so that a
+ * translucent plate did not dissolve into a bright frame; Merhav does the same job with depth — a
+ * shadow under the plate and a lit edge on it (`Glass.kt`) — which reads on a dark scene and a
+ * bright one without ever becoming a frame.
  */
 
 /**
@@ -90,23 +88,22 @@ import com.tivicopy.player.ui.theme.StudioTheme
 const val MENU_MIN_OPACITY = 0.92f
 
 /**
- * A floating plate: translucent, rounded, hairlined.
+ * A floating plate: glass, rounded, lit along its edge, lifted (`st-glass`, `st-glass-thick`).
+ *
+ * Nothing behind an in-window plate is really blurred (see `Glass.kt`), so its tint is the
+ * canvas's fallback at [opacity]; inside a dialog whose window does blur what is behind it, the
+ * glass keeps its own translucent tint.
  *
  * @param opacity the viewer's overlay-opacity setting (FR-UI-18). Every surface drawn over video
  *   obeys it, which is the whole point of the setting.
+ * @param material regular glass for a panel, thick for a dialog, a sheet or a big panel
  */
 @Composable
 fun Modifier.panelSurface(
     opacity: Float,
     shape: Shape = RoundedCornerShape(LocalTvMetrics.current.panelCorner),
-): Modifier = this
-    .clip(shape)
-    .background(MaterialTheme.colorScheme.surface.copy(alpha = opacity))
-    .border(
-        width = 1.dp,
-        color = StudioTheme.colors.hairline,
-        shape = shape,
-    )
+    material: GlassMaterial = GlassMaterial.REGULAR,
+): Modifier = this.glass(material = material, shape = shape, opacity = opacity)
 
 /**
  * Every menu and prompt in the app: Studio's `Dialog` (`Dialog.dc.html`, `PDialog.dc.html`).
@@ -119,8 +116,11 @@ fun Modifier.panelSurface(
  * row of the app's own buttons that wraps rather than overflowing, starting at the reading
  * edge on a television and ending at it on a phone (where it sits under the thumb).
  *
- * The plate is unchanged from ADR-025: [panelSurface] at the viewer's overlay opacity with
- * [MENU_MIN_OPACITY] under it, rounded at the panel corner, hairlined.
+ * The plate is thick glass (ADR-046): [panelSurface] at the viewer's overlay opacity with
+ * [MENU_MIN_OPACITY] under it, rounded at the panel corner, lit along its edge and lifted. Where the
+ * device can blur behind a window cheaply (Android 12 and up, cross-window blur on), everything
+ * behind the dialog is blurred and the glass keeps its translucent tint; elsewhere it takes the
+ * near-opaque fallback.
  *
  * Plain [Text] in [content] is the dialog's body — the secondary ink at the canvas's body size —
  * so a one-line message needs no styling at the call site.
@@ -130,7 +130,7 @@ fun Modifier.panelSurface(
  * @param danger a destructive prompt: the glyph takes the error colour. Its confirm button should
  *   be [StudioButtonVariant.DANGER], and on a television focus should start on "cancel" (the
  *   canvas's rule), which the caller does by passing `initialFocus` to that [DialogButton].
- * @param display the title in Karantina at the small title step, as the update prompt draws it
+ * @param display the title at the small title step, as the update prompt draws it
  *   (`TvUpdatePrompt`): for a dialog that is an announcement rather than a question
  * @param buttons [DialogButton]s, the primary one first
  */
@@ -159,72 +159,73 @@ fun StudioDialog(
             usePlatformDefaultWidth = false,
         ),
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Column(
-                modifier = modifier
-                    .widthIn(max = if (tv) 450.dp else 342.dp)
-                    .fillMaxWidth()
-                    // The panel corner by the theme rather than `LocalTvMetrics`: the update and
-                    // PIN prompts are drawn above the television shell, outside the metrics it
-                    // provides, and the theme knows the shell everywhere.
-                    .panelSurface(
-                        opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
-                        shape = MaterialTheme.shapes.large,
-                    )
-                    .semantics { paneTitle = title }
-                    .padding(
-                        start = if (tv) 26.dp else 20.dp,
-                        end = if (tv) 26.dp else 20.dp,
-                        top = 22.dp,
-                        bottom = if (tv) 22.dp else 18.dp,
-                    ),
-                verticalArrangement = Arrangement.spacedBy(gap),
+        val blurred = rememberWindowBlurBehind()
+        CompositionLocalProvider(LocalGlassBlur provides blurred) {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap)) {
-                    if (icon != null) {
-                        Box(
-                            modifier = Modifier
-                                .size(if (tv) 32.dp else 40.dp)
-                                .clip(CircleShape)
-                                .background(studio.card),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = if (danger) studio.error else studio.ink,
-                                modifier = Modifier.size(if (tv) 16.dp else 22.dp),
-                            )
-                        }
-                    }
-                    // 36px at 1080p, 20 on a phone: the h1 step, a touch larger on a television.
-                    val h1 = type.h1
-                    Text(
-                        text = title,
-                        style = when {
-                            display -> type.titleSmall
-                            tv -> h1.copy(fontSize = h1.fontSize * (18f / 17f))
-                            else -> h1
-                        },
-                        color = studio.ink,
-                    )
-                }
-                // Takes what is left of the window and scrolls inside it, so a long menu never
-                // pushes the buttons off the screen. The caller's own `verticalScroll` does that.
                 Column(
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = modifier
+                        .widthIn(max = if (tv) 450.dp else 342.dp)
+                        .fillMaxWidth()
+                        // The panel corner by the theme rather than `LocalTvMetrics`: the update and
+                        // PIN prompts are drawn above the television shell, outside the metrics it
+                        // provides, and the theme knows the shell everywhere.
+                        .panelSurface(
+                            opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
+                            shape = MaterialTheme.shapes.large,
+                            material = GlassMaterial.THICK,
+                        )
+                        .semantics { paneTitle = title }
+                        .padding(
+                            start = if (tv) 26.dp else 20.dp,
+                            end = if (tv) 26.dp else 20.dp,
+                            top = 22.dp,
+                            bottom = if (tv) 22.dp else 18.dp,
+                        ),
                     verticalArrangement = Arrangement.spacedBy(gap),
                 ) {
-                    // 24px at 1080p is the television's body step; 14 on a phone is its meta.
-                    val body = if (tv) type.body.copy(fontWeight = FontWeight.Normal) else type.meta
-                    CompositionLocalProvider(LocalContentColor provides studio.ink2) {
-                        ProvideTextStyle(body) { content() }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        if (icon != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(if (tv) 32.dp else 40.dp)
+                                    .glass(GlassMaterial.THIN, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (danger) studio.error else studio.ink,
+                                    modifier = Modifier.size(if (tv) 16.dp else 22.dp),
+                                )
+                            }
+                        }
+                        // The h1 step on a television (`Dialog`); 22 at 800 on a phone (`PDialog`).
+                        Text(
+                            text = title,
+                            style = when {
+                                display -> type.titleSmall
+                                tv -> type.h1
+                                else -> type.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
+                            },
+                            color = studio.ink,
+                        )
                     }
+                    // Takes what is left of the window and scrolls inside it, so a long menu never
+                    // pushes the buttons off the screen. The caller's own `verticalScroll` does that.
+                    Column(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(gap),
+                    ) {
+                        // The body step in both shells: 24px at 1080p, 16 on a phone.
+                        CompositionLocalProvider(LocalContentColor provides studio.ink2) {
+                            ProvideTextStyle(type.body) { content() }
+                        }
+                    }
+                    DialogButtonRow(tv = tv, buttons = buttons)
                 }
-                DialogButtonRow(tv = tv, buttons = buttons)
             }
         }
     }
@@ -277,17 +278,17 @@ fun DialogButton(
  *
  * The two shells place it differently, as the canvas does:
  *
- * - **Television, [drawer]** — the channel menu: a column of the drawer colour against the end
- *   edge of the screen, the full height of it, opened by a long press on what it is about. The
- *   list it came from stays in view beside it.
- * - **Television, otherwise** — a panel in the middle of the screen, 1000px at 1080p, with a
- *   Karantina title and a caption beside it.
- * - **Phone** — a sheet rising from the bottom edge on the drawer colour, with a grabber, which a
- *   tap above it closes (`studio-phone.css`: menus are bottom sheets on a phone).
+ * - **Television, [drawer]** — the channel menu: a drawer against the end edge of the screen, the
+ *   full height of it, solid by the edge and fading towards the content (`Glass.kt`), opened by a
+ *   long press on what it is about. The list it came from stays in view beside it.
+ * - **Television, otherwise** — a panel of thick glass in the middle of the screen, 1000px at
+ *   1080p, with the title and a caption beside it.
+ * - **Phone** — a sheet of thick glass floating just above the bottom edge, with a grabber, which
+ *   a tap above it closes (`PChannelMenu`: menus are sheets on a phone).
  * - **Phone, [page]** — a form with fields (`PChannelEdit`, `PGuideMap`): a page of its own with a
  *   top bar and Back, because a sheet under a keyboard has nowhere to put the field being typed in.
  *
- * @param number a channel's number, shown before the title in Karantina (the channel menu)
+ * @param number a channel's number, shown before the title (the channel menu)
  * @param caption a second line of context beside the title: the channel a sheet is about
  * @param buttons the panel's own buttons, after the list; on a phone a sheet usually needs none,
  *   since a tap above it closes it
@@ -310,130 +311,149 @@ fun StudioSheet(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
-        when {
-            !tv && page -> Column(
-                modifier = modifier
-                    .fillMaxSize()
-                    .background(studio.ground)
-                    .systemBarsPadding()
-                    .imePadding()
-                    .semantics { paneTitle = title },
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+        // A drawer is never blurred behind; a panel or a sheet is glass, and is where it can be.
+        val blurred = if (tv && drawer) false else rememberWindowBlurBehind()
+        CompositionLocalProvider(LocalGlassBlur provides blurred) {
+            when {
+                !tv && page -> Column(
+                    modifier = modifier
+                        .fillMaxSize()
+                        .background(studio.ground)
+                        .systemBarsPadding()
+                        .imePadding()
+                        .semantics { paneTitle = title },
                 ) {
-                    IconButton(onClick = onDismissRequest) {
-                        Icon(
-                            imageVector = StudioIcons.Back,
-                            contentDescription = stringResource(R.string.action_back),
-                            tint = studio.ink,
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onDismissRequest) {
+                            Icon(
+                                imageVector = StudioIcons.Back,
+                                contentDescription = stringResource(R.string.action_back),
+                                tint = studio.ink,
+                            )
+                        }
+                        SheetHeader(title = title, number = number, caption = caption, tv = false)
                     }
-                    SheetHeader(title = title, number = number, caption = caption, tv = false)
-                }
-                Column(
-                    modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    content = content,
-                )
-                if (buttons != null) {
-                    Box(modifier = Modifier.padding(16.dp)) { SheetButtons(buttons) }
-                }
-            }
-
-            tv && drawer -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.CenterEnd) {
-                Column(
-                    modifier = modifier
-                        .width(310.dp)
-                        .fillMaxHeight()
-                        .shadow(24.dp)
-                        .background(studio.drawer)
-                        .semantics { paneTitle = title }
-                        .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    SheetHeader(title = title, number = number, caption = caption, tv = true)
                     Column(
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = content,
+                    )
+                    if (buttons != null) {
+                        Box(modifier = Modifier.padding(16.dp)) { SheetButtons(buttons) }
+                    }
+                }
+
+                tv && drawer -> Box(
+                    // The canvas's dim (`--st-dim-open`) rather than the platform's; the drawer's
+                    // own fade shows the list it came from beside it.
+                    modifier = Modifier.fillMaxSize().background(studio.dimOpen),
+                    contentAlignment = Alignment.CenterEnd,
+                ) {
+                    ClearWindowDim()
+                    Column(
+                        modifier = modifier
+                            .width(310.dp)
+                            .fillMaxHeight()
+                            .drawerSurface(atStart = false)
+                            .semantics { paneTitle = title }
+                            .padding(start = 28.dp, end = 48.dp, top = 27.dp, bottom = 27.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
-                        content = content,
-                    )
-                    if (buttons != null) SheetButtons(buttons)
-                }
-            }
-
-            tv -> Box(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                val settings by ServiceLocator.settings.state.collectAsState()
-                Column(
-                    modifier = modifier
-                        .widthIn(max = 500.dp)
-                        .fillMaxWidth()
-                        .panelSurface(
-                            opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
-                            shape = MaterialTheme.shapes.large,
+                    ) {
+                        SheetHeader(title = title, number = number, caption = caption, tv = true)
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                            content = content,
                         )
-                        .semantics { paneTitle = title }
-                        .padding(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    SheetHeader(title = title, number = number, caption = caption, tv = true)
-                    Column(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        content = content,
-                    )
-                    if (buttons != null) SheetButtons(buttons)
+                        if (buttons != null) SheetButtons(buttons)
+                    }
                 }
-            }
 
-            else -> Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    // A tap above the sheet closes it, as a sheet's does everywhere else.
-                    .pointerInput(Unit) { detectTapGestures { onDismissRequest() } },
-                contentAlignment = Alignment.BottomCenter,
-            ) {
-                val shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                Column(
-                    modifier = modifier
-                        .fillMaxWidth()
-                        .padding(top = 64.dp)
-                        .shadow(16.dp, shape)
-                        .clip(shape)
-                        .background(studio.drawer)
-                        .border(1.dp, studio.hairline, shape)
-                        // The sheet keeps its own taps: only the space above it closes it.
-                        .pointerInput(Unit) { detectTapGestures { } }
-                        .semantics { paneTitle = title }
-                        .navigationBarsPadding()
-                        .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                tv -> Box(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 24.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .size(width = 36.dp, height = 4.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(studio.track),
-                    )
-                    SheetHeader(title = title, number = number, caption = caption, tv = false)
+                    val settings by ServiceLocator.settings.state.collectAsState()
                     Column(
-                        modifier = Modifier.weight(1f, fill = false),
-                        verticalArrangement = Arrangement.spacedBy(2.dp),
-                        content = content,
-                    )
-                    if (buttons != null) SheetButtons(buttons)
+                        modifier = modifier
+                            .widthIn(max = 500.dp)
+                            .fillMaxWidth()
+                            .panelSurface(
+                                opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
+                                shape = MaterialTheme.shapes.large,
+                                material = GlassMaterial.THICK,
+                            )
+                            .semantics { paneTitle = title }
+                            .padding(horizontal = 24.dp, vertical = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        SheetHeader(title = title, number = number, caption = caption, tv = true)
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            content = content,
+                        )
+                        if (buttons != null) SheetButtons(buttons)
+                    }
+                }
+
+                else -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        // The canvas's dim (`--st-dim-open`) rather than the platform's.
+                        .background(studio.dimOpen)
+                        // A tap above the sheet closes it, as a sheet's does everywhere else.
+                        .pointerInput(Unit) { detectTapGestures { onDismissRequest() } },
+                    contentAlignment = Alignment.BottomCenter,
+                ) {
+                    ClearWindowDim()
+                    // `PChannelMenu`: thick glass floating 8dp off the edges, every corner the sheet's.
+                    val shape = MaterialTheme.shapes.extraLarge
+                    val settings by ServiceLocator.settings.state.collectAsState()
+                    Column(
+                        modifier = modifier
+                            .navigationBarsPadding()
+                            .fillMaxWidth()
+                            .padding(start = 8.dp, end = 8.dp, top = 64.dp, bottom = 8.dp)
+                            .panelSurface(
+                                opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
+                                shape = shape,
+                                material = GlassMaterial.THICK,
+                            )
+                            // The sheet keeps its own taps: only the space above it closes it.
+                            .pointerInput(Unit) { detectTapGestures { } }
+                            .semantics { paneTitle = title }
+                            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .size(width = 36.dp, height = 5.dp)
+                                .clip(CircleShape)
+                                .background(studio.track),
+                        )
+                        SheetHeader(title = title, number = number, caption = caption, tv = false)
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            content = content,
+                        )
+                        if (buttons != null) SheetButtons(buttons)
+                    }
                 }
             }
         }
     }
 }
 
-/** A sheet's title: a channel number in Karantina, the title, and a caption after it. */
+/**
+ * A sheet's title: a channel number, the title, and a caption after it. On a television the
+ * number sits on a tile of thin glass (`TvChannelMenu`); on a phone it is set at the title step.
+ */
 @Composable
 private fun SheetHeader(title: String, number: String?, caption: String?, tv: Boolean) {
     val studio = StudioTheme.colors
@@ -444,17 +464,32 @@ private fun SheetHeader(title: String, number: String?, caption: String?, tv: Bo
         horizontalArrangement = Arrangement.spacedBy(if (tv) 8.dp else 10.dp),
     ) {
         if (number != null) {
-            Text(
-                text = number,
-                // 64px at 1080p and 40 on a phone: the small title step, larger.
-                style = type.titleSmall.copy(fontSize = type.titleSmall.fontSize * (if (tv) 1f else 1.25f)),
-                color = studio.ink,
-            )
+            if (tv) {
+                Box(
+                    modifier = Modifier
+                        .defaultMinSize(minWidth = 32.dp)
+                        .height(32.dp)
+                        .glass(GlassMaterial.THIN, MaterialTheme.shapes.medium)
+                        .padding(horizontal = 5.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = number,
+                        // 30px at 800, at 1080p.
+                        style = type.h1.copy(fontSize = type.h1.fontSize * (30f / 34f), fontWeight = FontWeight.ExtraBold),
+                        color = studio.ink,
+                        maxLines = 1,
+                    )
+                }
+            } else {
+                // 26 at 800: the title step.
+                Text(text = number, style = type.title, color = studio.ink, maxLines = 1)
+            }
         }
-        // A Karantina title on a television (48px at 1080p); the h1 step on a phone.
+        // The h1 step on a television; 20 at 700 on a phone.
         Text(
             text = title,
-            style = if (tv) type.titleSmall.copy(fontSize = type.titleSmall.fontSize * 0.75f) else type.h1,
+            style = if (tv) type.h1 else type.h1.copy(fontSize = type.h1.fontSize * (20f / 18f)),
             color = studio.ink,
             maxLines = 2,
             modifier = Modifier.weight(1f, fill = false),

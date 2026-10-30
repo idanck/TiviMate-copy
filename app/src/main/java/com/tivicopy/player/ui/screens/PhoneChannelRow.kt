@@ -32,20 +32,26 @@ import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.model.Programme
 import com.tivicopy.player.ui.common.ChannelLogo
+import com.tivicopy.player.ui.common.GlassMaterial
+import com.tivicopy.player.ui.common.LiveDot
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.glass
 import com.tivicopy.player.ui.common.tallyGlow
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
 /**
- * Studio's channel row on a phone (`docs/design/studio/canvas/PChannelRow.dc.html`): 72dp, the
- * channel's number on a tile in Karantina (a station's mark on a disc), its name, what it is
- * showing with the time, and a thin progress line. The channel on screen takes the tally — the
- * on-screen fill, a 1.5dp ring and "on screen" beside its name.
+ * The channel row on a phone (`PChannelRow.dc.html`; Merhav, ADR-046): 72dp of thin glass at the
+ * card corner. A 16:9 tile with the channel's mark and its number in the corner (a station's mark on
+ * a disc), its name, what it is showing with the time, and a thin progress line. The channel on
+ * screen takes a wash of the tally, a red edge with a soft glow, a live dot and "on screen" beside
+ * its name, and its progress in red.
  *
- * A channel with no number shows its logo on the tile instead. The star stays at the end, which the
- * canvas does not draw: marking a favourite in one tap is a requirement (FR-ORG-07), and on a
- * phone the long press that opens the full menu is not something people find.
+ * The canvas shows a frame of the channel where the tile is; the app keeps no thumbnails, so the
+ * tile carries the channel's logo (or its monogram). The star stays at the end: marking a favourite
+ * in one tap is a requirement (FR-ORG-07), and on a phone the long press that opens the full menu
+ * is not something people find. A favourite is a filled star in ink — never amber, which is what
+ * is active, not what is liked.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -66,17 +72,16 @@ internal fun PhoneChannelRow(
             .fillMaxWidth()
             .height(72.dp)
             .then(if (onScreen) Modifier.tallyGlow(shape) else Modifier)
-            .clip(shape)
             .then(
                 if (onScreen) {
-                    Modifier.background(studio.onScreen).border(1.5.dp, studio.tally, shape)
+                    Modifier.clip(shape).background(studio.onScreen).border(1.dp, studio.tallyGlow, shape)
                 } else {
-                    Modifier
+                    Modifier.glass(GlassMaterial.THIN, shape)
                 },
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .semantics { contentDescription = channel.displayName }
-            .padding(start = 12.dp, end = 4.dp),
+            .padding(start = 12.dp, end = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -84,34 +89,35 @@ internal fun PhoneChannelRow(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(CircleShape)
-                    .background(studio.card)
-                    .border(1.dp, studio.hairline, CircleShape),
+                    .glass(GlassMaterial.THIN, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 ChannelLogo(channel = channel, sizeDp = 40, circular = true)
             }
         } else {
-            val tileShape = RoundedCornerShape(8.dp)
             Box(
                 modifier = Modifier
-                    .size(width = 64.dp, height = 44.dp)
-                    .clip(tileShape)
-                    .background(if (onScreen) studio.tally.copy(alpha = 0.14f) else studio.card)
-                    .border(1.dp, studio.hairlineSoft, tileShape),
+                    .size(width = 80.dp, height = 45.dp)
+                    .glass(GlassMaterial.THIN, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center,
             ) {
+                ChannelLogo(channel = channel, sizeDp = 34)
                 if (channel.number > 0) {
-                    val title = StudioTheme.type.titleSmall
                     Text(
-                        text = channel.number.toString(),
-                        style = title.copy(fontSize = title.fontSize * (34f / 32f), lineHeight = title.fontSize * (34f / 32f)),
+                        text = TimeModel.ltr(channel.number.toString()),
+                        style = StudioTheme.type.caption.copy(
+                            fontSize = StudioTheme.type.caption.fontSize * (12f / 13f),
+                            fontWeight = FontWeight.Bold,
+                        ),
                         color = studio.ink,
                         maxLines = 1,
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(studio.scrim)
+                            .padding(horizontal = 6.dp),
                     )
-                } else {
-                    ChannelLogo(channel = channel, sizeDp = 36)
                 }
             }
         }
@@ -119,22 +125,22 @@ internal fun PhoneChannelRow(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = channel.displayName,
-                    style = StudioTheme.type.rowLabel,
+                    style = StudioTheme.type.rowLabel.copy(fontWeight = FontWeight.Bold),
                     color = studio.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
                 if (onScreen) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(studio.tally))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        LiveDot(description = null)
                         Text(
                             text = stringResource(R.string.channel_on_screen),
                             style = StudioTheme.type.caption.copy(
                                 fontSize = StudioTheme.type.caption.fontSize * (12f / 13f),
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                             ),
-                            color = studio.ink,
+                            color = studio.liveInk,
                             maxLines = 1,
                         )
                     }
@@ -161,13 +167,18 @@ internal fun PhoneChannelRow(
                 val fraction = ((System.currentTimeMillis() - nowProgramme.startUtc).toFloat() / span).coerceIn(0f, 1f)
                 Box(
                     modifier = Modifier
-                        .padding(top = 3.dp)
+                        .padding(top = 2.dp)
                         .fillMaxWidth()
                         .height(3.dp)
                         .clip(RoundedCornerShape(2.dp))
                         .background(studio.track),
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth(fraction).height(3.dp).background(studio.ink))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .height(3.dp)
+                            .background(if (onScreen) studio.tally else studio.ink),
+                    )
                 }
             }
         }
@@ -177,7 +188,8 @@ internal fun PhoneChannelRow(
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
-                tint = if (channel.favourite) studio.cue else studio.ink3,
+                tint = if (channel.favourite) studio.ink else studio.ink3,
+                modifier = Modifier.size(22.dp),
             )
         }
     }

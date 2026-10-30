@@ -221,6 +221,28 @@ class TvMetricsTest {
         }
     }
 
+    /**
+     * Merhav's shapes and focus (ADR-046), as the canvas draws them at 1080p. The pill is checked
+     * first and on its own: it is a top-level value the television's chip corner is made from, and
+     * top-level values are initialised in the order they are written — declared after its user, it
+     * would read as 0dp and every chip would be a rectangle, with nothing failing to compile.
+     */
+    @Test
+    fun `chips are pills and the television takes the canvas corners and focus`() {
+        val tv = tvMetricsFor(hd.first, hd.second)
+        assertTrue("a chip corner of ${tv.chipCorner.value}dp is not a pill", tv.chipCorner.value >= 100f)
+        assertTrue("a phone chip corner of ${TvMetrics.Phone.chipCorner.value}dp is not a pill", TvMetrics.Phone.chipCorner.value >= 100f)
+        assertEquals(12f, tv.rowCorner.value, 0.01f)
+        assertEquals(11f, tv.controlCorner.value, 0.01f)
+        assertEquals(22f, tv.panelCorner.value, 0.01f)
+        assertEquals(12f, tv.cellCorner.value, 0.01f)
+        assertEquals(8f, TvMetrics.Phone.cellCorner.value, 0.01f)
+        assertEquals(1.06f, tv.focusScale, 0.0001f)
+        assertEquals(1.03f, tv.rowFocusScale, 0.0001f)
+        assertEquals("the drawer is 380px at 1080p", 190f, tv.homeNavRailWidth.value, 0.5f)
+        assertEquals("the rail is 112px at 1080p", 56f, tv.homeNavRailCollapsedWidth.value, 0.5f)
+    }
+
     @Test
     fun `a logo never scales away to nothing`() {
         for (width in listOf(1f, 320f, 960f, 4000f)) {

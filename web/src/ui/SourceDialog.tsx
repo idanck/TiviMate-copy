@@ -123,8 +123,8 @@ export function SourceDialog({ source, onClose }: { source?: Source; onClose: ()
           </label>
         )}
         <details>
-          <summary class="muted" style={{ cursor: 'pointer' }}>מתקדם</summary>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 12 }}>
+          <summary>מתקדם</summary>
+          <div>
             <label class="field">
               <span>כתובת לוח שידורים (XMLTV)</span>
               <input class="input ltr-input" value={epgUrl} onInput={(e) => setEpgUrl((e.target as HTMLInputElement).value)} placeholder="ריק = מהרשימה עצמה" />

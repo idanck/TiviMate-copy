@@ -174,7 +174,7 @@ export function SettingsScreen() {
               <span class="label">ייצוא גיבוי</span>
               <span class="desc">קובץ שהאפליקציה בטלוויזיה ובטלפון יודעת לשחזר.</span>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }} class="muted">
+            <label class="check muted">
               <input type="checkbox" checked={withPasswords} onChange={(e) => setWithPasswords((e.target as HTMLInputElement).checked)} />
               כולל סיסמאות (בטקסט גלוי)
             </label>
@@ -278,7 +278,7 @@ function SourceRow({ source, onEdit }: { source: Source; onEdit: () => void }) {
     <div class="source-row">
       <Toggle checked={source.enabled} onChange={(v) => void setSourceEnabled(source.id, v)} label={`הפעלת ${source.name}`} />
       <div class="text">
-        <span class="name">{source.name} <span class="faint" style={{ fontWeight: 400, fontSize: 12 }}>{kind}{role}</span></span>
+        <span class="name">{source.name} <span class="kind">{kind}{role}</span></span>
         <span class={`status${source.lastRefreshOk === false && !busy ? ' bad' : ''}`}>{status}</span>
       </div>
       <button class="icon-btn" disabled={!!busy || !source.enabled} onClick={() => void refreshSource(source.id)} aria-label={`רענון ${source.name}`} title="רענון">

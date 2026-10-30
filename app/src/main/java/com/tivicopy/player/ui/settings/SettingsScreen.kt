@@ -48,7 +48,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import com.tivicopy.player.ui.common.GlassMaterial
 import com.tivicopy.player.ui.common.LocalTvMetrics
+import com.tivicopy.player.ui.common.glass
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
@@ -91,8 +93,8 @@ fun SettingsScreen(
                 modifier = Modifier
                     .width(SECTIONS_PANEL_WIDTH)
                     .fillMaxHeight()
-                    .clip(RoundedCornerShape(LocalTvMetrics.current.panelCorner))
-                    .background(StudioTheme.colors.surface)
+                    // `SettingsNav`: a panel of glass at the panel corner.
+                    .glass(GlassMaterial.REGULAR, RoundedCornerShape(LocalTvMetrics.current.panelCorner))
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 8.dp, vertical = 10.dp),
             ) {

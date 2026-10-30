@@ -263,8 +263,14 @@ fun ChannelListScreen(
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    // The phone's rows are separate plates of glass (`PChannels`): 16dp from the
+                    // screen's edges and 8dp apart. The television's sit on one panel, close.
+                    contentPadding = if (compact) {
+                        androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    } else {
+                        androidx.compose.foundation.layout.PaddingValues(8.dp)
+                    },
+                    verticalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 2.dp),
                 ) {
                     items(channels, key = { it.id }) { channel ->
                         val isCurrent = state.currentChannel?.id == channel.id
@@ -387,7 +393,7 @@ fun ChannelListScreen(
 
     renamingGroup?.let { group ->
         TextEntryDialog(
-            title = stringResource(R.string.group_options),
+            title = stringResource(R.string.group_rename),
             label = stringResource(R.string.group_name),
             initial = group.name,
             onDismiss = { renamingGroup = null },
@@ -845,8 +851,8 @@ fun NowNextPane(
 }
 
 /**
- * The preview beside a television's channel list (`Channels`' aside): the number in Karantina
- * beside the name, the live badge, the programme's title in Karantina, its times with the
+ * The preview beside a television's channel list (`Channels`' aside): the number at the display weight
+ * beside the name, the live badge, the programme's title at the display weight, its times with the
  * progress and the minutes left, its synopsis, and under a hairline what comes next — in the
  * `next` colour, which is what it is for.
  *

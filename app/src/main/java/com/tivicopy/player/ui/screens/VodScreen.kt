@@ -190,7 +190,7 @@ private fun VodGrid(
     val open: (VodItem) -> Unit = { if (it.isSeriesContainer) onOpenSeries(it) else onPlay(it) }
 
     Column(modifier = modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // `TvVod`: a Karantina title with the filters as chips beside it, then the posters.
+        // `TvVod`: a display title with the filters as chips beside it, then the posters.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             // A phone's title is its top bar's (`PVod`).
             if (StudioTheme.television) {
@@ -314,7 +314,7 @@ private fun SeriesEpisodes(
                 AsyncImage(
                     model = series.posterUrl,
                     contentDescription = null,
-                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(MaterialTheme.shapes.extraSmall),
+                    modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(MaterialTheme.shapes.small),
                 )
             }
             Text(

@@ -62,7 +62,7 @@ import com.tivicopy.player.ui.common.StudioIcons
 /**
  * Studio's radio on a phone (`docs/design/studio/canvas/PRadio.dc.html`): the whole screen, not a
  * box under a video that is not there. The shifting background (ADR-030), the way down and the live
- * badge across the top, the station's disc haloed in light, the song in Karantina with the artist
+ * badge across the top, the station's disc haloed in light, the song at the display weight with the artist
  * under it, the equaliser (ADR-031), favourite / previous / play-pause / next / guide, and along the
  * bottom the stations, by category, the one on air marked with the tally.
  */
@@ -127,7 +127,7 @@ internal fun PhoneRadio(
                 Text(
                     text = parts?.title ?: channel.displayName,
                     style = type.hero.copy(
-                        lineHeight = type.hero.fontSize * 0.95f,
+                        lineHeight = type.hero.fontSize * 1.05f,
                         textDirection = TextDirection.Content,
                     ),
                     color = studio.ink,

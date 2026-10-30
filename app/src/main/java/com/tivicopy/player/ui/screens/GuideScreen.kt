@@ -74,6 +74,7 @@ import com.tivicopy.player.ui.common.StudioButtonVariant
 import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.common.litEdge
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
 import com.tivicopy.player.ui.common.StudioIcons
@@ -523,7 +524,7 @@ private fun GuideRow(
                 .width(metrics.guideChannelColumnWidth)
                 .fillMaxHeight()
                 .padding(2.dp)
-                .clip(RoundedCornerShape(metrics.rowCorner))
+                .clip(RoundedCornerShape(metrics.cellCorner))
                 .background(studio.surface)
                 // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
                 // so the pair produced two focus targets and cost a remote an invisible extra
@@ -564,7 +565,7 @@ private fun GuideRow(
                 // FR-EPG-16: say so, rather than leaving an unexplained empty lane. Studio's
                 // diagonal stripes (`TvGuideNoData`, ADR-034), so the row reads as "nothing known"
                 // rather than as a programme that has ended, and keeps its place in the order.
-                val shape = RoundedCornerShape(metrics.rowCorner)
+                val shape = RoundedCornerShape(metrics.cellCorner)
                 Box(
                     modifier = Modifier
                         .width(metrics.guideHourWidth * WINDOW_HOURS)
@@ -706,8 +707,8 @@ private fun ProgrammeCell(
         else -> studio.future
     }
     val metrics = LocalTvMetrics.current
-    // A cell is a card in Studio, and is cut like one.
-    val cellShape = RoundedCornerShape(metrics.rowCorner)
+    // A cell is a card on a television, and is cut like one; on a phone its corner is tighter.
+    val cellShape = RoundedCornerShape(metrics.cellCorner)
     Column(
         modifier = Modifier
             // The focused cell lifts slightly out of the grid, as the benchmark's does: a border
@@ -722,6 +723,9 @@ private fun ProgrammeCell(
             .padding(2.dp)
             .clip(cellShape)
             .background(body)
+            // `GuideCell`: a cell still to come or on air has the glass's lit edge; one that has
+            // aired has none, and recedes.
+            .then(if (programme.endUtc > now) Modifier.litEdge(cellShape) else Modifier)
             // The app's one focus treatment. This cell used to ring itself at a hard-coded 2dp,
             // so on a television every row in the channel list was ringed at 3dp and every cell
             // in the guide beside it at 2dp.

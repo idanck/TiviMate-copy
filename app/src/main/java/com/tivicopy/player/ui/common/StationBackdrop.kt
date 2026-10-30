@@ -314,7 +314,7 @@ internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolea
  *
  * On a television: Studio's shifting background ([studioAmbient]), the live badge and the clock
  * across the top, the station's disc haloed in light, and beside it what is playing: the song as a
- * broadcast would set it (Karantina), the artist, play/pause and the station as a favourite. Once
+ * broadcast would set it (the display weight), the artist, play/pause and the station as a favourite. Once
  * the viewer has been away for the idle time, the screensaver takes this screen like any other
  * that is not full-screen video, and carries the task list under its clock (ADR-040).
  *
@@ -441,7 +441,7 @@ fun AudioOnlyNowPlaying(
                     text = parts?.title ?: headline,
                     style = type.hero.copy(
                         fontSize = type.hero.fontSize * SONG_SCALE,
-                        lineHeight = type.hero.fontSize * SONG_SCALE * 0.88f,
+                        lineHeight = type.hero.fontSize * SONG_SCALE * 1.05f,
                         textDirection = TextDirection.Content,
                     ),
                     color = studio.ink,
@@ -509,12 +509,28 @@ fun AudioOnlyNowPlaying(
 }
 
 /**
- * Studio's station disc (`canvas/StationDisc.dc.html`): the station's mark on a round `card`,
- * edged with a hairline — and, for the station on air, ringed in the halo's light.
+ * The station disc (`canvas/StationDisc.dc.html`): the station's mark on a disc of thin glass with
+ * its lit edge — and, for the station on air on its own screen, ringed in the halo's light. A disc
+ * is content: under the remote it is lit glass, and on air in a list a wash of the tally (the ring
+ * round it is the caller's).
  */
 @Composable
-internal fun StationDisc(channel: Channel, size: Dp, modifier: Modifier = Modifier, halo: Boolean = false) {
+internal fun StationDisc(
+    channel: Channel,
+    size: Dp,
+    modifier: Modifier = Modifier,
+    halo: Boolean = false,
+    focused: Boolean = false,
+    onAir: Boolean = false,
+) {
     val studio = StudioTheme.colors
+    val plate = animatedColour(
+        when {
+            focused -> studio.cardFocus
+            onAir -> studio.onScreen
+            else -> studio.card
+        },
+    )
     val haloWidth = if (halo) size * DISC_HALO_FRACTION else 0.dp
     Box(
         modifier = modifier
@@ -527,8 +543,8 @@ internal fun StationDisc(channel: Channel, size: Dp, modifier: Modifier = Modifi
             modifier = Modifier
                 .size(size)
                 .clip(CircleShape)
-                .background(studio.card)
-                .border(1.dp, studio.hairline, CircleShape),
+                .background(plate)
+                .litEdge(CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             // The mark is inset rather than filling the disc: a round plate has no room at its
@@ -572,7 +588,8 @@ internal fun SongLine(song: String, compact: Boolean, modifier: Modifier = Modif
         Icon(
             imageVector = StudioIcons.Music,
             contentDescription = null,
-            tint = StudioTheme.colors.ink2.copy(alpha = alpha),
+            // The second ink is itself translucent: fade it from its own alpha, not from opaque.
+            tint = StudioTheme.colors.ink2.let { it.copy(alpha = it.alpha * alpha) },
             modifier = Modifier.size(if (compact) 16.dp else 24.dp),
         )
         Text(

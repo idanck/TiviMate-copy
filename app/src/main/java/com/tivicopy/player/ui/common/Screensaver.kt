@@ -339,7 +339,7 @@ fun Screensaver(
     val studio = StudioTheme.colors
 
     // The screensaver arrives as a slow fade rather than a cut: it is replacing a picture
-    // somebody may still glance up at, and Motion.ENTRANCE — a quarter of a second — would read
+    // somebody may still glance up at, and Motion.ENTRANCE — about a third of a second — would read
     // as the app doing something rather than as the screen settling.
     val fade = remember { Animatable(0f) }
     LaunchedEffect(Unit) { fade.animateTo(1f, tween(FADE_IN_MS, easing = FastOutSlowInEasing)) }
@@ -458,9 +458,59 @@ fun Screensaver(
  * length would push its text out of the ring it is centred in.
  */
 @Immutable
-internal class SaverUnits(val scale: Float, private val density: Density) {
+internal class SaverUnits(
+    val scale: Float,
+    private val density: Density,
+    /** The least the headlines' text may shrink to, for a column read as a panel (News mode). */
+    val floors: FlashFloors = FlashFloors.NONE,
+) {
     fun dp(value: Float): Dp = (value * scale).dp
     fun sp(value: Float): TextUnit = with(density) { (value * scale).dp.toSp() }
+
+    /** [dp], but never below [floor] dp. */
+    fun dp(value: Float, floor: Float): Dp = maxOf(value * scale, floor).dp
+
+    /** [sp], but never below [floor] dp. */
+    fun sp(value: Float, floor: Float): TextUnit = with(density) { maxOf(value * scale, floor).dp.toSp() }
+}
+
+/**
+ * The least the headlines' parts may be, in dp, whatever the column's scale (`TvModeHeadlines`,
+ * `PModeHeadlines`). The screensaver's own column has none: it is laid out as a picture. A panel
+ * of headlines in News mode is read, and on a narrow panel its scale would take the header and the
+ * source's tag below what can be read from a sofa, or below a phone's 12.
+ */
+@Immutable
+internal class FlashFloors(
+    val header: Float = 0f,
+    val headerLine: Float = 0f,
+    val time: Float = 0f,
+    val timeLine: Float = 0f,
+    val title: Float = 0f,
+    val titleLine: Float = 0f,
+    val chip: Float = 0f,
+    val chipLine: Float = 0f,
+    val chipHeight: Float = 0f,
+) {
+    companion object {
+        val NONE = FlashFloors()
+
+        /** 18px and 16px at 1080p for the header and the tag; the tag's plate 28px. */
+        val TELEVISION = FlashFloors(header = 9f, headerLine = 11f, chip = 8f, chipLine = 10f, chipHeight = 14f)
+
+        /** The phone's 12 for the header and the tag, 14 for the time, 15 on 20 for the titles. */
+        val PHONE = FlashFloors(
+            header = 12f,
+            headerLine = 16f,
+            time = 14f,
+            timeLine = 14f,
+            title = 15f,
+            titleLine = 20f,
+            chip = 12f,
+            chipLine = 15f,
+            chipHeight = 18f,
+        )
+    }
 }
 
 /**
@@ -688,7 +738,8 @@ private fun VideoLine(video: SaverPlaying.Video, units: SaverUnits) {
                 text = title,
                 style = type.titleSmall.copy(
                     fontSize = units.sp(32f),
-                    lineHeight = units.sp(30.4f),
+                    // 1.1 of the size: Noto's Hebrew needs the room Karantina's condensed lines did not.
+                    lineHeight = units.sp(35.2f),
                     textDirection = TextDirection.Content,
                 ),
                 color = studio.ink,
@@ -836,8 +887,8 @@ private fun FlashRound(
         Text(
             text = header,
             style = StudioTheme.type.meta.copy(
-                fontSize = units.sp(11f),
-                lineHeight = units.sp(14f),
+                fontSize = units.sp(11f, units.floors.header),
+                lineHeight = units.sp(14f, units.floors.headerLine),
                 fontWeight = FontWeight.SemiBold,
             ),
             color = studio.ink3,
@@ -883,8 +934,8 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                     Text(
                         text = flashTime(at, nowUtc),
                         style = type.h1.copy(
-                            fontSize = units.sp(15f),
-                            lineHeight = units.sp(15f),
+                            fontSize = units.sp(15f, units.floors.time),
+                            lineHeight = units.sp(15f, units.floors.timeLine),
                             fontWeight = FontWeight.SemiBold,
                         ),
                         color = studio.ink,
@@ -896,8 +947,8 @@ private fun FlashRow(item: SourcedFlash, nowUtc: Long, colours: Boolean, units: 
                 text = item.flash.title,
                 style = type.h1.copy(
                     // Was 20sp on 24 until 0.18.1, which the owner found too large.
-                    fontSize = units.sp(17f),
-                    lineHeight = units.sp(21f),
+                    fontSize = units.sp(17f, units.floors.title),
+                    lineHeight = units.sp(21f, units.floors.titleLine),
                     fontWeight = FontWeight.SemiBold,
                     // A Hebrew headline under an English interface, or the other way round,
                     // lays itself out by what it says.
@@ -918,7 +969,7 @@ private fun SourceChip(label: String, tone: Color, colours: Boolean, units: Save
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = Modifier
-            .height(units.dp(16f))
+            .height(units.dp(16f, units.floors.chipHeight))
             .widthIn(max = units.dp(CHIP_MAX_DP))
             .clip(shape)
             .background(if (colours) tone.copy(alpha = CHIP_FILL_ALPHA) else studio.surface)
@@ -928,8 +979,8 @@ private fun SourceChip(label: String, tone: Color, colours: Boolean, units: Save
         Text(
             text = label,
             style = StudioTheme.type.caption.copy(
-                fontSize = units.sp(9.5f),
-                lineHeight = units.sp(12f),
+                fontSize = units.sp(9.5f, units.floors.chip),
+                lineHeight = units.sp(12f, units.floors.chipLine),
                 fontWeight = FontWeight.SemiBold,
                 textDirection = TextDirection.Content,
             ),
@@ -969,7 +1020,9 @@ internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Mod
 }
 
 /**
- * One open task.
+ * One open task, on a card of thin glass in the three inks (`TvScreensaverTasks`, `PScreensaver`;
+ * ADR-046): the section and the counter in the third ink, the task in ink, its due date in the
+ * second.
  *
  * [TextDirection.Content] on both lines of body text on purpose: a Hebrew task read by an
  * English interface — or the other way round — has to lay itself out by what it says, not by
@@ -977,19 +1030,13 @@ internal fun TaskRotation(tasks: List<TaskItem>, compact: Boolean, modifier: Mod
  */
 @Composable
 private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
+    val studio = StudioTheme.colors
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                color = Color.White.copy(alpha = TASK_CARD_ALPHA),
-                shape = RoundedCornerShape(16.dp),
-            )
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = TASK_BORDER_ALPHA),
-                shape = RoundedCornerShape(16.dp),
-            )
+            // `--st-r-card`: 24px at 1080p, 20 on a phone.
+            .glass(GlassMaterial.THIN, RoundedCornerShape(if (StudioTheme.television) 12.dp else 20.dp))
             .padding(horizontal = 20.dp, vertical = if (compact) 10.dp else 16.dp),
     ) {
         Text(
@@ -1000,7 +1047,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
                 TimeModel.ltr("${at + 1}/$of"),
             ).joinToString(" · "),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.65f),
+            color = studio.ink3,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1014,7 +1061,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
                     MaterialTheme.typography.titleMedium
                 }
                 ).copy(textDirection = TextDirection.Content),
-            color = Color.White,
+            color = studio.ink,
             textAlign = TextAlign.Center,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -1024,7 +1071,7 @@ private fun TaskCard(task: TaskItem, at: Int, of: Int, compact: Boolean) {
             Text(
                 text = stringResource(R.string.screensaver_task_due, TimeModel.ltr(due)),
                 style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.Content),
-                color = Color.White.copy(alpha = 0.7f),
+                color = studio.ink2,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 4.dp),
             )
@@ -1085,9 +1132,6 @@ private const val CHIP_LINE_ALPHA = 0.40f
 private const val SHIFT_DP = 6f
 private const val SHIFT_EVERY_MS = 3L * 60 * 1000
 private const val SHIFT_MS = 2_000
-
-private const val TASK_CARD_ALPHA = 0.10f
-private const val TASK_BORDER_ALPHA = 0.18f
 
 /** How long one task holds the card, and how long the change between two of them takes. */
 private const val TASK_DWELL_MS = 12_000L

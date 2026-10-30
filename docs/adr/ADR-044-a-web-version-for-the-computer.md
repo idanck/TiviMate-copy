@@ -2,6 +2,8 @@
 
 **Status:** accepted, 0.18.0. From the owner's request of 2026-10-19: *a PWA version, so I can use
 this on the computer.*
+Its look follows ADR-046 (Merhav) from 0.20.0: the Studio colours and two typefaces this record reuses
+are replaced by Merhav's tokens and Noto Sans Hebrew.
 
 ## Context
 
