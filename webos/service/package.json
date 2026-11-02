@@ -1,0 +1,7 @@
+{
+  "name": "com.idanck.shidur.service",
+  "version": "0.1.0",
+  "description": "Shidur's network service on the television: reads playlists and guides for the app.",
+  "main": "index.js",
+  "private": true
+}

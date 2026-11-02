@@ -1,0 +1,19 @@
+{
+  "id": "com.idanck.shidur",
+  "version": "0.1.0",
+  "vendor": "Idan Cohen",
+  "type": "web",
+  "main": "index.html",
+  "title": "שידור",
+  "appDescription": "נגן ערוצים ורדיו בעברית",
+  "icon": "icon-80.png",
+  "largeIcon": "icon-130.png",
+  "splashBackground": "splash.png",
+  "iconColor": "#ff5a5f",
+  "resolution": "1280x720",
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": false,
+  "requiredACG": [
+    "activity.operation"
+  ]
+}
