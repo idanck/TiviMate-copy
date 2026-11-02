@@ -1,0 +1,65 @@
+name: webOS app
+
+# Shidur for LG televisions (webos/, ADR-052): typecheck, unit tests (the service's included, and a
+# check that it is still the ES2017 webOS 6's Node reads), the build for Chromium 79, and the .ipk.
+# The package is kept as an artifact for installing on a television in developer mode and for
+# uploading to LG Seller Lounge by hand; nothing is published from here.
+on:
+  push:
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
+    paths:
+      - "webos/**"
+      - ".github/workflows/webos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webos/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Nothing newer than Chromium 79 in the bundle
+        run: |
+          set -euo pipefail
+          js=$(ls dist/assets/*.js)
+          for needle in '@layer' '@container' ':has(' ':focus-visible' 'dvh' 'aspect-ratio' 'inset:'; do
+            if grep -qF -- "$needle" $js; then echo "::error::$needle in the bundle: webOS 6 does not read it"; exit 1; fi
+          done
+          if grep -q '<script type="module"' dist/index.html; then echo '::error::module script: webOS 6 refuses it from file://'; exit 1; fi
+
+      - name: Package
+        run: npm run package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shidur-webos-ipk
+          path: webos/ipk/*.ipk
+          if-no-files-found: error
