@@ -60,7 +60,7 @@ import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.news.NewsDigests
 import com.tivicopy.player.data.news.NewsRepository
 import com.tivicopy.player.data.news.SourcedFlash
-import com.tivicopy.player.player.PanelStatus
+import com.tivicopy.player.player.PlaybackStatus
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
@@ -73,7 +73,7 @@ import kotlinx.coroutines.delay
  */
 
 /** Still reaching the stream, or trying again after it dropped. */
-internal fun panelConnecting(status: PanelStatus): Boolean =
+internal fun panelConnecting(status: PlaybackStatus): Boolean =
     !status.playing && (status.buffering || status.error != null)
 
 /**
@@ -142,7 +142,7 @@ internal fun EmptyPanel(hint: String, modifier: Modifier = Modifier) {
 internal fun PanelFailure(
     vm: AppViewModel,
     channel: Channel,
-    status: PanelStatus,
+    status: PlaybackStatus,
     hint: String,
     modifier: Modifier = Modifier,
 ) {

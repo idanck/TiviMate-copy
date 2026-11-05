@@ -1,6 +1,8 @@
 package com.tivicopy.player.player
 
 import android.content.Context
+import android.os.SystemClock
+import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -61,7 +63,17 @@ data class PlaybackStatus(
      * and only some of those — see ADR-026.
      */
     val streamTitle: String? = null,
-)
+    /**
+     * A split-screen panel's live stream was ended by the other side, cleanly, as if the channel
+     * had finished, and trying again did not help: what an IPTV server does to a connection beyond
+     * the account's limit when a newer one opens (ADR-041). Only a [PlayerEngine.Role.PANEL] says
+     * so; the full-screen player does not look for it.
+     */
+    val closed: Boolean = false,
+) {
+    /** No retry is coming: the stream failed for good, or its server closed it ([closed]). */
+    val failed: Boolean get() = closed || errorDetail != null
+}
 
 /**
  * Buffer durations, reconciled to what `DefaultLoadControl` will accept.
@@ -100,7 +112,26 @@ data class TrackOption(
 )
 
 /**
- * The single ExoPlayer instance and everything the UI needs from it.
+ * One ExoPlayer instance and everything the UI needs from it.
+ *
+ * The app's full-screen player is one of these ([Role.MAIN], on the `ServiceLocator`), and so is
+ * each panel of the split screen, Sport and News mode ([Role.PANEL], ADR-054): every panel is a
+ * player of its own, with the same retries, failover, decoder choice, buffer preset and track
+ * selection as the full-screen one. The media session, the floating window, the launcher's
+ * "continue watching" row and resume marks hang off the `ServiceLocator`'s instance, not off this
+ * class, so a panel has none of them.
+ *
+ * What a panel does differently, because several play at once:
+ *
+ * - its sound plays at volume zero unless it is the [setAudible] one, and only that one asks the
+ *   system for audio focus — several players asking would each take it from the one before and
+ *   pause it;
+ * - encoded audio (AC-3, E-AC-3) is decoded rather than passed through to an HDMI receiver, which
+ *   ignores the volume and takes one passed-through stream at a time;
+ * - its buffer has a ceiling in bytes, so several of them fit on a television box;
+ * - a live stream that ends was closed by its server: the next address is tried, then the same one
+ *   once more, and then the panel says so ([PlaybackStatus.closed]);
+ * - the host's pause for every panel ([setPaused]) holds across retries.
  *
  * Responsibilities that live here rather than in the UI:
  *
@@ -114,7 +145,11 @@ data class TrackOption(
 class PlayerEngine(
     private val context: Context,
     private val settings: Settings,
+    private val role: Role = Role.MAIN,
 ) {
+
+    /** The full-screen player, or one panel of the split screen (ADR-054). */
+    enum class Role { MAIN, PANEL }
 
     private val _status = MutableStateFlow(PlaybackStatus())
     val status: StateFlow<PlaybackStatus> = _status
@@ -151,7 +186,41 @@ class PlayerEngine(
 
         /** How far `maxBufferMs` is kept above `minBufferMs` so loading has a band to work in. */
         const val MIN_BUFFER_BAND_MS = 500
+
+        const val TAG = "PlayerEngine"
+
+        /**
+         * A panel's ceiling on buffered bytes. Without one the load control sizes itself for a
+         * single player, well over a hundred megabytes of video; four of those on a television
+         * box with two gigabytes is how an app gets killed (ADR-041).
+         */
+        const val PANEL_TARGET_BUFFER_BYTES = 24 * 1024 * 1024
+
+        /** How long after a panel's stream is closed the one automatic try waits. */
+        const val END_RETRY_MS = 2_000L
+
+        /** How long a panel's stream must have played for a later close to earn another try. */
+        const val STEADY_MS = 60_000L
+
+        /** The wait before a panel tries a live channel's next address after its stream ended. */
+        const val NEXT_SOURCE_MS = 500L
     }
+
+    /** Whether this player is heard. Always, for [Role.MAIN]; see [setAudible]. */
+    private var audible = role == Role.MAIN
+
+    /** Set by [setPaused]: every source started from now on starts paused. */
+    private var heldPaused = false
+
+    /** Whether the one automatic try after a panel's stream was closed has been spent. */
+    private var endRetried = false
+
+    /**
+     * When the stream from the current address first became ready, on the monotonic clock; zero
+     * until it has. A rebuffer does not move it: what it measures is how long the stream has been
+     * up, not how long since the last stall.
+     */
+    private var readyAt = 0L
 
     /** Bumped whenever the source changes, so a retry armed for the previous one is dropped. */
     private var playbackGeneration = 0
@@ -222,6 +291,34 @@ class PlayerEngine(
      */
     fun positionAndDuration(): Pair<Long, Long>? = player?.let { it.currentPosition to it.duration }
 
+    // ------------------------------------------------------------ panels
+
+    /**
+     * Whether this player is the one heard: volume, and the system's audio focus, follow it. For a
+     * [Role.PANEL]; the split screen hears one panel at a time and moves the sound at once, which
+     * muting allows and turning the audio track off would not — re-enabling a track re-buffers.
+     * Applied to the instance now and to any built later.
+     */
+    fun setAudible(value: Boolean) {
+        if (audible == value) return
+        audible = value
+        player?.let(::applyAudible)
+    }
+
+    /**
+     * The split screen's pause for every panel at once. Unlike [togglePlayPause] it holds: a retry
+     * or a failover while paused starts the next source paused too.
+     */
+    fun setPaused(value: Boolean) {
+        heldPaused = value
+        setPlayWhenReady(!value)
+    }
+
+    private fun applyAudible(exo: ExoPlayer) {
+        exo.volume = if (audible) 1f else 0f
+        exo.setAudioAttributes(AUDIO_ATTRIBUTES, /* handleAudioFocus = */ audible)
+    }
+
     // ------------------------------------------------------------------- build
 
     private fun build(): ExoPlayer {
@@ -239,6 +336,7 @@ class PlayerEngine(
                 buffer.rebufferMs,
             )
             .setPrioritizeTimeOverSizeThresholds(true)
+            .apply { if (role == Role.PANEL) setTargetBufferBytes(PANEL_TARGET_BUFFER_BYTES) }
             .build()
 
         val selector = DefaultTrackSelector(context).apply {
@@ -265,7 +363,14 @@ class PlayerEngine(
             .setDefaultRequestProperties(profile.headers)
 
         val exo = ExoPlayer.Builder(context)
-            .setRenderersFactory(SelectiveRenderersFactory(context, effectiveVideoMode, audioMode))
+            .setRenderersFactory(
+                SelectiveRenderersFactory(
+                    context,
+                    effectiveVideoMode,
+                    audioMode,
+                    encodedAudioPassthrough = role == Role.MAIN,
+                ),
+            )
             .setTrackSelector(selector)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(
@@ -276,14 +381,9 @@ class PlayerEngine(
             // over the other app's audio, in the floating window or from the radio's
             // background service, until something else stopped it. With focus handled, a
             // notification or the voice assistant briefly lowers or pauses it and it comes back
-            // on its own; another app starting its own playback pauses it for good.
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
-                    .build(),
-                /* handleAudioFocus = */ true,
-            )
+            // on its own; another app starting its own playback pauses it for good. A panel asks
+            // only while it is the one heard ([setAudible]).
+            .setAudioAttributes(AUDIO_ATTRIBUTES, /* handleAudioFocus = */ audible)
             // Headphones pulled out, or a Bluetooth pair disconnecting, pauses rather than
             // carrying on out of the speaker (owner's call, 2026-10-16). Media3 listens for the
             // system's "audio becoming noisy" and pauses; play resumes it as any pause.
@@ -296,7 +396,8 @@ class PlayerEngine(
 
         exo.addListener(listener)
         exo.addAnalyticsListener(analytics)
-        exo.playWhenReady = true
+        exo.volume = if (audible) 1f else 0f
+        exo.playWhenReady = !heldPaused
         // A rebuild while the phone's player screen is collapsed must come up video-less too,
         // or the saving below silently ends at the first decoder or buffer change.
         applyVideoOutputWanted(exo)
@@ -390,6 +491,8 @@ class PlayerEngine(
         retriesUsed = 0
         reconnectAttempts = 0
         softwareFallbackApplied = false
+        endRetried = false
+        readyAt = 0L
         // The data source factory captures the profile, so a channel with its own headers or
         // user-agent needs the player rebuilt rather than just a new MediaItem.
         releasePlayer()
@@ -446,12 +549,13 @@ class PlayerEngine(
 
         exo.setMediaItem(item, startPositionMs)
         exo.prepare()
-        exo.playWhenReady = true
+        exo.playWhenReady = !heldPaused
 
         _status.value = _status.value.copy(
             title = title,
             error = null,
             errorDetail = null,
+            closed = false,
             // Claimed here rather than waiting for the first STATE_BUFFERING callback, so the
             // UI can say "connecting" from the moment the channel is chosen instead of showing
             // a black frame with nothing on it.
@@ -671,6 +775,12 @@ class PlayerEngine(
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(state: Int) {
+            // A live channel has no end, so a panel's stream that ends was ended by its server.
+            if (state == Player.STATE_ENDED && role == Role.PANEL && currentChannel != null) {
+                onPanelStreamEnded()
+                return
+            }
+            if (state == Player.STATE_READY && readyAt == 0L) readyAt = SystemClock.elapsedRealtime()
             _status.value = _status.value.copy(
                 buffering = state == Player.STATE_BUFFERING,
                 playing = state == Player.STATE_READY && player?.playWhenReady == true,
@@ -776,6 +886,62 @@ class PlayerEngine(
     }
 
     /**
+     * A panel's live stream ended (ADR-041, first device report): to the player that is a stream
+     * reaching its end, which is not an error, so before this the panel stood on a frozen frame
+     * saying nothing. An IPTV server ends the older streams of an account past its connection
+     * limit this way, and a server restarting can too.
+     *
+     * The channel's next address is tried, if it has one, and then the same one once more. A stream
+     * that closes again is left closed, saying so, and the viewer tries again by hand: past the
+     * account's limit every reconnect closes another panel's stream, and retrying for ever would
+     * have the panels take the one connection from each other in turn. A stream that had played
+     * steadily for a while earns its one retry back.
+     */
+    private fun onPanelStreamEnded() {
+        val title = _status.value.title
+        val steady = readyAt > 0 && SystemClock.elapsedRealtime() - readyAt > STEADY_MS
+        readyAt = 0L
+        if (steady) endRetried = false
+        if (currentSourceIndex + 1 < currentUrls.size) {
+            Log.w(TAG, "$title: the stream ended; trying the next address")
+            currentSourceIndex++
+            retriesUsed = 0
+            _status.value = _status.value.copy(buffering = true, playing = false)
+            schedule(NEXT_SOURCE_MS) { startCurrentSource(title) }
+            return
+        }
+        // The same address once more, not every address over again: on an account at its limit
+        // each address opened is one more panel's stream closed.
+        if (!endRetried) {
+            Log.w(TAG, "$title: the stream ended; trying once more")
+            endRetried = true
+            _status.value = _status.value.copy(buffering = true, playing = false)
+            schedule(END_RETRY_MS) { startCurrentSource(title) }
+            return
+        }
+        Log.w(TAG, "$title: the stream ended again; its server closed it")
+        // Nothing scheduled may start it again, and it holds no decoder and no buffer while it
+        // waits for the viewer: detached now, released just after, because this is reached from
+        // inside the player's own callback.
+        playbackGeneration++
+        val doomed = player
+        player = null
+        _currentPlayer.value = null
+        if (doomed != null) {
+            doomed.removeListener(listener)
+            doomed.removeAnalyticsListener(analytics)
+            val post = onScheduleRetry
+            if (post != null) post(0L) { doomed.release() } else doomed.release()
+        }
+        _status.value = _status.value.copy(
+            buffering = false,
+            playing = false,
+            closed = true,
+            streamTitle = null,
+        )
+    }
+
+    /**
      * Another full round over the channel's sources, after [ReconnectPolicy.delayMs], for as long
      * as the viewer stays on the channel — a zap bumps the generation and drops it.
      */
@@ -809,10 +975,15 @@ class PlayerEngine(
     private fun mapError(error: PlaybackException): AppError = playbackErrorOf(error)
 }
 
+/** How every [PlayerEngine] plays its sound: as a film's, for the media volume. */
+private val AUDIO_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
+    .setUsage(C.USAGE_MEDIA)
+    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+    .build()
+
 /**
  * What a player failure means to the viewer, as an [AppError] the UI can explain — the DRM case
- * included, which must never be a silent black screen (FR-TVI-06). Shared by [PlayerEngine] and
- * by Sport mode's panels ([PanelPlayer]), so a panel says what the full-screen player would.
+ * included, which must never be a silent black screen (FR-TVI-06).
  */
 internal fun playbackErrorOf(error: PlaybackException): AppError = when (error.errorCode) {
     PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED,

@@ -154,6 +154,10 @@ The menu is in `SportSession` (`menu`, `openMenu`, `closeMenu`), beside the pick
 activity's Back can close it as it closes the picker. The glyph is `StudioIcons.Swap`, drawn to
 the set's rule (ADR-033).
 
+**12. Every panel is a `PlayerEngine` (0.21.2).** Decision 6's `PanelPlayer` is replaced by the
+full-screen player's own class in a panel role, and the alternative below of several
+`PlayerEngine` instances is taken after all: see ADR-054.
+
 ## Alternatives rejected
 
 - **Four `PlayerEngine` instances.** The engine owns the app's single media session, the floating

@@ -226,7 +226,7 @@ private fun SportPanel(
 ) {
     val studio = StudioTheme.colors
     val channel = slot.channel
-    val player by slot.panel.player.collectAsState()
+    val player by slot.panel.currentPlayer.collectAsState()
     val status by slot.panel.status.collectAsState()
     var hasFocus by remember { mutableStateOf(false) }
     val interaction = remember { MutableInteractionSource() }
