@@ -11,12 +11,16 @@ import { flashInfo, PlayerHost, typedNumber } from './PlayerHost';
 import { RadioScreen } from './RadioScreen';
 import { SearchScreen } from './SearchScreen';
 import { SettingsScreen } from './SettingsScreen';
+import { PanelsScreen } from './PanelsScreen';
 import { move, type Direction } from './spatial';
+import { modeOf, panelsBack, session } from '../state/panelMode';
 
 const NAV: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: 'live', label: 'ערוצים', icon: 'tv' },
   { id: 'guide', label: 'מדריך', icon: 'guide' },
   { id: 'radio', label: 'רדיו', icon: 'radio' },
+  { id: 'sport', label: 'ספורט', icon: 'sport' },
+  { id: 'news', label: 'חדשות', icon: 'news' },
   { id: 'search', label: 'חיפוש', icon: 'search' },
 ];
 
@@ -52,6 +56,15 @@ export function App() {
 function Shell() {
   useRemote();
   const s = screen.value;
+  // Sport and News mode are the whole screen: no rail, and no full-screen player under them.
+  if (modeOf(s)) {
+    return (
+      <div class="app panels-app">
+        <PanelsScreen />
+        <Toasts />
+      </div>
+    );
+  }
   return (
     <div class="app">
       <nav class="rail" aria-label="ניווט">
@@ -129,6 +142,10 @@ const focusInPlayer = () => !!document.activeElement?.closest?.('.player-host');
  * where the app opens, the platform's own exit. Dialogs close themselves first (common.tsx).
  */
 export function back() {
+  if (modeOf(screen.value)) {
+    panelsBack();
+    return;
+  }
   if (typedNumber.value) {
     typedNumber.value = '';
     return;
@@ -180,6 +197,22 @@ function useRemote() {
         return;
       }
       const dialog = !!document.querySelector('.scrim');
+
+      // Sport and News mode: the arrows move between the panels, and up or down with no panel
+      // that way steps the channel, as in full screen; play/pause is every panel's; OK is the
+      // panel's own (ui/PanelsScreen.tsx); the number and colour keys are swallowed.
+      if (modeOf(screen.value)) {
+        const arrow = ARROWS[code];
+        if (arrow) {
+          e.preventDefault();
+          if (!move(arrow) && !dialog && (arrow === 'up' || arrow === 'down')) session.step(arrow === 'up' ? -1 : 1);
+          return;
+        }
+        if (code === KEY.OK) return;
+        e.preventDefault();
+        if (!dialog && (code === KEY.PLAY || code === KEY.PAUSE)) session.togglePause();
+        return;
+      }
 
       const dir = ARROWS[code];
       if (dir) {

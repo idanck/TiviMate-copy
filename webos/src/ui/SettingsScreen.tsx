@@ -5,6 +5,7 @@ import { guideProgress, guides, refreshAll, refreshGuide, refreshing, refreshSou
 import { Dialog, Toggle } from './common';
 import { Icon } from './icons';
 import { SourceDialog } from './SourceDialog';
+import { NewsSourcesCard } from './NewsSourcesCard';
 
 /*
  * Settings on the television. What the computer version has and this one does not (ADR-052):
@@ -105,6 +106,8 @@ export function SettingsScreen() {
           )}
         </section>
 
+        <NewsSourcesCard />
+
         <section class="card" aria-labelledby="s-keys">
           <h2 id="s-keys"><Icon name="grid" /> השלט</h2>
           <dl class="kbd-list">
@@ -117,6 +120,7 @@ export function SettingsScreen() {
             <dt>ירוק</dt><dd>מדריך</dd>
             <dt>צהוב</dt><dd>חיפוש</dd>
             <dt>כחול</dt><dd>רדיו</dd>
+            <dt>ספורט וחדשות</dt><dd>חצים בין המסכים (הסאונד עובר איתם), OK לתפריט המסך, למעלה / למטה בלי מסך בכיוון הזה מחליפים ערוץ</dd>
             <dt>חזרה</dt><dd>יציאה ממסך מלא, סגירת חלון, חזרה לערוצים, ומשם יציאה מהאפליקציה</dd>
           </dl>
         </section>

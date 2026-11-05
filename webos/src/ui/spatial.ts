@@ -91,7 +91,7 @@ export function focusables(): HTMLElement[] {
 }
 
 /** The part of the screen a control belongs to: the rail, the screen beside it, the player. */
-const SECTIONS = '.scrim, .rail, .screen, .player-host, .radio-pill';
+const SECTIONS = '.scrim, .rail, .screen, .player-host, .radio-pill, .panels-grid';
 const sectionOf = (el: HTMLElement) => el.closest(SECTIONS);
 
 /**

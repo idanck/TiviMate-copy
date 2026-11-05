@@ -1099,3 +1099,93 @@
   .radio-hero { animation: none; background-color: var(--amb-1); }
   .eq.on i { animation: none; height: 70%; }
 }
+
+/* ---------- Sport and News mode (ADR-053) ---------- */
+
+/* The pictures are the whole screen: black, no rail, no glass behind them. */
+.panels-app { display: block; background: #000; }
+.panels-screen { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; background: #000; overflow: hidden; }
+.panels-grid { position: relative; flex: 1; min-height: 0; }
+
+/* Square, as on the television shell: a light ring inside the panel with the remote, never a growth. */
+.panel { position: absolute; overflow: hidden; background: #000; cursor: pointer; outline: none; }
+.panel.hidden { visibility: hidden; width: 0; height: 0; }
+.panel.empty { background: var(--card); }
+.panel:focus { outline: none; }
+.panel:focus:not(.full)::after {
+  content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none;
+  box-shadow: inset 0 0 0 3px var(--cue);
+}
+.panel-video { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+.panel-video.off { visibility: hidden; }
+.panel-video video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
+
+.panel-empty, .panel-state {
+  position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  text-align: center; padding: 20px; color: var(--ink-2);
+}
+.panel-empty .title { font-weight: 700; font-size: 17px; color: var(--ink); }
+.panel-empty .hint, .panel-state .hint { font-size: 13px; color: var(--ink-3); }
+.panel-state.error { background: rgba(0, 0, 0, 0.55); }
+.panel-state .msg { max-width: 420px; color: var(--ink); line-height: 1.4; }
+
+.panel-caption {
+  position: absolute; right: 0; bottom: 0; left: 0;
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: linear-gradient(rgba(5, 7, 12, 0), rgba(5, 7, 12, 0.82));
+}
+.panel-caption .text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.panel-caption .name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-caption .now { font-size: 12px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panel-caption .sound {
+  width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  color: var(--current); background: var(--surface); box-shadow: var(--edge);
+}
+
+/* A drawer against the end edge: solid by the edge, fading toward the panels, never blurred. */
+.scrim.drawer-scrim { background: transparent; display: block; padding: 0; }
+.drawer {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 380px;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 27px 28px 27px 48px;
+  background: linear-gradient(to right, rgba(9, 12, 20, 0.97) 70%, rgba(9, 12, 20, 0.78));
+  box-shadow: var(--depth-3);
+  animation: fade-in var(--dur-exit) var(--ease);
+}
+.drawer h2 { margin: 0; padding: 0 12px; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer .sub { padding: 0 12px 10px; font-size: 12px; color: var(--ink-2); }
+.drawer-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.drawer-row {
+  display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; flex: none;
+  border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink); text-align: right; font: inherit;
+}
+.drawer-row .label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+.drawer-row .value { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.drawer-row.selected { background: var(--current-glass); box-shadow: inset 0 0 0 1px var(--current-edge); }
+.drawer-row:focus { outline: none; background: var(--cue); color: var(--on-cue); box-shadow: var(--lift); }
+.drawer-row:focus .value { color: var(--on-cue); }
+.drawer-note { padding: 12px; color: var(--ink-2); display: flex; justify-content: center; }
+
+/* The headlines: dots and names in their source's tone, the time, the line. */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.flashes-panel { position: absolute; top: 0; right: 0; bottom: 0; left: 0; display: flex; flex-direction: column; background: var(--amb-1); padding: 16px 20px; }
+.flashes-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; color: var(--ink-2); padding-bottom: 10px; flex: none; }
+.flashes-none { margin: auto; max-width: 360px; text-align: center; color: var(--ink-2); line-height: 1.5; }
+.flashes-view { flex: 1; min-height: 0; overflow: hidden; }
+.flashes-round { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+.flash .meta { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.flash .source { font-weight: 700; }
+.flash .time { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.flash .title { font-size: 18px; line-height: 1.4; margin-top: 3px; }
+
+.ticker { display: flex; align-items: stretch; flex: none; background: var(--amb-1); overflow: hidden; }
+.ticker-plate { display: flex; align-items: center; padding: 0 14px; background: var(--glass-lit); box-shadow: var(--edge); font-weight: 700; font-size: 18px; flex: none; z-index: 1; }
+.ticker-view { flex: 1; min-width: 0; overflow: hidden; position: relative; display: flex; align-items: center; }
+.ticker-none { padding: 0 16px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ticker-track { display: flex; flex: none; white-space: nowrap; }
+.ticker-round { display: flex; align-items: center; flex: none; }
+.ticker-item { display: flex; align-items: center; flex: none; padding-left: 40px; }
+.ticker-item .source { font-weight: 700; font-size: 13px; margin-right: 8px; }
+.ticker-item .time { color: var(--ink-2); font-weight: 600; margin-right: 10px; font-variant-numeric: tabular-nums; }
+.ticker-item .title { font-size: 19px; margin-right: 10px; }
