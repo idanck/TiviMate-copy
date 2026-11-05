@@ -29,7 +29,7 @@ purpose:
 - **Pointing directly at `iptv-org/iptv`'s full `il.m3u`.** That list carries ~40 Israeli channels,
   most of them commercial/pay-TV, not just the 7 free-to-air ones. A small Pi-side script filters
   it down to the 7 known `tvg-id`s before publishing, so the app only ever sees the curated subset.
-- **Reusing the existing `/home/idan/iptv-epg` Pi pipeline** (a separate, pre-existing project built
+- **Reusing the existing `iptv-epg` pipeline on the Pi** (a separate, pre-existing project built
   around a commercial IPTV subscription). Rejected to keep this feature's legal footing — free-to-
   air only — independent of that unrelated project's.
 - **Fetching and refreshing inside `ensureBuiltInPlaylist` itself.** A freshly inserted `Playlist`
@@ -41,7 +41,7 @@ purpose:
 
 - If the user deletes the built-in playlist from Settings, the next cold start silently reinstates
   it — intentionally self-healing, no "locked" flag or first-run preference to maintain.
-- EPG and stream-URL freshness depend on a cron job on the Pi (`/home/idan/iptv-epg-il/sync.sh`,
+- EPG and stream-URL freshness depend on a cron job on the Pi (`iptv-epg-il/sync.sh`,
   twice daily) that re-filters `iptv-org/iptv`'s `il.m3u` and re-runs `iptv-org/epg`'s `yes.co.il`
   grabber for the 7 channels, publishing both to the Worker. That job lives outside this repository.
 - Channel logos are not supplied by any upstream feed, so they are hosted alongside the playlist

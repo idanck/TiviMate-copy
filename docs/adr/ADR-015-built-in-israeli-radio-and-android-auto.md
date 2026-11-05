@@ -119,7 +119,7 @@ Three things are presentation rather than structure, and all three live in `Radi
   it, same as the TV channels playlist.
 - Curation, stream URLs and logos for the radio feed live outside this repo, on the same host
   as the TV channels (`il-epg.idanck.com/radio.m3u`), published by
-  `/home/idan/iptv-epg-il/build_radio_m3u.py` and the existing `sync.sh` cron (twice daily,
+  `iptv-epg-il/build_radio_m3u.py` on the Pi and the existing `sync.sh` cron (twice daily,
   alongside `channels.m3u`/`guide.xml` — ADR-013's Consequences). Unlike the TV channels, there
   is no single free/legal upstream aggregate for Israeli radio to filter (`iptv-org/iptv`'s
   `streams/il.m3u` — the source ADR-013 already uses — carries no radio entries at all), so
