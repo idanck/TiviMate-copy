@@ -1,6 +1,7 @@
 import { render } from 'preact';
 import './styles.css';
 import { App } from './ui/App';
+import { fitToWindow } from './ui/scale';
 
 /**
  * Chromium 79 (webOS 6) lays out flex boxes without `gap`. Where it is missing, the stylesheet's
@@ -18,5 +19,9 @@ function flexGapSupported(): boolean {
 }
 
 if (!flexGapSupported()) document.documentElement.classList.add('no-flex-gap');
+
+// Before the first render, and before any screen listens for resizes, so they read the new scale.
+fitToWindow();
+window.addEventListener('resize', fitToWindow);
 
 render(<App />, document.getElementById('app')!);

@@ -8,6 +8,10 @@ import { settings } from '../state/settings';
 import { now, programmesOf } from '../state/store';
 import { Logo, Progress } from './common';
 import { Icon } from './icons';
+import { uiScale } from './scale';
+
+/** Where the player is drawn, in the 1280×720 frame's pixels. */
+type Box = { top: number; left: number; width: number; height: number };
 
 /** Briefly shows the overlay — after a zap, so the new channel's name is seen. */
 export const flashInfo = signal(0);
@@ -22,7 +26,7 @@ export const typedNumber = signal('');
 export function PlayerHost() {
   const host = useRef<HTMLDivElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const [rect, setRect] = useState<DOMRect | null>(null);
+  const [rect, setRect] = useState<Box | null>(null);
   const [active, setActive] = useState(false);
   // The remote's focus inside the controls keeps them up, as the mouse over them does.
   const [focusInside, setFocusInside] = useState(false);
@@ -39,7 +43,13 @@ export function PlayerHost() {
       setRect(null);
       return;
     }
-    const update = () => setRect(slot.getBoundingClientRect());
+    // The slot's place on the window, in the 1280×720 frame's own pixels: the host is drawn inside
+    // the scaled frame (scale.ts), and the window measures it scaled.
+    const update = () => {
+      const r = slot.getBoundingClientRect();
+      const s = uiScale();
+      setRect({ top: r.top / s, left: r.left / s, width: r.width / s, height: r.height / s });
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(slot);
@@ -180,7 +190,7 @@ function StateLayer() {
         <Icon name="alert" size={32} />
         <div class="msg">{pb.message ?? 'לא ניתן לנגן את הערוץ'}</div>
         <button class="btn" onClick={() => engine.retry()}>
-          <Icon name="refresh" size={18} /> נסה שוב
+          <Icon name="refresh" size={18} /> <span>נסה שוב</span>
         </button>
       </div>
     );
@@ -198,7 +208,7 @@ function StateLayer() {
     return (
       <div class="player-state" style={{ alignContent: 'end', paddingBottom: 72 }}>
         <button class="btn primary" onClick={() => engine.toggleMute()}>
-          <Icon name="audio" size={18} /> הפעל קול
+          <Icon name="audio" size={18} /> <span>הפעל קול</span>
         </button>
       </div>
     );

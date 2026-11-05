@@ -378,7 +378,7 @@ function FlashesPanel() {
   const t = now.value;
   return (
     <div class="flashes-panel" ref={box}>
-      <div class="flashes-head"><Icon name="news" size={18} /> מבזקים</div>
+      <div class="flashes-head"><Icon name="news" size={18} /> <span>מבזקים</span></div>
       {list.length === 0 ? (
         <div class="flashes-none">אין מבזקים עדיין. את המקורות שלהם בוחרים בהגדרות, תחת מבזקים.</div>
       ) : (
