@@ -47,22 +47,22 @@ export function SettingsScreen() {
       </div>
       <div class="settings-body">
         <section class="card" aria-labelledby="s-sources">
-          <h2 id="s-sources"><Icon name="storage" /> רשימות ולוח שידורים</h2>
+          <h2 id="s-sources"><Icon name="storage" /> <span>רשימות ולוח שידורים</span></h2>
           {[...sources.value].sort((a, b) => a.sortIndex - b.sortIndex).map((src) => (
             <SourceRow key={src.id} source={src} onEdit={() => setEditing(src)} onRemove={() => setRemoving(src)} />
           ))}
           <div class="actions">
             <button class="btn primary" onClick={() => setEditing('new')}>
-              <Icon name="plus" size={18} /> הוספת רשימה
+              <Icon name="plus" size={18} /> <span>הוספת רשימה</span>
             </button>
             <button class="btn" onClick={() => void refreshAll()} disabled={Object.keys(refreshing.value).length > 0}>
-              <Icon name="refresh" size={18} /> רענון הכול
+              <Icon name="refresh" size={18} /> <span>רענון הכול</span>
             </button>
           </div>
         </section>
 
         <section class="card" aria-labelledby="s-guide">
-          <h2 id="s-guide"><Icon name="guide" /> לוח שידורים</h2>
+          <h2 id="s-guide"><Icon name="guide" /> <span>לוח שידורים</span></h2>
           <div class="setting">
             <div class="text">
               <span class="label">היסט זמנים כללי</span>
@@ -75,7 +75,7 @@ export function SettingsScreen() {
         </section>
 
         <section class="card" aria-labelledby="s-play">
-          <h2 id="s-play"><Icon name="play" /> ניגון</h2>
+          <h2 id="s-play"><Icon name="play" /> <span>ניגון</span></h2>
           <div class="setting">
             <div class="text">
               <span class="label">הפעלת הערוץ האחרון בפתיחה</span>
@@ -86,7 +86,7 @@ export function SettingsScreen() {
         </section>
 
         <section class="card" aria-labelledby="s-net">
-          <h2 id="s-net"><Icon name="network" /> רשת</h2>
+          <h2 id="s-net"><Icon name="network" /> <span>רשת</span></h2>
           <div class="setting">
             <div class="text">
               <span class="label">מזהה לקוח (User agent)</span>
@@ -109,7 +109,7 @@ export function SettingsScreen() {
         <NewsSourcesCard />
 
         <section class="card" aria-labelledby="s-keys">
-          <h2 id="s-keys"><Icon name="grid" /> השלט</h2>
+          <h2 id="s-keys"><Icon name="grid" /> <span>השלט</span></h2>
           <dl class="kbd-list">
             <dt>חצים ו-OK</dt><dd>תנועה בין הפריטים ובחירה</dd>
             <dt>חץ למעלה / למטה במסך מלא</dt><dd>הערוץ הקודם / הבא</dd>
@@ -126,7 +126,7 @@ export function SettingsScreen() {
         </section>
 
         <section class="card" aria-labelledby="s-about">
-          <h2 id="s-about"><Icon name="info" /> אודות</h2>
+          <h2 id="s-about"><Icon name="info" /> <span>אודות</span></h2>
           <div class="muted">
             שידור לטלוויזיה {__APP_VERSION__} · <span class="ltr">{__APP_SHA__}</span>
           </div>

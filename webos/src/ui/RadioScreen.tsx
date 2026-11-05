@@ -110,11 +110,11 @@ function NowPlaying({ station }: { station: Channel }) {
         <div class="controls">
           {pb.status === 'error' ? (
             <button class="btn" onClick={() => engine.retry()}>
-              <Icon name="refresh" size={18} /> נסה שוב
+              <Icon name="refresh" size={18} /> <span>נסה שוב</span>
             </button>
           ) : (
             <button class="btn primary" onClick={() => engine.togglePause()} aria-label={paused ? 'נגן' : 'השהה'}>
-              <Icon name={paused ? 'play' : 'pause'} size={18} /> {paused ? 'נגן' : 'השהה'}
+              <Icon name={paused ? 'play' : 'pause'} size={18} /> <span>{paused ? 'נגן' : 'השהה'}</span>
             </button>
           )}
           <button class="icon-btn" onClick={() => engine.toggleMute()} aria-label={v.muted ? 'הפעל קול' : 'השתק'}>
@@ -131,7 +131,7 @@ function NowPlaying({ station }: { station: Channel }) {
             aria-label="עוצמת קול"
           />
           <button class="btn ghost" onClick={() => engine.stop()}>
-            <Icon name="close" size={18} /> עצור
+            <Icon name="close" size={18} /> <span>עצור</span>
           </button>
         </div>
       </div>

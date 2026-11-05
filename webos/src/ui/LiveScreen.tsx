@@ -170,7 +170,7 @@ function EmptyList({ loading, filtered }: { loading: boolean; filtered: boolean 
       <h2>אין עדיין ערוצים</h2>
       <p>הוסף רשימת M3U או חשבון Xtream בהגדרות.</p>
       <button class="btn primary" onClick={() => go('settings')}>
-        <Icon name="plus" size={18} /> הוספת רשימה
+        <Icon name="plus" size={18} /> <span>הוספת רשימה</span>
       </button>
     </div>
   );
@@ -261,13 +261,13 @@ function NowPanel({ channel }: { channel: Channel }) {
       )}
       <div class="actions">
         <button class="btn" onClick={() => toggleFavourite(channel.key)} aria-pressed={fav}>
-          <Icon name={fav ? 'starOn' : 'star'} size={18} /> {fav ? 'במועדפים' : 'הוסף למועדפים'}
+          <Icon name={fav ? 'starOn' : 'star'} size={18} /> <span>{fav ? 'במועדפים' : 'הוסף למועדפים'}</span>
         </button>
         <button class="btn" onClick={() => toggleFullscreen()}>
-          <Icon name="fullscreen" size={18} /> מסך מלא
+          <Icon name="fullscreen" size={18} /> <span>מסך מלא</span>
         </button>
         <button class="btn" onClick={() => go('guide')}>
-          <Icon name="guide" size={18} /> לוח שידורים
+          <Icon name="guide" size={18} /> <span>לוח שידורים</span>
         </button>
       </div>
     </div>

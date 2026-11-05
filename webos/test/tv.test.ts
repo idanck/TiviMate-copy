@@ -3,6 +3,7 @@ import type { Channel, Source } from '../src/data/model';
 import { maskAddress, maskChannels, unmaskAddress, unmaskChannels } from '../src/data/vault';
 import { liveUrl, xmltvUrl } from '../src/data/xtream';
 import { distance, pick, type Box } from '../src/ui/spatial';
+import { underNowPill } from '../src/ui/guideLayout';
 
 const box = (left: number, top: number, w = 100, h = 40): Box => ({ left, top, right: left + w, bottom: top + h });
 
@@ -65,5 +66,20 @@ describe('Xtream passwords stay out of stored addresses (data/vault.ts)', () => 
     const m3u = { ...source, type: 'M3U_URL', password: undefined } as Source;
     const channels = [{ key: 'k', urls: ['http://example.com/a.ts'] } as Channel];
     expect(maskChannels(channels, m3u)).toBe(channels);
+  });
+});
+
+describe('the guide’s ruler (ui/guideLayout.ts)', () => {
+  it('leaves out a half hour the now pill would cover', () => {
+    // Eleven minutes before now, at four pixels a minute: the label runs under the pill.
+    expect(underNowPill(-44)).toBe(true);
+    expect(underNowPill(0)).toBe(true);
+    expect(underNowPill(10)).toBe(true);
+  });
+
+  it('keeps a half hour clear of it on either side', () => {
+    expect(underNowPill(-80)).toBe(false);
+    expect(underNowPill(20)).toBe(false);
+    expect(underNowPill(120)).toBe(false);
   });
 });

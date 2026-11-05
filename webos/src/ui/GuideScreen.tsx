@@ -8,6 +8,7 @@ import { guideProgress, now, programmesOf, refreshGuide, refreshing, sources } f
 import { Dialog, Logo, Progress } from './common';
 import { Icon } from './icons';
 import { GroupOptions } from './LiveScreen';
+import { underNowPill } from './guideLayout';
 
 const PX_PER_MIN = 4; // an hour is 240px, as the television's guide (TvMetrics: hour width 240dp)
 const ROW_H = 60;
@@ -104,7 +105,7 @@ export function GuideScreen() {
               </button>
             ))}
             <button class="chip" onClick={() => (day === today ? scrollToTime(Date.now() - 30 * 60_000) : setDay(today))}>
-              <Icon name="history" size={16} /> עכשיו
+              <Icon name="history" size={16} /> <span>עכשיו</span>
             </button>
           </div>
           <div class="row">
@@ -112,7 +113,7 @@ export function GuideScreen() {
               <GroupOptions />
             </select>
             <button class="btn small ghost" disabled={busy} onClick={() => sources.value.filter((s) => s.enabled).forEach((s) => void refreshGuide(s.id))}>
-              <Icon name="refresh" size={16} /> {busy ? 'מעדכן…' : 'עדכן לוח שידורים'}
+              <Icon name="refresh" size={16} /> <span>{busy ? 'מעדכן…' : 'עדכן לוח שידורים'}</span>
             </button>
             {status && <span class="faint">{status}</span>}
           </div>
@@ -129,6 +130,8 @@ export function GuideScreen() {
             <div class="epg-corner" style={{ width: CH_COL }} />
             {Array.from({ length: HOURS * 2 }, (_, i) => day + i * 30 * 60_000)
               .filter((t) => t >= tFrom - 3600_000 && t <= tTo)
+              // A half hour whose label the now pill would cover is left out, not written under it.
+              .filter((t) => !underNowPill(xOf(t) - xOf(now.value)))
               .map((t) => (
                 <span key={t} class="epg-tick" style={{ insetInlineStart: xOf(t) }}>
                   {clock(t)}
@@ -277,7 +280,7 @@ function ProgrammeDialog({ channel, programme, onClose }: { channel: Channel; pr
       <div class="buttons">
         <button class="btn" onClick={onClose}>סגור</button>
         <button class="btn primary" onClick={() => { play(channel); onClose(); }}>
-          <Icon name="play" size={16} /> צפייה בערוץ
+          <Icon name="play" size={16} /> <span>צפייה בערוץ</span>
         </button>
       </div>
     </Dialog>

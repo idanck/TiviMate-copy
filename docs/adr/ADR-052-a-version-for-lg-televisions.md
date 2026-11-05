@@ -68,7 +68,8 @@ to apps on webOS.
    queries, `:has`, `aspect-ratio` and `dvh` were rewritten in the stylesheet. CI fails the build
    if any of them comes back. The app runs at 1280×720 (`appinfo.json`), which the television
    scales to the screen: the computer's 14 px text becomes 21 px on a 1080p panel, above LG's
-   minimum.
+   minimum. From webOS 0.3.0 it asks for 1920×1080 and draws the same
+   1280×720 layout scaled to it (ADR-055).
 
 7. **Xtream passwords are sealed in storage** (`src/data/vault.ts`): AES-GCM with a non-extractable
    key made on the television and kept in IndexedDB. Stored channel and guide addresses carry a

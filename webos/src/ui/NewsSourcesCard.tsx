@@ -35,7 +35,7 @@ export function NewsSourcesCard() {
 
   return (
     <section class="card" aria-labelledby="s-news">
-      <h2 id="s-news"><Icon name="news" /> מבזקים</h2>
+      <h2 id="s-news"><Icon name="news" /> <span>מבזקים</span></h2>
       <div class="faint">המבזקים במצב חדשות: בפאנל המבזקים ובפס הרץ. המבזקים מכל המקורות מוצגים יחד לפי השעה, ולכל מקור צבע משלו.</div>
       {SUGGESTED_NEWS_SOURCES.map((s) => {
         const entry = list.find((e) => e.url.toLowerCase() === s.url.toLowerCase());
@@ -71,7 +71,7 @@ export function NewsSourcesCard() {
           aria-label="כתובת מקור חדש (RSS או JSON)"
         />
         <button class="btn" disabled={busy || !url.trim()} onClick={() => void add()}>
-          <Icon name="plus" size={18} /> הוספת מקור
+          <Icon name="plus" size={18} /> <span>הוספת מקור</span>
         </button>
       </div>
     </section>

@@ -55,6 +55,13 @@ export function App() {
 
 function Shell() {
   useRemote();
+  // Something has the remote from the start: with nothing focused, the first press of an arrow did
+  // nothing but light up the rail.
+  const loaded = ready.value;
+  useEffect(() => {
+    const current = document.activeElement;
+    if (loaded && (!current || current === document.body)) move('down');
+  }, [loaded]);
   const s = screen.value;
   // Sport and News mode are the whole screen: no rail, and no full-screen player under them.
   if (modeOf(s)) {
@@ -72,14 +79,14 @@ function Shell() {
         {NAV.map((n) => (
           <button key={n.id} class="rail-item" aria-current={s === n.id ? 'page' : undefined} onClick={() => go(n.id)}>
             <Icon name={n.icon} size={22} />
-            {n.label}
+            <span>{n.label}</span>
           </button>
         ))}
         <div class="rail-spacer" />
         <RailClock />
         <button class="rail-item" aria-current={s === 'settings' ? 'page' : undefined} onClick={() => go('settings')}>
           <Icon name="settings" size={22} />
-          הגדרות
+          <span>הגדרות</span>
         </button>
       </nav>
       <main class="screen" aria-hidden={isFullscreen.value ? 'true' : undefined}>
