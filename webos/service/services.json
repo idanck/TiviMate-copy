@@ -1,0 +1,10 @@
+{
+  "id": "com.idanck.shidur.service",
+  "description": "Shidur's network service: reads playlists and guides for the app",
+  "services": [
+    {
+      "name": "com.idanck.shidur.service",
+      "description": "Reads playlists and guides for the app"
+    }
+  ]
+}
