@@ -207,7 +207,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val pinLimiter = PinAttemptLimiter()
 
     /** Sport mode's and News mode's panels (ADR-041, ADR-042), beside the full-screen player they stand in for. */
-    val sport = SportSession(app, settings, ::profileFor)
+    val sport = SportSession(app, settings, ::profileFor, viewModelScope)
 
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }

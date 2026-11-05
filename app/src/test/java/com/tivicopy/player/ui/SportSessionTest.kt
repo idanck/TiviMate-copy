@@ -1,7 +1,7 @@
 package com.tivicopy.player.ui
 
 import com.tivicopy.player.core.AppError
-import com.tivicopy.player.player.PanelStatus
+import com.tivicopy.player.player.PlaybackStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -16,38 +16,38 @@ class SportSessionTest {
 
     @Test
     fun `a playing panel is a picture being watched`() {
-        assertTrue(SportSession.showsPicture(hasChannel = true, flashes = false, status = PanelStatus(playing = true)))
+        assertTrue(SportSession.showsPicture(hasChannel = true, flashes = false, status = PlaybackStatus(playing = true)))
     }
 
     @Test
     fun `a panel connecting or rebuffering is still a picture being watched`() {
-        assertTrue(SportSession.showsPicture(hasChannel = true, flashes = false, status = PanelStatus(buffering = true)))
+        assertTrue(SportSession.showsPicture(hasChannel = true, flashes = false, status = PlaybackStatus(buffering = true)))
         assertTrue(
             SportSession.showsPicture(
                 hasChannel = true,
                 flashes = false,
-                status = PanelStatus(buffering = true, error = AppError(AppError.Kind.Network)),
+                status = PlaybackStatus(buffering = true, error = AppError(AppError.Kind.Network)),
             ),
         )
     }
 
     @Test
     fun `the headlines are a picture being watched`() {
-        assertTrue(SportSession.showsPicture(hasChannel = false, flashes = true, status = PanelStatus()))
+        assertTrue(SportSession.showsPicture(hasChannel = false, flashes = true, status = PlaybackStatus()))
     }
 
     @Test
     fun `an empty panel, a failed one and a closed one are still screens`() {
-        assertFalse(SportSession.showsPicture(hasChannel = false, flashes = false, status = PanelStatus()))
+        assertFalse(SportSession.showsPicture(hasChannel = false, flashes = false, status = PlaybackStatus()))
         assertFalse(
             SportSession.showsPicture(
                 hasChannel = true,
                 flashes = false,
-                status = PanelStatus(error = AppError(AppError.Kind.DecoderFailed), failed = true),
+                status = PlaybackStatus(error = AppError(AppError.Kind.DecoderFailed), errorDetail = "ERROR_CODE_DECODER_INIT_FAILED"),
             ),
         )
         assertFalse(
-            SportSession.showsPicture(hasChannel = true, flashes = false, status = PanelStatus(failed = true, closed = true)),
+            SportSession.showsPicture(hasChannel = true, flashes = false, status = PlaybackStatus(closed = true)),
         )
     }
 

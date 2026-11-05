@@ -6,11 +6,13 @@ import android.os.Looper
 import com.tivicopy.player.data.model.Channel
 import com.tivicopy.player.data.net.RequestProfile
 import com.tivicopy.player.data.prefs.Settings
-import com.tivicopy.player.player.PanelPlayer
-import com.tivicopy.player.player.PanelStatus
+import com.tivicopy.player.player.PlaybackStatus
+import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.ui.tv.SportLayout
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Sport mode's state (ADR-041), and News mode's (ADR-042): two panels, or in News mode four if the
@@ -25,8 +27,9 @@ import kotlinx.coroutines.flow.StateFlow
  * other screen on the television. Which channels were on screen outlives the session, in the
  * settings, so each mode opens on the grid it was left with.
  *
- * There are always [SportLayout.SLOTS] slots, each with its own player; only the first [count]
- * are on screen, and the rest are kept empty and released.
+ * There are always [SportLayout.SLOTS] slots, each with a player of its own: a [PlayerEngine],
+ * the same player as the full-screen one, in its panel role (ADR-054). Only the first [count] are
+ * on screen, and the rest are kept empty and released.
  *
  * The sound follows the remote: whichever panel is in focus is the one heard, and moving the focus
  * moves the sound with it. An empty panel in focus is silence; the headlines in focus leave the
@@ -37,6 +40,8 @@ class SportSession(
     private val settings: Settings,
     /** The request profile a channel's own playlist asks for. */
     private val profileFor: (Channel) -> RequestProfile,
+    /** Where the panels' players are watched, for [anyPlaying]; the view model's, on the main thread. */
+    scope: CoroutineScope,
 ) {
 
     /** Which of the two modes the session is: they differ in what they offer, not in how. */
@@ -48,7 +53,7 @@ class SportSession(
      * nothing reconnects. In News mode a panel may show the headlines instead ([flashes]): no
      * channel, its player released, and no connection of its own.
      */
-    class Slot(val channel: Channel?, val panel: PanelPlayer, val flashes: Boolean = false)
+    class Slot(val channel: Channel?, val panel: PlayerEngine, val flashes: Boolean = false)
 
     private val main = Handler(Looper.getMainLooper())
 
@@ -66,7 +71,7 @@ class SportSession(
     val live: StateFlow<Boolean> = _live
 
     private val _slots = MutableStateFlow(
-        List(SportLayout.SLOTS) { Slot(null, PanelPlayer(context.applicationContext, settings, main, ::refresh)) },
+        List(SportLayout.SLOTS) { Slot(null, panelPlayer(context.applicationContext)) },
     )
     val slots: StateFlow<List<Slot>> = _slots
 
@@ -128,6 +133,23 @@ class SportSession(
      * left and News mode opened before Sport mode's list came back.
      */
     private var epoch = 0
+
+    init {
+        // Last among the initialisers: on the main thread a collection starts at once, and its
+        // first value already asks [refresh] about every field above. The players are fixed for
+        // the session's life — slots swap them, never replace them — so these never need stopping.
+        _slots.value.forEach { slot -> scope.launch { slot.panel.status.collect { refresh() } } }
+    }
+
+    /**
+     * One panel's player: the full-screen player's own class, in the role that lets several play
+     * at once ([PlayerEngine.Role.PANEL]). Its retries wait on the main thread, as the full-screen
+     * player's do (`AppViewModel`); without a scheduler they would run at once, with no backoff.
+     */
+    private fun panelPlayer(context: Context): PlayerEngine =
+        PlayerEngine(context, settings, PlayerEngine.Role.PANEL).apply {
+            onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
+        }
 
     /**
      * Opens [mode] on an empty grid of [panels], while the channels are read, and returns the
@@ -406,7 +428,7 @@ class SportSession(
         refresh()
     }
 
-    /** Every panel quiet at once, ahead of [suspend] or [close]; see [PanelPlayer.silence]. */
+    /** Every panel quiet at once, ahead of [suspend] or [close]; see [PlayerEngine.silence]. */
     fun silence() {
         if (active) _slots.value.forEach { it.panel.silence() }
     }
@@ -503,7 +525,7 @@ class SportSession(
          * a still screen at each stall handed the grid to the screensaver mid-match. A panel the
          * provider closed, or that cannot get a decoder, stands on a frozen frame and is not.
          */
-        fun showsPicture(hasChannel: Boolean, flashes: Boolean, status: PanelStatus): Boolean =
+        fun showsPicture(hasChannel: Boolean, flashes: Boolean, status: PlaybackStatus): Boolean =
             flashes || (hasChannel && !status.failed)
     }
 }

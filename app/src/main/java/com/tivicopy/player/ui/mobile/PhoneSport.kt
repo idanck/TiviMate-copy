@@ -346,7 +346,7 @@ private fun PhoneSportPanel(
 ) {
     val studio = StudioTheme.colors
     val channel = slot.channel
-    val player by slot.panel.player.collectAsState()
+    val player by slot.panel.currentPlayer.collectAsState()
     val status by slot.panel.status.collectAsState()
     // The gesture detector below is started once, so it calls through these to reach the panel's
     // current handlers rather than the ones it was started with.
