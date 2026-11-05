@@ -1,8 +1,9 @@
 # Shidur for LG televisions (webOS)
 
 Shidur as a packaged webOS app, for LG televisions from webOS 6 (2021) on: live channels, the guide,
-radio, search and favourites, in Hebrew, driven by the remote. Decisions and scope:
-`docs/adr/ADR-052-a-version-for-lg-televisions.md`.
+radio, Sport and News mode (two or four channels at once, and the headlines), search and favourites,
+in Hebrew, driven by the remote. Decisions and scope: `docs/adr/ADR-052-a-version-for-lg-televisions.md`
+and, for Sport and News mode, `docs/adr/ADR-053-sport-and-news-mode-on-lg-televisions.md`.
 
 It is two things, packaged together:
 

@@ -16,10 +16,31 @@ export interface Settings {
   lastChannelKey?: string;
   lastRadioKey?: string;
   liveFilter?: string;
+  /** Sport mode's panels as they were left, by channel key (ADR-053). */
+  sportSlots: Array<string | null>;
+  /** News mode's panels as they were left: a channel key, the headlines, or nothing. */
+  newsSlots: Array<string | null>;
+  /** News mode's two panels or four (ADR-045). */
+  newsPanels: 2 | 4;
+  /** News mode's running strip of headlines across the top (ADR-045). */
+  newsTicker: boolean;
+  /** The headlines' sources (FR-UI-33), empty until the viewer picks some. */
+  newsSources: Array<{ url: string; enabled: boolean }>;
 }
 
 const KEY = 'shidur.settings';
-const DEFAULTS: Settings = { epgOffsetMinutes: 0, userAgent: '', autoplay: true, volume: 1, muted: false };
+const DEFAULTS: Settings = {
+  epgOffsetMinutes: 0,
+  userAgent: '',
+  autoplay: true,
+  volume: 1,
+  muted: false,
+  sportSlots: [],
+  newsSlots: [],
+  newsPanels: 2,
+  newsTicker: false,
+  newsSources: [],
+};
 
 function load(): Settings {
   try {

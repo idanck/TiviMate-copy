@@ -6,8 +6,8 @@ import { updateSettings, settings } from './settings';
 import { channelByKey, favourites, markWatched, radioStations, recents, tvChannels } from './store';
 
 /** The screens, addressed by the URL's hash. On the television Back is the app's (ui/App.tsx). */
-export type Screen = 'live' | 'guide' | 'radio' | 'search' | 'settings';
-const SCREENS: Screen[] = ['live', 'guide', 'radio', 'search', 'settings'];
+export type Screen = 'live' | 'guide' | 'radio' | 'sport' | 'news' | 'search' | 'settings';
+const SCREENS: Screen[] = ['live', 'guide', 'radio', 'sport', 'news', 'search', 'settings'];
 
 function fromHash(): Screen {
   const h = location.hash.replace('#', '') as Screen;
@@ -99,7 +99,8 @@ export function channelByNumber(n: number): Channel | undefined {
 
 /** Starts the last channel when the app opens, if the user wants that (FR-UI startup channel). */
 export function resumeLast() {
-  if (!settings.value.autoplay || playback.value.channel) return;
+  // Sport and News mode play their own panels (state/panelMode.ts).
+  if (!settings.value.autoplay || playback.value.channel || screen.value === 'sport' || screen.value === 'news') return;
   const key = screen.value === 'radio' ? settings.value.lastRadioKey : settings.value.lastChannelKey;
   const channel = key ? channelByKey.value.get(key) : undefined;
   if (channel) engine.play(channel, screen.value === 'radio' ? 'radio' : 'tv');

@@ -58,6 +58,37 @@ export function isIsraeliNews(name: string, group?: string, tvgId?: string): boo
   return NEWS_WORDS.some((w) => f.includes(w)) || BY_NUMBER.test(f) || NEWS_GUIDE_IDS.has(id) || id.includes('news');
 }
 
+const BY_NUMBER_STATION = /(?:^|\s)(?:channel|ערוץ|כאן|kan|קשת|keshet|רשת|reshet|now|עכשיו)\s+(11|12|13|14|20)(?:\s|$)/;
+/** Words that make a channel a different feed of the station, not the station itself. */
+const NOT_THE_SAME_PICTURE = new Set(['hot', 'הוט', 'english', 'אנגלית', 'french', 'francais', 'צרפתית', 'arabic', 'ערבית']);
+/** The guide ids of the bundled playlist (iptv-org's, `@` feed dropped) and of the owner's. */
+const STATION_GUIDE_IDS: Record<string, string> = {
+  'kan11.il': '11', 'il.channel-11': '11',
+  'keshet12.il': '12', 'il.channel-12': '12',
+  'channel13.il': '13', 'reshet13.il': '13', 'il.channel-13': '13',
+  'now14.il': '14', 'channel14.il': '14', 'il.channel-14': '14', 'il.channel-20': '14',
+  'i24newshebrew.il': 'i24', 'il.i24': 'i24',
+  'knessetchannel.il': 'knesset', 'il.knesset': 'knesset',
+};
+
+/**
+ * Which broadcaster a news channel carries — `11`, `12`, `13`, `14`, `i24` or `knesset` — so the
+ * same station from two playlists is known for one (`IsraeliNewsChannels.station` on Android,
+ * ADR-042). Undefined for anything else, and for a copy that is not plainly the same picture.
+ */
+export function newsStation(name: string, tvgId?: string): string | undefined {
+  const id = (tvgId?.trim().toLowerCase() ?? '').split('@')[0];
+  if (STATION_GUIDE_IDS[id]) return STATION_GUIDE_IDS[id];
+  const f = fold(name);
+  if (f.split(' ').some((w) => NOT_THE_SAME_PICTURE.has(w))) return undefined;
+  if (f.includes('i24') || f.includes('איי 24')) return 'i24';
+  if (f.includes('knesset') || f.includes('כנסת')) return 'knesset';
+  const m = BY_NUMBER_STATION.exec(f);
+  if (!m) return undefined;
+  // Channel 14 went on air as Channel 20, and some lists still call it that.
+  return m[1] === '20' ? '14' : m[1];
+}
+
 /* ---------- Radio ---------- */
 
 export type RadioCategory =
