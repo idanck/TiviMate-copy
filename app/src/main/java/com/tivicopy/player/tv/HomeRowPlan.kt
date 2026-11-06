@@ -68,12 +68,17 @@ object HomeRowPlan {
         val favCap = (cap - reserved).coerceAtLeast(0)
         val chosen = (favs.take(favCap) + recents).distinctBy { it.id }.take(cap)
         return chosen.mapIndexed { index, channel ->
+            // What is on right now, where the guide knows — which, in practice, is television
+            // and not radio.
+            val onNow = nowByChannel[channel.id]?.title?.trim()?.takeIf { it.isNotEmpty() }
             HomeRowEntry(
                 channelId = channel.id,
-                title = channel.displayName,
-                // What is on right now, where the guide knows — which, in practice, is television
-                // and not radio. Radio stations simply have no second line.
-                description = nowByChannel[channel.id]?.title?.takeIf { it.isNotBlank() },
+                // Google TV draws a card's title and nothing else of ours: the line under it is
+                // the launcher's own (a date, season and episode, a duration), never the
+                // description. So the programme on now *is* the title, and the channel is the
+                // logo on the card. A channel the guide says nothing about keeps its own name.
+                title = onNow ?: channel.displayName,
+                description = onNow?.let { channel.displayName },
                 posterUri = channel.displayLogo,
                 weight = chosen.size - index,
                 deepLink = WatchNextPlan.deepLink(channel.id),

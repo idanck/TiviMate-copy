@@ -84,7 +84,7 @@ class HomeRowPlanTest {
     }
 
     @Test
-    fun `the programme on now is the second line, and blank or missing means none`() {
+    fun `the programme on now is the title, and without one the channel name is`() {
         val programme = Programme(epgChannelId = "e", startUtc = now, endUtc = now + 1000, title = "The News")
         val blank = programme.copy(title = "  ")
         val entries = HomeRowPlan.entries(
@@ -93,10 +93,12 @@ class HomeRowPlanTest {
             nowByChannel = mapOf(1L to programme, 2L to blank),
             nowUtc = now,
         )
-        assertEquals("The News", entries[0].description)
+        assertEquals("The News", entries[0].title)
+        assertEquals("Channel 1", entries[0].description)
+        assertEquals("Channel 2", entries[1].title)
         assertNull(entries[1].description)
+        assertEquals("Channel 3", entries[2].title)
         assertNull(entries[2].description)
-        assertEquals("Channel 1", entries[0].title)
     }
 
     @Test

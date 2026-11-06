@@ -7,8 +7,12 @@
 The app publishes one preview channel, named after the app ("שידור"), to the system TV
 provider. Its cards are the viewer's favourite channels, in their channel-list order, then the
 channels watched most recently that are not favourites, newest first — twenty at most, with at
-least five places kept for recents when there are that many. A television channel's card carries
-the programme on now as its second line, where the guide knows it. Selecting a card plays that
+least five places kept for recents when there are that many. A card's title is the programme on
+now, where the guide knows it, and the channel's name otherwise; the channel itself is the logo on
+the card. Google TV shows only a preview program's title under the card — the line beneath is the
+launcher's own (a date, season and episode, a duration) and never the description — which is why
+the programme cannot be a second line (checked on the owner's Streamer, 06/11/2026; the owner
+chose programme-only titles over "channel · programme"). Selecting a card plays that
 channel through the existing `shidur://channel/<id>` deep link (ADR-017).
 
 This implements FR-TVI-03, which ADR-017 left unimplemented as "not asked for". It now is: the
@@ -42,5 +46,5 @@ zapping with an in-flight claim, and an opt-out that deletes the channel rather 
 
 The card list is refreshed on cold start, on every channel change (throttled), on starring or
 hiding a channel (forced), and by the hourly `RefreshWorker` sweep (forced). That sweep is also
-what moves the "on now" line along with the schedule, so the line can lag a programme change by
-up to an hour. Poster art is the channel logo declared as 1:1, for ADR-017's reasons.
+what moves each card's programme title along with the schedule, so a title can lag a programme
+change by up to an hour. Poster art is the channel logo declared as 1:1, for ADR-017's reasons.
