@@ -12,7 +12,7 @@
 
   var ROWS = 100;
   var CELLS = 30;
-  var LIST_MODES = ['into-view', 'scroll-top', 'hidden', 'translate'];
+  var LIST_MODES = ['focus', 'into-view', 'scroll-top', 'hidden', 'translate'];
   var SOURCES = {
     local: 'frame.mp4',
     network: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8'
@@ -32,9 +32,17 @@
   var modesEl = document.getElementById('modes');
   var clock = document.getElementById('clock');
 
-  // The window is 1280 wide when appinfo.json asks for 1280x720 and 1920 when it asks for 1920x1080.
-  var windowScale = Math.round((window.innerWidth / 1280) * 100) / 100;
-  var SCALE_MODES = windowScale > 1 ? ['native', 'transform', 'zoom'] : ['none'];
+  // The 1080 package asks for 1920x1080. Known by its id, so the modes do not hang on what the
+  // television reports as the window's width; the report shows that width separately.
+  var FULL_HD = /\.fullhd$/.test(appId()) || window.innerWidth >= 1900;
+  var SCALE_MODES = FULL_HD ? ['native', 'transform', 'zoom'] : ['none'];
+  var ALLOWED = {
+    scale: SCALE_MODES,
+    list: LIST_MODES,
+    videos: [1, 2, 4],
+    placement: ['inside', 'outside'],
+    source: Object.keys(SOURCES)
+  };
 
   var state = load({
     scale: SCALE_MODES[0],
@@ -43,8 +51,6 @@
     placement: 'inside',
     source: 'local'
   });
-  if (SCALE_MODES.indexOf(state.scale) < 0) state.scale = SCALE_MODES[0];
-  if (LIST_MODES.indexOf(state.list) < 0) state.list = LIST_MODES[0];
 
   var focusIndex = 0;
   var listOffset = 0; // the translate mode's own scroll position, in CSS pixels
@@ -60,7 +66,7 @@
   function load(defaults) {
     try {
       var saved = JSON.parse(localStorage.getItem('spike') || '{}');
-      for (var k in defaults) if (!(k in saved)) saved[k] = defaults[k];
+      for (var k in defaults) if (ALLOWED[k].indexOf(saved[k]) < 0) saved[k] = defaults[k];
       return saved;
     } catch (e) {
       return defaults;
@@ -177,8 +183,12 @@
   function focusRow(index) {
     focusIndex = Math.max(0, Math.min(ROWS - 1, index));
     var row = rows.children[focusIndex];
+    if (state.list === 'focus') {
+      row.focus(); // the browser's own scroll to the element in focus, nothing else
+      return;
+    }
     if (state.list === 'into-view') {
-      row.focus();
+      row.focus({ preventScroll: true });
       row.scrollIntoView({ block: 'nearest' });
       return;
     }
@@ -202,7 +212,7 @@
     var kids = cells.children;
     for (var k = 0; k < kids.length; k++) kids[k].classList.toggle('on', k === cellIndex);
     var cell = kids[cellIndex];
-    if (state.list === 'into-view') {
+    if (state.list === 'into-view' || state.list === 'focus') {
       cell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       return;
     }
@@ -329,9 +339,9 @@
       'list: row ' + (focusIndex + 1) + ' · ' + (state.list === 'translate' ? 'translateY ' + Math.round(-listOffset) : 'scrollTop ' + Math.round(list.scrollTop)) +
         ' · scroll events ' + listScrollEvents + ' · row inside list (DOM) ' + (inside(row, list) ? 'yes' : 'NO') +
         ' · focus on row ' + (document.activeElement === row ? 'yes' : 'NO'),
-      'strip: cell ' + (cellIndex + 1) + ' · scrollLeft ' + Math.round(strip.scrollLeft) + (state.list === 'into-view' ? '' : ' · left ' + Math.round(stripLeft)) +
+      'strip: cell ' + (cellIndex + 1) + ' · scrollLeft ' + Math.round(strip.scrollLeft) + (state.list === 'into-view' || state.list === 'focus' ? '' : ' · left ' + Math.round(stripLeft)) +
         ' · scroll events ' + stripScrollEvents + ' · cell inside (DOM) ' + (inside(cell, strip) ? 'yes' : 'NO'),
-      'rtl scrollLeft model: ' + rtlModel + ' (old = starts at max and counts down, new = 0 and negative)',
+      'rtl scrollLeft model: ' + rtlModel + (rtlModel === 'other' ? ' (UNCLEAR: the strip is moved as in old)' : ' (old = starts at max and counts down, new = 0 and negative)'),
       'frame ' + rect(frame) + ' · stage ' + rect(stage) + (full ? ' (full screen)' : '')
     ];
     videos.forEach(function (v, k) {
@@ -349,14 +359,20 @@
       ' ' + state.placement + ' frame · ' + state.source;
   }
 
+  // The frame counter runs on every frame and touches nothing but its own text. The report reads
+  // layout (getBoundingClientRect), which could itself make a stuck list repaint, so it runs twice a
+  // second and 9 turns it off, to see whether the list moves without it.
   var frames = 0;
+  var diagOn = true;
   function tick() {
     frames++;
-    if (frames % 6 === 0) {
-      clock.textContent = String(frames);
-      diag.textContent = report();
-    }
+    if (frames % 6 === 0) clock.textContent = String(frames);
     requestAnimationFrame(tick);
+  }
+
+  function refreshDiag() {
+    if (diagOn) diag.textContent = report();
+    setTimeout(refreshDiag, 500);
   }
 
   // ---- keys ----
@@ -380,12 +396,16 @@
     else if (code === KEY.YELLOW || code === 89) setMode('videos', cycle([1, 2, 4], state.videos));
     else if (code === KEY.BLUE || code === 66) setMode('placement', state.placement === 'inside' ? 'outside' : 'inside');
     else if (code === 55) setMode('source', state.source === 'local' ? 'network' : 'local');
+    else if (code === 57) { diagOn = !diagOn; if (!diagOn) diag.textContent = 'diagnostics off (9 turns them on)'; }
     else if (code === 48) location.reload();
     else handled = false;
     if (handled) e.preventDefault();
   }
 
   function setMode(name, value) {
+    if (!ALLOWED[name] || ALLOWED[name].indexOf(value) < 0) {
+      throw new Error('no mode ' + name + '=' + value + '; one of ' + JSON.stringify(ALLOWED));
+    }
     state[name] = value;
     save();
     if (name === 'scale') {
@@ -460,4 +480,5 @@
   applyListMode();
   buildVideos();
   requestAnimationFrame(tick);
+  refreshDiag();
 })();

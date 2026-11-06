@@ -16,10 +16,12 @@ scroll on webOS 5. The app itself is built after the owner has chosen from its r
 - the modes, switched on the remote and kept across restarts:
   - **red** scale: `none` in the 720 package; `native` (laid out at 1920×1080, no scaling),
     `transform` (`scale(1.5)`) or `zoom` (`zoom: 1.5`) in the 1080 package;
-  - **green** list: `into-view` (`scrollIntoView`), `scroll-top` (`scrollTop`, `overflow: auto`),
+  - **green** list: `focus` (the browser's own scroll on `focus()`), `into-view` (`scrollIntoView`),
+    `scroll-top` (`scrollTop`, `overflow: auto`),
     `hidden` (`scrollTop`, `overflow: hidden`), `translate` (`translateY`, no native scroll);
   - **yellow** 1, 2 or 4 videos; **blue** videos inside the scaled frame or outside it, placed over
-    their box; **7** local test picture or a network HLS stream; **0** reload.
+    their box; **7** local test picture or a network HLS stream; **9** diagnostics on or off
+    (reading them lays the page out, which could hide a fault); **0** reload.
 
 The top line shows the modes, and the number at the top left counts frames: if it stops, the screen
 is not being redrawn at all. The block under the strip is what the DOM says (scroll positions,

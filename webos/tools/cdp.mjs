@@ -42,9 +42,11 @@ async function pages() {
 
 async function attach() {
   const all = await pages();
-  const page = all.find((p) => p.webSocketDebuggerUrl && p.url.includes(match)) ||
-    all.find((p) => p.webSocketDebuggerUrl);
-  if (!page) die('no page to attach to (is another client attached? stop ares-inspect)');
+  const page = all.find((p) => p.webSocketDebuggerUrl && p.url.includes(match));
+  if (!page) {
+    const seen = all.map((p) => p.url).join(', ') || 'none';
+    die(`no page whose address holds "${match}" is free to attach to (pages: ${seen}); is the app open, and is ares-inspect stopped?`);
+  }
   const ws = new WebSocket(page.webSocketDebuggerUrl);
   await new Promise((ok, fail) => {
     ws.addEventListener('open', ok, { once: true });
@@ -60,9 +62,21 @@ async function attach() {
     if (msg.error) w.fail(new Error(msg.error.message));
     else w.ok(msg.result);
   });
+  // A page that reloads or closes never answers what was pending: fail it rather than hang.
+  ws.addEventListener('close', () => {
+    for (const w of waiting.values()) w.fail(new Error('the page closed the connection'));
+    waiting.clear();
+  });
   const send = (method, params = {}) => new Promise((ok, fail) => {
     const id = next++;
-    waiting.set(id, { ok, fail });
+    const timer = setTimeout(() => {
+      waiting.delete(id);
+      fail(new Error(`${method}: no answer in 30 s`));
+    }, 30000);
+    waiting.set(id, {
+      ok: (v) => { clearTimeout(timer); ok(v); },
+      fail: (e) => { clearTimeout(timer); fail(e); },
+    });
     ws.send(JSON.stringify({ id, method, params }));
   });
   return { page, send, close: () => ws.close() };
@@ -110,6 +124,8 @@ try {
     print((await evaluate(send, 'spike.state()')).report);
   } else if (command === 'reload') await send('Page.reload', { ignoreCache: true });
   else die(`unknown command "${command}"`);
+} catch (e) {
+  die(e.message);
 } finally {
   close();
 }

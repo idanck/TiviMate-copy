@@ -46,9 +46,10 @@ hardware decoder.
    - *scale*: none (`appinfo.json` 1280×720, the television enlarges the layer); and at 1920×1080
      `native` (laid out at 1920×1080 with no scaling, every size in `rem` at 24 px),
      `transform: scale(1.5)`, `zoom: 1.5`;
-   - *list*: `scrollIntoView`, `scrollTop` on an `overflow: auto` list, `scrollTop` on an
-     `overflow: hidden` list, and `transform: translateY` with no native scroll; the same four for
-     a right-to-left strip, which also reports the `scrollLeft` model;
+   - *list*: the browser's own scroll on `focus()`, `scrollIntoView`, `scrollTop` on an
+     `overflow: auto` list, `scrollTop` on an `overflow: hidden` list, and `transform: translateY`
+     with no native scroll; the same for a right-to-left strip, which also reports the `scrollLeft`
+     model;
    - *video*: one, two or four `<video>`s, inside the scaled frame or outside it placed over their
      slot; a local test picture whose red edge should meet the yellow outline, or a network HLS
      stream; and full screen.
@@ -73,3 +74,32 @@ hardware decoder.
 - To load a new build, close the app first (`ares-launch -d <tv> --close <app id>`): launching an
   app already in the background only brings it to the front.
 - Back on the first screen closes the app (LG's rule); the spike lets Back only leave full screen.
+
+## What the first version's code needs on webOS 5
+
+A review of `webos/` as it stood at `e6725c0` (2026-11-06), for step 2. Paths are at that commit.
+
+- **Polyfills, in the page and in the guide worker** (an inlined bundle of its own):
+  `Array.prototype.flatMap` (`data/matcher.ts`, also in the worker; `store.ts`, `backup.ts`),
+  `String.prototype.matchAll` (`data/m3u.ts`, `data/xmltv.ts`, in the worker), and
+  `queueMicrotask`, which `@preact/signals` calls. CSS `min()` in `styles.css` is not lowered.
+- **Inline styles are not lowered by PostCSS**: `insetInlineStart` (Chromium 87) placed every guide
+  cell and the now line (`GuideScreen.tsx`), `marginInlineStart` (69) in `LiveScreen.tsx`. Both were
+  broken on webOS 6 too.
+- **Scrolling**: the virtual list (`ui/common.tsx`) learns its position only from `scroll` events
+  and its `scrollTo` does not redraw; the guide reads `Math.abs(scrollLeft)` and writes `-x`, the
+  new RTL model, so on 68 it lands at the far end; `spatial.ts` and `PanelsScreen.tsx` move focus
+  with `scrollIntoView` and a plain `focus()`. Whatever the spike shows, the list should keep its
+  own offset and redraw from the focused row, not wait for a `scroll` event.
+- **The scale**: the player divides `getBoundingClientRect` by the scale (`PlayerHost.tsx`), and
+  `PanelsScreen.tsx` and `spatial.ts` measure against `window.inner*`. Under `zoom` these would
+  need measuring; with no scaling they go away.
+- **More than one video**: the panels start their videos together and recognise a refused decoder
+  only when another panel is already playing and `media.error` is set, which a `<source>` error
+  leaves empty. On one decoder that reads as "unplayable" and the panels may take the decoder from
+  each other on retry.
+- **Bugs to fix in the port**: a transient key failure in `vault.ts` turns the password into `''`,
+  which `store.ts` then writes back; a failed IndexedDB open (`db.ts`) is cached and nothing catches
+  it, so the app never starts; a guide refresh whose `kv.set` throws stays "refreshing", and its
+  download is never aborted; `probeStream` has no timeout; the service streams up to 768 MB over the
+  bus with no backpressure and reports every HTTPS failure as `unreachable`.

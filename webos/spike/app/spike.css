@@ -30,7 +30,7 @@ html.scale-zoom #frame { zoom: 1.5; }
   background: #161c22;
   outline: 0.125rem solid #345;
 }
-#list.m-into-view, #list.m-scroll-top { overflow-y: auto; overflow-x: hidden; }
+#list.m-focus, #list.m-into-view, #list.m-scroll-top { overflow-y: auto; overflow-x: hidden; }
 #list.m-hidden, #list.m-translate { overflow: hidden; }
 #rows { position: relative; }
 .row {
@@ -58,7 +58,7 @@ html.scale-zoom #frame { zoom: 1.5; }
   position: absolute; left: 1.5rem; top: 28.5rem; width: 40rem; height: 4rem;
   background: #161c22; outline: 0.125rem solid #345;
 }
-#strip.m-into-view, #strip.m-scroll-top { overflow-x: auto; overflow-y: hidden; }
+#strip.m-focus, #strip.m-into-view, #strip.m-scroll-top { overflow-x: auto; overflow-y: hidden; }
 #strip.m-hidden, #strip.m-translate { overflow: hidden; }
 #cells { position: relative; height: 4rem; }
 .cell {
