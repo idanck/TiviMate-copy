@@ -1,10 +1,26 @@
 # ADR-052 — A version for LG televisions (webOS)
 
-**Status:** accepted, webOS 0.1.0. From the owner's request of 2026-11-02: *a webOS version, to
+**Status:** withdrawn 2026-11-06. The webOS version was removed from the repo at the owner's request,
+to be started again from scratch; this record is kept for what it found. Before that: accepted, webOS 0.1.0. From the owner's request of 2026-11-02: *a webOS version, to
 submit Shidur to the LG store*; his choices that day: a separate folder rather than a build target of
 `web/`, providers reached from the television itself rather than through a hosted proxy, and webOS 6
 (2021) as the oldest television supported. The app is to be sold on the LG store as a skeleton with
 no playlist (the owner's plan of 2026-10-19).
+
+## What a television showed, before the removal
+
+Tried on 2026-11-05 on an LG OLED65CX6LA (webOS 5, firmware 04.64.00, Chromium 68), on a branch that
+was never merged (`feature/webos5-support`):
+
+- The bundle built for Chromium 79 showed a black screen: class fields (Chromium 72) stopped the
+  script; `flat`/`flatMap`, `matchAll`, `Object.fromEntries`, `queueMicrotask` and CSS `min()` are
+  also newer than 68.
+- Under the `transform` that scales `#app` (ADR-055) the television drew a `<video>`'s picture
+  small and off its frame, and left it there in full screen. Scaled with `zoom` instead, the picture
+  sat right in its frame.
+- `scrollIntoView` did not scroll the lists under that transform; no scroll event came for a scroll
+  set from script; and even with `scrollTop` set, the lists were not seen to move on the screen.
+  Not solved when the version was removed.
 
 ## Context
 
