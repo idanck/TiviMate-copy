@@ -1,6 +1,7 @@
 # ADR-055 — The LG version draws at Full HD, and what an LG television's browser lays out differently
 
-**Status:** accepted, webOS 0.3.0. Decided by the owner on 2026-11-05: *the webOS version should be
+**Status:** withdrawn 2026-11-06. The webOS version was removed from the repo at the owner's request,
+to be started again from scratch; this record is kept for what it found. Before that: accepted, webOS 0.3.0. Decided by the owner on 2026-11-05: *the webOS version should be
 at least Full HD,* and *fix the display problems found in the review, in one change.* Replaces the
 resolution in ADR-052 decision 6.
 
