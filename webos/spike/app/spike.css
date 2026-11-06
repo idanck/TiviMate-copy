@@ -1,0 +1,74 @@
+/*
+ * The spike draws one 80rem × 45rem frame. 1rem is 16px (a 1280×720 frame) except in the "native"
+ * scale mode, where it is 24px and the frame is drawn at 1920×1080 with no scaling at all.
+ * Written for Chromium 68: no flex gap, inset, min()/max()/clamp(), logical properties,
+ * :focus-visible or aspect-ratio.
+ */
+html { font-size: 16px; background: #000; }
+html.scale-native { font-size: 24px; }
+html, body { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; }
+body { color: #eee; font-family: sans-serif; }
+
+#frame {
+  position: absolute; left: 0; top: 0;
+  width: 80rem; height: 45rem;
+  overflow: hidden;
+  background: #101418;
+  transform-origin: 0 0;
+}
+html.scale-transform #frame { transform: scale(1.5); }
+html.scale-zoom #frame { zoom: 1.5; }
+
+#bar { position: absolute; left: 0; top: 0; width: 80rem; height: 3.75rem; background: #1d2630; }
+#modes { position: absolute; right: 1.5rem; top: 0.4rem; font-size: 1.1rem; font-weight: bold; direction: ltr; }
+#clock { position: absolute; left: 1.5rem; top: 0.4rem; font-size: 1.1rem; color: #7cf; direction: ltr; }
+#keys { position: absolute; right: 1.5rem; top: 2.2rem; width: 77rem; font-size: 0.75rem; color: #9ab; direction: ltr; text-align: right; }
+
+/* The list, on the right as in the app. */
+#list {
+  position: absolute; right: 1.5rem; top: 4.5rem; width: 25rem; height: 39rem;
+  background: #161c22;
+  outline: 0.125rem solid #345;
+}
+#list.m-into-view, #list.m-scroll-top { overflow-y: auto; overflow-x: hidden; }
+#list.m-hidden, #list.m-translate { overflow: hidden; }
+#rows { position: relative; }
+.row {
+  height: 3.5rem; line-height: 3.5rem; padding: 0 1rem;
+  font-size: 1.25rem; border-bottom: 0.0625rem solid #233;
+  box-sizing: border-box;
+}
+.row:nth-child(10n) { background: #20303a; }
+.row:focus { outline: none; background: #2f8f5b; color: #fff; }
+
+/* The video's box: the yellow outline is the frame the picture should fill. */
+#stage { position: absolute; left: 1.5rem; top: 4.5rem; width: 40rem; height: 22.5rem; z-index: 5; }
+#stage.full { left: 0; top: 0; width: 80rem; height: 45rem; z-index: 20; }
+.slot { position: absolute; outline: 0.25rem solid #ffd400; background: transparent; }
+.slot video, #outside video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: transparent; }
+.slot .label { position: absolute; left: 0.5rem; bottom: 0.5rem; font-size: 0.9rem; background: rgba(0, 0, 0, 0.6); padding: 0 0.3rem; direction: ltr; z-index: 2; }
+#stage.full .slot { outline-color: #ff4fd8; }
+
+/* Videos placed outside the frame, over their slot, in window pixels. */
+#outside { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 30; }
+#outside video { position: fixed; }
+
+/* The horizontal strip, right to left as the guide is. */
+#strip {
+  position: absolute; left: 1.5rem; top: 28.5rem; width: 40rem; height: 4rem;
+  background: #161c22; outline: 0.125rem solid #345;
+}
+#strip.m-into-view, #strip.m-scroll-top { overflow-x: auto; overflow-y: hidden; }
+#strip.m-hidden, #strip.m-translate { overflow: hidden; }
+#cells { position: relative; height: 4rem; }
+.cell {
+  position: absolute; top: 0; width: 7.5rem; height: 4rem; line-height: 4rem;
+  text-align: center; font-size: 1.1rem; box-sizing: border-box; border-left: 0.0625rem solid #345;
+}
+.cell.on { background: #2f8f5b; color: #fff; }
+
+#diag {
+  position: absolute; left: 1.5rem; top: 33.5rem; width: 40rem; height: 10.5rem; margin: 0;
+  font: 0.72rem/1.05rem monospace; color: #cde; direction: ltr; text-align: left;
+  white-space: pre-wrap; overflow: hidden;
+}
