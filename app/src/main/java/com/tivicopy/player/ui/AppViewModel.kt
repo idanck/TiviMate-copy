@@ -12,6 +12,7 @@ import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.builtin.IsraelPublicChannels
 import com.tivicopy.player.data.builtin.IsraelRadioStations
+import com.tivicopy.player.tv.HomeRow
 import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.ui.home.HomeData
 import com.tivicopy.player.ui.home.HomeRails
@@ -548,6 +549,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // needs. Started from inside this block so it can never read the database before
             // the write above lands. Throttled and best-effort inside.
             ServiceLocator.appScope.launch { WatchNext.sync(ServiceLocator.appContext) }
+            // The app's own row (FR-TVI-03) carries recents too, and the programme now on.
+            ServiceLocator.appScope.launch { HomeRow.sync(ServiceLocator.appContext) }
         }
         refreshNowNext(channel)
     }
@@ -1069,6 +1072,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, favourite = favourite) }
             loadChannels()
+            // Favourites lead the home-screen row (FR-TVI-03). Forced past the zapping throttle:
+            // a star is a deliberate act and should reach the row now, not on the next sweep.
+            ServiceLocator.appScope.launch { HomeRow.sync(ServiceLocator.appContext, force = true) }
         }
     }
 
@@ -1082,6 +1088,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { dao.setChannelFlags(channel.id, hidden = hidden) }
             loadChannels()
+            ServiceLocator.appScope.launch { HomeRow.sync(ServiceLocator.appContext, force = true) }
             post(
                 UiMessage(
                     text = string(

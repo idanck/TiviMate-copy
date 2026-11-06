@@ -412,6 +412,8 @@
     <string name="settings_show_home_apps_sub">שורה של האפליקציות שמותקנות במכשיר</string>
     <string name="settings_watch_next">פרסום ב־המשך צפייה</string>
     <string name="settings_watch_next_sub">מציע ערוצים שנצפו לאחרונה במסך הבית של Google TV</string>
+    <string name="settings_home_row">שורת שידור במסך הבית</string>
+    <string name="settings_home_row_sub">ערוצים מועדפים וערוצים שנצפו לאחרונה, עם מה שמשודר עכשיו, בשורה משלהם במסך הבית של Google TV</string>
     <string name="settings_screensaver">שומר מסך</string>
     <string name="settings_screensaver_sub">מחליף את המסך בשעון אולפן על רקע שחור בכל מצב, חוץ מצפייה בערוץ או בסרט, כדי ששום דבר לא ייצרב במסך</string>
     <string name="settings_screensaver_idle">הפעלת שומר המסך אחרי</string>

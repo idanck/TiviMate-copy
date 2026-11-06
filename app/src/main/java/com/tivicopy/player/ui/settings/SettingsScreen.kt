@@ -40,6 +40,7 @@ import com.tivicopy.player.data.prefs.ThemeMode
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.PinEntry
 import com.tivicopy.player.ui.common.findActivity
+import com.tivicopy.player.tv.HomeRow
 import com.tivicopy.player.tv.WatchNext
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -240,6 +241,22 @@ fun SettingsScreen(
                                 WatchNext.sync(context, force = true)
                             } else {
                                 WatchNext.clear(context)
+                            }
+                        }
+                    },
+                )
+                // FR-TVI-03, on the same terms as the switch above: off removes the row.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_home_row),
+                    subtitle = stringResource(R.string.settings_home_row_sub),
+                    checked = s.homeRowEnabled,
+                    onChange = { enabled ->
+                        settings.setHomeRowEnabled(enabled)
+                        ServiceLocator.appScope.launch {
+                            if (enabled) {
+                                HomeRow.sync(context, force = true)
+                            } else {
+                                HomeRow.clear(context)
                             }
                         }
                     },

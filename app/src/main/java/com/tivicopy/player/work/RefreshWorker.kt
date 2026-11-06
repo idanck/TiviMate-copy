@@ -9,6 +9,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.tivicopy.player.ServiceLocator
+import com.tivicopy.player.tv.HomeRow
 import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.core.Outcome
 import com.tivicopy.player.record.SERIES_LOOKAHEAD_MILLIS
@@ -89,6 +90,9 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         // channel a playlist refresh deleted, or one that has simply gone stale — so this one
         // is forced past the throttle that exists for zapping.
         WatchNext.sync(applicationContext, force = true)
+        // FR-TVI-03: the same sweep is also what moves each card's "on now" line along with the
+        // schedule, so it is forced too.
+        HomeRow.sync(applicationContext, force = true)
 
         // A failed refresh is retried by WorkManager with its own backoff; the previous
         // snapshot is still intact either way (FR-SRC-12).
