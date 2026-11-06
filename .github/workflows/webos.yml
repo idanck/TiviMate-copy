@@ -1,0 +1,51 @@
+name: webOS app
+
+# Shidur for LG televisions, from webOS 5 (webos/, ADR-056). For now only the spike that decides how
+# the app draws and scrolls on webOS 5 (Chromium 68): a check that its script is ES2019 with nothing
+# newer than Chromium 68, and the two .ipk packages, kept as an artifact for installing on a
+# television in developer mode. The app's typecheck, tests and build join this when it exists.
+# Nothing is published from here.
+on:
+  push:
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
+    paths:
+      - "webos/**"
+      - ".github/workflows/webos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webos/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: The DevTools driver parses
+        run: node --check tools/cdp.mjs
+
+      - name: Spike packages (ES2019, nothing newer than Chromium 68)
+        run: npm run spike:package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shidur-webos-spike-ipk
+          path: webos/ipk/*.ipk
+          if-no-files-found: error
