@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -32,6 +33,14 @@ object HomeRow {
 
     private const val MIN_INTERVAL_MS = 30_000L
 
+    /**
+     * Failures are swallowed on purpose (a lost launcher row is never worth an error over a
+     * stream), but swallowed silently they are also undebuggable — which is how a card title
+     * that did not change on a real television could not be explained from the chat. So every
+     * swallowed failure is logged, and each sync logs what it decided.
+     */
+    private const val TAG = "Shidur/HomeRow"
+
     /** Launcher logo for the row's title, in pixels. The launcher scales it; this just bounds the bytes. */
     private const val LOGO_PX = 256
 
@@ -52,7 +61,9 @@ object HomeRow {
             // Re-read inside the gate, as WatchNext does: an opt-out that lands between the check
             // above and this point must not have its rows put straight back.
             if (!ServiceLocator.settings.state.value.homeRowEnabled) return
-            withContext(Dispatchers.IO) { runCatching { syncBlocking(context) } }
+            withContext(Dispatchers.IO) {
+                runCatching { syncBlocking(context) }.onFailure { Log.w(TAG, "sync failed", it) }
+            }
             lastSyncUtc = System.currentTimeMillis()
         } finally {
             gate.unlock()
@@ -80,16 +91,31 @@ object HomeRow {
         val recent = dao.recentChannels(limit = HomeRowPlan.MAX_ENTRIES * 2)
         val candidates = (favourites + recent).distinctBy { it.id }
         val nowByChannel = candidates.associate { channel ->
-            channel.id to runCatching { ServiceLocator.epg.nowAndNext(channel).first }.getOrNull()
+            channel.id to runCatching { ServiceLocator.epg.nowAndNext(channel).first }
+                .onFailure { Log.w(TAG, "now/next failed for channel ${channel.id}", it) }
+                .getOrNull()
         }
         val wanted = HomeRowPlan.entries(favourites, recent, nowByChannel, nowUtc = System.currentTimeMillis())
 
         val helper = PreviewChannelHelper(context)
-        val channelId = ensureChannel(context, helper) ?: return
+        val channelId = ensureChannel(context, helper)
+        if (channelId == null) {
+            Log.w(TAG, "no preview channel; nothing written")
+            return
+        }
         val existing = existingPrograms(context, channelId)
+        Log.i(
+            TAG,
+            "channel $channelId: ${favourites.size} favourites, ${recent.size} recent, " +
+                "${nowByChannel.count { it.value != null }} with a programme on now, " +
+                "${wanted.size} cards wanted, ${existing.size} existing: " +
+                wanted.joinToString { "${it.channelId}=${it.title}" },
+        )
         wanted.forEach { entry -> write(helper, channelId, entry, existing[entry.channelId]) }
         HomeRowPlan.stale(existing.keys, wanted.map { it.channelId }).forEach { id ->
-            existing[id]?.let { runCatching { helper.deletePreviewProgram(it) } }
+            existing[id]?.let {
+                runCatching { helper.deletePreviewProgram(it) }.onFailure { e -> Log.w(TAG, "delete $it failed", e) }
+            }
         }
     }
 
@@ -117,7 +143,9 @@ object HomeRow {
             .setInternalProviderId(HomeRowPlan.CHANNEL_PROVIDER_ID)
             .setLogo(logo)
             .build()
-        return runCatching { helper.publishDefaultChannel(channel) }.getOrNull()
+        return runCatching { helper.publishDefaultChannel(channel) }
+            .onFailure { Log.w(TAG, "publishing the channel failed", it) }
+            .getOrNull()
     }
 
     /** What selecting the row's title opens: the app itself, as the launcher icon would. */
@@ -149,7 +177,7 @@ object HomeRow {
                 }
             }
         }.orEmpty()
-    }.getOrDefault(emptyMap())
+    }.onFailure { Log.w(TAG, "reading existing cards failed", it) }.getOrDefault(emptyMap())
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun write(helper: PreviewChannelHelper, previewChannelId: Long, entry: HomeRowEntry, existingId: Long?) {
@@ -176,6 +204,6 @@ object HomeRow {
             } else {
                 helper.publishPreviewProgram(program)
             }
-        }
+        }.onFailure { Log.w(TAG, "writing card ${entry.channelId} (${entry.title}) failed", it) }
     }
 }
