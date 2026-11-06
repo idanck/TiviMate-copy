@@ -78,8 +78,8 @@ object HomeRow {
             withContext(Dispatchers.IO) {
                 runCatching {
                     val helper = PreviewChannelHelper(context)
-                    ownChannels(helper).forEach { helper.deletePreviewChannel(it.id) }
-                }
+                    ownChannels(context).forEach { helper.deletePreviewChannel(it.id) }
+                }.onFailure { Log.w(TAG, "clear failed", it) }
             }
         }
     }
@@ -119,11 +119,38 @@ object HomeRow {
         }
     }
 
-    /** Our preview channels only: the provider scopes this to the calling package. */
+    /** One of this app's preview channels, as the provider lists it. */
+    private data class OwnChannel(val id: Long, val providerId: String?, val browsable: Boolean)
+
+    /**
+     * This app's preview channels, oldest first. The provider scopes the query to the calling
+     * package, so no filter is needed — and none is applied on purpose: this app only ever
+     * publishes one channel, so every channel of ours is that one, however it was labelled.
+     *
+     * Read directly rather than through `PreviewChannelHelper.getAllChannels()`, which on a
+     * real Google TV came back empty on every sync after the first, so each sync published
+     * another channel and the cards went to rows the launcher never showed (ADR-056).
+     */
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun ownChannels(helper: PreviewChannelHelper): List<PreviewChannel> =
-        runCatching { helper.allChannels }.getOrDefault(emptyList())
-            .filter { it.internalProviderId == HomeRowPlan.CHANNEL_PROVIDER_ID }
+    private fun ownChannels(context: Context): List<OwnChannel> = runCatching {
+        context.contentResolver.query(
+            TvContractCompat.Channels.CONTENT_URI,
+            arrayOf(
+                TvContractCompat.Channels._ID,
+                TvContractCompat.Channels.COLUMN_INTERNAL_PROVIDER_ID,
+                TvContractCompat.Channels.COLUMN_BROWSABLE,
+            ),
+            null,
+            null,
+            null,
+        )?.use { cursor ->
+            buildList {
+                while (cursor.moveToNext()) {
+                    add(OwnChannel(cursor.getLong(0), cursor.getString(1), cursor.getInt(2) == 1))
+                }
+            }
+        }.orEmpty().sortedBy { it.id }
+    }.onFailure { Log.w(TAG, "listing own channels failed", it) }.getOrDefault(emptyList())
 
     /**
      * The row's channel, created on first use as this app's default channel.
@@ -131,11 +158,21 @@ object HomeRow {
      * Published with `publishDefaultChannel`, which also asks the system to make it browsable:
      * an app's first channel is shown without the viewer having to approve it, which is how
      * Emby's row appears on the same launcher. Further channels would need that approval — one
-     * row is all this needs.
+     * row is all this needs, and one is all that is kept: the browsable channel wins, then the
+     * oldest, and any other is deleted, cards and all (the provider cascades the delete).
      */
     @RequiresApi(Build.VERSION_CODES.O)
     private fun ensureChannel(context: Context, helper: PreviewChannelHelper): Long? {
-        ownChannels(helper).firstOrNull()?.let { return it.id }
+        val mine = ownChannels(context)
+        Log.i(TAG, "own channels: " + mine.joinToString { "${it.id}(${it.providerId}, browsable=${it.browsable})" })
+        val keep = mine.firstOrNull { it.browsable } ?: mine.firstOrNull()
+        if (keep != null) {
+            mine.filter { it.id != keep.id }.forEach { extra ->
+                runCatching { helper.deletePreviewChannel(extra.id) }
+                    .onFailure { Log.w(TAG, "deleting duplicate channel ${extra.id} failed", it) }
+            }
+            return keep.id
+        }
         val logo = appLogo(context) ?: return null
         val channel = PreviewChannel.Builder()
             .setDisplayName(context.getString(R.string.app_name))

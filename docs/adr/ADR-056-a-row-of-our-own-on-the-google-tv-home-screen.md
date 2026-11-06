@@ -48,3 +48,16 @@ The card list is refreshed on cold start, on every channel change (throttled), o
 hiding a channel (forced), and by the hourly `RefreshWorker` sweep (forced). That sweep is also
 what moves each card's programme title along with the schedule, so a title can lag a programme
 change by up to an hour. Poster art is the channel logo declared as 1:1, for ADR-017's reasons.
+
+## The channel is found by a query of our own, and only one is kept
+
+On the owner's Streamer the row was published once and then never changed: every sync after the
+first found no channel of ours through `PreviewChannelHelper.getAllChannels()`, published another
+default channel, and wrote its cards there — rows the launcher never showed, because only the
+first channel an app publishes is made browsable without the viewer's approval. The visible row
+kept the cards of the first sync (06/11/2026, found through the sync log added for it).
+
+So `HomeRowSync` now lists this app's channels with a plain `ContentResolver` query (`_id`,
+`internal_provider_id`, `browsable`), keeps the browsable one — or the oldest — and deletes the
+rest, cards included (the provider cascades the delete). Every channel of ours is treated as the
+row's channel, whatever it is labelled, because this app only ever publishes one.
