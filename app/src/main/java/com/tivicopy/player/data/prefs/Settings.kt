@@ -176,6 +176,12 @@ class Settings(context: Context) {
          */
         val watchNextEnabled: Boolean,
         /**
+         * Whether this app publishes its own row — favourites, then recently watched — on the
+         * Google TV home screen (FR-TVI-03, ADR-056). On by default for the same reason as
+         * [watchNextEnabled], and with a way off for the same reason too.
+         */
+        val homeRowEnabled: Boolean,
+        /**
          * Whether the home screen carries its row of installed apps (FR-UI-28). Off by default:
          * the home screen is for channels, and a viewer who also wants it to launch other apps
          * switches the row on.
@@ -296,6 +302,7 @@ class Settings(context: Context) {
         featuredLastCheckUtc = prefs.getLong(K_FEATURED_LAST_CHECK, 0),
         featuredLastFeed = prefs.getString(K_FEATURED_FEED, null),
         watchNextEnabled = prefs.getBoolean(K_WATCH_NEXT, true),
+        homeRowEnabled = prefs.getBoolean(K_HOME_ROW, true),
         showHomeApps = prefs.getBoolean(K_SHOW_HOME_APPS, false),
         screensaverEnabled = prefs.getBoolean(K_SCREENSAVER, true),
         screensaverIdleMinutes = prefs.getInt(K_SCREENSAVER_IDLE, 10),
@@ -427,6 +434,8 @@ class Settings(context: Context) {
     }
 
     fun setWatchNextEnabled(v: Boolean) = commit { putBoolean(K_WATCH_NEXT, v) }
+
+    fun setHomeRowEnabled(v: Boolean) = commit { putBoolean(K_HOME_ROW, v) }
 
     fun setShowHomeApps(v: Boolean) = commit { putBoolean(K_SHOW_HOME_APPS, v) }
 
@@ -649,6 +658,7 @@ class Settings(context: Context) {
         const val K_FEATURED_LAST_CHECK = "featured_last_check"
         const val K_FEATURED_FEED = "featured_last_feed"
         const val K_WATCH_NEXT = "watch_next_enabled"
+        const val K_HOME_ROW = "home_row_enabled"
         const val K_SHOW_HOME_APPS = "show_home_apps"
         const val K_SCREENSAVER = "screensaver_enabled"
         const val K_SCREENSAVER_IDLE = "screensaver_idle_minutes"

@@ -22,6 +22,7 @@ import com.tivicopy.player.data.tasks.TaskRepository
 import com.tivicopy.player.data.update.UpdateManager
 import com.tivicopy.player.player.PlayerEngine
 import com.tivicopy.player.record.RecordingScheduler
+import com.tivicopy.player.tv.HomeRow
 import com.tivicopy.player.tv.WatchNext
 import com.tivicopy.player.work.RefreshScheduler
 import kotlinx.coroutines.CoroutineScope
@@ -173,6 +174,8 @@ class App : Application(), ImageLoaderFactory {
         // outside the app are not reasons to slow down a cold start or to fail one.
         ServiceLocator.appScope.launch { ServiceLocator.featured.refresh(force = false) }
         ServiceLocator.appScope.launch { WatchNext.sync(this@App) }
+        // The app's own home-screen row (FR-TVI-03), on the same terms.
+        ServiceLocator.appScope.launch { HomeRow.sync(this@App) }
         // The screensaver's task list (FR-UI-32), on the same terms as the two above: rate
         // limited inside the repository, a no-op while no address is configured, and never a
         // reason to slow a cold start down or to fail one.
