@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Builds the two spike packages (ADR-056, step 1):
+ * Builds the two spike packages (ADR-057, step 1):
  *
  *   npm run spike:package   →   ipk/com.idanck.shidurspike.hd_<version>_all.ipk     (1280x720)
  *                                ipk/com.idanck.shidurspike.fullhd_<version>_all.ipk (1920x1080)

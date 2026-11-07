@@ -5,10 +5,11 @@
  * which has WebSocket built in; nothing to install.
  *
  *   TV=<address> node tools/cdp.mjs list                 pages the television offers
- *   TV=<address> node tools/cdp.mjs state                what the spike's diagnostics say now
- *   TV=<address> node tools/cdp.mjs selftest [steps]     walks the list in every list mode
- *   TV=<address> node tools/cdp.mjs mode <name> <value>  e.g. mode scale zoom, mode list translate
- *   TV=<address> node tools/cdp.mjs key <key> [times]    Up Down Left Right Ok Back Red Green Yellow Blue 0-9
+ *   TV=<address> node tools/cdp.mjs state                what the page says about itself now
+ *                                                        (the app's shidur.state(), or the spike's)
+ *   TV=<address> node tools/cdp.mjs selftest [steps]     spike only: walks the list in every list mode
+ *   TV=<address> node tools/cdp.mjs mode <name> <value>  spike only: e.g. mode scale zoom
+ *   TV=<address> node tools/cdp.mjs key <key> [times]    Up Down Left Right Ok Back Red Green Yellow Blue Play Pause Stop 0-9
  *   TV=<address> node tools/cdp.mjs eval '<expression>'
  *   TV=<address> node tools/cdp.mjs reload
  *
@@ -22,6 +23,7 @@ const [command, ...args] = process.argv.slice(2);
 
 const KEYS = {
   Up: 38, Down: 40, Left: 37, Right: 39, Ok: 13, Back: 461, Red: 403, Green: 404, Yellow: 405, Blue: 406,
+  Play: 415, Pause: 19, Stop: 413,
 };
 for (let d = 0; d <= 9; d++) KEYS[String(d)] = 48 + d;
 
@@ -96,6 +98,9 @@ async function press(send, name) {
   await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
 }
 
+/** The app (`com.idanck.shidur`, src/ui/debug.ts) or the spike, whichever the page is. */
+const STATE = '(window.shidur || window.spike).state().report';
+
 const print = (value) => console.log(typeof value === 'string' ? value : JSON.stringify(value, null, 2));
 
 if (command === 'list') {
@@ -107,13 +112,13 @@ const { page, send, close } = await attach();
 console.error(`cdp: attached to ${page.url}`);
 try {
   if (command === 'eval') print(await evaluate(send, args.join(' ')));
-  else if (command === 'state') print((await evaluate(send, 'spike.state()')).report);
+  else if (command === 'state') print(await evaluate(send, STATE));
   else if (command === 'selftest') print(await evaluate(send, `spike.selfTest(${Number(args[0]) || 20})`));
   else if (command === 'mode') {
     const [name, raw] = args;
     const value = name === 'videos' ? Number(raw) : raw;
     await evaluate(send, `spike.set(${JSON.stringify(name)}, ${JSON.stringify(value)})`);
-    print((await evaluate(send, 'spike.state()')).report);
+    print(await evaluate(send, STATE));
   } else if (command === 'key') {
     const times = Number(args[1]) || 1;
     for (let i = 0; i < times; i++) {
@@ -121,7 +126,7 @@ try {
       await new Promise((r) => setTimeout(r, 120));
     }
     await new Promise((r) => setTimeout(r, 300));
-    print((await evaluate(send, 'spike.state()')).report);
+    print(await evaluate(send, STATE));
   } else if (command === 'reload') await send('Page.reload', { ignoreCache: true });
   else die(`unknown command "${command}"`);
 } catch (e) {
