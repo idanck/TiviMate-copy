@@ -1,6 +1,6 @@
 # ADR-053 — Sport and News mode on LG televisions
 
-**Status:** withdrawn 2026-11-06. The webOS version was removed from the repo at the owner's request,
+**Status:** withdrawn 2026-11-06; replaced by [ADR-056](ADR-056-lg-televisions-from-webos-5.md). The webOS version was removed from the repo at the owner's request,
 to be started again from scratch; this record is kept for what it found. Before that: accepted, webOS 0.2.0. Decided by the owner on 2026-11-05: *bring split screens to the
 LG version, in Sport mode and in News mode, the same as on Android.* Extends ADR-052; ports
 ADR-041 (Sport mode), ADR-042 (News mode) and ADR-045 (four panels and the running strip).
