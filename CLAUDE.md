@@ -95,3 +95,37 @@ whatever the feed currently contains, not the source of truth — extend its
 keyword lists as real station names turn out to need it, but the authoritative
 fix for what stations exist, which category they should be in, or removing a
 station outright belongs in the upstream script, not here.
+
+## The webOS version (`webos/`) ships separately too
+
+`webos/` is Shidur for LG televisions from webOS 5 (2020, Chromium 68), ADR-057. Step 1 (the spike,
+`webos/spike/`) ran on the owner's television on 2026-11-07, and he chose: laid out natively at
+1920×1080 with no CSS scaling (1rem = 24 px; a computer-version size is px ÷ 16 rem), the video in a
+box with full screen on OK, Sport and News mode with a fallback to one video. Step 2, the app, is
+built in small steps, each run on the television before the next: 0.1.0 is the channel list and one
+channel playing in its box. Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci && npm run
+check && npm run package` runs in the cloud sandbox. `android.yml` ignores `webos/**` and
+`.github/workflows/webos.yml` — do not edit `android.yml` for a webOS change, since that builds an
+APK. A webOS change that also touches `docs/` or `CLAUDE.md` does start an Android build on `main`,
+which fails at "Publish the update manifest" (same versionCode, different APK): cancel that run
+before it gets there rather than bump `versionCode` for no app change. The version is its own, in
+`webos/appinfo/appinfo.json`, not `version.properties`; the spike's packages carry theirs in
+`webos/scripts/package-spike.mjs`.
+
+- Everything shipped to the television is ES2019 syntax with no API newer than Chromium 68, the JS
+  service ES2017 for Node 8.12 (`npm run check:es`), and the stylesheet holds no CSS newer than 68
+  (`npm run check:css`). An API Chromium 68 lacks goes into `webos/public/polyfills.js` through its
+  `define()`, which loads first in the page and in the guide worker. Inline styles are not lowered:
+  no `insetInlineStart`, `marginInlineStart` and the like.
+- Lists keep their own offset and move with `translateY` (`webos/src/ui/list.ts`); never make a
+  list depend on `scroll` events or the browser's scroll position.
+- The parsers in `webos/src/data/` (`m3u`, `xmltv`, `xtream`, `normalize`, `matcher`, `classify`,
+  `guide`, `model`, `builtin`, `backup`) are `web/src/data/`'s byte for byte
+  (`webos/test/parity.test.ts`): a rule changed there is copied here in the same change.
+- A desktop browser run proves nothing about webOS 5. Never claim a change works on the
+  television until the owner has confirmed it there; when he reports a result, say what it proves
+  and what it does not.
+- The television is reached from the owner's phone (Termux, `@webos-tools/cli` installed with
+  `npm ci --force`; `ares-package` in the foreground with `< /dev/null`). Give him one command at a
+  time and say what to look at on the screen. `tools/cdp.mjs state` prints what the app says about
+  itself (`window.shidur.state()`). Its address is not written in the repo.

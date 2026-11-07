@@ -1,0 +1,6 @@
+node_modules/
+dist/
+ipk/
+.package/
+.build/
+*.log

@@ -1,0 +1,38 @@
+{
+  "name": "shidur-webos",
+  "private": true,
+  "description": "Shidur for LG televisions (webOS 5 and later, Chromium 68): a packaged web app and the JS service it reads providers through (ADR-057).",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:es": "node scripts/check-es.mjs --polyfills public/polyfills.js dist/polyfills.js dist/assets/*.js .build/epg.worker.js && node scripts/check-es.mjs --ecma 2017 service/index.js service/net.js",
+    "check:css": "node scripts/check-css.mjs dist/assets/*.css",
+    "check": "npm run typecheck && npm run test && npm run build && npm run check:es && npm run check:css",
+    "package": "node scripts/package.mjs",
+    "spike:check": "node scripts/check-es.mjs spike/app/spike.js",
+    "spike:package": "npm run spike:check && node scripts/package-spike.mjs",
+    "tv": "node tools/cdp.mjs"
+  },
+  "dependencies": {
+    "@preact/signals": "2.11.3",
+    "preact": "10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "2.10.6",
+    "@types/node": "22.20.5",
+    "@webos-tools/cli": "3.2.6",
+    "acorn": "8.15.0",
+    "esbuild": "0.27.7",
+    "postcss": "8.5.30",
+    "postcss-preset-env": "11.6.1",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.7"
+  }
+}

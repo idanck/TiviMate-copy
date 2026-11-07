@@ -1,0 +1,77 @@
+name: webOS app
+
+# Shidur for LG televisions, from webOS 5 (webos/, ADR-057): typecheck, tests, the build for
+# Chromium 68 (every script ES2019 with nothing newer than Chromium 68, the JS service ES2017 for
+# Node 8.12, the stylesheet with no CSS newer than Chromium 68), and the .ipk, kept as an artifact
+# for installing on a television in developer mode. The spike's two packages are built too, while
+# it is kept. Nothing is published from here: LG reviews every release by hand.
+on:
+  push:
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
+    paths:
+      - "webos/**"
+      - "web/src/data/**"
+      - ".github/workflows/webos.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: webos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webos
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: webos/package-lock.json
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Includes test/parity.test.ts: the parsers in webos/src/data/ must be web/src/data/'s.
+      - name: Tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: The whole bundle, the guide worker and the service hold nothing newer than webOS 5
+        run: npm run check:es
+
+      - name: The stylesheet holds nothing newer than Chromium 68
+        run: npm run check:css
+
+      - name: Package the app
+        run: npm run package < /dev/null
+
+      - name: The DevTools driver parses
+        run: node --check tools/cdp.mjs
+
+      - name: Spike packages
+        run: npm run spike:package < /dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shidur-webos-ipk
+          path: webos/ipk/com.idanck.shidur_*.ipk
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shidur-webos-spike-ipk
+          path: webos/ipk/com.idanck.shidurspike.*.ipk
+          if-no-files-found: error
