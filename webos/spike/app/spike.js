@@ -1,6 +1,6 @@
 /*
  * Spike for webOS 5 (Chromium 68): which way of scaling the page and of scrolling a list works on
- * the television (ADR-056). One screen: a list of 100 rows, a strip that scrolls right to left, one,
+ * the television (ADR-057). One screen: a list of 100 rows, a strip that scrolls right to left, one,
  * two or four <video>s in a box, and a full-screen toggle. Every mode is switched at runtime and
  * kept in localStorage, and what the DOM says is printed on screen; what the screen shows is for
  * the person in front of it to say.
