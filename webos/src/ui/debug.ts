@@ -1,8 +1,9 @@
 import { engine, playback, playerLog } from '../player/engine';
-import { isFullscreen, liveFilter, screen, visibleChannels } from '../state/actions';
-import { guideProgress, refreshing, sources, storageOk, tvChannels } from '../state/store';
+import { idleTakeover, isFullscreen, liveFilter, radioFilter, screen, visibleChannels, visibleStations } from '../state/actions';
+import { guideProgress, radioStations, refreshing, sources, storageOk, tvChannels } from '../state/store';
 import { listDebug, remPx } from './common';
 import { guideDebug } from './GuideScreen';
+import { idle, IDLE_MINUTES, idleLine } from './idle';
 import { playerBox } from './PlayerHost';
 import { memory, pageLine, watch } from './watch';
 
@@ -51,7 +52,7 @@ export function state() {
       hasFocus: document.hasFocus(),
       nodes: app ? app.getElementsByTagName('*').length : -1,
       screenNodes: screenEl ? screenEl.getElementsByTagName('*').length : -1,
-      screenPresent: !!document.querySelector('.live, .guide, .boot, .crashed'),
+      screenPresent: !!document.querySelector('.live, .guide, .radio, .boot, .crashed'),
       appStyle: app ? (() => { const cs = getComputedStyle(app.firstElementChild ?? app); return `display ${cs.display} visibility ${cs.visibility} opacity ${cs.opacity}`; })() : '-',
       renders: watch.renders,
       lastRenderAgoS: watch.lastRenderAt ? Math.round((Date.now() - watch.lastRenderAt) / 1000) : -1,
@@ -62,13 +63,17 @@ export function state() {
     errors: watch.errors,
     events: watch.events,
     snapshots: watch.snapshots,
+    // Option B (ui/idle.ts): whether the app has put the picture over the screen by itself.
+    idle: { takenOver: idleTakeover.value, limitMin: Math.round(idle.limitMs / 60_000), lastKeyAgoS: Math.round((Date.now() - idle.lastActivityAt) / 1000), line: idleLine() },
     guide: screen.value === 'guide' ? { ...guideDebug } : null,
+    radio: { filter: radioFilter.value, shown: visibleStations.value.length, all: radioStations.value.length },
     list: { ...listDebug, filter: liveFilter.value, shown: visibleChannels.value.length, all: tvChannels.value.length, focusedRowInBox: rowShown },
     player: {
       status: pb.status,
       channel: pb.channel?.name ?? null,
       message: pb.message ?? null,
       fullscreen: isFullscreen.value,
+      role: pb.role ?? null,
       readyState: v.readyState,
       networkState: v.networkState,
       error: v.error ? v.error.code : null,
@@ -94,11 +99,13 @@ export function state() {
     `page: ${pg.visibility}${pg.hidden ? ' (hidden)' : ''} · window focus ${pg.hasFocus ? 'yes' : 'no'} · nodes ${pg.nodes} (screen ${pg.screenNodes}, present ${pg.screenPresent ? 'yes' : 'NO'}) · ${pg.appStyle} · renders ${pg.renders} (last ${pg.lastRenderAgoS}s ago) · frame ${pg.lastFrameAgoS}s ago · removed ${pg.removedNodes} nodes · heap ${pg.memory ? `${pg.memory.usedMB}/${pg.memory.limitMB} MB` : 'not reported'}`,
     `errors (${data.errors.length}): ${data.errors.map((e) => `${e.at} ${e.text}`).join(' | ') || 'none'}`,
     `events (${data.events.length}): ${data.events.map((e) => `${e.at} ${e.text}`).join(' | ') || 'none'}`,
+    `idle: ${data.idle.line}`,
     `focus: ${data.focus} · focused row inside the list box: ${rowShown ? 'yes' : 'no'}`,
+    ...(data.screen === 'radio' ? [`radio: shelf ${data.radio.filter} · ${data.radio.shown} of ${data.radio.all} stations`] : []),
     g
       ? `guide: ${g.day} · row ${g.row} cell ${g.col} · offset x ${g.offsetX}px y ${g.offsetY}px · rows drawn ${g.first}-${g.last} · cells drawn ${g.cells} · grid ${g.active ? 'has' : 'does not have'} focus · view ${Math.round(g.viewW)}x${Math.round(g.viewH)}px`
       : `list: offset ${listDebug.offset}px · focus ${listDebug.focus} · drawn ${listDebug.first}-${listDebug.last} of ${listDebug.count} · row ${Math.round(listDebug.rowPx)}px · view ${listDebug.viewPx}px · stray scrolls ${listDebug.strayScrolls}`,
-    `player: ${p.status}${p.channel ? ` "${p.channel}"` : ''}${p.message ? ` (${p.message})` : ''} · full screen ${p.fullscreen ? 'on' : 'off'} · ready ${p.readyState} net ${p.networkState} error ${p.error ?? '-'} · picture ${p.size}`,
+    `player: ${p.status}${p.role ? ` ${p.role}` : ''}${p.channel ? ` "${p.channel}"` : ''}${p.message ? ` (${p.message})` : ''} · full screen ${p.fullscreen ? 'on' : 'off'} · ready ${p.readyState} net ${p.networkState} error ${p.error ?? '-'} · picture ${p.size}`,
     `player box: element ${JSON.stringify(p.element)} · slot ${JSON.stringify(p.slot)}`,
     `player log: ${p.log.join(' | ') || '-'}`,
     `storage: ${data.storageOk ? 'ok' : 'FAILING'}`,
@@ -112,10 +119,18 @@ export function state() {
 
 declare global {
   interface Window {
-    shidur?: { state: typeof state };
+    shidur?: { state: typeof state; idle: (minutes: number) => string };
   }
 }
 
 export function installDebug() {
-  window.shidur = { state };
+  window.shidur = {
+    state,
+    // For tools/cdp.mjs `idle <minutes>`: see the takeover without waiting 25 minutes. Until the
+    // app is closed; 0 puts back the owner's figure.
+    idle: (minutes: number) => {
+      idle.limitMs = (minutes > 0 ? minutes : IDLE_MINUTES) * 60_000;
+      return idleLine();
+    },
+  };
 }
