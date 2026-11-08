@@ -3,8 +3,8 @@ name: webOS app
 # Shidur for LG televisions, from webOS 5 (webos/, ADR-057): typecheck, tests, the build for
 # Chromium 68 (every script ES2019 with nothing newer than Chromium 68, the JS service ES2017 for
 # Node 8.12, the stylesheet with no CSS newer than Chromium 68), and the .ipk, kept as an artifact
-# for installing on a television in developer mode. The spike's two packages are built too, while
-# it is kept. Nothing is published from here: LG reviews every release by hand.
+# for installing on a television in developer mode. Nothing is published from here: LG reviews
+# every release by hand.
 on:
   push:
     branches-ignore: ["apk", "apk-preview", "qa-results"]
@@ -61,17 +61,8 @@ jobs:
       - name: The DevTools driver parses
         run: node --check tools/cdp.mjs
 
-      - name: Spike packages
-        run: npm run spike:package < /dev/null
-
       - uses: actions/upload-artifact@v4
         with:
           name: shidur-webos-ipk
           path: webos/ipk/com.idanck.shidur_*.ipk
-          if-no-files-found: error
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: shidur-webos-spike-ipk
-          path: webos/ipk/com.idanck.shidurspike.*.ipk
           if-no-files-found: error

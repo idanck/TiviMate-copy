@@ -15,8 +15,6 @@
     "check:css": "node scripts/check-css.mjs dist/assets/*.css",
     "check": "npm run typecheck && npm run test && npm run build && npm run check:es && npm run check:css",
     "package": "node scripts/package.mjs",
-    "spike:check": "node scripts/check-es.mjs spike/app/spike.js",
-    "spike:package": "npm run spike:check && node scripts/package-spike.mjs",
     "tv": "node tools/cdp.mjs"
   },
   "dependencies": {
