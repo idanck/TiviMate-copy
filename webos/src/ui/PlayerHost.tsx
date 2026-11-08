@@ -101,7 +101,7 @@ export function PlayerHost() {
               <Progress value={progress(air.now, now.value)} live />
             </div>
           )}
-          <div class="info-keys faint">▲▼ ערוץ · OK מידע · BACK יציאה ממסך מלא</div>
+          <div class="info-keys faint">▲▼ ערוץ · OK מידע · ירוק לוח שידורים · BACK יציאה ממסך מלא</div>
         </div>
       )}
     </div>

@@ -1,8 +1,10 @@
 import { engine, playback, playerLog } from '../player/engine';
-import { isFullscreen, liveFilter, visibleChannels } from '../state/actions';
+import { isFullscreen, liveFilter, screen, visibleChannels } from '../state/actions';
 import { guideProgress, refreshing, sources, storageOk, tvChannels } from '../state/store';
 import { listDebug, remPx } from './common';
+import { guideDebug } from './GuideScreen';
 import { playerBox } from './PlayerHost';
+import { memory, pageLine, watch } from './watch';
 
 /**
  * What the app says about itself, for tools/cdp.mjs on the owner's phone: `cdp.mjs state` prints
@@ -33,11 +35,34 @@ export function state() {
   const rowBox = boxOf(focusedRow);
   const listBox = boxOf(list);
   const rowShown = !!(rowBox && listBox && rowBox.top >= listBox.top - 1 && rowBox.top + rowBox.height <= listBox.top + listBox.height + 1);
+  const app = document.getElementById('app');
+  const screenEl = document.querySelector('.screen');
   const data = {
     version: `${__APP_VERSION__} ${__APP_SHA__}`,
     window: `${window.innerWidth}x${window.innerHeight} dpr ${window.devicePixelRatio} rem ${remPx()}px`,
     userAgent: navigator.userAgent,
+    screen: screen.value,
     focus: describe(document.activeElement),
+    // The vanishing interface (ui/watch.ts): is the tree there, is the page shown, did anything throw.
+    page: {
+      uptimeMin: Math.round((Date.now() - watch.startedAt) / 60_000),
+      visibility: document.visibilityState,
+      hidden: document.hidden,
+      hasFocus: document.hasFocus(),
+      nodes: app ? app.getElementsByTagName('*').length : -1,
+      screenNodes: screenEl ? screenEl.getElementsByTagName('*').length : -1,
+      screenPresent: !!document.querySelector('.live, .guide, .boot, .crashed'),
+      appStyle: app ? (() => { const cs = getComputedStyle(app.firstElementChild ?? app); return `display ${cs.display} visibility ${cs.visibility} opacity ${cs.opacity}`; })() : '-',
+      renders: watch.renders,
+      lastRenderAgoS: watch.lastRenderAt ? Math.round((Date.now() - watch.lastRenderAt) / 1000) : -1,
+      lastFrameAgoS: watch.lastFrameAt ? Math.round((Date.now() - watch.lastFrameAt) / 1000) : -1,
+      removedNodes: watch.removedNodes,
+      memory: memory(),
+    },
+    errors: watch.errors,
+    events: watch.events,
+    snapshots: watch.snapshots,
+    guide: screen.value === 'guide' ? { ...guideDebug } : null,
     list: { ...listDebug, filter: liveFilter.value, shown: visibleChannels.value.length, all: tvChannels.value.length, focusedRowInBox: rowShown },
     player: {
       status: pb.status,
@@ -62,15 +87,25 @@ export function state() {
     })),
   };
   const p = data.player;
+  const pg = data.page;
+  const g = data.guide;
   const report = [
-    `Shidur ${data.version} · ${data.window}`,
+    `Shidur ${data.version} · ${data.window} · up ${pg.uptimeMin} min · screen ${data.screen}`,
+    `page: ${pg.visibility}${pg.hidden ? ' (hidden)' : ''} · window focus ${pg.hasFocus ? 'yes' : 'no'} · nodes ${pg.nodes} (screen ${pg.screenNodes}, present ${pg.screenPresent ? 'yes' : 'NO'}) · ${pg.appStyle} · renders ${pg.renders} (last ${pg.lastRenderAgoS}s ago) · frame ${pg.lastFrameAgoS}s ago · removed ${pg.removedNodes} nodes · heap ${pg.memory ? `${pg.memory.usedMB}/${pg.memory.limitMB} MB` : 'not reported'}`,
+    `errors (${data.errors.length}): ${data.errors.map((e) => `${e.at} ${e.text}`).join(' | ') || 'none'}`,
+    `events (${data.events.length}): ${data.events.map((e) => `${e.at} ${e.text}`).join(' | ') || 'none'}`,
     `focus: ${data.focus} · focused row inside the list box: ${rowShown ? 'yes' : 'no'}`,
-    `list: offset ${listDebug.offset}px · focus ${listDebug.focus} · drawn ${listDebug.first}-${listDebug.last} of ${listDebug.count} · row ${Math.round(listDebug.rowPx)}px · view ${listDebug.viewPx}px · stray scrolls ${listDebug.strayScrolls}`,
+    g
+      ? `guide: ${g.day} · row ${g.row} cell ${g.col} · offset x ${g.offsetX}px y ${g.offsetY}px · rows drawn ${g.first}-${g.last} · cells drawn ${g.cells} · grid ${g.active ? 'has' : 'does not have'} focus · view ${Math.round(g.viewW)}x${Math.round(g.viewH)}px`
+      : `list: offset ${listDebug.offset}px · focus ${listDebug.focus} · drawn ${listDebug.first}-${listDebug.last} of ${listDebug.count} · row ${Math.round(listDebug.rowPx)}px · view ${listDebug.viewPx}px · stray scrolls ${listDebug.strayScrolls}`,
     `player: ${p.status}${p.channel ? ` "${p.channel}"` : ''}${p.message ? ` (${p.message})` : ''} · full screen ${p.fullscreen ? 'on' : 'off'} · ready ${p.readyState} net ${p.networkState} error ${p.error ?? '-'} · picture ${p.size}`,
     `player box: element ${JSON.stringify(p.element)} · slot ${JSON.stringify(p.slot)}`,
     `player log: ${p.log.join(' | ') || '-'}`,
     `storage: ${data.storageOk ? 'ok' : 'FAILING'}`,
     ...data.sources.map((s) => `source "${s.name}"${s.enabled ? '' : ' (off)'}: ${s.refreshing ?? s.result ?? 'not loaded'}${s.guide ? ` · ${s.guide}` : ''}`),
+    `now: ${pageLine()}`,
+    `the last minutes (one line a minute):`,
+    ...data.snapshots.slice(-12).map((line) => `  ${line}`),
   ].join('\n');
   return { ...data, report };
 }

@@ -8,7 +8,7 @@ import { channelByKey, favourites, markWatched, radioStations, recents, tvChanne
 /**
  * What the remote does, apart from moving focus (ui/App.tsx): which channel plays, the channel
  * list's filter, full screen. The computer version's (web/src/state/actions.ts), cut to the
- * channel list for now (ADR-057, step 2: the guide, radio, Sport and News mode and settings come
+ * channel list and the guide for now (ADR-057, step 2: radio, Sport and News mode and settings come
  * after the owner has seen this much work on the television).
  */
 
@@ -17,6 +17,14 @@ import { channelByKey, favourites, markWatched, radioStations, recents, tvChanne
  * picture; the sound goes on.
  */
 export const playerSlot = signal<HTMLElement | null>(null);
+
+/** Which screen is up: the channel list (where the app opens) or the guide (0.2.0). */
+export type Screen = 'live' | 'guide';
+export const screen = signal<Screen>('live');
+
+export function showScreen(next: Screen) {
+  screen.value = next;
+}
 
 /** The picture over the whole screen. The app's own state: the page already fills the television. */
 export const isFullscreen = signal(false);

@@ -188,6 +188,46 @@ export function VirtualList<T>({
   );
 }
 
+/* ---------- dialog ---------- */
+
+/** The dialogs open now, innermost last: Back closes the last one (ui/App.tsx `back`). */
+const openDialogs: Array<() => void> = [];
+
+/** Closes the innermost dialog; false when none is open. */
+export function closeTopDialog(): boolean {
+  const close = openDialogs[openDialogs.length - 1];
+  if (!close) return false;
+  close();
+  return true;
+}
+
+/**
+ * A box over the screen that holds the remote while it is open: the arrows stay inside it
+ * (ui/spatial.ts scopes focus to the last `.scrim`), Back closes it, and focus goes back to where
+ * it was. Opens with its first button focused.
+ */
+export function Dialog({ onClose, children, label }: { onClose: () => void; children: ComponentChildren; label?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    const first = ref.current?.querySelector<HTMLElement>('button, [tabindex]');
+    first?.focus({ preventScroll: true });
+    openDialogs.push(onClose);
+    return () => {
+      const i = openDialogs.lastIndexOf(onClose);
+      if (i >= 0) openDialogs.splice(i, 1);
+      if (previous && document.contains(previous)) previous.focus({ preventScroll: true });
+    };
+  }, []);
+  return (
+    <div class="scrim">
+      <div class="dialog" role="dialog" aria-modal="true" aria-label={label} ref={ref}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- toasts ---------- */
 
 export const toasts = signal<Array<{ id: number; text: string }>>([]);

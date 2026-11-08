@@ -11,11 +11,17 @@
  *   TV=<address> node tools/cdp.mjs mode <name> <value>  spike only: e.g. mode scale zoom
  *   TV=<address> node tools/cdp.mjs key <key> [times]    Up Down Left Right Ok Back Red Green Yellow Blue Play Pause Stop 0-9
  *   TV=<address> node tools/cdp.mjs eval '<expression>'
+ *   TV=<address> node tools/cdp.mjs shot [file.png]       what Chromium itself draws (the video plane is
+ *                                                        the television's and shows black): if the
+ *                                                        interface is in the picture but not on the
+ *                                                        screen, the television covered it
  *   TV=<address> node tools/cdp.mjs reload
  *
  * The port is 9998 unless PORT says otherwise; MATCH picks the page whose address contains it
  * (default: "shidur"). Only one client can attach at a time: stop ares-inspect first.
  */
+import { writeFileSync } from 'node:fs';
+
 const host = process.env.TV;
 const port = process.env.PORT || '9998';
 const match = process.env.MATCH || 'shidur';
@@ -127,6 +133,11 @@ try {
     }
     await new Promise((r) => setTimeout(r, 300));
     print(await evaluate(send, STATE));
+  } else if (command === 'shot') {
+    const file = args[0] || `shot-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.png`;
+    const r = await send('Page.captureScreenshot', { format: 'png' });
+    writeFileSync(file, Buffer.from(r.data, 'base64'));
+    console.log(file);
   } else if (command === 'reload') await send('Page.reload', { ignoreCache: true });
   else die(`unknown command "${command}"`);
 } catch (e) {
