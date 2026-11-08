@@ -359,6 +359,29 @@ h1, h2, h3, p { margin: 0; }
 .dialog .buttons > * + * { margin-right: 0.75rem; }
 
 /* A render that threw (ui/Guard.tsx). */
+/* ---------- the radio: the channel list's layout, the station that plays in place of the picture ---------- */
+
+.radio-now, .radio-idle {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 2rem; padding: 0 1rem; text-align: center;
+}
+.radio-now > * + *, .radio-idle > * + * { margin-top: 0.75rem; }
+.radio-state { display: flex; align-items: center; }
+.radio-state > * + * { margin-right: 0.625rem; }
+.radio-name { font-size: 1.75rem; font-weight: 800; line-height: 1.25; }
+.radio-keys { font-size: 0.75rem; }
+.radio-idle .icon { color: var(--ink-3); }
+.eq { display: inline-flex; align-items: flex-end; height: 1rem; }
+.eq i { display: block; width: 0.1875rem; height: 30%; margin-left: 0.125rem; background: var(--current); border-radius: 0.0625rem; }
+.eq.on i { animation: eq 0.9s ease-in-out infinite alternate; }
+.eq.on i:nth-child(2) { animation-delay: -0.3s; }
+.eq.on i:nth-child(3) { animation-delay: -0.6s; }
+.eq.on i:nth-child(4) { animation-delay: -0.15s; }
+@keyframes eq { from { height: 20%; } to { height: 100%; } }
+
+/* The app took the screen by itself (ui/idle.ts): the screen stays as it was, dialogs too, unseen. */
+.idle-takeover .screen, .idle-takeover .toasts { visibility: hidden; }
+
 .crashed { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; text-align: center; padding: 2rem; }
 .crashed > * + * { margin-top: 0.75rem; }
 .crashed h2 { font-size: 1.25rem; }

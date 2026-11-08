@@ -6,9 +6,10 @@
  *
  *   TV=<address> node tools/cdp.mjs list                 pages the television offers
  *   TV=<address> node tools/cdp.mjs state                what the page says about itself now
- *                                                        (the app's shidur.state(), or the spike's)
- *   TV=<address> node tools/cdp.mjs selftest [steps]     spike only: walks the list in every list mode
- *   TV=<address> node tools/cdp.mjs mode <name> <value>  spike only: e.g. mode scale zoom
+ *                                                        (the app's shidur.state())
+ *   TV=<address> node tools/cdp.mjs idle <minutes>       the app takes the screen after this many
+ *                                                        minutes without a key, not 25, until it is
+ *                                                        closed (0: back to 25)
  *   TV=<address> node tools/cdp.mjs key <key> [times]    Up Down Left Right Ok Back Red Green Yellow Blue Play Pause Stop 0-9
  *   TV=<address> node tools/cdp.mjs eval '<expression>'
  *   TV=<address> node tools/cdp.mjs shot [file.png]       what Chromium itself draws (the video plane is
@@ -104,8 +105,8 @@ async function press(send, name) {
   await send('Input.dispatchKeyEvent', { type: 'keyUp', ...base });
 }
 
-/** The app (`com.idanck.shidur`, src/ui/debug.ts) or the spike, whichever the page is. */
-const STATE = '(window.shidur || window.spike).state().report';
+/** The app's own account of itself (`com.idanck.shidur`, src/ui/debug.ts). */
+const STATE = 'window.shidur.state().report';
 
 const print = (value) => console.log(typeof value === 'string' ? value : JSON.stringify(value, null, 2));
 
@@ -119,13 +120,8 @@ console.error(`cdp: attached to ${page.url}`);
 try {
   if (command === 'eval') print(await evaluate(send, args.join(' ')));
   else if (command === 'state') print(await evaluate(send, STATE));
-  else if (command === 'selftest') print(await evaluate(send, `spike.selfTest(${Number(args[0]) || 20})`));
-  else if (command === 'mode') {
-    const [name, raw] = args;
-    const value = name === 'videos' ? Number(raw) : raw;
-    await evaluate(send, `spike.set(${JSON.stringify(name)}, ${JSON.stringify(value)})`);
-    print(await evaluate(send, STATE));
-  } else if (command === 'key') {
+  else if (command === 'idle') print(await evaluate(send, `window.shidur.idle(${Number(args[0]) || 0})`));
+  else if (command === 'key') {
     const times = Number(args[1]) || 1;
     for (let i = 0; i < times; i++) {
       await press(send, args[0]);

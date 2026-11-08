@@ -158,6 +158,7 @@ function Status() {
       ))}
       <div class="actions">
         <GuideButton />
+        <RadioButton />
       </div>
     </div>
   );
@@ -279,8 +280,18 @@ function NowPanel({ channel }: { channel: Channel }) {
           <Icon name={fav ? 'starOn' : 'star'} size={18} /> <span>{fav ? 'במועדפים' : 'הוסף למועדפים'}</span>
         </button>
         <GuideButton />
+        <RadioButton />
       </div>
     </div>
+  );
+}
+
+/** Opens the radio (ui/RadioScreen.tsx); the remote's Yellow key does the same from anywhere. */
+function RadioButton() {
+  return (
+    <button class="btn" onClick={() => showScreen('radio')}>
+      <Icon name="radio" size={18} /> <span>רדיו</span>
+    </button>
   );
 }
 

@@ -5,7 +5,9 @@ television on 2026-11-07, and the owner chose from its results the same day (*St
 first build of the app, webOS 0.1.0 (the channel list and one channel playing in its box), ran on
 the same television on 2026-11-07 and the owner confirmed it on the screen (*0.1.0 on the
 television* below), with one fault (*The vanishing interface*). 0.2.0 adds the guide and the
-diagnostics for that fault; it has not yet been run on a television. Decided by the owner on
+diagnostics for that fault, 0.3.0 the radio and the answer to that fault the owner chose on
+2026-11-08 (*0.3.0* below); neither has yet been run on a television. 0.4.0, a shell that updates
+itself, is designed below and not yet built. Decided by the owner on
 2026-11-06: *build the LG version again, with webOS 5 (2020, Chromium 68) as the oldest television
 supported.* Replaces ADR-052, ADR-053 and ADR-055 (withdrawn), whose findings it builds on.
 
@@ -61,7 +63,12 @@ hardware decoder.
      stream; and full screen.
    It is two packages (`com.idanck.shidurspike.hd` at 1280×720 and `.fullhd` at 1920×1080),
    since the page cannot change the resolution webOS gives it. `webos/tools/cdp.mjs` reads the
-   same diagnostics over the television's DevTools WebSocket.
+   same diagnostics over the television's DevTools WebSocket. **Removed on 2026-11-08** (the
+   owner's decision; it was taken off the television on 2026-11-07): `webos/spike/`,
+   `scripts/package-spike.mjs`, the `spike:*` scripts, its CI steps and `cdp.mjs`'s `selftest` and
+   `mode`. Its results are below; `git show 0080724:webos/spike/app/spike.js` (and the other files
+   under that path, and `0080724:webos/scripts/package-spike.mjs`) brings it back if a later round
+   needs it, such as Sport and News mode's decoders.
 5. **The owner chooses the combination** from the spike's results, laid out as options with what
    each costs; the choice, and the owner's decisions on the features webOS 5 may change (the video
    always full screen behind the interface or in a box; Sport and News mode on one decoder; the
@@ -170,12 +177,12 @@ picture and say so, in Hebrew, in the other panels. How a refusal is told apart:
 
 - ~~**The guide's right-to-left horizontal scroll.**~~ Decided for 0.2.0: `translateX`, no native
   horizontal scroll (*0.2.0: the guide* below).
-- **The vanishing interface**: which option, once `state` has shown the cause (above).
-- **The guide's layout**: as the computer version (the picture in a box above the grid, 0.2.0) or
-  over the picture as Android's (ADR-051).
-- **Where radio falls** in the order after Sport and News mode; **how the app is updated** on the
-  father's television (*The plan from here*).
-- **`webos/spike/`**: kept for later rounds (Sport and News mode's decoders, an HLS stream) or removed.
+- ~~**The vanishing interface**~~: decided 2026-11-08, options A + B (*The vanishing interface*).
+- ~~**The guide's layout**~~: decided 2026-11-08, as the computer version (0.2.0 as it is).
+- ~~**Where radio falls**~~: decided 2026-11-08, before Sport and News mode (0.3.0).
+- ~~**How the app is updated**~~: decided 2026-11-08, option 2, the app downloads its own bundle
+  (*0.4.0* below).
+- ~~**`webos/spike/`**~~: decided 2026-11-08, removed (above).
 
 ## 0.1.0 on the television (2026-11-07)
 
@@ -242,7 +249,15 @@ If they do, the cause is the television's own behaviour and the choice is the ow
 | **C. Nothing** | nothing to build; LG's screen saver protects the OLED | the fault stays as it is; any key wakes the screen |
 | **D. The undocumented Luna call** `com.webos.service.tvpower/power/registerScreenSaverRequest` to refuse the screen saver (a community finding) | the interface never goes | not in LG's documentation; may fail LG's review when the app goes to the store; a static interface for hours on an OLED is what the screen saver is there to prevent |
 
-A and B can be combined. Not decided; waiting for the owner's `state` and his choice.
+A and B can be combined.
+
+**Decided by the owner on 2026-11-08: A and B together.** `appinfo.json` declares
+`"screenSaverProperties": { "preferredType": 2 }`, and the app goes full screen by itself after
+**N = 25 minutes** without a key: under LG's type-2 figure of 30 minutes, so the picture fills the
+screen before the interface would be dimmed. It applies everywhere, also while the guide or a
+dialog is open, and any key returns to where the viewer was (same channel, same focus). The cause
+is still not proven, so the diagnostics stay: when the owner next sees the fault, or when B takes
+over, `cdp.mjs state` shows whether the page was whole. Built in 0.3.0 (below).
 
 ## 0.2.0: the guide
 
@@ -279,13 +294,59 @@ Unproven until the owner runs it: that `translateX` moves the strip on webOS 5 a
 moves the lists (the spike proved only the vertical), that seven rows of cells redraw fast enough
 on the television, and the dialog's focus.
 
+**The layout stays as it is** (the owner's decision, 2026-11-08): the computer version's, the
+picture in a box above the grid. Android's over-the-picture guide (ADR-051) is not followed.
+
+## 0.3.0: radio, and the picture after 25 minutes without a key
+
+Built on 2026-11-08, from the owner's decisions of that day; not yet run on a television.
+
+**The vanishing interface, A + B** (`ui/idle.ts`, `ui/idleRule.ts`):
+
+- `appinfo.json` declares `screenSaverProperties.preferredType: 2` (option A).
+- The app counts every key, and the Magic Remote's pointer, as activity. After 25 minutes without
+  any, with a television channel playing and not already full screen, it puts the picture over the
+  whole screen by itself (option B). The screen under it is not changed or closed: it is only made
+  invisible (`.idle-takeover .screen { visibility: hidden }`), so the guide, an open dialog, the
+  list's offset and the element that had the remote are all as they were. Any key gives it back,
+  puts the remote back on that element, and is otherwise swallowed (a listener in the capture
+  phase, installed before the app's own), so OK does not play, Back does not close the dialog.
+- **Not with the radio, or with nothing playing**: there is no picture to fill the screen with, so
+  the television's own screen saver comes as before. With the radio it should only dim or cover
+  the interface while the sound goes on; this is the television's behaviour and is not tested.
+  The owner can ask for a radio screen of its own for that case.
+- `shidur.state()` says when the app last took over and gave back (`idle:` line, and two events in
+  `events`). `cdp.mjs idle <minutes>` sets a shorter wait until the app is closed, to see it on the
+  television without waiting 25 minutes; `idle 0` puts back 25.
+- A change of screen is now noted in `events` (`screen: guide`), so the removal of the screen
+  before it, which `ui/watch.ts` notes too, is not read as the fault.
+
+**Radio** (`ui/RadioScreen.tsx`, `state/radio.ts`): the channel list's layout repointed at the
+radio playlist, as Android's `ChannelListScreen` in radio mode (ADR-015), not the computer
+version's shelves of tiles, which are for a mouse. On the right the menu: all stations,
+favourites, recently heard, then ADR-050's flat list — national, north, centre, Jerusalem, south,
+other regions, then the genres alphabetically — from `data/classify.ts`'s `radioMenu` (unchanged,
+the computer version's byte for byte), a shelf with no station left out. In the middle the
+stations; on the left, where the picture would be, the station that plays: its logo, its state,
+pause or retry, stop, favourite, and a way back to the channels. There is no picture slot, so the
+player keeps the sound and draws nothing (`PlayerHost` already hid the picture for radio). Yellow
+opens the radio from anywhere and closes it; Back closes it; a "רדיו" button sits in the channel
+list's stage. The shelf is remembered (`settings.radioFilter`).
+
+Unproven until the owner runs it: that a radio stream plays through the same `<video>` element on
+webOS 5, that the television's screen saver over the radio leaves the sound playing, and the
+takeover itself (its focus return and the dialog left as it was) on the television.
+
 ## The plan from here
 
-The order, decided with the owner on 2026-11-08: **0.2.0** the guide and the fault above → **Sport
-and News mode** (decided: build it, fall back to one video if the television refuses a second
-decoder; the design is under *Two or four videos*) → the rest, in an order still open:
+The order, decided with the owner on 2026-11-08 (and changed by him the same day to put radio
+first): **0.2.0** the guide and the fault's diagnostics → **0.3.0** options A + B for the fault,
+radio, and the spike's removal → **0.4.0** the shell that updates itself (option 2 below, designed
+under *0.4.0*) → **Sport and News mode** (decided: build it, fall back to one video if the
+television refuses a second decoder; the design is under *Two or four videos*) → search, settings
+and the rest. Each is run on the television before the next is built on it.
 
-### Radio stations (a step to place)
+### Radio stations (0.3.0)
 
 The built-in radio playlist already loads (97 stations in 0.1.0's `state`), but there is no radio
 screen. The step ports the computer version's `RadioScreen` and Android's `ChannelListScreen` in
@@ -293,8 +354,8 @@ radio mode (ADR-015: the same list repointed at the radio playlist, no screen of
 the menu the owner decided on 2026-10-30 (ADR-050): one flat list — national, north, centre,
 Jerusalem, south, other regions, then the genres — each station placed by its name
 (`data/classify.ts`, already byte for byte the computer version's). Radio is heard, not seen: the
-player keeps the sound with no slot (`PlayerHost` already hides the picture for radio). Where it
-falls in the order after Sport and News mode is the owner's to say.
+player keeps the sound with no slot (`PlayerHost` already hides the picture for radio). The owner
+put it before Sport and News mode (2026-11-08); built in 0.3.0 (above).
 
 ### Updating the app on the television without the phone each time
 
@@ -324,6 +385,165 @@ itself as read here; the app on the father's television shows the figure that ap
 the father's television needs its session extended before it runs out, or Shidur disappears from
 it with every other sideloaded app — one more reason the question above matters.
 
+**Decided by the owner on 2026-11-08: option 2**, the app downloads its own new bundle (*0.4.0*
+below), with the bundle and its manifest on `updates.idanck.com`.
+
+**Developer Mode's session: not now** (the owner, 2026-11-08). His idea, for later: a separate app
+on the television that extends the Developer Mode session. What is known for it: the command-line
+form is `ares-launch com.palmdts.devmode -p extend=true -d <tv>` (LG's forum answer above), and
+the same answer puts the session's maximum at 1000 hours. Nothing more is designed or built.
+
+## 0.4.0: the shell that updates itself (designed 2026-11-08, not yet built)
+
+Option 2 above, the owner's choice: the packaged app (the **shell**) downloads a newer **bundle**
+of the interface and runs it on the next launch, falling back to the bundle packaged with it. The
+owner's decisions on it (2026-11-08): the bundle and its manifest live on `updates.idanck.com`,
+apart from the Android files; the manifest is **signed with a private key kept on his Raspberry
+Pi**, never in the repo or CI; an update is **checked only on launch**, downloaded in the
+background, and **runs silently on the next launch** — no prompt, no notice. So a new version
+reaches the screen on the launch after the one that found it. This is the design, to be built
+after the owner has seen 0.3.0 on the television; nothing of it exists yet.
+
+### What is in a bundle, and what stays in the shell
+
+- **The bundle**: the interface's script (`assets/index-*.js`, which already holds the guide
+  worker's text, polyfills first, and starts the worker from it as a Blob: so the worker is always
+  the running bundle's own, and needs nothing of its own to keep in step), the stylesheet, and
+  `polyfills.js`. Three text files, about 130 KB together today.
+- **The shell**: `appinfo.json`, `index.html`, a small boot script (`boot.js`, ES5, checked by
+  `check-es`), the public key, the packaged copy of the bundle, the fonts, the icons and splash,
+  and the Luna JS service (`service/`). A change to any of these **still needs a reinstall from
+  the phone**: the version the launcher shows, `screenSaverProperties`, the resolution, the app and
+  service ids, the service's code, a font. So does the first install of the 0.4.0 shell itself:
+  until it is on the television, every version goes in through Termux as now.
+- **Which shell a bundle needs**: the shell carries a number of its own, `SHELL` (1 in 0.4.0); a
+  bundle is built against one and the shell refuses a bundle built for a different number. A test
+  holds a hash of the shell's files beside that number, so changing the shell without bumping it
+  fails CI. The version numbers stay as now, in `appinfo.json`: a bundle-only release bumps it too
+  (0.4.1, 0.4.2…), and the installed shell's own version is whichever was last installed.
+
+### Where it is published
+
+- **Its own path and manifest** on `updates.idanck.com`, beside ADR-012's Android files and apart
+  from them: `webos/manifest.json` and `webos/bundles/<version>-<commit>/{index.js, style.css,
+  polyfills.js}`. Android's `latest.json` and `apk/` are not touched by the webOS publish, and
+  `android.yml` never writes under `webos/`.
+- **The update host** is ADR-012's Cloudflare Worker over R2 (uploads with a bearer token, reads
+  open). Its code is not in this repo, so **whether it accepts uploads under `webos/` as it does
+  under `apk/`** is for the owner to check, or to change there. No CORS header is needed: on the
+  television the files are read through the app's own JS service (`service/net.js`), as every
+  provider is, and the service is Node, not a page. The service already reads
+  `il-epg.idanck.com` over HTTPS on this television; that `updates.idanck.com`'s certificate is
+  accepted by webOS 5's Node 8.12 as well is checked in 0.4.0's first run.
+
+### How a bundle is built, signed and published
+
+1. **CI** (`webos.yml`, on `main`): builds and checks the bundle as today (typecheck, tests,
+   `check-es`, `check-css`), writes `bundle.json` — app id, version, commit, `SHELL`, and for each
+   file its path, size and SHA-512 — and keeps the three files and `bundle.json` as an artifact,
+   `shidur-webos-bundle`. No key and no upload token in CI.
+2. **The Pi**: a script, `webos/tools/publish-bundle.sh` (bash, `set -euo pipefail`; curl,
+   openssl, unzip, jq), which the owner runs by hand:
+   - `publish-bundle.sh keygen <key file>` makes the key pair once: `openssl genpkey -algorithm
+     ed25519`, the private key written to a file outside the repo with mode 600, the public key
+     printed as base64 to be put in the shell (`webos/shell/public-key.txt`, which is public).
+   - `publish-bundle.sh` downloads the latest artifact of a green `webOS app` run on `main`
+     (GitHub's Actions API, with a read-only token), checks every file's size and SHA-512 against
+     `bundle.json`, reads the published manifest and refuses a version that is not newer, signs
+     the exact bytes of `bundle.json` (`openssl pkeyutl -sign -rawin`, Ed25519), uploads the
+     three files first, then the signed manifest, then reads both back and checks them (the
+     Android publish's order: the manifest never points at files not yet there).
+   - Its settings come from the environment, never from the repo: the key file's path, the
+     upload token and the GitHub token, kept where the owner keeps the Pi's other secrets.
+3. **The manifest** is one file, `{"payload": <bundle.json, base64>, "signature": <base64>}`: the
+   signature is over the payload's exact bytes, so nothing has to be put in a canonical order.
+
+### How the television checks it
+
+- **Ed25519 in plain JavaScript** (`tweetnacl`, public domain, ES5): Chromium 68's WebCrypto has no
+  Ed25519, and whether `crypto.subtle` is there at all on a `file://` page on webOS 5 is not
+  known. The same library's SHA-512 hashes the files. The shell carries only the public key.
+- **On launch, about 20 seconds after the interface is up**, the shell (not the bundle, so a bad
+  bundle cannot stop updates) asks for `webos/manifest.json`. It refuses, and logs, with the
+  reason:
+  - a signature that does not verify with the shell's public key;
+  - another app id, another `SHELL`, a file address that is not `https://updates.idanck.com/…`;
+  - a version not newer than both the packaged bundle's and the stored one's (**a downgrade**);
+  - a version and commit already marked bad (below);
+  - a file whose size or SHA-512 is not the manifest's.
+  Only a bundle that passes all of it is stored, as **pending**. Nothing is shown on the screen.
+- **On the next launch**, the shell checks the pending bundle again (signature and every hash,
+  against what is in storage: a bundle changed or cut short in storage is caught too) and runs it.
+
+### Where it is stored
+
+- **localStorage**: LG documents 16 MB for it from webOS 3.5, and a boot script can read it at once,
+  before anything is drawn. IndexedDB, which already holds the channels and the guide, has no
+  quota LG states. Two slots (the running bundle and the pending one), each with its signed
+  manifest beside it, about 300 KB in all.
+- 0.4.0's first run measures it on the television: it writes and reads back 1 MB and says how long
+  that took in `shidur.state()`.
+- **Packaged-app storage is cleared when the app is updated or removed** (LG): a reinstall from the
+  phone drops the downloaded bundle, and the shell runs its packaged one, which is then the newest
+  anyway. (It drops the settings and favourites too, as today.)
+
+### How it is loaded under Chromium 68
+
+- `index.html` loads `boot.js` only. `boot.js` decides which bundle runs, then adds its stylesheet
+  as a `<style>` and its scripts as `<script src="blob:…">` made from the stored text (`new Blob`,
+  `URL.createObjectURL`): polyfills first, then the interface. The guide worker is already started
+  from a Blob the same way. If a Blob script is refused on webOS 5, the fallback is a `<script>`
+  whose text is the bundle; which of the two ran is in `shidur.state()`.
+- The stylesheet names its fonts by the shell's path (`fonts/…`), since a `<style>` resolves
+  addresses from the page, not from where the file came from; CI checks the bundle's stylesheet
+  for it.
+
+### What happens on a bad bundle
+
+- Before running a stored bundle the shell marks it **on trial**. Once the interface has drawn its
+  first screen it tells the shell (`shell.started()`), and the bundle becomes **good**.
+- A bundle still on trial at the next launch, one that throws while it starts, or one that has not
+  drawn a screen within 60 seconds, is marked **bad** with its version and commit, never tried
+  again, and the shell reloads with its packaged bundle (at once, for the two cases in the same
+  launch). The record of bad bundles survives until storage is cleared.
+- A bundle that starts but is wrong in use (a screen that does not work) is not caught: the remedy
+  is a newer bundle, or the old code published again under a higher version.
+
+### Showing what runs
+
+- The bottom-left corner shows the running bundle's version and commit, as now, and `· עדכון`
+  when it is a downloaded one rather than the packaged one.
+- `shidur.state()` gains `shell:` — the shell's number and packaged version, which bundle runs
+  and where it came from, the pending one, the bad ones, the last check (when, what it found, or
+  why it refused), and the storage measurement.
+
+### If the key is lost, or taken
+
+- **Lost**: no new bundle can be signed for the installed shell. The television keeps running the
+  last good bundle (or the packaged one), so nothing breaks; to update again, the owner makes a new
+  key pair, the new public key goes into the shell, and the shell is installed once more from the
+  phone (which also clears storage, above).
+- **Taken**: whoever holds both the key and the upload token can put their bundle on the
+  television. The signature is there so that the upload token, the Worker or R2 alone are not
+  enough. The remedy is the same reinstall with a new key.
+
+### The LG store
+
+- The risks noted under option 2 stand: nothing in LG's documentation supports or forbids an app
+  that replaces its own interface; packaged-app storage is cleared when the app is updated or
+  removed; LG's review tests the package it is given, and a bundle that replaces itself may be
+  questioned.
+- **A build without it**: a build flag (`SHIDUR_SELF_UPDATE=0`) makes a shell whose `boot.js`
+  only loads the packaged bundle, with no manifest, no key and no download, and CI checks that the
+  store package holds no `updates.idanck.com`. The store build is that one.
+
+### Left for 0.4.0's first run on the television
+
+Whether a Blob script runs from a `file://` page on webOS 5; localStorage's real room and speed;
+that the service reaches `updates.idanck.com`; how long the signature and hash checks take on the
+television's processor. For the owner before it is built: whether the update host accepts the
+`webos/` path, and the Pi's two tokens (upload, and read-only GitHub).
+
 ## Alternatives rejected
 
 - **Building the app first and fixing it on the television.** That is what the first version did;
@@ -339,13 +559,15 @@ it with every other sideloaded app — one more reason the question above matter
 - Drawing and scrolling are decided (*Step 2*); what is built on them is still proven only on the
   television. A desktop run proves only that there is no script error.
 - Built in small steps, each run on the television before the next: the channel list and one
-  channel in its box (0.1.0, on the television 2026-11-07); the guide (0.2.0); then Sport and News
-  mode, and radio, search and settings in an order still open (*The plan from here*). There are no
-  settings yet: the app opens on the two built-in playlists (ADR-013, ADR-015), as every install
-  does.
+  channel in its box (0.1.0, on the television 2026-11-07); the guide (0.2.0); radio and the
+  answer to the vanishing interface (0.3.0); the shell that updates itself (0.4.0); then Sport and
+  News mode, search and settings (*The plan from here*). There are no settings yet: the app opens
+  on the two built-in playlists (ADR-013, ADR-015), as every install does.
+- The app takes the screen by itself after 25 minutes without a key while a channel plays (option
+  B): behaviour the viewer did not ask for, chosen by the owner against LG's screen saver.
 - To load a new build, close the app first (`ares-launch -d <tv> --close <app id>`): launching an
   app already in the background only brings it to the front.
-- Back on the first screen closes the app (LG's rule); the spike lets Back only leave full screen.
+- Back on the first screen closes the app (LG's rule).
 
 ## What the first version's code needs on webOS 5
 

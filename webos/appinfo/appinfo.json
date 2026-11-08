@@ -1,6 +1,6 @@
 {
   "id": "com.idanck.shidur",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "vendor": "Idan Cohen",
   "type": "web",
   "main": "index.html",
@@ -13,6 +13,9 @@
   "resolution": "1920x1080",
   "disableBackHistoryAPI": true,
   "handlesRelaunch": false,
+  "screenSaverProperties": {
+    "preferredType": 2
+  },
   "requiredACG": [
     "activity.operation"
   ]

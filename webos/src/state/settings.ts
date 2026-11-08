@@ -16,6 +16,8 @@ export interface Settings {
   lastChannelKey?: string;
   lastRadioKey?: string;
   liveFilter?: string;
+  /** The radio list's shelf (ui/RadioScreen.tsx): `all`, `fav`, `recent` or a shelf's key. */
+  radioFilter?: string;
 }
 
 const KEY = 'shidur.settings';
