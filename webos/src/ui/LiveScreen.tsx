@@ -3,7 +3,7 @@ import { useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 import { clockRange, nowNext, offsetMs, progress } from '../data/guide';
 import type { Channel } from '../data/model';
 import { engine, playback } from '../player/engine';
-import { groupKey, liveFilter, play, playerSlot, setFilter, toggleFullscreen, visibleChannels } from '../state/actions';
+import { groupKey, liveFilter, play, playerSlot, setFilter, showScreen, toggleFullscreen, visibleChannels } from '../state/actions';
 import { settings } from '../state/settings';
 import {
   favourites, guideProgress, isFavourite, now, programmesOf, recents, refreshing, sources, storageOk, toggleFavourite, tvChannels,
@@ -13,6 +13,7 @@ import { Icon, type IconName } from './icons';
 import { flashInfo } from './PlayerHost';
 import { focus } from './spatial';
 import { remoteUsed } from './remote';
+import { watch } from './watch';
 
 interface GroupEntry {
   id: string;
@@ -67,6 +68,7 @@ const ROW = 68;
  * what is on. OK on a channel plays it; OK on the one already playing opens it full screen.
  */
 export function LiveScreen() {
+  watch.renders++;
   const slot = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = slot.current;
@@ -154,6 +156,9 @@ function Status() {
           {guideProgress.value[s.id] && <span class="faint">{` · ${guideProgress.value[s.id]}`}</span>}
         </p>
       ))}
+      <div class="actions">
+        <GuideButton />
+      </div>
     </div>
   );
 }
@@ -273,7 +278,17 @@ function NowPanel({ channel }: { channel: Channel }) {
         <button class="btn" onClick={() => toggleFavourite(channel.key)} aria-pressed={fav}>
           <Icon name={fav ? 'starOn' : 'star'} size={18} /> <span>{fav ? 'במועדפים' : 'הוסף למועדפים'}</span>
         </button>
+        <GuideButton />
       </div>
     </div>
+  );
+}
+
+/** Opens the guide (ui/GuideScreen.tsx); the remote's Green key does the same from anywhere. */
+function GuideButton() {
+  return (
+    <button class="btn" onClick={() => showScreen('guide')}>
+      <Icon name="guide" size={18} /> <span>לוח שידורים</span>
+    </button>
   );
 }

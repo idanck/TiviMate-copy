@@ -3,9 +3,17 @@
 Shidur as a packaged webOS app, for LG televisions from webOS 5 (2020, Chromium 68). Decisions and
 scope: `docs/adr/ADR-057-lg-televisions-from-webos-5.md`.
 
-**Now: 0.1.0**, the first step of the app: the channel list (the two built-in playlists, ADR-013 and
-ADR-015), one channel playing in its box, full screen on OK. The guide, Sport and News mode, radio,
-search and settings follow, each after the step before has been seen working on the television.
+**Now: 0.2.0**: the channel list (the two built-in playlists, ADR-013 and ADR-015), one channel
+playing in its box, full screen on OK — seen working on the television on 2026-11-07 as 0.1.0 —
+and the guide (Green), plus the diagnostics for the interface that vanished after some minutes on
+that television (ADR-057, *The vanishing interface*). The steps after it, each after the one
+before has been seen working on the television:
+
+1. **0.2.0** — the guide; and the fault's cause, from `cdp.mjs state` while it happens.
+2. **Sport and News mode** — two or four videos, with a fallback to one (ADR-057, *Two or four videos*).
+3. Then, in an order the owner has still to set: **radio** (the built-in stations by region,
+   ADR-050), search, settings, and how the app is updated on the television without the phone
+   (ADR-057, *The plan from here*).
 
 ## Layout
 
@@ -34,10 +42,11 @@ npm run package < /dev/null   # ipk/com.idanck.shidur_<version>_all.ipk
 
 ```sh
 npx ares-launch -d <tv> --close com.idanck.shidur   # before installing a new build
-npx ares-install -d <tv> ipk/com.idanck.shidur_0.1.0_all.ipk
+npx ares-install -d <tv> ipk/com.idanck.shidur_0.2.0_all.ipk
 npx ares-launch -d <tv> com.idanck.shidur
 TV=<tv-address> MATCH=shidur node tools/cdp.mjs state   # what the app says about itself
 TV=<tv-address> MATCH=shidur node tools/cdp.mjs key Down 5
+TV=<tv-address> MATCH=shidur node tools/cdp.mjs shot          # what Chromium draws, as a PNG
 ```
 
 Only one DevTools client can attach at a time: stop `ares-inspect` first. The bottom-left corner of
@@ -46,7 +55,17 @@ the screen shows the version and the commit, so a new build is known to be the o
 The remote: ▲▼ walk the channel list, ◀▶ move between the groups, the list and the buttons, OK plays
 a channel and, on the one already playing, opens it full screen (or tries again after an error). In
 full screen ▲▼ change channel, OK shows what is on, Back leaves it. Numbers pick a channel; red is
-the channel before; ▶/⏸ pause. Back on the list leaves the app.
+the channel before; **green opens the guide**; ▶/⏸ pause. Back on the list leaves the app.
+
+In the guide the four arrows are the grid's own: ▲▼ change channel keeping the hour, ◀ goes to a
+later programme, ▶ to an earlier one and then to the channel's name; OK on a programme opens its
+details (OK again there plays the channel), OK on a channel plays it; ▲ from the first row reaches
+the day chips, "עכשיו" and "עדכן לוח שידורים"; Back or green returns to the list. The grid never
+scrolls: it moves its rows with `translateY` and its hours with `translateX` (`src/ui/grid.ts`).
+
+`cdp.mjs state` also prints what the page says about itself for the vanishing-interface fault:
+whether its tree is whole, whether it is visible, errors and webOS events with their times, the
+heap, and one line a minute for the last minutes (`src/ui/watch.ts`).
 
 ## The spike
 

@@ -103,7 +103,8 @@ station outright belongs in the upstream script, not here.
 1920×1080 with no CSS scaling (1rem = 24 px; a computer-version size is px ÷ 16 rem), the video in a
 box with full screen on OK, Sport and News mode with a fallback to one video. Step 2, the app, is
 built in small steps, each run on the television before the next: 0.1.0 is the channel list and one
-channel playing in its box. Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci && npm run
+channel playing in its box (on the television 2026-11-07), 0.2.0 adds the guide (its grid keeps two
+offsets of its own, `webos/src/ui/grid.ts`, `translateY` for rows and `translateX` for hours). Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci && npm run
 check && npm run package` runs in the cloud sandbox. `android.yml` ignores `webos/**` and
 `.github/workflows/webos.yml` — do not edit `android.yml` for a webOS change, since that builds an
 APK. A webOS change that also touches `docs/` or `CLAUDE.md` does start an Android build on `main`,

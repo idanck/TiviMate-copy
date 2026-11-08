@@ -96,8 +96,8 @@ export function focusables(): HTMLElement[] {
   return Array.from(scope.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(visible);
 }
 
-/** The part of the screen a control belongs to: the rail, the screen beside it, the player. */
-const SECTIONS = '.scrim, .groups, .channels, .stage';
+/** The part of the screen a control belongs to: a column of the channel list, the guide, a dialog. */
+const SECTIONS = '.scrim, .groups, .channels, .stage, .guide';
 const sectionOf = (el: HTMLElement) => el.closest(SECTIONS);
 
 /**
