@@ -98,20 +98,23 @@ station outright belongs in the upstream script, not here.
 
 ## The webOS version (`webos/`) ships separately too
 
-`webos/` is Shidur for LG televisions from webOS 5 (2020, Chromium 68), ADR-057. Step 1 (the spike,
-`webos/spike/`) ran on the owner's television on 2026-11-07, and he chose: laid out natively at
-1920×1080 with no CSS scaling (1rem = 24 px; a computer-version size is px ÷ 16 rem), the video in a
-box with full screen on OK, Sport and News mode with a fallback to one video. Step 2, the app, is
-built in small steps, each run on the television before the next: 0.1.0 is the channel list and one
-channel playing in its box (on the television 2026-11-07), 0.2.0 adds the guide (its grid keeps two
-offsets of its own, `webos/src/ui/grid.ts`, `translateY` for rows and `translateX` for hours). Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci && npm run
-check && npm run package` runs in the cloud sandbox. `android.yml` ignores `webos/**` and
+`webos/` is Shidur for LG televisions from webOS 5 (2020, Chromium 68), ADR-057. Step 1 (the spike)
+ran on the owner's television on 2026-11-07, and he chose: laid out natively at 1920×1080 with no
+CSS scaling (1rem = 24 px; a computer-version size is px ÷ 16 rem), the video in a box with full
+screen on OK, Sport and News mode with a fallback to one video. The spike was removed on 2026-11-08
+(`git show 0080724:webos/spike/…` brings it back). Step 2, the app, is built in small steps, each
+run on the television before the next: 0.1.0 is the channel list and one channel playing in its
+box (on the television 2026-11-07), 0.2.0 adds the guide (its grid keeps two offsets of its own,
+`webos/src/ui/grid.ts`, `translateY` for rows and `translateX` for hours), 0.3.0 the radio and full
+screen by itself after 25 minutes without a key (`webos/src/ui/idle.ts`, with LG's
+`screenSaverProperties.preferredType: 2` in `appinfo.json`), 0.4.0 a shell that updates itself
+(designed in ADR-057, not yet built). Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci
+&& npm run check && npm run package` runs in the cloud sandbox. `android.yml` ignores `webos/**` and
 `.github/workflows/webos.yml` — do not edit `android.yml` for a webOS change, since that builds an
 APK. A webOS change that also touches `docs/` or `CLAUDE.md` does start an Android build on `main`,
 which fails at "Publish the update manifest" (same versionCode, different APK): cancel that run
 before it gets there rather than bump `versionCode` for no app change. The version is its own, in
-`webos/appinfo/appinfo.json`, not `version.properties`; the spike's packages carry theirs in
-`webos/scripts/package-spike.mjs`.
+`webos/appinfo/appinfo.json`, not `version.properties`.
 
 - Everything shipped to the television is ES2019 syntax with no API newer than Chromium 68, the JS
   service ES2017 for Node 8.12 (`npm run check:es`), and the stylesheet holds no CSS newer than 68
