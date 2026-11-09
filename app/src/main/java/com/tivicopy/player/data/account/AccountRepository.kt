@@ -149,7 +149,7 @@ class AccountRepository(context: Context, scope: CoroutineScope) {
     suspend fun createPairing(): Result<Pairing> = runCatchingCancellable {
         val functions = functions() ?: error("accounts are not configured")
         val result = functions.getHttpsCallable("createPairing").call(emptyMap<String, Any>()).await()
-        parsePairing(result.data) ?: error("unexpected createPairing response")
+        parsePairing(result.getData()) ?: error("unexpected createPairing response")
     }
 
     /** One poll: has a phone approved [pairing] yet? Signs in when it has. */
@@ -159,7 +159,7 @@ class AccountRepository(context: Context, scope: CoroutineScope) {
         return try {
             val data = functions.getHttpsCallable("claimPairing")
                 .call(mapOf("code" to pairing.code, "secret" to pairing.secret))
-                .await().data
+                .await().getData()
             val (status, token) = parseClaim(data)
             when {
                 status == "approved" && token != null -> {
