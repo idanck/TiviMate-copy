@@ -39,8 +39,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.layout.LocalPinnableContainer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,6 +69,8 @@ import com.idanck.shidur.ui.common.LiveBadge
 import com.idanck.shidur.ui.common.LocalTvMetrics
 import com.idanck.shidur.ui.common.Motion
 import com.idanck.shidur.ui.common.AheadPrefetch
+import com.idanck.shidur.ui.common.claim
+import com.idanck.shidur.ui.common.remoteDriving
 import com.idanck.shidur.ui.common.QuietPrefetchScheduler
 import com.idanck.shidur.ui.common.focusLift
 import com.idanck.shidur.ui.common.rememberQuietPrefetchScheduler
@@ -85,6 +87,7 @@ import com.idanck.shidur.ui.home.HomeRailId
 import com.idanck.shidur.ui.home.HomeRails
 import com.idanck.shidur.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.idanck.shidur.ui.common.StudioIcons
 
 /**
@@ -200,18 +203,18 @@ fun TvHomeScreen(
     val firstCard = remember { FocusRequester() }
     var claimedFocus by remember { mutableStateOf(false) }
     val heroIsFocusable = state.currentChannel != null
-    LaunchedEffect(heroIsFocusable, rails.isNotEmpty()) {
-        if (claimedFocus || (!heroIsFocusable && rails.isEmpty())) return@LaunchedEffect
+    // Whether the remote is anywhere on home: what says the first claim has landed.
+    var holdsFocus by remember { mutableStateOf(false) }
+    // In touch mode nothing here can take focus; the claim is made when the remote is back, rather
+    // than spent on a request nothing could take (`FocusClaim.kt`).
+    val remote = remoteDriving()
+    LaunchedEffect(heroIsFocusable, rails.isNotEmpty(), remote) {
+        if (claimedFocus || !remote || (!heroIsFocusable && rails.isEmpty())) return@LaunchedEffect
+        // The target has to be composed before it can be focused: the claim's first ask is a
+        // frame from now, and it asks again until the remote is here.
+        (if (heroIsFocusable) heroFocus else firstCard).claim { holdsFocus }
         claimedFocus = true
-        // The target has to be composed before it can be focused; this frame is load-bearing.
-        withFrameNanos { }
-        runCatching { if (heroIsFocusable) heroFocus.requestFocus() else firstCard.requestFocus() }
     }
-    // The menu's fallback when the control the remote left from is no longer drawn: the same
-    // first stop the screen opens on. Both are forgotten with the screen, so a later visit never
-    // hands the remote to a control that has gone.
-    SideEffect { focusReturn.fallback = if (heroIsFocusable) heroFocus else firstCard }
-    DisposableEffect(focusReturn) { onDispose { focusReturn.forget() } }
 
     // What everything below the banner is painted on, and what the banner's gradient fades into.
     // The viewer's own overlay-opacity setting (FR-UI-18), not a constant: every other surface
@@ -232,7 +235,24 @@ fun TvHomeScreen(
     // (`QuietPrefetch.kt`). One for the screen, so one quiet moment never does two lists' work.
     val prefetch = rememberQuietPrefetchScheduler()
 
-    Box(modifier = modifier.fillMaxSize()) {
+    // The list the rails scroll in, put back at its top when the remote is handed to home's first
+    // stop: that stop is in the first rail, and a list left scrolled down keeps it off screen,
+    // where the menu's press towards the content left nothing in sight holding the remote (QA-26,
+    // issue #152).
+    val railsState = rememberLazyListState(
+        prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2) },
+    )
+    val scope = rememberCoroutineScope()
+    // The menu's fallback when the control the remote left from is no longer drawn: the same
+    // first stop the screen opens on. Both are forgotten with the screen, so a later visit never
+    // hands the remote to a control that has gone.
+    SideEffect {
+        focusReturn.fallback = if (heroIsFocusable) heroFocus else firstCard
+        focusReturn.reveal = { scope.launch { railsState.scrollToItem(0) } }
+    }
+    DisposableEffect(focusReturn) { onDispose { focusReturn.forget() } }
+
+    Box(modifier = modifier.fillMaxSize().onFocusChanged { holdsFocus = it.hasFocus }) {
         Column(modifier = Modifier.fillMaxSize()) {
             // The banner never scrolls (ADR-058): the picture above it stays in sight however far
             // down the rails the viewer goes. Its shade thins from the panel's opaque ground up to the
@@ -258,7 +278,7 @@ fun TvHomeScreen(
             // and the picture above it stay where they are.
             LazyColumn(
                 // The two rails past either edge, built before the remote gets there.
-                state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2) }),
+                state = railsState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -638,6 +658,9 @@ class HomeFocusReturn {
     /** Where the remote goes when the control it left from is no longer drawn: home's first stop. */
     var fallback: FocusRequester? = null
 
+    /** Brings home's first stop on screen, scrolling the rails back to their top. */
+    var reveal: (() -> Unit)? = null
+
     /**
      * False from the moment home is left for the video until the remote is handed back. Home kept
      * under the video (ADR-048) is placed again by Back, and the platform hands the remote to the
@@ -661,6 +684,7 @@ class HomeFocusReturn {
     fun forget() {
         last = null
         fallback = null
+        reveal = null
         listening = true
     }
 
@@ -670,12 +694,15 @@ class HomeFocusReturn {
      */
     fun restore(): Boolean {
         listening = true
-        return listOfNotNull(last, fallback).any { requester ->
-            // A requester whose control has left the composition — a card scrolled away, a rail
-            // rebuilt without it — throws rather than failing quietly. That is the "gone" case,
-            // and never worth a crash.
-            runCatching { requester.requestFocus() }.isSuccess
-        }
+        // A requester whose control has left the composition — a card scrolled away, a rail
+        // rebuilt without it — throws rather than failing quietly. That is the "gone" case, and
+        // never worth a crash.
+        if (last?.let { runCatching { it.requestFocus() }.isSuccess } == true) return true
+        val first = fallback ?: return false
+        // The first stop may be scrolled out of sight with the rails; they go back to the top as
+        // it takes the remote.
+        reveal?.invoke()
+        return runCatching { first.requestFocus() }.isSuccess
     }
 }
 

@@ -65,6 +65,20 @@ def tap(x, y):
     sh(f"input tap {int(x)} {int(y)}")
 
 
+def remote_mode():
+    """Takes the window out of touch mode, as a press on a remote does, without pressing anything
+    the app acts on.
+
+    Every `tap` puts the window in touch mode, where a Compose control that is focusable only in
+    non-touch mode — every clickable — cannot take focus, so a screen's first-focus claim made
+    then lands nowhere. A remote never taps: the scenarios that check where the remote is
+    (QA-22's PIN pad, QA-24, QA-25, QA-26, QA-27) call this after any tap of their own and before
+    the step they judge. Move-home is a navigation key, so it leaves touch mode (ViewRootImpl),
+    and nothing in the app binds it."""
+    sh("input keyevent KEYCODE_MOVE_HOME")
+    time.sleep(0.8)
+
+
 def screen_size():
     m = re.search(r"(\d+)x(\d+)", sh("wm size"))
     return (int(m.group(1)), int(m.group(2))) if m else (1920, 1080)
@@ -574,7 +588,8 @@ class Runner:
         def _(sid, title, area):
             self.home_of_app()
             if self.form == "phone":
-                dests = ["Live", "Radio", "Guide", "VOD", "Settings"]
+                # The phone's five tabs (ADR-032). On demand has none: only search reaches it.
+                dests = ["Live", "Guide", "Radio", "Recordings", "Settings"]
             else:
                 key("KEYCODE_BACK")
                 nodes = self.ui.dump("tv_home")
@@ -633,9 +648,38 @@ class Runner:
             key("KEYCODE_BACK", times=2, pause=0.8)
         return False
 
+    def field_for(self, label, scrolls=3):
+        """The text field a label names, scrolled into view.
+
+        A Studio field's label is a line of text above the input, not part of it (`StudioField`,
+        ADR-046). On the television the whole field is one control and a tap on the label opens it;
+        on the phone the label is only words, and a tap there focused nothing, so nothing typed ever
+        arrived (run 42631443554: QA-06, QA-07, QA-17, QA-22). The input is the field directly
+        under the label."""
+        for i in range(scrolls + 1):
+            nodes = self.ui.dump()
+            lab = self.ui.find(label, nodes)
+            if lab:
+                if "EditText" in lab.cls:
+                    return lab
+                below = [n for n in nodes if "EditText" in n.cls and n.y2 > n.y1
+                         and lab.y2 - 8 <= n.y1 <= lab.y2 + 120 and n.x1 <= lab.center[0] <= n.x2]
+                return min(below, key=lambda n: n.y1) if below else lab
+            if i < scrolls:
+                swipe_up()
+        return None
+
     def fill(self, label, value, secret=False):
         for attempt in range(2):
-            n = self.ui.tap_label(label, scrolls=3)
+            if self.form == "phone":
+                n = self.field_for(label)
+                if n:
+                    tap(*n.center)
+                    time.sleep(1.2)
+            else:
+                # The television's field is one control, its label included: OK or a tap there
+                # starts the editing (`editOnPress`), and is how QA-06 passes there.
+                n = self.ui.tap_label(label, scrolls=3)
             if not n:
                 return False
             clear_field()
@@ -1029,6 +1073,7 @@ class Runner:
                     shots.append(self.ev.shot(f"{sid}_{len(steps):02d}_wrong"))
 
             def video():
+                remote_mode()
                 deep_link(f"shidur://channel/{cid}")
                 expect("deep link", "video", wait=6)
 
@@ -1041,6 +1086,7 @@ class Runner:
                 hits = [n for n in self.tv_menu_entries(self.ui.dump()) if n.desc == entry]
                 if hits:
                     tap(*hits[0].center)
+                    remote_mode()
                 expect(label, want)
 
             # 1. The list from its arrow: Back to the video, then the list, then home.
@@ -1070,6 +1116,7 @@ class Runner:
             button = self.ui.find("Guide", exact=True)
             if button:
                 tap(*button.center)
+                remote_mode()
             expect("transport bar's guide", "Guide")
             press("KEYCODE_BACK", "back", "video")
             # 5. A side-menu choice forgets the arrow, the lit entry's included.
@@ -1097,6 +1144,7 @@ class Runner:
             if not cid:
                 self.record(sid, title, "SKIP", "mock playlist missing", [], area)
                 return
+            remote_mode()
             deep_link(f"shidur://channel/{cid}")
             time.sleep(6)
             key("KEYCODE_PROG_YELLOW")
@@ -1169,6 +1217,7 @@ class Runner:
             if self.tv_screen(f"{sid}_home") != "Home":
                 wrong.append("home was never reached")
                 return done()
+            remote_mode()
             time.sleep(3)  # the rails load after the screen does
 
             # 1. Into the content. With nothing on home holding the remote yet, the first key can
@@ -1222,7 +1271,7 @@ class Runner:
             done()
 
     # Settings' sections (English labels), as the panel at the start of the TV layout lists them.
-    SETTINGS_SECTIONS = ("Playlists and guide", "Playback", "Appearance", "Network", "Recording",
+    SETTINGS_SECTIONS = ("Account", "Playlists and guide", "Playback", "Appearance", "Network", "Recording",
                          "Parental controls", "Backup and restore", "Diagnostics", "About")
 
     def s27_settings_by_remote(self):
@@ -1269,12 +1318,13 @@ class Runner:
             if not self.go_settings() or not self.ui.tap_label("Network", scrolls=2, exact=True):
                 wrong.append("could not reach Settings > Network")
                 return done()
+            remote_mode()
             time.sleep(1.5)
 
             # 1. Into the open section, from wherever the tap left the remote: the panel of
             #    sections is at the start, on the left in English.
             label = where("start")
-            for i in range(4):
+            for i in range(6):
                 if in_section(label):
                     break
                 label = press("KEYCODE_DPAD_RIGHT", f"into{i}")
@@ -1569,10 +1619,17 @@ class Runner:
         @self.scenario("QA-18", "Monkey: 4,000 random events with a fixed seed", "stability")
         def _(sid, title, area):
             self.home_of_app()
-            nav = "--pct-nav 30 --pct-majornav 20 --pct-touch 20 --pct-motion 5" if self.form == "tv" else \
-                  "--pct-touch 45 --pct-motion 15 --pct-nav 10 --pct-majornav 10"
+            # The television emulator has no touch screen: every touch the monkey sent there failed to
+            # inject (run 42631443554), so its share goes to the remote's keys.
+            nav = ("--pct-nav 45 --pct-majornav 25 --pct-touch 0 --pct-motion 0 --pct-trackball 0 "
+                   "--pct-pinchzoom 0 --pct-flip 0") if self.form == "tv" else \
+                "--pct-touch 45 --pct-motion 15 --pct-nav 10 --pct-majornav 10"
+            # The monkey reports an ANR on stderr and then stops ("Monkey aborted due to error"):
+            # run 42631443554 read only stdout, called both forms' aborts "no app crash", and its
+            # ANRs surfaced only in the log audit. Both streams are read now, and the monkey carries
+            # on past an ANR so the rest of the 4,000 events still run.
             out = sh(f"monkey -p {PKG} -s 4242 --throttle 120 --pct-syskeys 0 --pct-appswitch 2 {nav} "
-                     f"--ignore-security-exceptions -v 4000", timeout=900)
+                     f"--ignore-security-exceptions --ignore-timeouts -v 4000 2>&1", timeout=900)
             with open(os.path.join(self.out, "monkey.txt"), "w") as f:
                 f.write(out)
             crashed = "// CRASH" in out
@@ -1731,6 +1788,8 @@ class Runner:
             if self.form == "tv":
                 key("KEYCODE_BACK")
             self.go_settings()
+            if self.form == "tv":
+                remote_mode()
             time.sleep(2)
             gate = self.ui.find("Enter your PIN")
             exposed = self.ui.find("Playlists and guide", exact=True)
@@ -1808,12 +1867,24 @@ class Runner:
                 tag = m.group(3).strip()
                 errors[tag] = errors.get(tag, 0) + 1
         fatal = log.count("FATAL EXCEPTION")
-        anr = len(re.findall(rf"ANR in {re.escape(PKG)}", log))
-        strict = log.count("StrictMode")
+        # One line per ANR: the system's own. The monkey repeats it under its tag, which counted
+        # each ANR twice (run 42631443554: "ANR=2" was one ANR on each form).
+        anr = len(re.findall(rf"ActivityManager: ANR in {re.escape(PKG)}", log))
+        # The app's own StrictMode lines only: the 221 of that run were all Google's TV apps
+        # (katniss, recommendations).
+        strict = sum(1 for line in log.splitlines() if "StrictMode" in line and
+                     (re.match(r"^\S+ \S+\s+(\d+)", line) or [None, None])[1] in app_pids)
+        # The main thread's stack at each ANR, from the dropbox, which the shell may read: until
+        # now no run had a trace to say what the app was doing.
+        traces = sh("dumpsys dropbox --print data_app_anr", timeout=120)
+        if PKG in traces:
+            with open(os.path.join(self.out, "anr_traces.txt"), "w") as f:
+                f.write(traces)
         top = sorted(errors.items(), key=lambda kv: -kv[1])[:12]
         self.facts["log_errors_by_tag"] = top
         self.record("QA-20", "Log audit: crashes, ANRs, error volume", "FAIL" if fatal or anr else "INFO",
-                    f"FATAL={fatal} ANR={anr} StrictMode={strict}; top error tags: {top}", ["logcat.txt"], "stability")
+                    f"FATAL={fatal} ANR={anr} StrictMode={strict} (the app's own); top error tags: {top}",
+                    ["logcat.txt"] + (["anr_traces.txt"] if PKG in traces else []), "stability")
         # The database at the end, for the report.
         db = self.db()
         if db:

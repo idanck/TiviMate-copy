@@ -78,6 +78,8 @@ import com.idanck.shidur.ui.common.ClockText
 import com.idanck.shidur.ui.common.EmptyState
 import com.idanck.shidur.ui.common.FocusFill
 import com.idanck.shidur.ui.common.LocalTvMetrics
+import com.idanck.shidur.ui.common.claim
+import com.idanck.shidur.ui.common.remoteDriving
 import com.idanck.shidur.ui.common.QuietPrefetchScheduler
 import com.idanck.shidur.ui.common.StudioButton
 import com.idanck.shidur.ui.common.StudioButtonSize
@@ -314,6 +316,11 @@ internal fun GuideGrid(
     // not exist to be focused, the rows being let in a frame at a time (`RowGate`).
     var landingReady by remember { mutableStateOf(false) }
     val markLanding: () -> Unit = remember { { landingReady = true } }
+    // Whether the remote is anywhere in the grid: what says the landing has landed.
+    var gridHasFocus by remember { mutableStateOf(false) }
+    // In touch mode no cell can take focus, so on a television the landing waits for the remote
+    // (`FocusClaim.kt`). A phone is in touch mode for good and has no landing to wait for.
+    val remote = remoteDriving() || !StudioTheme.television
 
     // That channel's row on screen first, with the row above it in view, as the canvas sets it.
     // Keyed on the list: the guide can compose before the channels have arrived.
@@ -345,8 +352,8 @@ internal fun GuideGrid(
     // row only in the prefetch margin, or still waiting its turn, has no cells to focus — and has
     // one try: a channel with nothing on air now leaves the guide opening as it always has, and a
     // later refetch never pulls the remote back from wherever the viewer has taken it.
-    LaunchedEffect(landingReady, visibleChannels) {
-        if (landed || !landingReady) return@LaunchedEffect
+    LaunchedEffect(landingReady, visibleChannels, remote) {
+        if (landed || !landingReady || !remote) return@LaunchedEffect
         val id = landingId ?: return@LaunchedEffect
         // Two frames: one for the row's cells to be laid out, one for the requester to attach.
         withFrameNanos { }
@@ -355,7 +362,9 @@ internal fun GuideGrid(
         if (listState.layoutInfo.visibleItemsInfo.none { it.key == id }) return@LaunchedEffect
         val now = System.currentTimeMillis()
         if (programmes[id].orEmpty().any { now in it.startUtc until it.endUtc }) {
-            runCatching { onAirFocus.requestFocus() }
+            // Asked until it lands: one request made a frame early, or while the window was still
+            // leaving touch mode, left the guide open with nothing focused (QA-25, issue #152).
+            onAirFocus.claim { gridHasFocus }
         }
         landed = true
     }
@@ -403,7 +412,9 @@ internal fun GuideGrid(
         ) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onFocusChanged { gridHasFocus = it.hasFocus },
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 itemsIndexed(channels, key = { _, channel -> channel.id }) { index, channel ->

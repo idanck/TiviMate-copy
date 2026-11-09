@@ -28,6 +28,11 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
   key events, the `shidur://channel/<id>` deep link, `svc wifi/data` for network loss, `am kill` for
   process death. State is verified from the app's own SQLite database (debug build, `run-as`),
   playback from screen motion between two captures and from AudioService's player list.
+  A tap puts the window in touch mode, where no Compose clickable can take focus; a remote never
+  does that, so on the television every scenario that judges where the remote is leaves touch mode
+  first (`remote_mode()`, a move-home key nothing binds) after any tap of its own (issue #152). On
+  the phone a Studio field is typed into by tapping the input under its label: the label is only
+  words there, while on the television the field and its label are one control.
 
 ## 3. Scenarios and pass criteria
 
@@ -60,9 +65,9 @@ to a real device. The automated part lives in `qa/` and runs as `.github/workflo
 | QA-22 | parental | Set a PIN, lock a channel, deep-link to it; wrong then right PIN; leave and reopen Settings | prompt, and the locked channel's stream is not requested, before the PIN; wrong PIN refused; right PIN closes the prompt and starts that stream; Settings asks again after the app was away |
 | QA-16 | i18n | Hebrew per-app locale | Hebrew labels, no untranslated English labels |
 | QA-17 | performance | 5,000-channel playlist, fast scroll | loads < 60 s, alive; frame stats recorded, not judged (software GPU) |
-| QA-18 | stability | Monkey, 4,000 events, seed 4242 | no crash, no ANR |
+| QA-18 | stability | Monkey, 4,000 events, seed 4242; the remote's keys only on the television, which has no touch screen; stdout and stderr read, and the run goes on past an ANR | no crash, no ANR |
 | QA-19 | performance | Memory while playing | PSS < 350 MB (TV) / 450 MB (phone) |
-| QA-20 | stability | Log audit over the whole run | no FATAL, no ANR; top error tags listed |
+| QA-20 | stability | Log audit over the whole run: each ANR counted once, StrictMode counted for the app's own processes only, ANR traces saved from the dropbox (`anr_traces.txt`) | no FATAL, no ANR; top error tags listed |
 
 Statuses: **PASS**, **FAIL** (a defect or a broken criterion), **WARN** (works, outside the target, or
 the evidence is ambiguous), **SKIP** (could not be exercised here), **INFO** (measurement only).
