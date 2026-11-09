@@ -7,8 +7,8 @@ Setting the project up is a manual job: `docs/12-firebase-setup.md`.
 | Path | What |
 |---|---|
 | `firestore.rules` | Who reads and writes what. No client writes anything. |
-| `firestore.indexes.json` | TTL on `pairings.expiresAt` and `rateLimits.expiresAt`. |
-| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`. All second-generation callables. Node 22, TypeScript. |
+| `firestore.indexes.json` | TTL on `expiresAt` of `pairings`, `rateLimits` and the YouTube collections. |
+| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`; and YouTube (ADR-061): `ytChannels`, `ytResolve`, `ytSearch`, `ytSubscriptions`, `ytLinkStatus`, `ytLinkStart`, `ytLinkPoll`, `ytLinkCode`, `ytUnlink`. All second-generation callables. Node 22, TypeScript. |
 | `hosting/` | The approval and deletion pages, bundled with esbuild into `hosting/dist`. |
 | `test/` | Rules and the whole pairing, against the emulators. |
 
@@ -34,6 +34,11 @@ The region, `me-west1` (Tel Aviv, where Firestore is), is in `functions/src/conf
 `hosting/src/firebase.ts`, the app's `FirebaseSetup.kt` and the web server's
 `web/server/firebase.mjs`, and in `test/pairing.test.ts`. Change them together. `me-west1` has only the second generation of Cloud Functions, so nothing here may
 use `firebase-functions/v1`: that rules out Auth triggers, and is why `ensureProfile` exists.
+
+Secrets, in Secret Manager (`docs/13-youtube-setup.md`): `YOUTUBE_API_KEY`, `YOUTUBE_TV_CLIENT_ID`,
+`YOUTUBE_TV_CLIENT_SECRET`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_WEB_CLIENT_SECRET`. A deploy fails while one
+of them does not exist; an OAuth one set to `unset` only switches that route off. The emulators need
+none of them.
 
 Environment, read by the Functions at deploy time from `functions/.env` (not in git):
 

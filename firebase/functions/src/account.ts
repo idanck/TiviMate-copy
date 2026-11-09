@@ -4,6 +4,7 @@ import { logger } from 'firebase-functions/v2';
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import { LIMITS, MAX_INSTANCES, REGION } from './config';
 import { enforce } from './limits';
+import { unlink as unlinkYoutube } from './youtube/link';
 
 /**
  * The account's own document and its deletion (ADR-059).
@@ -58,6 +59,8 @@ export const ensureProfile = onCall({ region: REGION, maxInstances: MAX_INSTANCE
 async function deleteData(uid: string): Promise<void> {
   const db = getFirestore();
   await db.recursiveDelete(db.collection('users').doc(uid));
+  // A connected YouTube account (ADR-061): revoked at Google and forgotten with the account.
+  await unlinkYoutube(uid).catch(() => undefined);
 }
 
 /**

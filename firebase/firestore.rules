@@ -27,6 +27,28 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // YouTube (ADR-061): the shared channel and search caches, the day's quota counters, the
+    // connections waiting for a code and the accounts' YouTube tokens. The Functions' alone: the app
+    // gets what it draws from the callables, and no client may ever read a token.
+    match /ytChannels/{id} {
+      allow read, write: if false;
+    }
+    match /ytSearch/{id} {
+      allow read, write: if false;
+    }
+    match /ytQuota/{day} {
+      allow read, write: if false;
+    }
+    match /ytLinks/{uid} {
+      allow read, write: if false;
+    }
+    match /ytTokens/{uid} {
+      allow read, write: if false;
+    }
+    match /ytSubs/{uid} {
+      allow read, write: if false;
+    }
+
     // Anything not named above is closed.
     match /{document=**} {
       allow read, write: if false;

@@ -23,5 +23,24 @@ export const LIMITS = {
   profilePerUser: { max: 20, windowMs: 10 * 60 * 1000 },
 } as const;
 
+/**
+ * The YouTube callables' limits (ADR-061), per account, or per address for a device that has not
+ * signed in. They guard the project's daily YouTube quota, not the server.
+ */
+export const YT_LIMITS = {
+  /** A screen of saved channels, refreshed while it is open: generous, since the cache answers most. */
+  channels: { max: 120, windowMs: 10 * 60 * 1000 },
+  /** Adding a channel by link or handle. */
+  resolve: { max: 30, windowMs: 60 * 60 * 1000 },
+  /** Searches: a fair share of the project's hundred a day. */
+  search: { max: 30, windowMs: 24 * 60 * 60 * 1000 },
+  /** Starting a connection, or handing over a phone's code. */
+  link: { max: 10, windowMs: 10 * 60 * 1000 },
+  /** The television asks every 5 seconds for up to 30 minutes. */
+  poll: { max: 400, windowMs: 30 * 60 * 1000 },
+  /** The subscriptions rail. */
+  subscriptions: { max: 60, windowMs: 10 * 60 * 1000 },
+} as const;
+
 /** Cost guard: no function scales past this many instances. */
 export const MAX_INSTANCES = 10;

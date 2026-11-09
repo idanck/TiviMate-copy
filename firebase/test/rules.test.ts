@@ -86,3 +86,23 @@ describe('server-only collections', () => {
     await assertFails(getDoc(doc(env.authenticatedContext('alice').firestore(), 'other/doc')));
   });
 });
+
+describe('YouTube (ADR-061)', () => {
+  it('keeps an account its own YouTube token from no one more than from itself', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'ytTokens/alice'), { refreshToken: 'secret', client: 'tv' });
+    });
+    const alice = env.authenticatedContext('alice').firestore();
+    await assertFails(getDoc(doc(alice, 'ytTokens/alice')));
+    await assertFails(setDoc(doc(alice, 'ytTokens/alice'), { refreshToken: 'mine' }));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'ytTokens/alice')));
+  });
+
+  it('closes the caches, the counters and the waiting connections to every client', async () => {
+    const alice = env.authenticatedContext('alice').firestore();
+    for (const path of ['ytChannels/UCabcdefghijklmnopqrstuv', 'ytSearch/x', 'ytQuota/2026-11-09', 'ytLinks/alice', 'ytSubs/alice']) {
+      await assertFails(getDoc(doc(alice, path)));
+      await assertFails(setDoc(doc(alice, path), { x: 1 }));
+    }
+  });
+});
