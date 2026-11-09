@@ -142,6 +142,7 @@ internal fun SideMenu(
     onOpen: (TvOverlay) -> Unit,
     modifier: Modifier = Modifier,
     onTowardContent: (() -> Boolean)? = null,
+    showRadio: Boolean = true,
 ) {
     val metrics = LocalTvMetrics.current
     val studio = StudioTheme.colors
@@ -159,7 +160,7 @@ internal fun SideMenu(
         // News mode (ADR-042) follows Sport mode, and is the same kind of screen.
         MenuDestination(stringResource(R.string.nav_news), StudioIcons.News, TvOverlay.NEWS),
         MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
-    )
+    ).filter { showRadio || it.overlay != TvOverlay.RADIO }
     val tools = listOf(
         MenuDestination(stringResource(R.string.nav_search), StudioIcons.Search, TvOverlay.SEARCH),
         MenuDestination(stringResource(R.string.nav_settings), StudioIcons.Settings, TvOverlay.SETTINGS),

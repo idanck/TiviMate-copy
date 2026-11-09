@@ -37,6 +37,13 @@ private const val IS_AN_EPISODE = "season_number IS NOT NULL"
 private const val NOT_AN_EPISODE = "season_number IS NULL"
 
 /**
+ * A row of a playlist that is switched on. The queries that span playlists (favourites, recents,
+ * continue watching, a guide hit's channel) add it, so a playlist turned off in Settings leaves
+ * every screen; the per-playlist ones need not, since an off playlist is never the one open.
+ */
+private const val IN_ENABLED_PLAYLIST = "playlist_id IN (SELECT id FROM playlists WHERE enabled=1)"
+
+/**
  * Data access for [Database]. Every method takes or opens a writable handle; SQLiteOpenHelper
  * caches a single connection, and WAL lets guide writes proceed while the UI reads.
  */
@@ -124,6 +131,16 @@ class Dao(
             forgetAccount(p.id)
             p.id
         }
+    }
+
+    /** An off playlist is kept with everything in it, but not refreshed and not shown. */
+    fun setPlaylistEnabled(id: Long, enabled: Boolean) {
+        db.update(
+            "playlists",
+            ContentValues().apply { put("enabled", if (enabled) 1 else 0) },
+            "id=?",
+            arrayOf(id.toString()),
+        )
     }
 
     fun deletePlaylist(id: Long) {
@@ -425,7 +442,7 @@ class Dao(
 
     /** The channel a guide entry belongs to, so a search hit on a programme can be played. */
     fun channelForEpgId(epgId: String): Channel? = db.rawQuery(
-        "SELECT * FROM channels WHERE (manual_epg_id=? OR resolved_epg_id=?) AND hidden=0 LIMIT 1",
+        "SELECT * FROM channels WHERE (manual_epg_id=? OR resolved_epg_id=?) AND hidden=0 AND $IN_ENABLED_PLAYLIST LIMIT 1",
         arrayOf(epgId, epgId),
     ).firstOrNull(::readChannel)
 
@@ -447,7 +464,10 @@ class Dao(
         db.rawQuery("SELECT * FROM channels WHERE id=?", arrayOf(id.toString())).firstOrNull(::readChannel)
 
     fun favouriteChannels(): List<Channel> =
-        db.rawQuery("SELECT * FROM channels WHERE favourite=1 AND hidden=0 ORDER BY sort_index, number, name", null)
+        db.rawQuery(
+            "SELECT * FROM channels WHERE favourite=1 AND hidden=0 AND $IN_ENABLED_PLAYLIST ORDER BY sort_index, number, name",
+            null,
+        )
             .mapAll(::readChannel)
 
     /**
@@ -466,7 +486,7 @@ class Dao(
         onlyPlaylistId: Long? = null,
         excludePlaylistId: Long? = null,
     ): List<Channel> {
-        val where = StringBuilder("last_watched_utc>0 AND hidden=0")
+        val where = StringBuilder("last_watched_utc>0 AND hidden=0 AND $IN_ENABLED_PLAYLIST")
         val args = mutableListOf<String>()
         if (onlyPlaylistId != null) {
             where.append(" AND playlist_id=?")
@@ -879,7 +899,7 @@ class Dao(
 
     fun continueWatching(limit: Int = 30): List<VodItem> =
         db.rawQuery(
-            "SELECT * FROM vod WHERE resume_position_ms > 0 ORDER BY last_watched_utc DESC LIMIT ?",
+            "SELECT * FROM vod WHERE resume_position_ms > 0 AND $IN_ENABLED_PLAYLIST ORDER BY last_watched_utc DESC LIMIT ?",
             arrayOf(limit.toString()),
         ).mapAll(::readVod)
 

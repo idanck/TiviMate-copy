@@ -67,7 +67,8 @@ class RadioBrowseTree {
      */
     fun radioPlaylist(): Playlist? {
         runBlocking { ServiceLocator.sources.ensureRadioPlaylist() }
-        return ServiceLocator.dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+        // Removed or turned off in Settings: the car offers no stations either.
+        return ServiceLocator.dao.playlists().firstOrNull { it.enabled && it.url == IsraelRadioStations.M3U_URL }
     }
 
     /**

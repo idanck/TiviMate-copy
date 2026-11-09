@@ -242,7 +242,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // the Channels tab's default playlist — otherwise a stored activePlaylistId left
             // pointing at it (or a fresh install that happens to bootstrap it first) would put
             // radio stations back inside Channels, exactly what the split exists to prevent.
-            val candidates = playlists.filterNot { it.url == IsraelRadioStations.M3U_URL }
+            // A playlist turned off in Settings is not a candidate either: it shows nowhere.
+            val candidates = playlists.filter { it.enabled && it.url != IsraelRadioStations.M3U_URL }
             val active = candidates.firstOrNull { it.id == activeId } ?: candidates.firstOrNull()
             // Hidden groups are listed too, drawn dimmed, so that hiding one is not a one-way
             // door — there would otherwise be nothing left on screen to show it again.
@@ -263,6 +264,50 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             settings.setActivePlaylist(active.id)
         }
         loadChannels()
+    }
+
+    /**
+     * Turns a playlist off or back on from Settings. An off playlist keeps everything in it, but is
+     * not refreshed and shows on no screen (see `IN_ENABLED_PLAYLIST` in the DAO); turning one on
+     * that was never loaded loads it straight away rather than waiting for the background refresh.
+     */
+    fun setPlaylistEnabled(id: Long, enabled: Boolean) {
+        viewModelScope.launch {
+            sources.setPlaylistEnabled(id, enabled)
+            reloadInternal()
+            val playlist = _state.value.playlists.firstOrNull { it.id == id }
+            if (enabled && playlist != null && playlist.lastRefreshUtc == 0L) refreshPlaylist(id)
+        }
+    }
+
+    /**
+     * Deletes a playlist and everything it carries. A bundled one stays away until
+     * [restoreBuiltInPlaylists], rather than being put back on the next cold start.
+     */
+    fun removePlaylist(id: Long) {
+        viewModelScope.launch {
+            sources.removePlaylist(id)
+            reloadInternal()
+        }
+    }
+
+    /**
+     * Whether the Radio destination is offered: not once the bundled radio playlist has been
+     * removed or turned off in Settings. A playlist list that does not hold it yet (a cold start,
+     * before bootstrap) still shows it, so the entry does not blink in and out on launch.
+     */
+    fun isRadioShown(playlists: List<Playlist>): Boolean =
+        !settings.isBuiltInRemoved(IsraelRadioStations.M3U_URL) &&
+            playlists.none { it.url == IsraelRadioStations.M3U_URL && !it.enabled }
+
+    /** Puts back whichever bundled playlists were removed, and loads them. */
+    fun restoreBuiltInPlaylists() {
+        viewModelScope.launch {
+            val before = _state.value.playlists.map { it.id }.toSet()
+            sources.restoreBuiltInPlaylists()
+            reloadInternal()
+            _state.value.playlists.filter { it.id !in before }.forEach { refreshPlaylist(it.id) }
+        }
     }
 
     fun selectPlaylist(id: Long) {
@@ -295,7 +340,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         radioNavJob = viewModelScope.launch {
             val playlist = withContext(Dispatchers.IO) {
                 sources.ensureRadioPlaylist()
-                dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+                dao.playlists().firstOrNull { it.enabled && it.url == IsraelRadioStations.M3U_URL }
             } ?: return@launch
             val groups = withContext(Dispatchers.IO) { dao.groups(playlist.id, includeHidden = true) }
             val stats = withContext(Dispatchers.IO) { epg.stats(playlist.id) }
@@ -330,7 +375,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * and the regions never showed (owner's report, 2026-11-09).
      */
     suspend fun radioStations(): List<Pair<Channel, List<RadioShelf>>> = withContext(Dispatchers.IO) {
-        val playlist = dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+        val playlist = dao.playlists().firstOrNull { it.enabled && it.url == IsraelRadioStations.M3U_URL }
             ?: return@withContext emptyList()
         val groups = dao.groups(playlist.id, includeHidden = true)
         dao.channels(playlist.id).mapNotNull { channel ->
@@ -965,7 +1010,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private suspend fun panelChoices(mode: SportSession.Mode): FreeCopies.Result = withContext(Dispatchers.IO) {
         val s = settings.state.value
         val unlocked = _parentalUnlocked.value
-        val playlists = dao.playlists().filterNot { it.url == IsraelRadioStations.M3U_URL }
+        val playlists = dao.playlists().filter { it.enabled && it.url != IsraelRadioStations.M3U_URL }
         val free = playlists.filter { it.url == IsraelPublicChannels.M3U_URL }.map { it.id }.toSet()
         val channels = playlists
             .flatMap { playlist ->
@@ -1428,7 +1473,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
         val radioPlaylist = withContext(Dispatchers.IO) {
             sources.ensureRadioPlaylist()
-            dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
+            dao.playlists().firstOrNull { it.enabled && it.url == IsraelRadioStations.M3U_URL }
         }
         if (radioPlaylist != null && _state.value.playlists.none { it.id == radioPlaylist.id }) {
             _state.value = _state.value.copy(playlists = _state.value.playlists + radioPlaylist)

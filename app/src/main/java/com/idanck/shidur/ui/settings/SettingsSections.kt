@@ -29,6 +29,7 @@ import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.core.Outcome
 import com.idanck.shidur.core.TextNormalizer
 import com.idanck.shidur.core.TimeModel
+import com.idanck.shidur.data.builtin.IsraelPublicChannels
 import com.idanck.shidur.data.builtin.IsraelRadioStations
 import com.idanck.shidur.data.news.NewsDigests
 import com.idanck.shidur.data.news.NewsSource
@@ -39,9 +40,12 @@ import com.idanck.shidur.data.prefs.ParentalGate
 import com.idanck.shidur.data.prefs.ParentalPin
 import com.idanck.shidur.ui.AppViewModel
 import com.idanck.shidur.ui.UiMessage
+import com.idanck.shidur.ui.common.DialogButton
 import com.idanck.shidur.ui.common.ListRow
 import com.idanck.shidur.ui.common.PinEntry
 import com.idanck.shidur.ui.common.RowTrail
+import com.idanck.shidur.ui.common.StudioButtonVariant
+import com.idanck.shidur.ui.common.StudioDialog
 import com.idanck.shidur.ui.common.StudioField
 import com.idanck.shidur.ui.common.describe
 import com.idanck.shidur.ui.common.keyProbe
@@ -78,36 +82,137 @@ fun SourcesSection(vm: AppViewModel, onAddSource: () -> Unit) {
     val context = LocalContext.current
 
     SettingsSectionTitle(stringResource(R.string.playlists_title), topDivider = false)
+    // The playlist whose actions are open, and the one waiting for "delete" to be confirmed.
+    var actionsFor by remember { mutableStateOf<Long?>(null) }
+    var confirmDelete by remember { mutableStateOf<Long?>(null) }
     state.playlists.forEach { playlist ->
-        // The radio playlist has its own destination (the Radio tab) and can never become the
-        // Channels tab's active playlist (AppViewModel.selectPlaylist), so tapping this row
-        // refreshes it in place instead of silently doing nothing.
         val isRadio = playlist.url == IsraelRadioStations.M3U_URL
+        val status = if (playlist.lastRefreshUtc == 0L) {
+            stringResource(R.string.playlist_never_refreshed)
+        } else {
+            stringResource(
+                R.string.playlist_last_refresh,
+                TimeModel.formatDayTime(playlist.lastRefreshUtc),
+            ) + (playlist.lastRefreshMessage?.let { " · $it" } ?: "")
+        }
+        // A press opens what can be done with the playlist (use it, refresh it, turn it off or on,
+        // delete it), rather than a control per action on every row: on a remote each one would be
+        // another stop on the way down the list.
         SettingsRow(
             title = playlist.name,
             icon = if (isRadio) StudioIcons.Radio else StudioIcons.Tv,
             selected = playlist.id == state.activePlaylist?.id,
-            subtitle = if (playlist.lastRefreshUtc == 0L) {
-                stringResource(R.string.playlist_never_refreshed)
-            } else {
-                stringResource(
-                    R.string.playlist_last_refresh,
-                    TimeModel.formatDayTime(playlist.lastRefreshUtc),
-                ) + (playlist.lastRefreshMessage?.let { " · $it" } ?: "")
-            },
-            onClick = if (isRadio) {
-                { vm.refreshPlaylist(playlist.id) }
-            } else {
-                { vm.selectPlaylist(playlist.id) }
-            },
+            subtitle = if (playlist.enabled) status else stringResource(R.string.playlist_off),
+            chevron = true,
+            onClick = { actionsFor = playlist.id },
         )
     }
+
+    state.playlists.firstOrNull { it.id == actionsFor }?.let { playlist ->
+        val isRadio = playlist.url == IsraelRadioStations.M3U_URL
+        val close = { actionsFor = null }
+        StudioDialog(
+            onDismissRequest = close,
+            title = playlist.name,
+            icon = if (isRadio) StudioIcons.Radio else StudioIcons.Tv,
+            buttons = {
+                // The radio playlist has its own destination (the Radio tab) and can never become
+                // the Channels tab's active playlist (AppViewModel.selectPlaylist), so it is
+                // refreshed in place instead of offered as the one to use.
+                if (playlist.enabled && !isRadio && playlist.id != state.activePlaylist?.id) {
+                    DialogButton(
+                        label = stringResource(R.string.playlist_use),
+                        onClick = { close(); vm.selectPlaylist(playlist.id) },
+                        variant = StudioButtonVariant.PRIMARY,
+                        icon = StudioIcons.Check,
+                        initialFocus = true,
+                    )
+                }
+                if (playlist.enabled) {
+                    DialogButton(
+                        label = stringResource(R.string.action_refresh),
+                        onClick = { close(); vm.refreshPlaylist(playlist.id) },
+                        icon = StudioIcons.Restart,
+                        initialFocus = isRadio || playlist.id == state.activePlaylist?.id,
+                    )
+                }
+                DialogButton(
+                    label = stringResource(if (playlist.enabled) R.string.playlist_turn_off else R.string.playlist_turn_on),
+                    onClick = { close(); vm.setPlaylistEnabled(playlist.id, !playlist.enabled) },
+                    icon = if (playlist.enabled) StudioIcons.Hide else StudioIcons.Check,
+                    initialFocus = !playlist.enabled,
+                )
+                DialogButton(
+                    label = stringResource(R.string.action_delete),
+                    onClick = { close(); confirmDelete = playlist.id },
+                    variant = StudioButtonVariant.DANGER,
+                    icon = StudioIcons.Trash,
+                )
+            },
+        ) {
+            Text(
+                if (playlist.enabled) {
+                    if (playlist.lastRefreshUtc == 0L) {
+                        stringResource(R.string.playlist_never_refreshed)
+                    } else {
+                        stringResource(R.string.playlist_last_refresh, TimeModel.formatDayTime(playlist.lastRefreshUtc))
+                    }
+                } else {
+                    stringResource(R.string.playlist_off_hint)
+                },
+            )
+        }
+    }
+
+    state.playlists.firstOrNull { it.id == confirmDelete }?.let { playlist ->
+        val builtIn = playlist.url == IsraelPublicChannels.M3U_URL || playlist.url == IsraelRadioStations.M3U_URL
+        val close = { confirmDelete = null }
+        StudioDialog(
+            onDismissRequest = close,
+            title = stringResource(R.string.playlist_delete_title, playlist.name),
+            icon = StudioIcons.Trash,
+            danger = true,
+            buttons = {
+                DialogButton(
+                    label = stringResource(R.string.action_delete),
+                    onClick = {
+                        close()
+                        vm.removePlaylist(playlist.id)
+                        vm.post(UiMessage(text = context.getString(R.string.playlist_deleted)))
+                    },
+                    variant = StudioButtonVariant.DANGER,
+                    icon = StudioIcons.Trash,
+                )
+                // A destructive prompt starts on "cancel" on a television (`StudioDialog`).
+                DialogButton(
+                    label = stringResource(R.string.action_cancel),
+                    onClick = close,
+                    initialFocus = true,
+                )
+            },
+        ) {
+            Text(stringResource(if (builtIn) R.string.playlist_delete_builtin_body else R.string.playlist_delete_body))
+        }
+    }
+
     if (state.playlists.isEmpty()) {
         Text(
             text = stringResource(R.string.setup_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+
+    // A built-in removed above stays away (SourceRepository.removePlaylist) until it is put back here.
+    val missingBuiltIn = listOf(IsraelPublicChannels.M3U_URL, IsraelRadioStations.M3U_URL)
+        .any { settings.isBuiltInRemoved(it) && state.playlists.none { p -> p.url == it } }
+    if (missingBuiltIn) {
+        SettingsRow(
+            title = stringResource(R.string.playlist_restore_builtin),
+            subtitle = stringResource(R.string.playlist_restore_builtin_hint),
+            icon = StudioIcons.Restart,
+            onClick = { vm.restoreBuiltInPlaylists() },
         )
     }
 
