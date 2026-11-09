@@ -45,3 +45,17 @@ Google TV Streamer, drawn first in the Studio canvas (`Main`, `HomeRails`, `Radi
   height is unchanged, so `TvMetricsTest`'s "a slice of the first rail" still holds.
 - Home's `LazyColumn` no longer holds the banner, so `KeepComposed` and the prefetch apply to the
   rails (and the apps strip) only.
+
+## Revision, 0.21.8 (2026-11-09, after the owner saw 0.21.7 on his Streamer)
+
+- **The panel is the bottom third.** In 0.21.7 the banner kept its old share (0.58 of the height),
+  which left the opaque panel close to half the screen. The banner is now two thirds of the height
+  (`HERO_HEIGHT_FRACTION`), so the panel is the bottom third: 180dp at 1080p, one rail at a time.
+  The canvas draws the panel from 720px.
+- **The strip's chips are the radio menu's shelves.** The strip sorted by `RadioCategory`, the
+  feed's `group-title`s, which are genres now with only a couple of stations filed as regional, so
+  nearly every station landed under "אחר" and the regions never showed. Its chips are now the same
+  shelves as the radio list's menu (ADR-050): national, north, centre, Jerusalem, south, other
+  regions, then the genres; a station is on its region's shelf and its genre's. The chips scroll
+  when they are wider than the room beside the heading, and none is lazy, so ▲ from the stations
+  always has its chip to land on.

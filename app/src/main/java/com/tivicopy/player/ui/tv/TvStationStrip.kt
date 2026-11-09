@@ -3,6 +3,8 @@ package com.tivicopy.player.ui.tv
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,7 +40,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.R
 import com.tivicopy.player.data.model.Channel
-import com.tivicopy.player.data.radio.RadioCategory
+import com.tivicopy.player.data.radio.RadioRegion
+import com.tivicopy.player.data.radio.RadioShelf
 import com.tivicopy.player.ui.AppViewModel
 import com.tivicopy.player.ui.common.FocusFill
 import com.tivicopy.player.ui.common.LocalTvMetrics
@@ -46,27 +49,19 @@ import com.tivicopy.player.ui.common.StationDisc
 import com.tivicopy.player.ui.common.filledContentColour
 import com.tivicopy.player.ui.common.focusLift
 import com.tivicopy.player.ui.common.focusSurface
+import com.tivicopy.player.ui.screens.radioShelfLabel
 import com.tivicopy.player.ui.theme.StudioTheme
-
-/** The strip's three buckets, in the canvas's order. */
-private enum class StripBucket { NATIONAL, REGIONAL, OTHER }
-
-private fun RadioCategory.bucket(): StripBucket = when (this) {
-    RadioCategory.NATIONAL -> StripBucket.NATIONAL
-    RadioCategory.REGIONAL -> StripBucket.REGIONAL
-    else -> StripBucket.OTHER
-}
 
 /**
  * The stations along the bottom of the television's radio screen (`canvas/Radio.dc.html`): a
- * heading and a chip per category (national, regional, everything else), and under them the
- * stations' discs, the one on air ringed in the tally and the one the remote is on in the cue.
- * OK on a disc tunes it. It opens on the category of the station that is playing.
+ * heading and a chip per shelf of the radio menu (ADR-050) — national, the regions from the north,
+ * other regions, then the genres — and under them the stations' discs, the one on air ringed in
+ * the tally and the one the remote is on in the cue. OK on a disc tunes it. It opens on the shelf
+ * of the station that is playing: where it is heard, not its genre.
  *
- * The categories are the remote's too (ADR-058): ▲ from any station goes to the chosen category's
- * chip — not to whatever lies nearest above, which from the far end of the row was the play
- * button, so the chips could not be reached at all — ◀▶ walk the chips, and the stations follow
- * the chip under the remote without OK, as a tab row does on a television. ▼ goes back down.
+ * The shelves are the remote's too (ADR-058): ▲ from any station goes to the chosen shelf's chip,
+ * ◀▶ walk the chips, and the stations follow the chip under the remote without OK, as a tab row
+ * does on a television. ▼ goes back down.
  */
 @Composable
 internal fun TvStationStrip(
@@ -74,28 +69,39 @@ internal fun TvStationStrip(
     current: Channel?,
     modifier: Modifier = Modifier,
 ) {
-    var stations by remember { mutableStateOf<List<Pair<Channel, RadioCategory>>>(emptyList()) }
+    var stations by remember { mutableStateOf<List<Pair<Channel, List<RadioShelf>>>>(emptyList()) }
     LaunchedEffect(Unit) { stations = vm.radioStations() }
     if (stations.isEmpty()) return
 
-    val byBucket = remember(stations) { stations.groupBy({ it.second.bucket() }, { it.first }) }
-    val currentBucket = byBucket.entries.firstOrNull { (_, list) -> list.any { it.id == current?.id } }?.key
-    var selected by remember(currentBucket) {
-        mutableStateOf(currentBucket ?: byBucket.keys.minByOrNull { it.ordinal } ?: StripBucket.NATIONAL)
+    // The menu's own order (`RadioCategoryClassifier.menu`), each shelf with its stations. A
+    // station is on its region's shelf and, when its name says one, its genre's too.
+    val shelves = remember(stations) {
+        val present = stations.flatMapTo(LinkedHashSet()) { it.second }
+        val places = listOf<RadioShelf>(RadioShelf.National) + RadioRegion.entries.map { RadioShelf.Regional(it) }
+        val genres = present.filterIsInstance<RadioShelf.Genre>().sortedBy { it.label }
+        (places.filter { it in present } + genres).map { shelf ->
+            shelf to stations.filter { shelf in it.second }.map { it.first }
+        }
     }
-    val shown = byBucket[selected].orEmpty()
+    val currentShelf = stations.firstOrNull { it.first.id == current?.id }?.second?.firstOrNull()
+    var selected by remember(currentShelf, shelves) {
+        mutableStateOf(currentShelf?.takeIf { s -> shelves.any { it.first == s } } ?: shelves.first().first)
+    }
+    val shown = shelves.firstOrNull { it.first == selected }?.second.orEmpty()
     val listState = rememberLazyListState()
     LaunchedEffect(selected, current?.id) {
         val at = shown.indexOfFirst { it.id == current?.id }
-        // Another category starts at its first station, not where the last one was left.
+        // Another shelf starts at its first station, not where the last one was left.
         listState.scrollToItem(if (at >= 0) at else 0)
     }
-    // One per category, so ▲ from the stations can land on the chosen one.
-    val chipFocus = remember { StripBucket.entries.associateWith { FocusRequester() } }
+    // One per shelf, so ▲ from the stations can land on the chosen one.
+    val chipFocus = remember(shelves) { shelves.associate { it.first to FocusRequester() } }
     val studio = StudioTheme.colors
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Eight shelves can be wider than the room beside the heading, so the chips scroll with
+        // the remote.
         Row(
-            modifier = Modifier.padding(horizontal = STRIP_SAFE_X),
+            modifier = Modifier.padding(start = STRIP_SAFE_X),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -104,26 +110,29 @@ internal fun TvStationStrip(
                 style = StudioTheme.type.h1,
                 color = studio.ink,
             )
-            StripBucket.entries.filter { it in byBucket }.forEach { bucket ->
-                StripChip(
-                    label = stringResource(
-                        when (bucket) {
-                            StripBucket.NATIONAL -> R.string.radio_category_national
-                            StripBucket.REGIONAL -> R.string.radio_category_regional
-                            StripBucket.OTHER -> R.string.radio_category_other
-                        },
-                    ),
-                    selected = bucket == selected,
-                    focusRequester = chipFocus.getValue(bucket),
-                    onFocused = { selected = bucket },
-                    onClick = { selected = bucket },
-                )
+            // Not lazy: every chip stays composed, so ▲ from the stations always has its chip to
+            // land on, and the row scrolls to whichever chip the remote is on.
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(end = STRIP_SAFE_X, top = 4.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                shelves.forEach { (shelf, _) ->
+                    StripChip(
+                        label = radioShelfLabel(shelf),
+                        selected = shelf == selected,
+                        focusRequester = chipFocus.getValue(shelf),
+                        onFocused = { selected = shelf },
+                        onClick = { selected = shelf },
+                    )
+                }
             }
         }
         LazyRow(
             state = listState,
-            // Applies to every station in the row: ▲ goes to the chosen category's chip.
-            modifier = Modifier.focusProperties { up = chipFocus.getValue(selected) },
+            // Applies to every station in the row: ▲ goes to the chosen shelf's chip.
+            modifier = Modifier.focusProperties { chipFocus[selected]?.let { up = it } },
             contentPadding = PaddingValues(horizontal = STRIP_SAFE_X, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -144,7 +153,7 @@ private fun StripChip(
     label: String,
     selected: Boolean,
     focusRequester: FocusRequester,
-    /** Called as the remote reaches the chip: the category follows the remote, no OK needed. */
+    /** Called as the remote reaches the chip: the shelf follows the remote, no OK needed. */
     onFocused: () -> Unit,
     onClick: () -> Unit,
 ) {

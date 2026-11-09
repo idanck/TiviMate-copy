@@ -230,8 +230,12 @@ private fun heroHeightFor(heightDp: Float): Float {
     return wanted.coerceAtMost(roomForATeaser)
 }
 
-/** The banner's share of the panel, before the bounds below are applied. */
-private const val HERO_HEIGHT_FRACTION = 0.58f
+/**
+ * The banner's share of the panel, before the bounds below are applied: two thirds, so the rails'
+ * opaque panel under it is the bottom third of the screen (ADR-058, the owner's choice on
+ * 2026-11-09; it was 0.58, close to half once the banner had stopped scrolling).
+ */
+private const val HERO_HEIGHT_FRACTION = 2f / 3f
 private const val MIN_HERO_HEIGHT = 160f
 private const val MAX_HERO_HEIGHT = 560f
 
