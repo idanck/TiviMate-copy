@@ -539,4 +539,12 @@
     <string name="account_delete_confirm_title">למחוק את החשבון?</string>
     <string name="account_delete_confirm_body">החשבון וכל מה שנשמר בו בשרת יימחקו לצמיתות. הפלייליסטים וההגדרות במכשיר הזה נשארים.</string>
     <string name="account_error_delete">לא הצלחנו למחוק את החשבון. בדוק את החיבור לרשת ונסה שוב.</string>
+    <string name="account_tv_on_this_tv">התחברות בטלוויזיה עצמה, עם חשבון Google שכבר מוגדר בה.</string>
+    <string name="account_tv_pair_title">או התחברות מהטלפון</string>
+    <string name="account_tv_qr_description">קוד QR שפותח בטלפון את דף ההתחברות</string>
+    <string name="account_tv_pair_steps">סרוק את הקוד בטלפון, או פתח את %1$s והקלד את הקוד שלמעלה. התחבר עם Google ואשר, והמסך הזה ימשיך לבד.</string>
+    <string name="account_tv_code_loading">מקבל קוד…</string>
+    <string name="account_tv_code_failed">לא הצלחנו לקבל קוד. בדוק את החיבור של הטלוויזיה לרשת.</string>
+    <string name="account_tv_code_paused">פג תוקף הקוד.</string>
+    <string name="account_tv_new_code">קוד חדש</string>
 </resources>

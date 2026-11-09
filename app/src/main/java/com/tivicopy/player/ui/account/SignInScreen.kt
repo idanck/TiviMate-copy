@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The screen in front of the app while the owner's `requireSignIn` switch is on and nobody is
- * signed in (ADR-059). Nothing plays behind it; the update prompt still shows over it, so a build that fixes a broken sign-in
+ * signed in (ADR-059): on a phone the Google button alone, on a television [TvSignIn]. Nothing
+ * plays behind it; the update prompt still shows over it, so a build that fixes a broken sign-in
  * can always reach the device.
  */
 @Composable
@@ -50,7 +51,7 @@ fun SignInScreen(modifier: Modifier = Modifier) {
             .safeDrawingPadding(),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
+        if (StudioTheme.television) TvSignIn() else Column(
             modifier = Modifier
                 .widthIn(max = 420.dp)
                 .fillMaxWidth()

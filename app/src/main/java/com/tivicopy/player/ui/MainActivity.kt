@@ -173,6 +173,14 @@ class MainActivity : ComponentActivity() {
         }
 
     /**
+     * Whether the sign-in screen stands in front of the app (ADR-059): the owner's remote
+     * `requireSignIn` switch is on and nobody is signed in. Read straight from the repository so
+     * the key handlers see the same answer the composition does.
+     */
+    private val signInFirst: Boolean
+        get() = ServiceLocator.account.gated.value
+
+    /**
      * Lay the window out edge to edge, and on a television hide the system bars outright.
      *
      * Nothing in this app ever asked for this before, so `decorFitsSystemWindows` stayed at its
@@ -334,8 +342,7 @@ class MainActivity : ComponentActivity() {
             // it — a channel resumed under it would be heard and not seen. Applied once a launch,
             // when the screen first lets the viewer in.
             val gated by ServiceLocator.account.gated.collectAsState()
-            // The television's sign-in screen is the next step; until it lands, only the phone's.
-            val showSignIn = gated && !isTelevision
+            val showSignIn = gated
             var startApplied by remember { mutableStateOf(false) }
             LaunchedEffect(showSignIn) {
                 if (showSignIn) {
@@ -486,6 +493,8 @@ class MainActivity : ComponentActivity() {
                                         inPip = true,
                                         modifier = Modifier.fillMaxSize(),
                                     )
+                                } else if (showSignIn) {
+                                    SignInScreen(modifier = Modifier.fillMaxSize())
                                 } else {
                                     LaunchedEffect(overlay) {
                                         if (overlay == TvOverlay.HOME ||
@@ -683,6 +692,8 @@ class MainActivity : ComponentActivity() {
      * menu, Back goes up one level and a second Back exits.
      */
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        // The sign-in screen's keys are its own buttons', in Compose; nothing zaps under it.
+        if (signInFirst) return super.onKeyDown(keyCode, event)
         if (!isTelevision) return onPhoneKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
         // Sport mode has its own bindings (ADR-041); none of the full-screen player's below apply.
@@ -813,7 +824,7 @@ class MainActivity : ComponentActivity() {
      */
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
         val isOk = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
-        if (isTelevision && isOk && overlay.leavesDpadToShell) {
+        if (isTelevision && isOk && overlay.leavesDpadToShell && !signInFirst) {
             // A short OK opens the transport bar. It used to open the info card, which said what
             // was playing and offered nothing to do about it: the television had no play, no
             // pause, no aspect control and no way to pick an audio track, while the phone had all
@@ -825,7 +836,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
-        if (isTelevision && (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)) {
+        if (isTelevision && !signInFirst &&
+            (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER)
+        ) {
             // Was Settings ▸ Playback, which is a preferences screen rather than a playback menu:
             // it left the programme to change a default. This is the menu docs/03 section 3.6
             // describes, acting on the stream in front of you.
@@ -837,12 +850,14 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Silences everything the sign-in screen stands in front of (ADR-059): the player, Sport or
-     * News mode's panels, and the phone's player screen.
+     * News mode's panels, the phone's player screen, and the television's overlays, so the viewer
+     * comes in at home.
      */
     private fun standDownForSignIn() {
-        if (panelsOpen != null) vm.exitSport(restartPaused = false)
+        if (panelsOpen != null || overlay.isPanels) vm.exitSport(restartPaused = false)
         panelsOpen = null
         playerOpen = false
+        if (isTelevision) overlay = TvOverlay.HOME
         ServiceLocator.player.stop()
     }
 
@@ -853,7 +868,8 @@ class MainActivity : ComponentActivity() {
         // only once it has nowhere left to go, so climbing the ladder there moved an invisible
         // overlay and ate the press without changing anything on screen — the same defect the
         // start-up effect above already had to be corrected for.
-        if (isTelevision && stepUpOneOverlay()) return
+        // Behind the sign-in screen there is no ladder to climb (ADR-059): Back leaves.
+        if (isTelevision && !signInFirst && stepUpOneOverlay()) return
         confirmOrExit()
     }
 
@@ -1017,7 +1033,7 @@ class MainActivity : ComponentActivity() {
         // On the phone, browsing shows no video, so there is nothing for a PiP window to keep
         // showing — only the open player screen shrinks into one. The TV shell is always video.
         val prefs = ServiceLocator.settings.state.value
-        val wantsPip = (isTelevision || playerOpen) && prefs.pipEnabled && prefs.pipOnHome
+        val wantsPip = (isTelevision || playerOpen) && prefs.pipEnabled && prefs.pipOnHome && !signInFirst
         if (wantsPip && enterPip()) return
         // Home with no window to go to: silence it now. [onStop] pauses too, but a television
         // launcher animating its rows holds that off for seconds, and the channel played on
@@ -1143,7 +1159,7 @@ class MainActivity : ComponentActivity() {
         if (pausedInBackground) {
             pausedInBackground = false
             // Not behind the sign-in screen (ADR-059), which stopped the stream on purpose.
-            if (isTelevision || !ServiceLocator.account.gated.value) ServiceLocator.player.setPlayWhenReady(true)
+            if (!signInFirst) ServiceLocator.player.setPlayWhenReady(true)
         }
     }
 
@@ -1249,7 +1265,7 @@ class MainActivity : ComponentActivity() {
      * app that took the sound.
      */
     private fun resumeIfFocusTookIt() {
-        if (!isTelevision) return
+        if (!isTelevision || signInFirst) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode) return
         ServiceLocator.player.resumeAfterAudioFocusLoss()
     }
