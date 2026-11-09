@@ -121,6 +121,23 @@ Most IPTV live streams are clear, but plan for it:
 - DataStore for settings; encrypted storage for credentials
   (`EncryptedSharedPreferences` / Tink, or Keystore-wrapped keys).
 
+## 7.8a Accounts (ADR-059)
+
+- **Firebase**, without the Google Services Gradle plugin: `app/build.gradle.kts` reads
+  `google-services.json` from the path in `FIREBASE_ANDROID_CONFIG_PATH` (CI, from a secret) or
+  `app/google-services.json` (local, ignored by git) and writes the variant's client into
+  `BuildConfig`. `FirebaseSetup` builds the `FirebaseOptions` from it; with no file the fields are
+  empty and the app has no accounts.
+- `data/account/AccountRepository` (in `ServiceLocator`) owns the Firebase app, the Auth state, the
+  `config/app.requireSignIn` listener, Credential Manager sign-in, the pairing calls and account
+  deletion. `gated` is the one answer both shells and the activity's key handlers read.
+- `MainActivity` draws `ui/account/SignInScreen` in place of either shell while `gated`. On a
+  television it is `TvSignIn`: Credential Manager on API 34+, and always the QR code and code,
+  polling `claimPairing`. Settings → Account (`AccountSection`) signs in, out, and deletes.
+- The server side is `firebase/` (rules, Functions, the approval pages), deployed by
+  `.github/workflows/firebase.yml`.
+- No permission is added: Credential Manager and Firebase need only `INTERNET`.
+
 ## 7.9 Permissions to request (and justify)
 
 | Permission | Why |

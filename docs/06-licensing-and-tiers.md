@@ -46,6 +46,9 @@ playlists, more screens, more devices, more automation — not for *working*.
 
 ## 6.3 Entitlement mechanics
 
+*As built (ADR-059): one flag per entitlement on the account, set by hand; the device list and
+device limit below are not planned yet.*
+
 - One account, N devices (default 5), managed from an in-app device list with the ability
   to deactivate a device remotely.
 - Entitlement checked at launch and cached; **grace period of at least 14 days offline**
@@ -66,8 +69,21 @@ playlists, more screens, more devices, more automation — not for *working*.
 
 ## 6.5 Accounts and privacy
 
-- Account is required only for paid entitlement and cloud sync. The free tier must be
-  fully usable with no account.
-- Playlist credentials are user secrets: encrypted at rest on device; if synced, encrypted
-  client-side with a key derived from the user's password, so the server never sees them.
+Revised 2026-11-09 by ADR-059; this replaces the rule that the free tier needs no account.
+
+- **Android (phone and Google TV): a Google account is required, the free tier included.** The
+  requirement is switched on remotely (`config/app.requireSignIn` in Firestore) and ships off, so
+  the owner turns it on after checking it on his own devices.
+- **Web: only a registered, paying subscriber** (`entitlements.web`) uses Shidur for the computer.
+- **iPhone:** later. **webOS:** out of scope.
+- Accounts are Firebase Authentication with Google. A television signs in with Google itself on
+  Android 14 and later, or from a phone with a QR code and a short code.
+- Entitlements are a field on the account's own document (`users/{uid}.entitlements`), written
+  only by the server or by hand in the console. There is no payment yet: no Play Billing, no
+  Stripe, no RevenueCat.
+- An account can be deleted from the app (Settings → Account) and from a web page, which removes
+  the account and everything stored with it on the server.
+- Playlist credentials are user secrets: encrypted at rest on device. **Whether they are synced at
+  all is open** (ADR-059, *Open*): either encrypted client-side with a key the server never sees,
+  or not synced and typed again on each device.
 - No telemetry by default; opt-in crash reporting with a clear description of what is sent.
