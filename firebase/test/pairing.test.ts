@@ -14,10 +14,10 @@ import { connectFunctionsEmulator, getFunctions, httpsCallable, type Functions }
 /**
  * The whole television pairing against the emulators (ADR-059): the television asks for a code,
  * the phone signs in with Google and approves it, the television claims a custom token and signs
- * in as the same account. Then the profile the trigger made, and deleting the account.
+ * in as the same account. Then the profile ensureProfile makes, and deleting the account.
  */
 const PROJECT = 'demo-shidur';
-const REGION = 'europe-west1';
+const REGION = 'me-west1';
 
 interface Client {
   app: FirebaseApp;
@@ -116,29 +116,65 @@ describe('television pairing', () => {
 });
 
 describe('the account', () => {
+  // Read and written as the emulators' owner, which neither the rules nor a signed-in user limit.
+  const owner = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' };
+  const profileUrl = (uid: string) =>
+    `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/users/${uid}`;
+
+  async function profile(c: Client): Promise<Record<string, unknown> | undefined> {
+    const db = getFirestore(c.app);
+    return (await getDoc(doc(db, 'users', c.auth.currentUser!.uid))).data();
+  }
+
+  beforeAll(() => {
+    connectFirestoreEmulator(getFirestore(phone.app), '127.0.0.1', 8080);
+  });
+
+  it('has no profile until ensureProfile is called', async () => {
+    expect(await profile(phone)).toBeUndefined();
+  });
+
   it('gets a profile with every entitlement off', async () => {
-    const db = getFirestore(phone.app);
-    connectFirestoreEmulator(db, '127.0.0.1', 8080);
-    const ref = doc(db, 'users', phone.auth.currentUser!.uid);
-    let data: Record<string, unknown> | undefined;
-    for (let i = 0; i < 40 && !data; i++) {
-      data = (await getDoc(ref)).data();
-      if (!data) await new Promise((r) => setTimeout(r, 250));
-    }
+    expect(await call(phone, 'ensureProfile', {})).toEqual({ created: true });
+    const data = await profile(phone);
     expect(data?.entitlements).toEqual({ premium: false, web: false });
     expect(data?.displayName).toBe('Viewer');
+  });
+
+  it('leaves an existing profile alone, entitlements the owner granted included', async () => {
+    const uid = phone.auth.currentUser!.uid;
+    const granted = await fetch(`${profileUrl(uid)}?updateMask.fieldPaths=entitlements`, {
+      method: 'PATCH',
+      headers: owner,
+      body: JSON.stringify({
+        fields: {
+          entitlements: { mapValue: { fields: { premium: { booleanValue: true }, web: { booleanValue: true } } } },
+        },
+      }),
+    });
+    expect(granted.status).toBe(200);
+    expect(await call(phone, 'ensureProfile', {})).toEqual({ created: false });
+    // The television, signed in by pairing as the same account, does not reset it either.
+    expect(await call(tv, 'ensureProfile', {})).toEqual({ created: false });
+    const data = await profile(phone);
+    expect(data?.entitlements).toEqual({ premium: true, web: true });
+    expect(data?.displayName).toBe('Viewer');
+  });
+
+  it('refuses a caller who is not signed in', async () => {
+    const stranger = client('stranger');
+    try {
+      expect(await code(call(stranger, 'ensureProfile', {}))).toBe('functions/unauthenticated');
+    } finally {
+      await deleteApp(stranger.app);
+    }
   });
 
   it('is deleted, documents and all', async () => {
     const uid = phone.auth.currentUser!.uid;
     expect(await call(phone, 'deleteAccount', {})).toEqual({ ok: true });
-    // Read as the emulators' owner, which neither the rules nor a signed-in user limit.
-    const owner = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' };
-    const profile = await fetch(
-      `http://127.0.0.1:8080/v1/projects/${PROJECT}/databases/(default)/documents/users/${uid}`,
-      { headers: owner },
-    );
-    expect(profile.status).toBe(404);
+    const stored = await fetch(profileUrl(uid), { headers: owner });
+    expect(stored.status).toBe(404);
     const lookup = await fetch(
       `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:lookup`,
       { method: 'POST', headers: owner, body: JSON.stringify({ localId: [uid] }) },

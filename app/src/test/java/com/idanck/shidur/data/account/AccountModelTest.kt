@@ -26,6 +26,15 @@ class AccountModelTest {
     }
 
     @Test
+    fun `the profile is checked once per sign-in, and again only after a failure`() {
+        assertTrue(profileCheckNeeded("u1", confirmedUid = null, runningUid = null))
+        assertFalse(profileCheckNeeded("u1", confirmedUid = "u1", runningUid = null))
+        assertFalse(profileCheckNeeded("u1", confirmedUid = null, runningUid = "u1"))
+        assertTrue(profileCheckNeeded("u2", confirmedUid = "u1", runningUid = null))
+        assertTrue(profileCheckNeeded("u2", confirmedUid = null, runningUid = "u1"))
+    }
+
+    @Test
     fun `a pairing is read from the function's answer`() {
         val pairing = parsePairing(
             mapOf(

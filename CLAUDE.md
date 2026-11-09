@@ -116,7 +116,7 @@ station outright belongs in the upstream script, not here.
 The app signs in with Google on Firebase. `firebase/` holds the Firestore rules, the Cloud
 Functions and the Hosting pages; its CI is `.github/workflows/firebase.yml`, which `android.yml`
 ignores, and `cd firebase && npm ci && npm --prefix functions ci && npm run check` runs in the
-cloud sandbox (the emulator tests too, except the Auth trigger, which the sandbox's proxy blocks).
+cloud sandbox, and so does `npm run emulated` (rules and the whole pairing against the emulators).
 Nothing about the Firebase project is in the repository: the app's `google-services.json` is the
 `FIREBASE_ANDROID_CONFIG` secret, read by `app/build.gradle.kts` without the Google Services
 plugin, and a build without it has no accounts and must still start. It needs a client for

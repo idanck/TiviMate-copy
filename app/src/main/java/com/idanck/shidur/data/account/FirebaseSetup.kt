@@ -12,9 +12,10 @@ object FirebaseSetup {
 
     /**
      * Where the callable functions run. The same constant is in `firebase/functions/src/config.ts`
-     * and `firebase/hosting/src/firebase.ts`; a function is addressed by its region.
+     * and `firebase/hosting/src/firebase.ts`; a function is addressed by its region. `me-west1`
+     * (Tel Aviv), where Firestore is.
      */
-    const val FUNCTIONS_REGION = "europe-west1"
+    const val FUNCTIONS_REGION = "me-west1"
 
     val isConfigured: Boolean
         get() = BuildConfig.FIREBASE_API_KEY.isNotBlank() &&

@@ -12,7 +12,7 @@ service cloud.firestore {
     }
 
     // An account's own document: `createdAt`, `displayName`, `entitlements`. Created by the
-    // createProfile function; `entitlements` is written only by Functions or by hand in the
+    // ensureProfile function; `entitlements` is written only by Functions or by hand in the
     // console, so no client write is allowed here at all.
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
