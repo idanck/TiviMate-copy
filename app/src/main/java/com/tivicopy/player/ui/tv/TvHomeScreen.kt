@@ -75,6 +75,7 @@ import com.tivicopy.player.ui.common.rememberQuietPrefetchScheduler
 import com.tivicopy.player.ui.common.ProgrammeProgress
 import com.tivicopy.player.ui.common.SectionHeader
 import com.tivicopy.player.ui.common.StudioButton
+import com.tivicopy.player.ui.common.StudioButtonSize
 import com.tivicopy.player.ui.common.isLive
 import com.tivicopy.player.ui.common.monogram
 import com.tivicopy.player.ui.common.monogramColour
@@ -97,9 +98,10 @@ import com.tivicopy.player.ui.common.StudioIcons
  * `TvOverlay.HOME` therefore no longer sets `docksPlayer`, and `OverlayScaffold` draws neither a
  * scrim nor a content inset around it: a full-bleed banner cannot start 24dp from the edge.
  *
- * Everything is one `LazyColumn`, banner included, so pressing Down from the banner scrolls it
- * away and hands the whole panel to the rails — the same thing the benchmark does, and the reason
- * the rails are not squeezed into whatever is left under a pinned hero.
+ * The banner is pinned and only the rails scroll, in an opaque panel under it (ADR-058, the
+ * owner's choice on 2026-11-09): pressing Down from the banner moves the remote into the panel and
+ * the panel scrolls from rail to rail, while the picture above stays in sight. Until 0.21.6 the
+ * banner was the first row of one `LazyColumn` and scrolled away with it, taking the picture.
  *
  * Three rules from the rest of the shell are load-bearing here and are easy to undo by accident:
  *
@@ -216,6 +218,9 @@ fun TvHomeScreen(
     // drawn over video in this shell obeys it, and this one is drawn over video at all times.
     val backdrop = MaterialTheme.colorScheme.background
     val scrim = backdrop.copy(alpha = prefs.overlayOpacity)
+    // The panel the rails scroll in: the same ground, fully opaque, so nothing of the picture
+    // shows through the cards (ADR-058).
+    val panel = backdrop.copy(alpha = 1f)
 
     // Room the side menu's closed strip needs at the leading edge, kept by every row's *content*
     // rather than by padding the list, so the rows stay full-bleed under the strip. The strip's
@@ -228,68 +233,74 @@ fun TvHomeScreen(
     val prefetch = rememberQuietPrefetchScheduler()
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            // The two rails past either edge, built before the remote gets there.
-            state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2) }),
-            modifier = Modifier
-                .fillMaxSize()
-                .focusGroup(),
-        ) {
-            item(key = "hero") {
-                KeepComposed()
-                HomeBanner(
-                    channel = state.currentChannel,
-                    now = state.now,
-                    next = state.next,
-                    live = state.nowPlaying.isLive(),
-                    height = metrics.homeHeroHeight,
-                    backdrop = backdrop,
-                    scrim = scrim,
-                    startInset = railGutter,
-                    watchFocus = heroFocus.takeIf { heroIsFocusable },
-                    focusReturn = focusReturn,
-                    onFullscreen = onFullscreen,
-                    onGuide = { onOpen(TvOverlay.GUIDE) },
-                    onFavourite = { vm.setFavourite(it, !it.favourite) },
-                )
-            }
+        Column(modifier = Modifier.fillMaxSize()) {
+            // The banner never scrolls (ADR-058): the picture above it stays in sight however far
+            // down the rails the viewer goes. Its shade thins from the panel's opaque ground up to the
+            // viewer's overlay level and then to nothing.
+            HomeBanner(
+                channel = state.currentChannel,
+                now = state.now,
+                next = state.next,
+                live = state.nowPlaying.isLive(),
+                height = metrics.homeHeroHeight,
+                backdrop = backdrop,
+                scrim = scrim,
+                panel = panel,
+                startInset = railGutter,
+                watchFocus = heroFocus.takeIf { heroIsFocusable },
+                focusReturn = focusReturn,
+                onFullscreen = onFullscreen,
+                onGuide = { onOpen(TvOverlay.GUIDE) },
+                onFavourite = { vm.setFavourite(it, !it.favourite) },
+            )
 
-            if (apps.isNotEmpty()) {
-                item(key = "apps") {
+            // Only this panel scrolls: the rails move inside it, on the opaque ground, and the banner
+            // and the picture above it stay where they are.
+            LazyColumn(
+                // The two rails past either edge, built before the remote gets there.
+                state = rememberLazyListState(prefetchStrategy = remember(prefetch) { AheadPrefetch(prefetch, ahead = 2) }),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .background(panel)
+                    .focusGroup(),
+            ) {
+                if (apps.isNotEmpty()) {
+                    item(key = "apps") {
+                        KeepComposed()
+                        HomeAppStrip(
+                            apps = apps,
+                            background = panel,
+                            startInset = railGutter,
+                            focusReturn = focusReturn,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+
+                itemsIndexed(rails, key = { _, rail -> rail.id.name }) { index, rail ->
                     KeepComposed()
-                    HomeAppStrip(
-                        apps = apps,
-                        background = scrim,
+                    HomeCardRail(
+                        title = titles[rail.id].orEmpty(),
+                        // The rail's place in the list: under the banner, and under the apps when
+                        // there are any.
+                        row = index + if (apps.isEmpty()) 1 else 2,
+                        cards = rail.cards,
+                        playingChannelId = state.currentChannel?.id,
+                        cardWidth = metrics.homeCardWidth,
+                        background = panel,
+                        firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
                         startInset = railGutter,
                         focusReturn = focusReturn,
-                        modifier = Modifier.fillMaxWidth(),
+                        prefetch = prefetch,
+                        onOpen = open,
                     )
                 }
-            }
 
-            itemsIndexed(rails, key = { _, rail -> rail.id.name }) { index, rail ->
-                KeepComposed()
-                HomeCardRail(
-                    title = titles[rail.id].orEmpty(),
-                    // The rail's place in the list: under the banner, and under the apps when
-                    // there are any.
-                    row = index + if (apps.isEmpty()) 1 else 2,
-                    cards = rail.cards,
-                    playingChannelId = state.currentChannel?.id,
-                    cardWidth = metrics.homeCardWidth,
-                    background = scrim,
-                    firstCardFocus = firstCard.takeIf { rail.id == rails.firstOrNull()?.id },
-                    startInset = railGutter,
-                    focusReturn = focusReturn,
-                    prefetch = prefetch,
-                    onOpen = open,
-                )
-            }
-
-            // The backdrop has to reach the bottom of the panel when the list is scrolled to its
-            // end; without this the last rail's cards sit against bare video.
-            item(key = "tail") {
-                Spacer(modifier = Modifier.fillMaxWidth().height(24.dp).background(scrim))
+                // Room under the last rail, so its captions do not sit on the panel's lower edge.
+                item(key = "tail") {
+                    Spacer(modifier = Modifier.fillMaxWidth().height(24.dp))
+                }
             }
         }
 
@@ -330,6 +341,8 @@ private fun HomeBanner(
     height: Dp,
     backdrop: Color,
     scrim: Color,
+    /** The rails' opaque panel, which the banner's shade reaches at its foot. */
+    panel: Color,
     /** Room kept clear at the leading edge for the side menu's strip drawn over this. */
     startInset: Dp,
     /** Null when nothing is playing: there is no button to focus, so nothing asks for it. */
@@ -345,10 +358,14 @@ private fun HomeBanner(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
+                    // In steps, from the top: nothing, a light shade, the viewer's overlay level,
+                    // and at the foot the panel's opaque ground, so the banner runs into the rails'
+                    // panel with no edge between them (ADR-058).
                     Brush.verticalGradient(
                         0f to Color.Transparent,
-                        0.45f to backdrop.copy(alpha = 0.30f),
-                        1f to scrim,
+                        0.40f to backdrop.copy(alpha = 0.30f),
+                        0.72f to scrim,
+                        1f to panel,
                     ),
                 ),
         )
@@ -432,9 +449,11 @@ private fun HomeBanner(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 7.dp),
                 ) {
+                    // Medium buttons (64px at 1080p, ADR-058): the banner's actions, not its subject.
                     StudioButton(
                         label = stringResource(R.string.home_watch_fullscreen),
                         icon = StudioIcons.Fullscreen,
+                        size = StudioButtonSize.MEDIUM,
                         onClick = onFullscreen,
                         modifier = Modifier.notesFocus(focusReturn),
                         focusRequester = watchFocus,
@@ -442,6 +461,7 @@ private fun HomeBanner(
                     StudioButton(
                         label = stringResource(R.string.nav_guide),
                         icon = StudioIcons.Guide,
+                        size = StudioButtonSize.MEDIUM,
                         onClick = onGuide,
                         modifier = Modifier.notesFocus(focusReturn),
                     )
@@ -451,6 +471,9 @@ private fun HomeBanner(
                         ),
                         icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                         iconOnly = true,
+                        size = StudioButtonSize.MEDIUM,
+                        // A favourite is amber, filled and ringed, focused or not.
+                        active = channel.favourite,
                         onClick = { onFavourite(channel) },
                         modifier = Modifier.notesFocus(focusReturn),
                     )

@@ -265,6 +265,7 @@ fun TransportBar(
                         else R.string.action_favourite,
                     ),
                     onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
+                    active = liveChannel.favourite,
                 )
             }
             TransportButton(
@@ -303,6 +304,8 @@ private fun TransportButton(
     onClick: () -> Unit,
     focusRequester: FocusRequester? = null,
     labelled: Boolean = false,
+    /** A toggle that is on, such as a set favourite: amber (`StudioButton`'s `active`). */
+    active: Boolean = false,
 ) {
     StudioButton(
         label = description,
@@ -311,6 +314,7 @@ private fun TransportButton(
         iconOnly = !labelled,
         size = StudioButtonSize.MEDIUM,
         focusRequester = focusRequester,
+        active = active,
     )
 }
 

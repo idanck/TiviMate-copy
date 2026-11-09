@@ -161,7 +161,8 @@ fun tvMetricsFor(widthDp: Float, heightDp: Float): TvMetrics {
         // Never narrower than Studio's 56dp strip: below that a focused icon's ring is cropped.
         homeNavRailCollapsedWidth = (base.homeNavRailCollapsedWidth * scale).coerceAtLeast(base.homeNavRailCollapsedWidth),
         homeHeroHeight = heroHeightFor(heightDp).dp,
-        homeCardWidth = base.homeCardWidth * scale,
+        // A fifth smaller than the 180dp it was (ADR-058): more of each rail in the panel.
+        homeCardWidth = TV_HOME_CARD_WIDTH * scale,
         // Flat, not scaled. These are about how a shape reads at a viewing distance, and a
         // bigger panel does not move the sofa: a 4K television wants the same corner and the same
         // ring as a 1080p one, which is exactly what scaling them would take away.
@@ -236,6 +237,9 @@ private const val MAX_HERO_HEIGHT = 560f
 
 /** How much of the first rail has to stay on screen under the banner. */
 private const val RAIL_TEASER_HEIGHT = 150f
+
+/** A home rail's card on a 1080p television: 288px (`Main.dc.html` draws it at 256). */
+private val TV_HOME_CARD_WIDTH = 144.dp
 
 private const val MIN_SCALE = 0.85f
 private const val MAX_SCALE = 1.6f

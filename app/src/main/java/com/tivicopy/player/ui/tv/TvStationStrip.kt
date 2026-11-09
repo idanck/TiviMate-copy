@@ -26,6 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -59,6 +62,11 @@ private fun RadioCategory.bucket(): StripBucket = when (this) {
  * heading and a chip per category (national, regional, everything else), and under them the
  * stations' discs, the one on air ringed in the tally and the one the remote is on in the cue.
  * OK on a disc tunes it. It opens on the category of the station that is playing.
+ *
+ * The categories are the remote's too (ADR-058): ▲ from any station goes to the chosen category's
+ * chip — not to whatever lies nearest above, which from the far end of the row was the play
+ * button, so the chips could not be reached at all — ◀▶ walk the chips, and the stations follow
+ * the chip under the remote without OK, as a tab row does on a television. ▼ goes back down.
  */
 @Composable
 internal fun TvStationStrip(
@@ -79,8 +87,11 @@ internal fun TvStationStrip(
     val listState = rememberLazyListState()
     LaunchedEffect(selected, current?.id) {
         val at = shown.indexOfFirst { it.id == current?.id }
-        if (at >= 0) listState.scrollToItem(at)
+        // Another category starts at its first station, not where the last one was left.
+        listState.scrollToItem(if (at >= 0) at else 0)
     }
+    // One per category, so ▲ from the stations can land on the chosen one.
+    val chipFocus = remember { StripBucket.entries.associateWith { FocusRequester() } }
     val studio = StudioTheme.colors
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(
@@ -103,12 +114,16 @@ internal fun TvStationStrip(
                         },
                     ),
                     selected = bucket == selected,
+                    focusRequester = chipFocus.getValue(bucket),
+                    onFocused = { selected = bucket },
                     onClick = { selected = bucket },
                 )
             }
         }
         LazyRow(
             state = listState,
+            // Applies to every station in the row: ▲ goes to the chosen category's chip.
+            modifier = Modifier.focusProperties { up = chipFocus.getValue(selected) },
             contentPadding = PaddingValues(horizontal = STRIP_SAFE_X, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -125,14 +140,25 @@ internal fun TvStationStrip(
 
 /** Studio's chip (`canvas/Chip.dc.html`): a quiet surface, ink when chosen, the cue under focus. */
 @Composable
-private fun StripChip(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun StripChip(
+    label: String,
+    selected: Boolean,
+    focusRequester: FocusRequester,
+    /** Called as the remote reaches the chip: the category follows the remote, no OK needed. */
+    onFocused: () -> Unit,
+    onClick: () -> Unit,
+) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(LocalTvMetrics.current.chipCorner)
     Box(
         modifier = Modifier
             .focusLift(focused, shape = shape)
             .focusSurface(focused = focused, shape = shape, selected = selected, fill = FocusFill.FILLED)
-            .onFocusChanged { focused = it.isFocused }
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocused()
+            }
+            .focusRequester(focusRequester)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 5.dp),
     ) {

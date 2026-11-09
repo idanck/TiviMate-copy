@@ -72,6 +72,10 @@ enum class StudioButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
  * @param enabled false draws the button at the canvas's disabled opacity and takes it out of the
  *   focus order, so the remote steps over it rather than landing on something that does nothing
  * @param focusRequester lets a screen land the remote here first
+ * @param active a toggle that is on — a favourite that is set (ADR-058). On a television it is the
+ *   "current" amber: amber glass, an amber ring and an amber glyph at rest, and under focus an
+ *   amber surface with dark content instead of the white one, so on and off never look alike,
+ *   focused or not. A phone shows the toggle by its glyph alone, as before.
  */
 @Composable
 fun StudioButton(
@@ -84,6 +88,7 @@ fun StudioButton(
     size: StudioButtonSize = StudioButtonSize.LARGE,
     enabled: Boolean = true,
     focusRequester: FocusRequester? = null,
+    active: Boolean = false,
 ) {
     if (!StudioTheme.television) {
         PhoneButton(
@@ -122,6 +127,8 @@ fun StudioButton(
     // as the remote was handed back to "Full screen" (device trace, 0.20.7).
     val fill = animatedColourState(
         when {
+            active && focused -> studio.current
+            active -> studio.currentGlass
             focused -> studio.cue
             primary -> studio.light.copy(alpha = PRIMARY_GLASS_ALPHA)
             ghost -> studio.control.copy(alpha = 0f)
@@ -130,6 +137,8 @@ fun StudioButton(
     )
     val edge = animatedColourState(
         when {
+            active && focused -> studio.current
+            active -> studio.currentEdge
             focused -> studio.cue
             ghost -> studio.edgeLine.copy(alpha = 0f)
             else -> studio.edgeLine
@@ -137,6 +146,8 @@ fun StudioButton(
     )
     val content = animatedColourState(
         when {
+            active && focused -> studio.onCurrent
+            active -> studio.current
             focused -> studio.onCue
             ghost -> studio.ink2
             variant == StudioButtonVariant.DANGER -> studio.error
@@ -154,7 +165,7 @@ fun StudioButton(
                 drawRect(fill.value)
                 // One width at rest and focused (`Focus.kt`); only the colour crosses. Inside the
                 // pill, as `border` draws it.
-                val stroke = BUTTON_EDGE.toPx()
+                val stroke = (if (active) ACTIVE_EDGE else BUTTON_EDGE).toPx()
                 drawRoundRect(
                     color = edge.value,
                     topLeft = Offset(stroke / 2, stroke / 2),
@@ -202,6 +213,9 @@ fun StudioButton(
 
 /** The television button's edge, at rest and focused alike. */
 private val BUTTON_EDGE = 1.dp
+
+/** An [active] button's amber ring: twice the edge, so it reads from the sofa. */
+private val ACTIVE_EDGE = 2.dp
 
 /** The medium button's label is 24px against the large one's 28 at 1080p. */
 private const val MEDIUM_LABEL_SCALE = 24f / 28f
