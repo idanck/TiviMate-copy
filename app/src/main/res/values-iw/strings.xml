@@ -586,4 +586,46 @@
     <string name="handover_remind_title">הגרסה הקודמת עדיין מותקנת</string>
     <string name="handover_remind_body">אין בה צורך יותר. זו הפעם האחרונה שנזכיר אותה.</string>
     <string name="handover_remove">הסר</string>
+
+    <!-- YouTube (ADR-061) -->
+    <string name="nav_youtube">YouTube</string>
+    <string name="yt_rail_live">בשידור חי עכשיו</string>
+    <string name="yt_rail_live_caption">מהערוצים ששמרת</string>
+    <string name="yt_rail_recent">חדש מהערוצים שלך</string>
+    <string name="yt_rail_channels">הערוצים שלך</string>
+    <string name="yt_rail_channels_caption">שמורים ב־Shidur, גם בלי חשבון YouTube</string>
+    <string name="yt_rail_continue">המשך צפייה</string>
+    <string name="yt_add_channel">הוספת ערוץ</string>
+    <string name="yt_fullscreen">מסך מלא</string>
+    <string name="yt_to_channel">לערוץ</string>
+    <string name="yt_save_channel">שמור בערוצים שלך</string>
+    <string name="yt_saved_channel">הערוץ שמור אצלך</string>
+    <string name="yt_channel_kind">ערוץ YouTube</string>
+    <string name="yt_tab_live">חי ובקרוב</string>
+    <string name="yt_tab_videos">סרטונים</string>
+    <string name="yt_subscribers">%1$s מנויים</string>
+    <string name="yt_video_count">%1$s סרטונים</string>
+    <string name="yt_viewers">%1$s צופים כעת</string>
+    <string name="yt_started_at">התחיל ב־%1$s</string>
+    <string name="yt_scheduled_at">מתוכנן ל־%1$s</string>
+    <string name="yt_live_list">בשידור חי</string>
+    <string name="yt_live_list_hint">▲▼ בין הערוצים · OK לצפייה · חזרה לסגירה</string>
+    <string name="yt_nothing_playing">בחר שידור או סרטון מהמדפים למטה</string>
+    <string name="yt_no_live">אין כרגע שידור חי בערוצים ששמרת</string>
+    <string name="yt_channel_empty">אין כאן עדיין כלום</string>
+    <string name="yt_problem_unavailable">YouTube לא זמין בגרסה הזאת</string>
+    <string name="yt_problem_offline">אין חיבור לשרת. ננסה שוב בעוד רגע.</string>
+    <string name="yt_problem_quota">המכסה היומית של YouTube נגמרה. היא מתחדשת בכל בוקר, ועד אז מוצג המידע האחרון שנשמר.</string>
+    <string name="yt_problem_other">YouTube לא ענה. ננסה שוב בעוד רגע.</string>
+    <string name="yt_not_embeddable">בעל הערוץ מתיר לצפות בזה רק ב־YouTube</string>
+    <string name="yt_open_in_app">פתח ב־YouTube</string>
+    <string name="yt_video_gone">הסרטון או השידור כבר לא זמינים</string>
+    <string name="yt_add_title">הוספת ערוץ YouTube</string>
+    <string name="yt_add_hint">כתובת ערוץ, ‎@handle או מזהה ערוץ</string>
+    <string name="yt_add_action">הוסף</string>
+    <string name="yt_add_not_found">לא נמצא ערוץ כזה</string>
+    <string name="yt_add_already">הערוץ כבר שמור אצלך</string>
+    <string name="yt_remove_channel">הסר מהערוצים שלך</string>
+    <string name="yt_live_badge">חי</string>
+    <string name="yt_upcoming_badge">בקרוב</string>
 </resources>

@@ -618,4 +618,46 @@
     <string name="handover_remind_title">The previous version is still installed</string>
     <string name="handover_remind_body">It is no longer needed. This is the last time it is mentioned.</string>
     <string name="handover_remove">Remove</string>
+
+    <!-- YouTube (ADR-061) -->
+    <string name="nav_youtube">YouTube</string>
+    <string name="yt_rail_live">Live now</string>
+    <string name="yt_rail_live_caption">From your saved channels</string>
+    <string name="yt_rail_recent">New from your channels</string>
+    <string name="yt_rail_channels">Your channels</string>
+    <string name="yt_rail_channels_caption">Kept in Shidur, no YouTube account needed</string>
+    <string name="yt_rail_continue">Continue watching</string>
+    <string name="yt_add_channel">Add a channel</string>
+    <string name="yt_fullscreen">Full screen</string>
+    <string name="yt_to_channel">Channel</string>
+    <string name="yt_save_channel">Save to your channels</string>
+    <string name="yt_saved_channel">Saved to your channels</string>
+    <string name="yt_channel_kind">YouTube channel</string>
+    <string name="yt_tab_live">Live and upcoming</string>
+    <string name="yt_tab_videos">Videos</string>
+    <string name="yt_subscribers">%1$s subscribers</string>
+    <string name="yt_video_count">%1$s videos</string>
+    <string name="yt_viewers">%1$s watching now</string>
+    <string name="yt_started_at">Started at %1$s</string>
+    <string name="yt_scheduled_at">Scheduled for %1$s</string>
+    <string name="yt_live_list">Live</string>
+    <string name="yt_live_list_hint">▲▼ between channels · OK to watch · Back to close</string>
+    <string name="yt_nothing_playing">Pick a stream or a video below</string>
+    <string name="yt_no_live">None of your channels is live right now</string>
+    <string name="yt_channel_empty">Nothing here yet</string>
+    <string name="yt_problem_unavailable">YouTube is not available in this build</string>
+    <string name="yt_problem_offline">The server could not be reached. Trying again shortly.</string>
+    <string name="yt_problem_quota">Today\'s YouTube quota has run out. It renews every morning; until then you see what was last fetched.</string>
+    <string name="yt_problem_other">YouTube did not answer. Trying again shortly.</string>
+    <string name="yt_not_embeddable">The channel\'s owner lets this one play on YouTube only</string>
+    <string name="yt_open_in_app">Open in YouTube</string>
+    <string name="yt_video_gone">This video or stream is no longer available</string>
+    <string name="yt_add_title">Add a YouTube channel</string>
+    <string name="yt_add_hint">A channel address, @handle or channel ID</string>
+    <string name="yt_add_action">Add</string>
+    <string name="yt_add_not_found">No such channel</string>
+    <string name="yt_add_already">Already in your channels</string>
+    <string name="yt_remove_channel">Remove from your channels</string>
+    <string name="yt_live_badge">Live</string>
+    <string name="yt_upcoming_badge">Upcoming</string>
 </resources>

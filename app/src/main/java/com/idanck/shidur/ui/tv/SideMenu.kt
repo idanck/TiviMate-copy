@@ -159,6 +159,8 @@ internal fun SideMenu(
         MenuDestination(stringResource(R.string.nav_sport), StudioIcons.Sport, TvOverlay.SPORT),
         // News mode (ADR-042) follows Sport mode, and is the same kind of screen.
         MenuDestination(stringResource(R.string.nav_news), StudioIcons.News, TvOverlay.NEWS),
+        // YouTube's own screen (ADR-061) follows News: its player in a frame of its own.
+        MenuDestination(stringResource(R.string.nav_youtube), StudioIcons.Stream, TvOverlay.YOUTUBE),
         MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
     ).filter { showRadio || it.overlay != TvOverlay.RADIO }
     val tools = listOf(

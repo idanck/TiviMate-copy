@@ -1,6 +1,6 @@
 # ADR-061 — YouTube inside Shidur
 
-**Status:** accepted 2026-11-09. Stage 1 (the server) built; stages 2–4 (television, phone) follow.
+**Status:** accepted 2026-11-09. Stage 1 (the server) and stage 2 (the television's screen, 0.25.0) built; stages 3–4 follow.
 
 ## Decision
 
@@ -61,6 +61,28 @@ Callables in `me-west1`, beside the account Functions (ADR-059):
 3. Television: search, YouTube channels in the channel list and guide (numbers from 901), the
    states, connecting the account.
 4. Phone: the YouTube tab, the player, the channel page, search, connecting.
+
+### The television (stage 2, 0.25.0)
+
+- `TvOverlay.YOUTUBE` is a browse screen, in the side menu after News; `TvOverlay.YOUTUBE_FULL` is
+  the player alone. While either is up the full-screen player stands down (`AppViewModel.
+  enterYouTube`), and it starts again as the visit ends, unless it ends in Sport or News mode.
+- One player for the whole visit: `YouTubePlayerController` (`ui/common/YouTubePlayer.kt`), the
+  IFrame API in a WebView loaded from `https://com.idanck.shidur/` so its requests carry the app's
+  id as Referer. It takes no focus and no keys; Compose drives it through the API. It is drawn at
+  one place in `TvRoot` (`YouTubePlayerLayer`), placed by absolute pixels over the screen's frame,
+  the whole screen, or the shrunken rectangle beside full screen's list, and so is never made again
+  between them. It pauses when the activity stops, behind a dialog and behind a channel page, and
+  the screensaver never comes up while it plays.
+- The saved channels are on the device (`YouTubeRepository`, SharedPreferences `youtube`), seeded
+  with five Israeli news channels' own channels; "continue watching" is kept there too.
+- The rails: live now on the saved channels, new from them, the channels themselves with a disc
+  that adds one by address, @handle or ID (`ytResolve`), and continue watching. The subscriptions
+  rail and search come with stage 3, with connecting an account.
+- The remote in full screen: OK plays and pauses, ◀▶ jump ten seconds (not on a live stream),
+  ▲▼ and Menu open the live list, CH+/CH− go to the next live channel, Back returns to the screen.
+  The list closes after four seconds without a key.
+- A video whose owner forbids embedding (errors 101/150) gets "Open in YouTube" instead.
 
 ## Rejected
 
