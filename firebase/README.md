@@ -31,8 +31,8 @@ from `localhost`, talk to the emulators too.
 started by hand on `main`, once `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_PROJECT_ID` are set.
 
 The region, `me-west1` (Tel Aviv, where Firestore is), is in `functions/src/config.ts`,
-`hosting/src/firebase.ts` and the app's `FirebaseSetup.kt`, and in `test/pairing.test.ts`. Change
-them together. `me-west1` has only the second generation of Cloud Functions, so nothing here may
+`hosting/src/firebase.ts`, the app's `FirebaseSetup.kt` and the web server's
+`web/server/firebase.mjs`, and in `test/pairing.test.ts`. Change them together. `me-west1` has only the second generation of Cloud Functions, so nothing here may
 use `firebase-functions/v1`: that rules out Auth triggers, and is why `ensureProfile` exists.
 
 Environment, read by the Functions at deploy time from `functions/.env` (not in git):

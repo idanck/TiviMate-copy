@@ -63,3 +63,23 @@ jobs:
           curl -fsS http://127.0.0.1:8787/api/health | jq -e '.ok == true and .remux == true'
           curl -fsS -o /dev/null http://127.0.0.1:8787/
           docker rm -f shidur-web
+
+      - name: The image signs in with Google when given a project
+        working-directory: .
+        run: |
+          set -euo pipefail
+          # A made-up project: enough to start the Firebase mode and refuse a bad token, which
+          # needs firebase-admin in the image and no call to Google.
+          docker run -d --name shidur-web-fb -p 8788:8787 \
+            -e SHIDUR_FIREBASE_PROJECT_ID=demo-shidur \
+            -e SHIDUR_FIREBASE_WEB_CONFIG='{"apiKey":"demo","appId":"1:1:web:1"}' shidur-web:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8788/api/health; then break; fi
+            sleep 1
+          done
+          echo
+          curl -fsS http://127.0.0.1:8788/api/session | jq -e '.mode == "firebase" and .firebase.projectId == "demo-shidur"'
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
+            -d '{"idToken":"not-a-token"}' http://127.0.0.1:8788/api/login)
+          test "$code" = 401
+          docker rm -f shidur-web-fb

@@ -40,7 +40,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: { '/api': 'http://127.0.0.1:8787' },
+    // `/__/` is Firebase Auth's sign-in pages, which the server relays in its Firebase mode.
+    proxy: { '/api': 'http://127.0.0.1:8787', '/__': 'http://127.0.0.1:8787' },
   },
   build: {
     target: 'es2022',

@@ -7,6 +7,7 @@ import {
   addFavourites, addSources, favourites, guideProgress, guides, refreshAll, refreshGuide, refreshing, refreshSource,
   removeSource, serverInfo, setSourceEnabled, sources,
 } from '../state/store';
+import { accountSignOut } from '../account/signout';
 import { Dialog, toast, Toggle } from './common';
 import { Icon } from './icons';
 import { SourceDialog } from './SourceDialog';
@@ -228,7 +229,9 @@ export function SettingsScreen() {
           {info?.authRequired && (
             <div>
               <button class="btn" onClick={async () => {
-                await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
+                // With a Google account, out of it too, or the page would sign straight back in.
+                if (accountSignOut.leave) await accountSignOut.leave().catch(() => {});
+                else await fetch('/api/logout', { method: 'POST', credentials: 'same-origin' });
                 location.reload();
               }}>
                 <Icon name="logout" size={18} /> התנתקות

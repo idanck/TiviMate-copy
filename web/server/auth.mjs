@@ -71,7 +71,7 @@ export class Auth {
 }
 
 /** @param {string} a @param {string} b */
-function safeEqual(a, b) {
+export function safeEqual(a, b) {
   const x = createHash('sha256').update(a).digest();
   const y = createHash('sha256').update(b).digest();
   return timingSafeEqual(x, y) && a.length === b.length;

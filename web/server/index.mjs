@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Auth, COOKIE } from './auth.mjs';
+import { FirebaseGate, relayAuthPage } from './firebase.mjs';
 import { Proxy, sendJson } from './proxy.mjs';
 import { redactUrl } from './redact.mjs';
 
@@ -13,9 +14,14 @@ import { redactUrl } from './redact.mjs';
  * Configuration, all optional:
  *   PORT                      default 8787
  *   HOST                      default 127.0.0.1 (set 0.0.0.0 inside a container)
- *   SHIDUR_WEB_PASSWORD       a password in front of the proxy; strongly advised when reachable
- *                             from anywhere but this machine
- *   SHIDUR_WEB_SECRET         the session-signing key; derived from the password when unset
+ *   SHIDUR_FIREBASE_PROJECT_ID   the Firebase project: sign-in with Google, and only an account
+ *                             whose `entitlements.web` is true gets in (ADR-059). Wins over the
+ *                             password when both are set.
+ *   SHIDUR_FIREBASE_WEB_CONFIG   that project's web app configuration, as JSON (needed with it)
+ *   SHIDUR_WEB_PASSWORD       a password in front of the proxy, when there is no Firebase project;
+ *                             strongly advised when reachable from anywhere but this machine
+ *   SHIDUR_WEB_SECRET         the session-signing key; derived from the password when unset, and
+ *                             random at each start in the Firebase mode
  *   SHIDUR_WEB_ALLOW_PRIVATE  1 to let playlists name LAN addresses (refused by default)
  *   SHIDUR_WEB_USER_AGENT     the default User-Agent towards providers
  *   SHIDUR_WEB_DIST           where the built app is (default ../dist)
@@ -29,6 +35,16 @@ const config = {
 };
 
 const auth = new Auth({ password: process.env.SHIDUR_WEB_PASSWORD, secret: process.env.SHIDUR_WEB_SECRET });
+// With a Firebase project, Google sign-in is the only way in and the password is not read at all.
+const firebase = FirebaseGate.fromEnv(process.env);
+// Loaded now rather than at the first sign-in, so an install without it fails here, loudly, instead
+// of refusing every account as if its token were bad.
+if (firebase) await import('firebase-admin/auth');
+/** @type {'firebase' | 'password' | 'open'} */
+const mode = firebase ? 'firebase' : auth.required ? 'password' : 'open';
+const authRequired = mode !== 'open';
+/** @param {import('node:http').IncomingMessage} req */
+const authenticated = (req) => (firebase ? firebase.valid(req.headers.cookie, COOKIE) : auth.valid(req.headers.cookie));
 const proxy = new Proxy({
   allowPrivate: process.env.SHIDUR_WEB_ALLOW_PRIVATE === '1',
   userAgent: process.env.SHIDUR_WEB_USER_AGENT,
@@ -50,17 +66,23 @@ const TYPES = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
+// Signing in with Google loads Google's frame script and talks to Firebase Auth and the project's
+// Functions; the sign-in frame itself is this site's own (/__/auth/iframe, relayed).
+const SIGN_IN_SCRIPTS = firebase ? ' https://apis.google.com' : '';
+const SIGN_IN_CONNECT = firebase ? ` ${firebase.connectSources.join(' ')}` : '';
+
 const SECURITY_HEADERS = {
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
   'x-frame-options': 'DENY',
   'content-security-policy': [
     "default-src 'self'",
-    "script-src 'self'",
+    `script-src 'self'${SIGN_IN_SCRIPTS}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' https: data: blob:",
     "media-src 'self' blob:",
-    "connect-src 'self'",
+    `connect-src 'self'${SIGN_IN_CONNECT}`,
+    "frame-src 'self'",
     "worker-src 'self' blob:",
     "font-src 'self'",
     "frame-ancestors 'none'",
@@ -72,8 +94,11 @@ const PUBLIC_API = new Set(['/api/health', '/api/session', '/api/login', '/api/l
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://local');
-  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
   try {
+    // Firebase Auth's own pages, relayed with their own headers: they are framed by this site and
+    // run Google's scripts, which this site's policy would refuse.
+    if (firebase && url.pathname.startsWith('/__/')) return await relayAuthPage(req, res, url, firebase);
+    for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
     if (url.pathname.startsWith('/api/')) return await api(req, res, url);
     if (req.method !== 'GET' && req.method !== 'HEAD') return sendJson(res, 405, { error: 'method' });
     return serveStatic(req, res, url.pathname);
@@ -89,15 +114,21 @@ const server = createServer(async (req, res) => {
  */
 async function api(req, res, url) {
   const path = url.pathname;
-  if (!PUBLIC_API.has(path) && !auth.valid(req.headers.cookie)) return sendJson(res, 401, { error: 'auth' });
+  if (!PUBLIC_API.has(path) && !authenticated(req)) return sendJson(res, 401, { error: 'auth' });
 
   switch (path) {
     case '/api/health':
-      return sendJson(res, 200, { ok: true, version, remux: proxy.ffmpeg, authRequired: auth.required });
+      return sendJson(res, 200, { ok: true, version, remux: proxy.ffmpeg, authRequired, mode });
     case '/api/session':
-      return sendJson(res, 200, { authRequired: auth.required, authenticated: auth.valid(req.headers.cookie) });
+      return sendJson(res, 200, {
+        authRequired,
+        authenticated: authenticated(req),
+        mode,
+        ...(firebase ? { firebase: firebase.clientConfig() } : {}),
+      });
     case '/api/login': {
       if (req.method !== 'POST') return sendJson(res, 405, { error: 'method' });
+      if (firebase) return await firebaseLogin(req, res, firebase);
       if (!auth.required) return sendJson(res, 200, { ok: true });
       const body = await readBody(req, 4096);
       let password = '';
@@ -127,6 +158,34 @@ async function api(req, res, url) {
     default:
       return sendJson(res, 404, { error: 'not-found' });
   }
+}
+
+/**
+ * `POST /api/login` in the Firebase mode: `{ idToken }`, a fresh Firebase ID token. The page sends
+ * one when it signs in and again at every renewal (`RENEW_MINUTES`).
+ *
+ * @param {import('node:http').IncomingMessage} req
+ * @param {import('node:http').ServerResponse} res
+ * @param {FirebaseGate} gate
+ */
+async function firebaseLogin(req, res, gate) {
+  // An ID token is a JWT of a kilobyte or two.
+  const body = await readBody(req, 16_384);
+  let idToken = '';
+  try {
+    idToken = String(JSON.parse(body).idToken ?? '');
+  } catch {
+    return sendJson(res, 400, { error: 'bad-request' });
+  }
+  if (!idToken) return sendJson(res, 400, { error: 'bad-request' });
+  const result = await gate.signIn(idToken, req.socket.remoteAddress || 'unknown');
+  if (!result.ok) {
+    // A session that no longer holds — a lost entitlement, a dead token — ends here too.
+    if (result.status === 401 || result.status === 403) res.setHeader('set-cookie', cookie(req, '', 0));
+    return sendJson(res, result.status, { error: result.error });
+  }
+  res.setHeader('set-cookie', cookie(req, result.cookie.value, result.cookie.maxAgeSeconds));
+  return sendJson(res, 200, { ok: true });
 }
 
 /**
@@ -228,10 +287,14 @@ function readVersion() {
 }
 
 server.listen(config.port, config.host, () => {
+  const access = mode === 'firebase' ? `Google sign-in (${firebase?.projectId})` : mode === 'password' ? 'password' : 'open';
   console.log(`Shidur web ${version} on http://${config.host}:${config.port}` +
-    ` · password ${auth.required ? 'on' : 'off'} · remux ${proxy.ffmpeg ? 'on' : 'off (no ffmpeg)'}`);
+    ` · access ${access} · remux ${proxy.ffmpeg ? 'on' : 'off (no ffmpeg)'}`);
+  if (firebase && auth.required) {
+    console.warn('Note: SHIDUR_FIREBASE_PROJECT_ID is set, so SHIDUR_WEB_PASSWORD is ignored: only Google sign-in lets anyone in.');
+  }
   const loopback = config.host === '127.0.0.1' || config.host === '::1' || config.host === 'localhost';
-  if (!auth.required && !loopback) {
-    console.warn('Warning: listening beyond this machine without SHIDUR_WEB_PASSWORD — anyone who reaches it can use the proxy.');
+  if (mode === 'open' && !loopback) {
+    console.warn('Warning: listening beyond this machine without SHIDUR_WEB_PASSWORD or a Firebase project — anyone who reaches it can use the proxy.');
   }
 });

@@ -10,6 +10,8 @@ import { flashInfo, PlayerHost, typedNumber } from './PlayerHost';
 import { RadioScreen } from './RadioScreen';
 import { SearchScreen } from './SearchScreen';
 import { SettingsScreen } from './SettingsScreen';
+import type { Outcome, WebConfig } from '../account/google';
+import { accountSignOut } from '../account/signout';
 
 const NAV: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: 'live', label: 'ערוצים', icon: 'tv' },
@@ -18,17 +20,64 @@ const NAV: Array<{ id: Screen; label: string; icon: IconName }> = [
   { id: 'search', label: 'חיפוש', icon: 'search' },
 ];
 
-type Gate = 'checking' | 'signin' | 'open' | 'offline';
+/**
+ * What stands in front of the app: nothing, the server's password, or — when the server has a
+ * Firebase project — a Google account with a web subscription (ADR-059, stage 5).
+ */
+type Gate = 'checking' | 'signin' | 'google' | 'inactive' | 'open' | 'offline';
+
+interface ServerSession {
+  authRequired: boolean;
+  authenticated: boolean;
+  /** Absent from a server older than the Firebase mode, which then means the password or none. */
+  mode?: 'firebase' | 'password' | 'open';
+  firebase?: WebConfig;
+}
+
+type Account = typeof import('../account/google');
 
 export function App() {
   const [gate, setGate] = useState<Gate>('checking');
+  const [firebase, setFirebase] = useState<{ config: WebConfig; account: Account } | null>(null);
 
   useEffect(() => {
-    fetch('/api/session', { credentials: 'same-origin' })
-      .then((r) => r.json())
-      .then((s: { authRequired: boolean; authenticated: boolean }) => setGate(s.authRequired && !s.authenticated ? 'signin' : 'open'))
-      .catch(() => setGate('offline'));
+    void (async () => {
+      let s: ServerSession;
+      try {
+        s = await (await fetch('/api/session', { credentials: 'same-origin' })).json();
+      } catch {
+        return setGate('offline');
+      }
+      if (s.mode !== 'firebase' || !s.firebase) return setGate(s.authRequired && !s.authenticated ? 'signin' : 'open');
+      const config = s.firebase;
+      let account: Account;
+      try {
+        account = await import('../account/google');
+      } catch {
+        return setGate('offline');
+      }
+      accountSignOut.leave = () => account.signOutEverywhere(config);
+      setFirebase({ config, account });
+      if (s.authenticated) return setGate('open');
+      // Firebase may already hold the account in this browser: then the session is made without
+      // asking, as after the session's hour ran out with the app closed.
+      try {
+        const user = await account.signedInUser(config);
+        if (user) return setGate(gateFor(await account.establish(config, user, { profile: true })));
+      } catch (e) {
+        signInError = account.describeSignInError(e);
+      }
+      setGate('google');
+    })();
   }, []);
+
+  // While the app is open, the session is renewed, and a renewal that finds the subscription gone
+  // or the account signed out ends it. The page starts again from the top, which stops the stream
+  // and shows the right screen.
+  useEffect(() => {
+    if (gate !== 'open' || !firebase) return;
+    return firebase.account.keepSession(firebase.config, () => location.reload());
+  }, [gate, firebase]);
 
   useEffect(() => {
     if (gate !== 'open') return;
@@ -37,6 +86,12 @@ export function App() {
 
   if (gate === 'checking') return <div class="boot"><div class="spinner" /></div>;
   if (gate === 'signin') return <SignIn onDone={() => setGate('open')} />;
+  if (gate === 'google' && firebase) {
+    return <GoogleSignIn config={firebase.config} account={firebase.account} onGate={setGate} />;
+  }
+  if (gate === 'inactive' && firebase) {
+    return <Inactive config={firebase.config} account={firebase.account} onGate={setGate} />;
+  }
   if (gate === 'offline') {
     return (
       <div class="boot">
@@ -119,6 +174,115 @@ function RadioPill() {
       <button class="icon-btn" onClick={() => engine.stop()} aria-label="עצור">
         <Icon name="close" size={18} />
       </button>
+    </div>
+  );
+}
+
+/** A sign-in that failed on the way in (a redirect that came back with an error), for the screen. */
+let signInError = '';
+
+function gateFor(outcome: Outcome): Gate {
+  if (outcome === 'ok') return 'open';
+  if (outcome === 'not-entitled') return 'inactive';
+  if (outcome === 'offline') return 'offline';
+  signInError = outcome === 'locked' ? 'יותר מדי ניסיונות. נסה שוב בעוד כמה דקות.'
+    : outcome === 'unavailable' ? 'השרת לא הצליח לבדוק את המנוי. נסה שוב בעוד רגע.'
+    : 'ההתחברות לא התקבלה. נסה שוב.';
+  return 'google';
+}
+
+interface AccountScreen {
+  config: WebConfig;
+  account: Account;
+  onGate: (gate: Gate) => void;
+}
+
+function GoogleSignIn({ config, account, onGate }: AccountScreen) {
+  const [error, setError] = useState(signInError);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div class="signin">
+      <div class="card">
+        <div class="brand">שידור</div>
+        <p class="muted" style={{ margin: 0, textAlign: 'center' }}>שידור למחשב פתוח למנויים. התחבר עם חשבון Google שלך.</p>
+        {error && <div class="error-text" role="alert">{error}</div>}
+        <button
+          class="btn primary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError('');
+            signInError = '';
+            try {
+              const user = await account.signInWithGoogle(config);
+              // Null: the page is on its way to Google and comes back to `signedInUser`.
+              if (!user) return;
+              const gate = gateFor(await account.establish(config, user, { profile: true }));
+              if (gate === 'google') setError(signInError);
+              else onGate(gate);
+            } catch (e) {
+              setError(account.describeSignInError(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          התחברות עם Google
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Signed in, but the account has no web subscription (`entitlements.web`). There is no payment yet. */
+function Inactive({ config, account, onGate }: AccountScreen) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const [email, setEmail] = useState('');
+  useEffect(() => {
+    void account.signedInUser(config).then((u) => setEmail(u?.email ?? '')).catch(() => {});
+  }, []);
+  return (
+    <div class="signin">
+      <div class="card">
+        <div class="brand">שידור</div>
+        <h2 style={{ margin: 0, textAlign: 'center' }}>המנוי לא פעיל</h2>
+        <p class="muted" style={{ margin: 0 }}>
+          {email ? <>החשבון <span class="ltr">{email}</span> מחובר, אבל </> : 'החשבון מחובר, אבל '}
+          אין לו מנוי פעיל לשידור למחשב. כשהמנוי יופעל, לחץ על "בדיקה שוב".
+        </p>
+        {note && <div class="error-text" role="alert">{note}</div>}
+        <button
+          class="btn primary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setNote('');
+            try {
+              const user = await account.signedInUser(config);
+              const gate = user ? gateFor(await account.establish(config, user, { profile: false })) : 'google';
+              if (gate === 'inactive') setNote('המנוי עדיין לא פעיל.');
+              else onGate(gate);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          בדיקה שוב
+        </button>
+        <button
+          class="btn"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            await account.signOutEverywhere(config).catch(() => {});
+            setBusy(false);
+            onGate('google');
+          }}
+        >
+          התנתקות וכניסה עם חשבון אחר
+        </button>
+      </div>
     </div>
   );
 }

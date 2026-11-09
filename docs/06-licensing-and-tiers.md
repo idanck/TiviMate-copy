@@ -74,7 +74,10 @@ Revised 2026-11-09 by ADR-059; this replaces the rule that the free tier needs n
 - **Android (phone and Google TV): a Google account is required, the free tier included.** The
   requirement is switched on remotely (`config/app.requireSignIn` in Firestore) and ships off, so
   the owner turns it on after checking it on his own devices.
-- **Web: only a registered, paying subscriber** (`entitlements.web`) uses Shidur for the computer.
+- **Web: only a registered, paying subscriber** (`entitlements.web`) uses Shidur for the computer:
+  the server lets a Google account in only with it, and checks it again at least every 30 minutes
+  while the app is open (ADR-059, stage 5). A server run with no Firebase project keeps its own
+  password instead, for self-hosting.
 - **iPhone:** later. **webOS:** out of scope.
 - Accounts are Firebase Authentication with Google. A television signs in with Google itself on
   Android 14 and later, or from a phone with a QR code and a short code.

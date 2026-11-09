@@ -48,7 +48,8 @@
 
 1. ‏Project settings → Add app → Web. סמן *Also set up Firebase Hosting*.
 2. אין צורך להעתיק את ה-config. דפי האישור קוראים אותו מ-Hosting עצמו (`/__/firebase/init.json`).
-   שלב 5 (גרסת הווב) עשוי לבקש אותו כ-secret נפרד.
+3. גרסת הווב (שלב 5) צריכה אפליקציית ווב משלה (`Shidur web`) ואת ה-config שלה כמשתנה סביבה של השרת,
+   ‏`SHIDUR_FIREBASE_WEB_CONFIG` (‏`web/README.md`). הוא לא סוד, אבל הוא לא נכנס לריפו.
 
 ## 6. כתובות ההתחברות של ה-web client
 
@@ -60,6 +61,11 @@
 4. אם תחבר דומיין משלך ל-Hosting: גם אותו, וגם ב-Authentication → Settings → Authorized domains.
    במקרה הזה צור את `firebase/functions/.env` (הוא לא נכנס ל-git) עם השורה
    `PAIR_BASE_URL=https://<הדומיין>`.
+5. גרסת הווב (שלב 5): השרת שלה מעביר את `/__/auth/*` מ-`<project-id>.firebaseapp.com`, וההתחברות
+   רצה על הדומיין של השרת. לכן באותו web client צריך גם את הדומיין שלו:
+   - ‏Authorized JavaScript origins: `https://<הדומיין של הווב>`
+   - ‏Authorized redirect URIs: `https://<הדומיין של הווב>/__/auth/handler`
+   - וב-Authentication → Settings → Authorized domains: `<הדומיין של הווב>`.
 
 ## 7. חשבון שירות ל-deploy מ-CI
 
