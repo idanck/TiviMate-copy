@@ -97,11 +97,11 @@ val releaseKeystore: File? = System.getenv("RELEASE_KEYSTORE_PATH")
     ?.takeIf { it.isFile }
 
 android {
-    namespace = "com.tivicopy.player"
+    namespace = "com.idanck.shidur"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.tivicopy.player"
+        applicationId = "com.idanck.shidur"
         minSdk = 23
         targetSdk = 35
         versionCode = appVersionCode

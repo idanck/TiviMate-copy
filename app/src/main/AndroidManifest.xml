@@ -147,7 +147,7 @@
             android:name=".record.RecordingAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.tivicopy.player.record.ALARM" />
+                <action android:name="com.idanck.shidur.record.ALARM" />
             </intent-filter>
         </receiver>
 

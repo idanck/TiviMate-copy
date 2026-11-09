@@ -29,8 +29,8 @@ try:
 except ImportError:  # pragma: no cover
     Image = None
 
-PKG = "com.tivicopy.player.debug"
-ACTIVITY = "com.tivicopy.player.ui.MainActivity"
+PKG = "com.idanck.shidur.debug"
+ACTIVITY = "com.idanck.shidur.ui.MainActivity"
 
 
 # ====================================================================== adb plumbing
@@ -1765,7 +1765,7 @@ class Runner:
             sh(f"am kill {PKG}")
             time.sleep(3)
             killed = not pid()
-            armed = sh("dumpsys alarm | grep -c com.tivicopy.player.record.ALARM").strip()
+            armed = sh("dumpsys alarm | grep -c com.idanck.shidur.record.ALARM").strip()
             notes.append(f"process killed={killed}; alarm entries={armed}")
             before = len(self.mock_requests("/ts/b.ts"))
 
