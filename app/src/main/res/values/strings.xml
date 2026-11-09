@@ -549,4 +549,26 @@
     <string name="news_panels_four">Four screens</string>
     <string name="news_ticker">Running headlines along the top</string>
     <string name="news_panels_toggle">Two or four screens</string>
+    <!-- Accounts (ADR-059) -->
+    <string name="settings_account">Account</string>
+    <string name="account_sign_in_title">Sign in to Shidur</string>
+    <string name="account_sign_in_body">Shidur needs a Google account to continue. Your playlists and settings stay on this device.</string>
+    <string name="account_sign_in_google">Sign in with Google</string>
+    <string name="account_signing_in">Signing in…</string>
+    <string name="account_error_no_account">No Google account is available on this device. Add one in the device\'s settings and try again.</string>
+    <string name="account_error_failed">Signing in did not work. Check the connection and try again.</string>
+    <string name="account_unavailable">Accounts are not available in this build</string>
+    <string name="account_unavailable_sub">This copy of the app was built without a Firebase project, so it works with no account.</string>
+    <string name="account_signed_out">Not signed in</string>
+    <string name="account_signed_out_sub">Sign in with Google to tie this device to your account.</string>
+    <string name="account_signed_in">Signed in</string>
+    <string name="account_signed_in_paired">Signed in from a phone</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_sign_out_sub">Only on this device. Playlists and settings stay here.</string>
+    <string name="account_delete">Delete account</string>
+    <string name="account_deleting">Deleting the account…</string>
+    <string name="account_delete_sub">Deletes the account and everything stored with it on the server, on every device.</string>
+    <string name="account_delete_confirm_title">Delete the account?</string>
+    <string name="account_delete_confirm_body">The account and everything stored with it on the server are deleted for good. Playlists and settings on this device stay.</string>
+    <string name="account_error_delete">The account could not be deleted. Check the connection and try again.</string>
 </resources>

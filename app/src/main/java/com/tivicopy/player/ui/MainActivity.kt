@@ -51,6 +51,7 @@ import com.tivicopy.player.data.prefs.StartBehaviour
 import com.tivicopy.player.tv.WatchNextPlan
 import com.tivicopy.player.player.PlayerMediaSession
 import com.tivicopy.player.player.RadioBackgroundService
+import com.tivicopy.player.ui.account.SignInScreen
 import com.tivicopy.player.ui.common.saverPlaying
 import com.tivicopy.player.ui.common.ChannelScreensaver
 import com.tivicopy.player.ui.common.NoticeTone
@@ -329,7 +330,20 @@ class MainActivity : ComponentActivity() {
                 vm.consumeMessage()
             }
 
-            LaunchedEffect(Unit) {
+            // ADR-059: nothing plays behind the sign-in screen, and the start behaviour waits for
+            // it — a channel resumed under it would be heard and not seen. Applied once a launch,
+            // when the screen first lets the viewer in.
+            val gated by ServiceLocator.account.gated.collectAsState()
+            // The television's sign-in screen is the next step; until it lands, only the phone's.
+            val showSignIn = gated && !isTelevision
+            var startApplied by remember { mutableStateOf(false) }
+            LaunchedEffect(showSignIn) {
+                if (showSignIn) {
+                    standDownForSignIn()
+                    return@LaunchedEffect
+                }
+                if (startApplied) return@LaunchedEffect
+                startApplied = true
                 // Overlays belong to the TV shell; the phone has its own navigation. Setting
                 // one here anyway left an invisible overlay open on the phone, which then ate
                 // the first Back press without changing anything on screen.
@@ -348,10 +362,13 @@ class MainActivity : ComponentActivity() {
                 // The phone browses full screen, so a resumed channel opens the player screen —
                 // otherwise it would be audible behind the channel list with no video anywhere.
                 if (!isTelevision && resumed) playerOpen = true
+            }
 
+            LaunchedEffect(Unit) {
                 // FR-UPD-02: a look on launch, rate-limited to once a day inside the manager.
                 // Without it a device that is opened and closed daily would rely entirely on a
-                // background worker that doze can defer for hours.
+                // background worker that doze can defer for hours. Also behind the sign-in screen
+                // (ADR-059): an update is how a device stuck there gets a fix.
                 ServiceLocator.appScope.launch { ServiceLocator.updates.check(force = false) }
             }
 
@@ -490,6 +507,8 @@ class MainActivity : ComponentActivity() {
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 }
+                            } else if (showSignIn) {
+                                SignInScreen(modifier = Modifier.fillMaxSize())
                             } else {
                                 MobileRoot(
                                     vm = vm,
@@ -816,6 +835,17 @@ class MainActivity : ComponentActivity() {
         return super.onKeyLongPress(keyCode, event)
     }
 
+    /**
+     * Silences everything the sign-in screen stands in front of (ADR-059): the player, Sport or
+     * News mode's panels, and the phone's player screen.
+     */
+    private fun standDownForSignIn() {
+        if (panelsOpen != null) vm.exitSport(restartPaused = false)
+        panelsOpen = null
+        playerOpen = false
+        ServiceLocator.player.stop()
+    }
+
     /** Back goes up one level; a second press within a short window exits (FR-SET-06). */
     private fun handleBack() {
         // Every rung of the overlay ladder below reads [overlay], which only the TV shell ever
@@ -1112,7 +1142,8 @@ class MainActivity : ComponentActivity() {
         ServiceLocator.player.setVideoOutputWanted(isTelevision || playerOpen || inPip)
         if (pausedInBackground) {
             pausedInBackground = false
-            ServiceLocator.player.setPlayWhenReady(true)
+            // Not behind the sign-in screen (ADR-059), which stopped the stream on purpose.
+            if (isTelevision || !ServiceLocator.account.gated.value) ServiceLocator.player.setPlayWhenReady(true)
         }
     }
 

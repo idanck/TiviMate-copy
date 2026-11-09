@@ -517,4 +517,26 @@
     <string name="news_panels_four">ארבעה מסכים</string>
     <string name="news_ticker">פס מבזקים רץ למעלה</string>
     <string name="news_panels_toggle">שניים או ארבעה מסכים</string>
+    <!-- Accounts (ADR-059) -->
+    <string name="settings_account">חשבון</string>
+    <string name="account_sign_in_title">התחברות לשידור</string>
+    <string name="account_sign_in_body">כדי להמשיך צריך להתחבר עם חשבון Google. הפלייליסטים וההגדרות נשארים במכשיר הזה.</string>
+    <string name="account_sign_in_google">התחברות עם Google</string>
+    <string name="account_signing_in">מתחבר…</string>
+    <string name="account_error_no_account">אין במכשיר חשבון Google. הוסף חשבון בהגדרות המכשיר ונסה שוב.</string>
+    <string name="account_error_failed">ההתחברות לא הצליחה. בדוק את החיבור לרשת ונסה שוב.</string>
+    <string name="account_unavailable">חשבונות לא זמינים בגרסה הזו</string>
+    <string name="account_unavailable_sub">הגרסה הזו נבנתה בלי פרויקט Firebase, ולכן היא עובדת בלי חשבון.</string>
+    <string name="account_signed_out">לא מחובר</string>
+    <string name="account_signed_out_sub">התחבר עם Google כדי לקשר את המכשיר לחשבון שלך.</string>
+    <string name="account_signed_in">מחובר</string>
+    <string name="account_signed_in_paired">התחבר דרך הטלפון</string>
+    <string name="account_sign_out">התנתקות</string>
+    <string name="account_sign_out_sub">רק במכשיר הזה. הפלייליסטים וההגדרות נשארים כאן.</string>
+    <string name="account_delete">מחיקת החשבון</string>
+    <string name="account_deleting">מוחק את החשבון…</string>
+    <string name="account_delete_sub">מוחק את החשבון ואת כל מה שנשמר בו בשרת, בכל המכשירים.</string>
+    <string name="account_delete_confirm_title">למחוק את החשבון?</string>
+    <string name="account_delete_confirm_body">החשבון וכל מה שנשמר בו בשרת יימחקו לצמיתות. הפלייליסטים וההגדרות במכשיר הזה נשארים.</string>
+    <string name="account_error_delete">לא הצלחנו למחוק את החשבון. בדוק את החיבור לרשת ונסה שוב.</string>
 </resources>

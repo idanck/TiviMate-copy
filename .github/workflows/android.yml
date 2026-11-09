@@ -68,6 +68,22 @@ jobs:
           echo "SIGNED=true" >> "$GITHUB_ENV"
           echo "INSTALL_NOTE=Signed with the release key, so it installs straight over an existing Shidur install as an ordinary update." >> "$GITHUB_ENV"
 
+      - name: Set up the Firebase configuration
+        # ADR-059: the app's Firebase client (google-services.json), kept out of this public
+        # repository. Only the APK reads it; the unit tests and lint run without it, as a build
+        # with no Firebase project does, and such a build starts with no accounts at all.
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_ANDROID_CONFIG:-}" ]; then
+            echo "::warning::No FIREBASE_ANDROID_CONFIG secret — this build has no accounts."
+            exit 0
+          fi
+          printf '%s' "$FIREBASE_ANDROID_CONFIG" > "$RUNNER_TEMP/google-services.json"
+          jq -e '.project_info.project_id and (.client | length > 0)' "$RUNNER_TEMP/google-services.json" > /dev/null
+          echo "FIREBASE_CONFIG_FILE=$RUNNER_TEMP/google-services.json" >> "$GITHUB_ENV"
+
       - name: Unit tests
         run: ./gradlew --no-daemon testReleaseUnitTest
 
@@ -81,6 +97,7 @@ jobs:
           RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          FIREBASE_ANDROID_CONFIG_PATH: ${{ env.FIREBASE_CONFIG_FILE }}
         run: ./gradlew --no-daemon assembleRelease
 
       - name: Confirm the APK carries the release key

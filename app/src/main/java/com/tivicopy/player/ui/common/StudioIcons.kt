@@ -66,6 +66,7 @@ object StudioIcons {
     val Hide: ImageVector by lazy { glyph("hide", "M3 3l18 18M10.6 6.1A9.8 9.8 0 0 1 12 6c5 0 8.5 4.5 9 6-.3.9-1.2 2.4-2.6 3.7M6.6 7.7C4.6 9 3.4 10.9 3 12c.5 1.5 4 6 9 6 1.6 0 3-.4 4.2-1.1") }
     val Move: ImageVector by lazy { glyph("move", "M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4") }
     val Info: ImageVector by lazy { glyph("info", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM12 11v6M12 7.5v.5") }
+    val Account: ImageVector by lazy { glyph("account", "M12 4a4 4 0 1 1 0 8a4 4 0 1 1 0-8zM4.5 20a7.5 7.5 0 0 1 15 0") }
     val Alert: ImageVector by lazy { glyph("alert", "M12 4l9 16H3zM12 10v4M12 17v.5") }
     val Update: ImageVector by lazy { glyph("update", "M12 4v11M7 10l5 5 5-5M5 20h14") }
     val Back: ImageVector by lazy { glyph("back", "M15 6l-6 6 6 6", autoMirror = true) }
