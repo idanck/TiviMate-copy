@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>חיבור טלוויזיה · שידור</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>חיבור הטלוויזיה לחשבון</h1>
+  <p>התחבר עם חשבון Google ואשר את הקוד שמופיע על מסך הטלוויזיה.</p>
+
+  <section id="signed-out" hidden>
+    <button id="sign-in" type="button">התחברות עם Google</button>
+  </section>
+
+  <section id="signed-in" hidden>
+    <p>מחובר בתור <span id="who" class="who"></span></p>
+    <form id="approve-form" novalidate>
+      <label for="code">הקוד שעל הטלוויזיה</label>
+      <input id="code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
+             spellcheck="false" maxlength="9" placeholder="ABCD-EFGH">
+      <button id="approve" type="submit">לאשר את הטלוויזיה</button>
+    </form>
+    <button id="switch" type="button" class="secondary">התחברות עם חשבון אחר</button>
+  </section>
+
+  <div id="message" role="status" aria-live="polite"></div>
+</main>
+<script type="module" src="/pair.js"></script>
+</body>
+</html>

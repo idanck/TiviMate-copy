@@ -96,6 +96,19 @@ keyword lists as real station names turn out to need it, but the authoritative
 fix for what stations exist, which category they should be in, or removing a
 station outright belongs in the upstream script, not here.
 
+## Accounts: `firebase/` deploys separately (ADR-059)
+
+The app signs in with Google on Firebase. `firebase/` holds the Firestore rules, the Cloud
+Functions and the Hosting pages; its CI is `.github/workflows/firebase.yml`, which `android.yml`
+ignores, and `cd firebase && npm ci && npm --prefix functions ci && npm run check` runs in the
+cloud sandbox (the emulator tests too, except the Auth trigger, which the sandbox's proxy blocks).
+Nothing about the Firebase project is in the repository: the app's `google-services.json` is the
+`FIREBASE_ANDROID_CONFIG` secret, read by `app/build.gradle.kts` without the Google Services
+plugin, and a build without it has no accounts and must still start. The sign-in screen is behind
+the remote switch `config/app.requireSignIn`, which the owner turns on himself — never ship a
+change that makes it default to on. The Functions' region is written in three places
+(`firebase/README.md`).
+
 ## The webOS version (`webos/`) ships separately too
 
 `webos/` is Shidur for LG televisions from webOS 5 (2020, Chromium 68), ADR-057. Step 1 (the spike)

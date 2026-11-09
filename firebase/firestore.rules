@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// Shidur's Firestore (ADR-059). Clients read; only Cloud Functions and the console write.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Switches the owner flips in the console, read before anyone signs in: `config/app` holds
+    // `requireSignIn`. A missing document means every switch is off.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // An account's own document: `createdAt`, `displayName`, `entitlements`. Created by the
+    // createProfile function; `entitlements` is written only by Functions or by hand in the
+    // console, so no client write is allowed here at all.
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Television pairing codes and rate-limit counters belong to the Functions alone.
+    match /pairings/{code} {
+      allow read, write: if false;
+    }
+    match /rateLimits/{id} {
+      allow read, write: if false;
+    }
+
+    // Anything not named above is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
