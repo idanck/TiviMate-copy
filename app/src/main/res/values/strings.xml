@@ -579,4 +579,32 @@
     <string name="account_tv_code_failed">Could not get a code. Check the television\'s connection.</string>
     <string name="account_tv_code_paused">The code expired.</string>
     <string name="account_tv_new_code">New code</string>
+
+    <!-- ADR-060: the move from com.tivicopy.player to com.idanck.shidur. The bridge's side. -->
+    <string name="handover_bridge_title">Shidur is moving to a new version</string>
+    <string name="handover_bridge_body">The new version is a separate app. Your channels, favourites, history, settings and recordings move to it by themselves: you only confirm installing it, and then removing this one.</string>
+    <string name="handover_bridge_go">Move now</string>
+    <string name="handover_bridge_checking">Looking for the new version…</string>
+    <string name="handover_bridge_not_found">The new version is not on the update server yet. Try again later.</string>
+    <string name="handover_bridge_installed_body">The new version is installed. Open it and it brings your data across.</string>
+    <string name="handover_bridge_open">Open the new Shidur</string>
+    <string name="handover_bridge_done_title">Shidur has moved to the new version</string>
+    <string name="handover_bridge_done_body">Your data is in the new version. This one is no longer needed and can be removed.</string>
+    <string name="handover_bridge_remove">Remove this version</string>
+    <!-- The new app's side. -->
+    <string name="handover_import_title">Bringing your data across</string>
+    <string name="handover_importing">Copying channels, favourites, history, settings and recordings from the previous version…</string>
+    <string name="handover_imported_title">Your data is here</string>
+    <string name="handover_imported_summary">Moved: %1$d playlists, %2$d channels, %3$d favourites, %4$d channels in the history and %5$d recordings.</string>
+    <string name="handover_imported_folder">Choose the recordings folder again in the recording settings: the previous version\'s access to it does not move.</string>
+    <string name="handover_imported_credentials">%1$d playlists lost their saved password on the way. Enter it again in the playlist\'s settings.</string>
+    <string name="handover_continue">Continue</string>
+    <string name="handover_failed_title">The data could not be moved</string>
+    <string name="handover_failed_body">Nothing was changed: the previous version is still installed, with everything in it.</string>
+    <string name="handover_not_now">Not now</string>
+    <string name="handover_remove_title">Remove the previous version?</string>
+    <string name="handover_remove_body">Everything is in this version now. The previous one is no longer needed.</string>
+    <string name="handover_remind_title">The previous version is still installed</string>
+    <string name="handover_remind_body">It is no longer needed. This is the last time it is mentioned.</string>
+    <string name="handover_remove">Remove</string>
 </resources>

@@ -545,8 +545,62 @@ class Settings(context: Context) {
 
     fun clearParentalPin() = commit { remove(K_PIN_HASH); remove(K_PIN_SALT) }
 
-    /** Snapshot of every stored key, for the backup file (FR-SET-08). */
-    fun exportAll(): Map<String, Any?> = prefs.all.filterKeys { it != K_PIN_HASH && it != K_PIN_SALT }
+    /**
+     * Snapshot of every stored key, for the backup file (FR-SET-08). The PIN stays out of a file,
+     * and the hand-over's own record (ADR-060) belongs to this install alone.
+     */
+    fun exportAll(): Map<String, Any?> =
+        prefs.all.filterKeys { it != K_PIN_HASH && it != K_PIN_SALT && it !in HANDOVER_KEYS }
+
+    /**
+     * Every stored key with its own type, the PIN included, for the bridge's hand-over to the new
+     * app (ADR-060). That copy never becomes a file anyone holds: it goes from one package of
+     * this app to the other, both signed with the same key.
+     */
+    fun exportForHandover(): Map<String, Any?> = prefs.all.filterKeys { it !in HANDOVER_KEYS }
+
+    /**
+     * Writes what [exportForHandover] produced in the old package, each value with the type it
+     * had there: a backup file's JSON cannot tell an Int from a Long, and reading a Long stored as
+     * an Int throws.
+     */
+    fun importFromHandover(values: Map<String, Any>) {
+        prefs.edit().apply {
+            values.forEach { (k, v) ->
+                when (v) {
+                    is Boolean -> putBoolean(k, v)
+                    is Int -> putInt(k, v)
+                    is Long -> putLong(k, v)
+                    is Float -> putFloat(k, v)
+                    is String -> putString(k, v)
+                    is Set<*> -> putStringSet(k, v.filterIsInstance<String>().toSet())
+                    else -> Unit
+                }
+            }
+        }.commit()
+        _state.value = read()
+    }
+
+    /** When this install took the old package's data in (ADR-060); 0 until it has. */
+    fun handoverImportedUtc(): Long = prefs.getLong(K_HANDOVER_IMPORTED, 0)
+
+    fun setHandoverImported(atUtc: Long) {
+        prefs.edit().putLong(K_HANDOVER_IMPORTED, atUtc).commit()
+    }
+
+    /** How many times removing the old package has been offered (ADR-060): the offer, then one reminder. */
+    fun handoverRemovalPrompts(): Int = prefs.getInt(K_HANDOVER_PROMPTS, 0)
+
+    fun noteHandoverRemovalPrompt() {
+        prefs.edit().putInt(K_HANDOVER_PROMPTS, handoverRemovalPrompts() + 1).commit()
+    }
+
+    /** In the bridge: when the new app reported that it holds the data (ADR-060); 0 until then. */
+    fun handedOverUtc(): Long = prefs.getLong(K_HANDED_OVER, 0)
+
+    fun setHandedOver(atUtc: Long) {
+        prefs.edit().putLong(K_HANDED_OVER, atUtc).commit()
+    }
 
     fun importAll(values: Map<String, Any?>) {
         prefs.edit().apply {
@@ -684,5 +738,12 @@ class Settings(context: Context) {
         const val K_NEWS_SLOTS = "news_slots"
         const val K_NEWS_PANELS = "news_panels"
         const val K_NEWS_TICKER = "news_ticker"
+        const val K_HANDOVER_IMPORTED = "handover_imported_utc"
+        const val K_HANDOVER_PROMPTS = "handover_removal_prompts"
+        const val K_HANDED_OVER = "bridge_handed_over_utc"
+        const val K_REFRESH_WORKER = "refresh_worker_class"
+
+        /** The hand-over's own record (ADR-060), and the scheduler's: kept by each install. */
+        val HANDOVER_KEYS = setOf(K_HANDOVER_IMPORTED, K_HANDOVER_PROMPTS, K_HANDED_OVER, K_REFRESH_WORKER)
     }
 }

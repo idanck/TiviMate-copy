@@ -23,6 +23,31 @@ val appVersionName = listOf(
     versionProps.getProperty("versionPatch") ?: "0",
 ).joinToString(".") { it.trim() }
 
+/**
+ * The bridge (ADR-060): the last build of the old package, `com.tivicopy.player`, built from this
+ * same code with `-Pshidur.bridge=true`. It updates the installs that still carry the old package
+ * through `latest.json`, offers to install the new app and hands it the data. Its versionCode is
+ * its own, `bridgeVersionCode`, and is only ever raised to publish a fixed bridge.
+ */
+val isBridge = (findProperty("shidur.bridge") as String?)?.trim()?.toBoolean() == true
+val bridgeVersionCode = (versionProps.getProperty("bridgeVersionCode") ?: "0").trim().toInt()
+
+/** The package every install of this app had until ADR-060, and the bridge still has. */
+val legacyPackage = "com.tivicopy.player"
+val shidurPackage = "com.idanck.shidur"
+
+/** Where each package reads its updates (ADR-012, ADR-060). `latest.json` holds the bridge. */
+val updatesHost = "https://updates.idanck.com"
+val legacyManifestUrl = "$updatesHost/latest.json"
+val shidurManifestUrl = "$updatesHost/shidur/latest.json"
+
+/**
+ * The signature permission guarding the bridge's data (ADR-060), declared by both packages. Debug
+ * builds carry another name: they are signed with each machine's debug key, and two packages with
+ * different keys may not declare the same permission.
+ */
+val migrationPermission = "$shidurPackage.permission.MIGRATE"
+
 /** Short git SHA, injected by CI via GIT_SHA; falls back to a local `git` call, then "local". */
 val gitSha: String = (System.getenv("GIT_SHA")?.takeIf { it.isNotBlank() } ?: runCatching {
     val p = ProcessBuilder("git", "rev-parse", "--short=8", "HEAD")
@@ -101,11 +126,20 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.idanck.shidur"
+        applicationId = if (isBridge) legacyPackage else shidurPackage
         minSdk = 23
         targetSdk = 35
-        versionCode = appVersionCode
-        versionName = appVersionName
+        versionCode = if (isBridge) bridgeVersionCode else appVersionCode
+        versionName = if (isBridge) "$appVersionName-bridge" else appVersionName
+
+        // ADR-060. The bridge reads `latest.json`, which holds the bridge alone from now on, so a
+        // fixed bridge can still reach it; the new app reads a manifest of its own.
+        buildConfigField("boolean", "BRIDGE", isBridge.toString())
+        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"${if (isBridge) legacyManifestUrl else shidurManifestUrl}\"")
+        buildConfigField("String", "SHIDUR_MANIFEST_URL", "\"$shidurManifestUrl\"")
+        buildConfigField("String", "LEGACY_PACKAGE", "\"$legacyPackage\"")
+        buildConfigField("String", "SHIDUR_PACKAGE", "\"$shidurPackage\"")
+        manifestPlaceholders["bridgeProvider"] = isBridge.toString()
 
         // `iw` is Hebrew, and it has to be spelled that way. Android asks its resource table for
         // the language that `ResourcesImpl.adjustLanguageTag` produces, which maps `he` back to
@@ -142,8 +176,12 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             isMinifyEnabled = false
+            buildConfigField("String", "MIGRATION_PERMISSION", "\"$migrationPermission.DEBUG\"")
+            manifestPlaceholders["migrationPermission"] = "$migrationPermission.DEBUG"
         }
         getByName("release") {
+            buildConfigField("String", "MIGRATION_PERMISSION", "\"$migrationPermission\"")
+            manifestPlaceholders["migrationPermission"] = migrationPermission
             isMinifyEnabled = false
             isShrinkResources = false
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
@@ -169,7 +207,8 @@ android {
         buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${firebase?.webClientId.orEmpty()}\"")
         outputs.all {
             val out = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            out.outputFileName = "shidur-${appVersionName}-${variant.buildType.name}-${gitSha}.apk"
+            val name = if (isBridge) "shidur-bridge" else "shidur"
+            out.outputFileName = "$name-${if (isBridge) "$appVersionName-bridge" else appVersionName}-${variant.buildType.name}-${gitSha}.apk"
         }
     }
 

@@ -106,9 +106,14 @@ Firebase project:
 
 | Key | Package | Where it is |
 |---|---|---|
-| The CI release key (`RELEASE_KEYSTORE_B64`) | `com.tivicopy.player` | `keytool -list -v -keystore release.jks -alias <alias>` |
-| The debug key of each machine that builds one | `com.tivicopy.player.debug` | `~/.android/debug.keystore`, alias `androiddebugkey`, password `android` |
-| Play App Signing, if the app ever goes to Play | `com.tivicopy.player` | Play Console → Setup → App signing |
+| The CI release key (`RELEASE_KEYSTORE_B64`) | `com.idanck.shidur` | `keytool -list -v -keystore release.jks -alias <alias>` |
+| The debug key of each machine that builds one | `com.idanck.shidur.debug` | `~/.android/debug.keystore`, alias `androiddebugkey`, password `android` |
+| Play App Signing, if the app ever goes to Play | `com.idanck.shidur` | Play Console → Setup → App signing |
+| The CI release key, for the bridge (ADR-060) | `com.tivicopy.player` | as above; registered already, kept while any install is on the old package |
+| The debug key, for a debug bridge | `com.tivicopy.player.debug` | as above |
+
+The package moved from `com.tivicopy.player` to `com.idanck.shidur` (ADR-060). The old package is
+the bridge's now, and stays registered as long as it can still be installed.
 
 A key missing from the list fails sign-in on that build with a configuration error, while the QR
 route keeps working: it never touches the device's certificate.

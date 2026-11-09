@@ -12,7 +12,7 @@
 ו־ADR‑019 עד ADR‑023.
 
 **מקור האמת נשאר הקוד.** הקנבס מתאר אותו, לא מגדיר אותו. ערך שמשתנה שם הוא
-הצעה עד שהוא נוחת ב־`app/src/main/java/com/tivicopy/player/ui/`.
+הצעה עד שהוא נוחת ב־`app/src/main/java/com/idanck/shidur/ui/`.
 
 ## מה יש בו
 

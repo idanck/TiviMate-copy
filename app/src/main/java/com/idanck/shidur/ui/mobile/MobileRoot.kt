@@ -40,6 +40,7 @@ import com.idanck.shidur.ui.screens.AddSourceScreen
 import com.idanck.shidur.ui.screens.ChannelListScreen
 import com.idanck.shidur.ui.screens.ProgrammeDetailsDialog
 import com.idanck.shidur.ui.screens.RecordingsScreen
+import com.idanck.shidur.ui.common.HandoverPrompt
 import com.idanck.shidur.ui.common.UpdatePrompt
 import com.idanck.shidur.ui.screens.SearchScreen
 import com.idanck.shidur.ui.screens.VodScreen
@@ -454,6 +455,8 @@ fun MobileRoot(
         // FR-UPD-03: offered here rather than inside a screen, so it survives tab changes and
         // is absent in picture-in-picture, which returns above this point.
         UpdatePrompt()
+        // ADR-060: the move to the new package, on whichever side of it this build is.
+        HandoverPrompt()
     }
 }
 

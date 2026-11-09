@@ -1,0 +1,196 @@
+name: Bridge
+
+# ADR-060: the bridge is the last build of the old package, com.tivicopy.player, built from this
+# same code with -Pshidur.bridge=true. Every install still on the old package reads latest.json;
+# the bridge is the only thing ever published there again, and it moves those installs to
+# com.idanck.shidur, data included.
+#
+# Started by hand only. With `publish` off (the default) it builds the bridge and keeps the APK as
+# an artefact, from any branch, for an emulator or a television to try. With `publish` on, and only
+# on `main`, it also publishes it to latest.json, under three conditions checked here:
+#   1. the new app is already published at shidur/latest.json and its APK is there, so the bridge
+#      never points at a download that does not exist (publish the new app first, android.yml);
+#   2. latest.json does not already hold this bridgeVersionCode or a later one: published once;
+#      a fixed bridge needs bridgeVersionCode raised in version.properties;
+#   3. the APK is com.tivicopy.player and carries the release key.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the bridge to latest.json (main only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bridge
+  cancel-in-progress: false
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    env:
+      HOST: https://updates.idanck.com
+      LEGACY: com.tivicopy.player
+      PUBLISH: ${{ inputs.publish && github.ref == 'refs/heads/main' }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Stamp the build
+        run: |
+          echo "GIT_SHA=$(git rev-parse --short=8 HEAD)" >> "$GITHUB_ENV"
+          echo "BUILD_STAMP=$(date -u '+%Y-%m-%d %H:%M UTC')" >> "$GITHUB_ENV"
+
+      - name: Check the order, before building anything
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          bridgeCode=$(grep '^bridgeVersionCode=' version.properties | cut -d= -f2 | tr -d '[:space:]')
+
+          # 1. The new app is out, and its APK is there.
+          status=$(curl -sS -o "$RUNNER_TEMP/shidur.json" -w '%{http_code}' "$HOST/shidur/latest.json")
+          if [ "$status" != "200" ] && [ "$status" != "206" ]; then
+            echo "::error::$HOST/shidur/latest.json answered HTTP $status. Publish the new app first (android.yml on main)."
+            exit 1
+          fi
+          apkUrl=$(jq -er '.apkUrl' "$RUNNER_TEMP/shidur.json")
+          [ "$(curl -sS -o /dev/null -w '%{http_code}' -I "$apkUrl")" = "200" ] || {
+            echo "::error::The new app's APK, $apkUrl, is not there."
+            exit 1
+          }
+
+          # 2. Once: latest.json holds the old package's last build (134) until the bridge lands.
+          status=$(curl -sS -o "$RUNNER_TEMP/latest.json" -w '%{http_code}' "$HOST/latest.json")
+          case "$status" in
+            2??) pubCode=$(jq -er '.versionCode // 0' "$RUNNER_TEMP/latest.json") ;;
+            404) pubCode=0 ;;
+            *) echo "::error::$HOST/latest.json answered HTTP $status."; exit 1 ;;
+          esac
+          if [ "$pubCode" -ge "$bridgeCode" ]; then
+            echo "::error::latest.json already holds versionCode $pubCode; this bridge is $bridgeCode."
+            echo "::error::To publish a fixed bridge, raise bridgeVersionCode in version.properties."
+            exit 1
+          fi
+          echo "BRIDGE_CODE=$bridgeCode" >> "$GITHUB_ENV"
+
+      - name: Set up the release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_B64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_B64:-}" ]; then
+            if [ "$PUBLISH" = "true" ]; then
+              echo "::error::No release keystore: a bridge signed with anything else cannot update an install."
+              exit 1
+            fi
+            echo "::warning::No release keystore — this bridge carries a debug key and cannot update an install."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "RELEASE_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          echo "SIGNED=true" >> "$GITHUB_ENV"
+
+      - name: Set up the Firebase configuration
+        # The bridge is com.tivicopy.player, the client already registered (ADR-059).
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_ANDROID_CONFIG:-}" ]; then
+            echo "::warning::No FIREBASE_ANDROID_CONFIG secret — this build has no accounts."
+            exit 0
+          fi
+          printf '%s' "$FIREBASE_ANDROID_CONFIG" > "$RUNNER_TEMP/google-services.json"
+          echo "FIREBASE_CONFIG_FILE=$RUNNER_TEMP/google-services.json" >> "$GITHUB_ENV"
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon -Pshidur.bridge=true testReleaseUnitTest
+
+      - name: Assemble the bridge
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          FIREBASE_ANDROID_CONFIG_PATH: ${{ env.FIREBASE_CONFIG_FILE }}
+        run: |
+          ./gradlew --no-daemon -Pshidur.bridge=true assembleRelease assembleDebug
+          mkdir -p dist
+          cp app/build/outputs/apk/release/*.apk app/build/outputs/apk/debug/*.apk dist/
+          ls -la dist
+
+      - name: Check the package and the key
+        run: |
+          set -euo pipefail
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2"
+          apk=$(ls dist/*-release-*.apk | head -1)
+          pkg=$("$aapt2" dump packagename "$apk")
+          echo "package: $pkg"
+          # 3. Only the old package's name is ever published to latest.json.
+          [ "$pkg" = "$LEGACY" ] || { echo "::error::The bridge is $pkg, not $LEGACY."; exit 1; }
+          [ "$("$aapt2" dump packagename "$(ls dist/*-debug-*.apk | head -1)")" = "$LEGACY.debug" ]
+          if [ "${SIGNED:-false}" = "true" ]; then
+            expected=$(keytool -list -keystore "$RUNNER_TEMP/release.jks" \
+              -storepass "${{ secrets.RELEASE_KEYSTORE_PASSWORD }}" -alias "${{ secrets.RELEASE_KEY_ALIAS }}" -v |
+              awk '/SHA256:/ { print $2; exit }')
+            unzip -p "$apk" META-INF/*.RSA > "$RUNNER_TEMP/cert.p7"
+            actual=$(openssl pkcs7 -inform DER -in "$RUNNER_TEMP/cert.p7" -print_certs |
+              openssl x509 -noout -fingerprint -sha256 | cut -d= -f2)
+            echo "keystore: $expected"
+            echo "apk:      $actual"
+            [ "$expected" = "$actual" ]
+          fi
+
+      - name: Upload the bridge
+        uses: actions/upload-artifact@v4
+        with:
+          name: shidur-bridge-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish the bridge to latest.json
+        if: env.PUBLISH == 'true'
+        env:
+          UPLOAD_TOKEN: ${{ secrets.UPDATES_UPLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          [ -n "${UPLOAD_TOKEN:-}" ] || { echo "::error::No UPDATES_UPLOAD_TOKEN secret."; exit 1; }
+          apk=$(ls dist/*-release-*.apk | head -1)
+          name=$(basename "$apk")
+          sha=$(sha256sum "$apk" | cut -d' ' -f1)
+          size=$(stat -c%s "$apk")
+          versionName=$(grep -E '^versionM(ajor|inor)=|^versionPatch=' version.properties |
+            cut -d= -f2 | tr -d ' \r' | paste -sd.)-bridge
+          minSdk=$(grep -m1 'minSdk = ' app/build.gradle.kts | tr -dc '0-9')
+          notes="Shidur moves to a new version"
+          notesHe="שידור עובר לגרסה חדשה"
+
+          # The APK first, so the manifest never points at a file that is not there.
+          curl -fsS -X PUT -H "Authorization: Bearer $UPLOAD_TOKEN" \
+            --data-binary @"$apk" "$HOST/publish/apk/$name" > /dev/null
+
+          jq -n --arg vn "$versionName" --argjson vc "$BRIDGE_CODE" \
+            --arg url "$HOST/apk/$name" --arg sha "$sha" --argjson size "$size" \
+            --argjson min "$minSdk" --arg en "$notes" --arg he "$notesHe" \
+            '{versionCode: $vc, versionName: $vn, apkUrl: $url, sha256: $sha,
+              sizeBytes: $size, minSdk: $min, notes: {he: $he, en: $en}}' > "$RUNNER_TEMP/bridge.json"
+
+          curl -fsS -X PUT -H "Authorization: Bearer $UPLOAD_TOKEN" \
+            --data-binary @"$RUNNER_TEMP/bridge.json" "$HOST/publish/latest.json" > /dev/null
+
+          served=$(curl -fsS "$HOST/latest.json")
+          [ "$(jq -r .sha256 <<<"$served")" = "$sha" ]
+          [ "$(curl -fsS -o /dev/null -w '%{http_code}' -I "$HOST/apk/$name")" = "200" ]
+          echo "Published the bridge $versionName ($BRIDGE_CODE) — $name"

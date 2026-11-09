@@ -14,6 +14,9 @@ import com.idanck.shidur.data.cache.CacheBudget
 import com.idanck.shidur.data.db.Dao
 import com.idanck.shidur.data.db.Database
 import com.idanck.shidur.data.featured.FeaturedRepository
+import com.idanck.shidur.data.handover.BridgeHandover
+import com.idanck.shidur.data.handover.Handover
+import com.idanck.shidur.data.handover.HandoverImporter
 import com.idanck.shidur.data.news.NewsRepository
 import com.idanck.shidur.data.prefs.AppLocale
 import com.idanck.shidur.data.prefs.Settings
@@ -56,6 +59,14 @@ object ServiceLocator {
     lateinit var tasks: TaskRepository private set
     lateinit var news: NewsRepository private set
     lateinit var account: AccountRepository private set
+    lateinit var handoverImporter: HandoverImporter private set
+
+    /**
+     * The bridge's installer for the new app (ADR-060): its own manifest, the new package only.
+     * Null in the new app itself.
+     */
+    var handover: UpdateManager? = null
+        private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -107,6 +118,17 @@ object ServiceLocator {
         tasks = TaskRepository(settings)
         news = NewsRepository(settings)
         account = AccountRepository(appContext, appScope)
+        handoverImporter = HandoverImporter(appContext, database, settings)
+        if (Handover.isBridge) {
+            handover = UpdateManager(
+                appContext,
+                settings,
+                dao,
+                manifestUrl = BuildConfig.SHIDUR_MANIFEST_URL,
+                targetPackage = Handover.shidurPackage(appContext.packageName),
+            )
+            BridgeHandover.load(settings)
+        }
         initialised = true
         // After `initialised`: a Firebase start that throws must not leave the rest unbuilt, and
         // AccountRepository.start catches everything it can throw anyway (ADR-059).
@@ -158,40 +180,55 @@ class App : Application(), ImageLoaderFactory {
         // taken back. Before the channels below, which are declared in whatever it settles on.
         AppLocale.reconcile(this, ServiceLocator.settings)
         createNotificationChannels(this)
-        RefreshScheduler.scheduleAll(this)
-        // The bundled playlists this app ships with (docs/00-scope-and-platforms.md §0.1);
-        // idempotent, so these are no-ops after the first cold start.
-        ServiceLocator.appScope.launch { ServiceLocator.sources.ensureBuiltInPlaylist() }
-        ServiceLocator.appScope.launch { ServiceLocator.sources.ensureRadioPlaylist() }
-        ServiceLocator.appScope.launch { ServiceLocator.sources.sealStoredCredentials() }
-        // Re-arm anything that survived a process death but not a reboot. Kept on this thread:
-        // it also marks recordings a dead process left running as interrupted, and run alongside
-        // an alarm that has just fired, that sweep could catch the recording it started.
-        ServiceLocator.recordings.rearmAll()
-        // Keep the on-disk cache inside its budget on every cold start (FR-SET-15). That is a
-        // walk over every file in the cache, thousands of logos, so it runs off the main thread,
-        // where it held up every launch (docs/qa, finding 7).
-        ServiceLocator.appScope.launch {
-            ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+        // ADR-060: the first start of the new app, with the old package's data waiting. The rest
+        // of the start-up writes into the very tables the import replaces (the bundled playlists,
+        // a refresh, the recording schedule), so it waits; the import restarts the app when done,
+        // and a failed one hands the start-up back ([startBackgroundWork]).
+        val importer = ServiceLocator.handoverImporter
+        if (importer.pending()) {
+            ServiceLocator.appScope.launch { importer.run() }
+            return
         }
-        // The home screen's featured rail (FR-UI-26) and the launcher's continue-watching row
-        // (FR-TVI-02). Both are rate-limited internally, both are no-ops when unconfigured or
-        // off a television, and neither is allowed to matter: a promotional rail and a shelf
-        // outside the app are not reasons to slow down a cold start or to fail one.
-        ServiceLocator.appScope.launch { ServiceLocator.featured.refresh(force = false) }
-        ServiceLocator.appScope.launch { WatchNext.sync(this@App) }
-        // The app's own home-screen row (FR-TVI-03), on the same terms.
-        ServiceLocator.appScope.launch { HomeRow.sync(this@App) }
-        // The screensaver's task list (FR-UI-32), on the same terms as the two above: rate
-        // limited inside the repository, a no-op while no address is configured, and never a
-        // reason to slow a cold start down or to fail one.
-        ServiceLocator.appScope.launch { ServiceLocator.tasks.refresh(force = false) }
+        startBackgroundWork(this)
     }
 
     companion object {
         const val CHANNEL_RECORDING = "recording"
         const val CHANNEL_ALERTS = "alerts"
         const val CHANNEL_RADIO = "radio_playback"
+
+        /** Everything a cold start sets going once the database is this install's to write. */
+        fun startBackgroundWork(context: Context) {
+            val app = context.applicationContext
+            RefreshScheduler.scheduleAll(app)
+            // The bundled playlists this app ships with (docs/00-scope-and-platforms.md §0.1);
+            // idempotent, so these are no-ops after the first cold start.
+            ServiceLocator.appScope.launch { ServiceLocator.sources.ensureBuiltInPlaylist() }
+            ServiceLocator.appScope.launch { ServiceLocator.sources.ensureRadioPlaylist() }
+            ServiceLocator.appScope.launch { ServiceLocator.sources.sealStoredCredentials() }
+            // Re-arm anything that survived a process death but not a reboot. Kept on this thread:
+            // it also marks recordings a dead process left running as interrupted, and run alongside
+            // an alarm that has just fired, that sweep could catch the recording it started.
+            ServiceLocator.recordings.rearmAll()
+            // Keep the on-disk cache inside its budget on every cold start (FR-SET-15). That is a
+            // walk over every file in the cache, thousands of logos, so it runs off the main thread,
+            // where it held up every launch (docs/qa, finding 7).
+            ServiceLocator.appScope.launch {
+                ServiceLocator.cache.enforce(ServiceLocator.settings.state.value.cacheBudgetMb)
+            }
+            // The home screen's featured rail (FR-UI-26) and the launcher's continue-watching row
+            // (FR-TVI-02). Both are rate-limited internally, both are no-ops when unconfigured or
+            // off a television, and neither is allowed to matter: a promotional rail and a shelf
+            // outside the app are not reasons to slow down a cold start or to fail one.
+            ServiceLocator.appScope.launch { ServiceLocator.featured.refresh(force = false) }
+            ServiceLocator.appScope.launch { WatchNext.sync(app) }
+            // The app's own home-screen row (FR-TVI-03), on the same terms.
+            ServiceLocator.appScope.launch { HomeRow.sync(app) }
+            // The screensaver's task list (FR-UI-32), on the same terms as the two above: rate
+            // limited inside the repository, a no-op while no address is configured, and never a
+            // reason to slow a cold start down or to fail one.
+            ServiceLocator.appScope.launch { ServiceLocator.tasks.refresh(force = false) }
+        }
 
         /**
          * The platform stores a channel's name at creation and never re-reads it, so changing the

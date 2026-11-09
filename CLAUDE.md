@@ -5,7 +5,7 @@ Project-specific instructions for Claude Code sessions working in this repo.
 ## Every change ships itself: version bump + merge to `main`
 
 This app updates itself (ADR-012): the running app on the TV/phone polls
-`https://updates.idanck.com/latest.json` and offers to install a new build. CI
+`https://updates.idanck.com/shidur/latest.json` and offers to install a new build. CI
 (`.github/workflows/android.yml`) is what publishes that manifest and its APK —
 but only under two conditions, both required:
 
@@ -28,6 +28,21 @@ is the one exception to the general "confirm before merging to a shared branch"
 rule, scoped specifically to landing a finished, validated change on `main` so
 this app's self-update mechanism can pick it up; it does not extend to other
 destructive or hard-to-reverse actions.
+
+## Two packages: the app and the bridge (ADR-060)
+
+The app is `com.idanck.shidur` since 2026-11-09; until then it was `com.tivicopy.player`. Installs
+of the old package move through **the bridge**: the same code built with `-Pshidur.bridge=true`,
+which keeps the old package, carries `bridgeVersionCode` from `version.properties`, offers the new
+app and hands it the data through a signature-guarded provider (`data/handover/`).
+
+- `latest.json` belongs to the bridge for good, so an old install that wakes up months later still
+  finds its way. Only `.github/workflows/bridge.yml` writes it, by hand, on `main`, with `publish`
+  on, after the new app is out at `shidur/latest.json`. `android.yml` never writes `latest.json`.
+- An app change bumps `versionCode` as below; `bridgeVersionCode` is raised only to publish a fixed
+  bridge.
+- A change to the user's tables, to `Settings`' keys or to what a backup carries is also a change to
+  what the hand-over moves: check `HandoverSnapshot.TABLES`, `importable()` and ADR-060's tables.
 
 ## One APK and one QA run per batch of changes, at the end
 
@@ -104,7 +119,9 @@ ignores, and `cd firebase && npm ci && npm --prefix functions ci && npm run chec
 cloud sandbox (the emulator tests too, except the Auth trigger, which the sandbox's proxy blocks).
 Nothing about the Firebase project is in the repository: the app's `google-services.json` is the
 `FIREBASE_ANDROID_CONFIG` secret, read by `app/build.gradle.kts` without the Google Services
-plugin, and a build without it has no accounts and must still start. The sign-in screen is behind
+plugin, and a build without it has no accounts and must still start. It needs a client for
+`com.idanck.shidur` (the app) and keeps the one for `com.tivicopy.player` (the bridge, ADR-060).
+The sign-in screen is behind
 the remote switch `config/app.requireSignIn`, which the owner turns on himself — never ship a
 change that makes it default to on. The Functions' region is written in three places
 (`firebase/README.md`).

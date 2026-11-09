@@ -19,6 +19,12 @@ class UpdateInstallReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_STATUS) return
         ServiceLocator.init(context)
+        // The bridge's install of the new app (ADR-060) reports to its own manager.
+        val updates = if (intent.getBooleanExtra(EXTRA_HANDOVER, false)) {
+            ServiceLocator.handover ?: return
+        } else {
+            ServiceLocator.updates
+        }
 
         when (val status = intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
@@ -29,20 +35,21 @@ class UpdateInstallReceiver : BroadcastReceiver() {
                     // The platform asked for confirmation and then described none. Reporting it
                     // is the only way out: the state that says an install is under way would
                     // otherwise stand until the process ends, suppressing every later check.
-                    ServiceLocator.updates.onInstallFailed(
+                    updates.onInstallFailed(
                         AppError(AppError.Kind.Unknown, "no confirmation intent"),
                     )
                 } else {
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     runCatching { context.startActivity(confirm) }
-                        .onFailure { ServiceLocator.updates.onInstallFailed(AppError.of(it)) }
+                        .onFailure { updates.onInstallFailed(AppError.of(it)) }
                 }
             }
 
-            // The process is replaced on success; nothing here would live long enough to run.
-            PackageInstaller.STATUS_SUCCESS -> Unit
+            // The process is replaced on an update of this app, and nothing here would live long
+            // enough to run; the bridge's install of another package does return here.
+            PackageInstaller.STATUS_SUCCESS -> updates.onInstallSucceeded()
 
-            else -> ServiceLocator.updates.onInstallFailed(
+            else -> updates.onInstallFailed(
                 AppError(kindOf(status), intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)),
             )
         }
@@ -71,5 +78,6 @@ class UpdateInstallReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_STATUS = "com.idanck.shidur.UPDATE_STATUS"
+        const val EXTRA_HANDOVER = "com.idanck.shidur.UPDATE_HANDOVER"
     }
 }

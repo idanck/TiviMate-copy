@@ -9,6 +9,7 @@ import android.os.StatFs
 import com.idanck.shidur.R
 import com.idanck.shidur.core.TextNormalizer
 import com.idanck.shidur.data.db.Dao
+import com.idanck.shidur.data.handover.Handover
 import com.idanck.shidur.data.model.Channel
 import com.idanck.shidur.data.model.Programme
 import com.idanck.shidur.data.model.Recording
@@ -240,7 +241,9 @@ class RecordingScheduler(
     /** FR-REC-15: called from the boot receiver and on every cold start. */
     fun rearmAll() {
         val now = System.currentTimeMillis()
-        dao.pendingRecordings(now).forEach { recording ->
+        // The bridge after the hand-over neither arms nor starts anything (ADR-060).
+        val handedOver = Handover.isBridge && settings.handedOverUtc() > 0
+        if (!handedOver) dao.pendingRecordings(now).forEach { recording ->
             if (recording.startUtc <= now && recording.endUtc > now) {
                 // The device was off when this should have started; begin what is left of it.
                 startNow(recording.id)
@@ -260,8 +263,19 @@ class RecordingScheduler(
         }
     }
 
+    /**
+     * Takes every pending alarm down and leaves the recordings as they are. The bridge does this
+     * once the new app has the schedule (ADR-060), so one programme is not recorded twice.
+     */
+    fun disarmAll() {
+        val manager = alarms ?: return
+        dao.pendingRecordings(System.currentTimeMillis()).forEach { manager.cancel(pendingIntent(it.id)) }
+    }
+
     private fun arm(recording: Recording) {
         val manager = alarms ?: return
+        // The bridge after the hand-over: the new app records these (ADR-060).
+        if (Handover.isBridge && settings.handedOverUtc() > 0) return
         val intent = pendingIntent(recording.id)
         val triggerAt = recording.startUtc
         try {

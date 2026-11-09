@@ -31,6 +31,7 @@ import com.idanck.shidur.data.account.SignInOutcome
 import com.idanck.shidur.ui.common.StudioButton
 import com.idanck.shidur.ui.common.StudioButtonVariant
 import com.idanck.shidur.ui.common.StudioIcons
+import com.idanck.shidur.ui.common.HandoverPrompt
 import com.idanck.shidur.ui.common.UpdatePrompt
 import com.idanck.shidur.ui.common.findActivity
 import com.idanck.shidur.ui.theme.StudioTheme
@@ -64,6 +65,8 @@ fun SignInScreen(modifier: Modifier = Modifier) {
             GoogleSignInBlock(initialFocus = false)
         }
         UpdatePrompt()
+        // ADR-060: the move to the new package, on whichever side of it this build is.
+        HandoverPrompt()
     }
 }
 

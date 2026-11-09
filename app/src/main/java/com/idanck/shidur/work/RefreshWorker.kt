@@ -12,6 +12,7 @@ import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.tv.HomeRow
 import com.idanck.shidur.tv.WatchNext
 import com.idanck.shidur.core.Outcome
+import com.idanck.shidur.data.prefs.Settings
 import com.idanck.shidur.record.SERIES_LOOKAHEAD_MILLIS
 import java.util.concurrent.TimeUnit
 
@@ -112,11 +113,20 @@ object RefreshScheduler {
                     .build(),
             )
             .build()
+        // WorkManager stores the worker by class name, and KEEP keeps that stored name. When the
+        // package moved (ADR-060) the bridge's stored work still named the old class, which no
+        // longer exists: KEEP would have left a job that fails on every run, and the bridge would
+        // never refresh in the background again. A class name that differs from the one last
+        // scheduled replaces the work once; after that it is KEEP as before.
+        val prefs = context.getSharedPreferences(Settings.PREFS_NAME, Context.MODE_PRIVATE)
+        val worker = RefreshWorker::class.java.name
+        val renamed = prefs.getString(Settings.K_REFRESH_WORKER, null) != worker
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            if (renamed) ExistingPeriodicWorkPolicy.REPLACE else ExistingPeriodicWorkPolicy.KEEP,
             request,
         )
+        if (renamed) prefs.edit().putString(Settings.K_REFRESH_WORKER, worker).apply()
     }
 
     fun cancel(context: Context) {

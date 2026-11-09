@@ -10,6 +10,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings as AndroidSettings
+import com.idanck.shidur.BuildConfig
 import com.idanck.shidur.BuildInfo
 import com.idanck.shidur.core.AppError
 import com.idanck.shidur.core.Outcome
@@ -72,17 +73,28 @@ sealed interface UpdateState {
  * SHA-256 before anything else looks at it; and the APK's signing certificate is compared with
  * the running app's, so a mismatch surfaces as a clear message instead of the platform's opaque
  * `INSTALL_FAILED_UPDATE_INCOMPATIBLE` at the very end of the flow.
+ *
+ * The bridge (ADR-060) builds a second one with a [targetPackage]: the new app, read from its own
+ * manifest and installed beside this one rather than over it. That one keeps nothing in
+ * [Settings], is never rate-limited, and accepts only an APK of exactly that package, signed with
+ * this app's key.
  */
 class UpdateManager(
     private val context: Context,
     private val settings: Settings,
     private val dao: Dao,
+    private val manifestUrl: String = MANIFEST_URL,
+    private val targetPackage: String? = null,
 ) {
+
+    /** The package an accepted APK must carry: this app's own, or the bridge's target. */
+    private val expectedPackage: String get() = targetPackage ?: context.packageName
 
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state
 
-    private val updateDir: File get() = File(context.cacheDir, "updates")
+    private val updateDir: File
+        get() = File(context.cacheDir, if (targetPackage == null) "updates" else "handover")
 
     /**
      * Claimed for the length of one install attempt.
@@ -129,7 +141,7 @@ class UpdateManager(
         if (inFlight()) return Outcome.Ok(null)
 
         val now = System.currentTimeMillis()
-        if (!force) {
+        if (!force && targetPackage == null) {
             if (!settings.state.value.updateAutoCheck) return Outcome.Ok(null)
             val since = now - settings.state.value.updateLastCheckUtc
             if (since in 0 until CHECK_INTERVAL_MS) return Outcome.Ok(restorePending())
@@ -147,8 +159,8 @@ class UpdateManager(
             is Outcome.Ok -> fetched.value
         }
 
-        settings.rememberUpdateCheck(now, manifest.versionCode, json)
-        val newer = manifest.isNewerThan(BuildInfo.versionCode)
+        if (targetPackage == null) settings.rememberUpdateCheck(now, manifest.versionCode, json)
+        val newer = manifest.isNewerThan(installedVersionCode())
         // An APK that was installed, superseded or abandoned is 16 MB of cache nobody will read
         // again. The daily check is the natural place to notice.
         withContext(Dispatchers.IO) { pruneDownloads(keep = manifest.versionCode.takeIf { newer }) }
@@ -158,6 +170,23 @@ class UpdateManager(
             else -> UpdateState.Idle
         }
         return Outcome.Ok(manifest.takeIf { newer })
+    }
+
+    /**
+     * What the manifest is compared with: this build, or the installed target's version, which is
+     * -1 while it is not installed, so any manifest is newer.
+     */
+    private fun installedVersionCode(): Int {
+        val target = targetPackage ?: return BuildInfo.versionCode
+        return runCatching {
+            val info = context.packageManager.getPackageInfo(target, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode
+            }
+        }.getOrDefault(-1)
     }
 
     private fun inFlight(): Boolean = when (val current = _state.value) {
@@ -178,6 +207,7 @@ class UpdateManager(
      * and uselessly, that it had looked recently.
      */
     private fun restorePending(): UpdateManifest? {
+        if (targetPackage != null) return null
         val json = settings.state.value.updateLastManifest ?: return null
         val manifest = UpdateManifest.parse(json).getOrNull() ?: return null
         if (!manifest.isNewerThan(BuildInfo.versionCode)) return null
@@ -310,6 +340,16 @@ class UpdateManager(
         _state.value = UpdateState.Failed(error)
     }
 
+    /**
+     * The platform installed the APK. For this app's own update the process is replaced and
+     * this never runs; for the bridge's target the bridge carries on, and its screen reads the
+     * installed package rather than this state.
+     */
+    internal fun onInstallSucceeded() {
+        _state.value = UpdateState.Idle
+        updateDir.listFiles()?.forEach { it.delete() }
+    }
+
     /** Drops every cached APK except, optionally, the one still worth installing. */
     private fun pruneDownloads(keep: Int?) {
         val wanted = keep?.let { "tivicopy-$it.apk" }
@@ -332,7 +372,7 @@ class UpdateManager(
         val profile = RequestProfile(connectTimeoutSeconds = 15, readTimeoutSeconds = 20)
         return try {
             updateClient(profile)
-                .newCall(HttpFactory.request(MANIFEST_URL, profile))
+                .newCall(HttpFactory.request(manifestUrl, profile))
                 .execute()
                 .use { response ->
                     if (!response.isSuccessful) return Outcome.Err(AppError.fromHttp(response.code))
@@ -444,7 +484,7 @@ class UpdateManager(
         when {
             candidate == null ->
                 Outcome.Err(AppError(AppError.Kind.ParseFailed, "downloaded file is not an APK"))
-            candidate.packageName != context.packageName ->
+            candidate.packageName != expectedPackage ->
                 Outcome.Err(AppError(AppError.Kind.UnsupportedFormat, "different package"))
             certificates(candidate) != certificates(installed) ->
                 Outcome.Err(AppError(AppError.Kind.SignatureMismatch, "signature mismatch"))
@@ -476,9 +516,10 @@ class UpdateManager(
         runCatching { installer.mySessions.forEach { installer.abandonSession(it.sessionId) } }
 
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
-        params.setAppPackageName(context.packageName)
+        params.setAppPackageName(expectedPackage)
         params.setSize(file.length())
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Only for this app's own update: installing another package always asks the user.
+        if (targetPackage == null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // A self-update by the installer of record needs no prompt. When some other
             // installer owns the package — a file manager, for the very first sideload — the
             // platform ignores this and shows its confirmation, which is the correct fallback.
@@ -512,6 +553,7 @@ class UpdateManager(
         // status can never reach anything but this app.
         val intent = Intent(context, UpdateInstallReceiver::class.java)
             .setAction(UpdateInstallReceiver.ACTION_STATUS)
+            .putExtra(UpdateInstallReceiver.EXTRA_HANDOVER, targetPackage != null)
         // Mutable because the platform fills the result in.
         val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
@@ -526,8 +568,11 @@ class UpdateManager(
          * The published manifest (FR-UPD-01). Served from the project's own host rather than
          * the source repository, which is private and could not hand a binary to the app
          * without shipping a credential inside it.
+         *
+         * Per package since ADR-060: `shidur/latest.json` for this app, `latest.json` for the
+         * bridge, which is the only thing ever published there again (`app/build.gradle.kts`).
          */
-        const val MANIFEST_URL = "https://updates.idanck.com/latest.json"
+        const val MANIFEST_URL = BuildConfig.UPDATE_MANIFEST_URL
 
         /** One background check a day; the user can always ask sooner. */
         const val CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L
