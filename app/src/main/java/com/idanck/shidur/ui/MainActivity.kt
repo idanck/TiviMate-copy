@@ -67,6 +67,7 @@ import com.idanck.shidur.ui.common.IdleScene
 import com.idanck.shidur.ui.common.idleScene
 import com.idanck.shidur.ui.common.saverDueAt
 import com.idanck.shidur.ui.common.screensaverFor
+import com.idanck.shidur.ui.common.YouTubePlayerController
 import com.idanck.shidur.ui.mobile.MobileRoot
 import com.idanck.shidur.ui.mobile.PlayerScreen
 import com.idanck.shidur.ui.settings.SettingsSection
@@ -384,10 +385,15 @@ class MainActivity : ComponentActivity() {
             // screensaver of its own after a longer wait (ADR-049); the countdown below decides when.
             val sportPlaying by vm.sport.anyPlaying.collectAsState()
             val inSport = if (isTelevision) overlay.isPanels else panelsOpen != null
+            val youtubePlaying by YouTubePlayerController.playingNow.collectAsState()
             val scene = if (inSport) {
                 // Sport mode's panels are pictures being watched, though the full-screen player
                 // stands silent underneath them (ADR-041).
                 if (sportPlaying) IdleScene.MOVING else IdleScene.STILL
+            } else if (isTelevision && overlay.isYouTube) {
+                // YouTube's player is a picture being watched, and nothing may be drawn over it
+                // while it plays (ADR-061); paused, the screen is as still as any.
+                if (youtubePlaying) IdleScene.MOVING else IdleScene.STILL
             } else idleScene(
                 playing = playback.playing,
                 hasPicture = playback.width > 0 || playback.height > 0,
@@ -699,6 +705,12 @@ class MainActivity : ComponentActivity() {
         // Sport mode has its own bindings (ADR-041); none of the full-screen player's below apply.
         if (overlay.isPanels) return onSportKeyDown(keyCode) || super.onKeyDown(keyCode, event)
 
+        // YouTube's screens drive their own player in Compose (ADR-061). What reaches here is
+        // what nothing there took, and none of it may reach the full-screen player standing down
+        // underneath: no zapping, no channel numbers, and no play/pause for the media session to
+        // hand to it.
+        if (overlay.isYouTube) return onYouTubeKeyDown(keyCode) || super.onKeyDown(keyCode, event)
+
         if (keyCode in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9) {
             numericEntry = (numericEntry + (keyCode - KeyEvent.KEYCODE_0)).take(4)
             scheduleNumericCommit()
@@ -770,6 +782,18 @@ class MainActivity : ComponentActivity() {
             KeyEvent.KEYCODE_LAST_CHANNEL, KeyEvent.KEYCODE_TV -> { vm.toggleLastChannel(); true }
             else -> super.onKeyDown(keyCode, event)
         }
+    }
+
+    /** The keys YouTube's screens swallow rather than pass on; see [onKeyDown]. */
+    private fun onYouTubeKeyDown(keyCode: Int): Boolean = when (keyCode) {
+        in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9,
+        KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_CHANNEL_DOWN,
+        KeyEvent.KEYCODE_LAST_CHANNEL, KeyEvent.KEYCODE_TV,
+        KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE,
+        KeyEvent.KEYCODE_MEDIA_STOP, KeyEvent.KEYCODE_MEDIA_NEXT, KeyEvent.KEYCODE_MEDIA_PREVIOUS,
+        KeyEvent.KEYCODE_MEDIA_FAST_FORWARD, KeyEvent.KEYCODE_MEDIA_REWIND,
+        -> true
+        else -> false
     }
 
     /**
@@ -883,6 +907,10 @@ class MainActivity : ComponentActivity() {
             // the grid, and the grid leaves for the full-screen player on the channel with the
             // remote.
             overlay.isPanels -> stepUpInSport()
+
+            // YouTube's full screen goes back to YouTube's screen (ADR-061), which rises to home
+            // like any browse screen below.
+            overlay == TvOverlay.YOUTUBE_FULL -> overlay = TvOverlay.YOUTUBE
 
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT

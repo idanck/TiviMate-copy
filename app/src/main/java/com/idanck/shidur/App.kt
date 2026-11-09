@@ -24,6 +24,7 @@ import com.idanck.shidur.data.repo.EpgRepository
 import com.idanck.shidur.data.repo.SourceRepository
 import com.idanck.shidur.data.tasks.TaskRepository
 import com.idanck.shidur.data.update.UpdateManager
+import com.idanck.shidur.data.youtube.YouTubeRepository
 import com.idanck.shidur.player.PlayerEngine
 import com.idanck.shidur.record.RecordingScheduler
 import com.idanck.shidur.tv.HomeRow
@@ -59,6 +60,7 @@ object ServiceLocator {
     lateinit var tasks: TaskRepository private set
     lateinit var news: NewsRepository private set
     lateinit var account: AccountRepository private set
+    lateinit var youtube: YouTubeRepository private set
     lateinit var handoverImporter: HandoverImporter private set
 
     /**
@@ -118,6 +120,7 @@ object ServiceLocator {
         tasks = TaskRepository(settings)
         news = NewsRepository(settings)
         account = AccountRepository(appContext, appScope)
+        youtube = YouTubeRepository(appContext) { account.functions() }
         handoverImporter = HandoverImporter(appContext, database, settings)
         if (Handover.isBridge) {
             handover = UpdateManager(

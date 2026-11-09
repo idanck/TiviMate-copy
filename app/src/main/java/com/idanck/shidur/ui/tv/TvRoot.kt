@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.res.stringResource
@@ -108,7 +109,28 @@ enum class TvOverlay {
      * News mode (ADR-042): two Israeli news channels, or one and the headlines. Sport mode's
      * screen and session in every respect but what they offer; see [isPanels].
      */
-    NEWS;
+    NEWS,
+
+    /**
+     * YouTube's screen (ADR-061): a browse screen, with the side menu and the top bar, whose
+     * player is YouTube's own in a frame of its own. The full-screen player stands down while it
+     * is up, as for Sport mode: only one player may play on a screen.
+     */
+    YOUTUBE,
+
+    /**
+     * YouTube's player on the whole screen (ADR-061), with nothing of Shidur's over it. Neither
+     * passthrough nor a browse screen: [TvRoot] draws it in place of both, as it does Sport mode.
+     */
+    YOUTUBE_FULL;
+
+    /** Either of YouTube's two overlays, which share one player for the whole visit. */
+    val isYouTube: Boolean
+        get() = this == YOUTUBE || this == YOUTUBE_FULL
+
+    /** Whether something other than the full-screen player plays while this is up: the panels, or YouTube. */
+    val ownsPlayback: Boolean
+        get() = isPanels || isYouTube
 
     /** Whether this is one of the modes of several panels at once, which own playback while up. */
     val isPanels: Boolean
@@ -133,7 +155,7 @@ enum class TvOverlay {
      * the video ([isPassthrough]) nor in place of it ([isPanels]).
      */
     val isBrowse: Boolean
-        get() = !isPassthrough && !isPanels
+        get() = !isPassthrough && !isPanels && this != YOUTUBE_FULL
 
     /**
      * Whether this overlay owns the D-pad.
@@ -181,7 +203,7 @@ enum class TvOverlay {
      * grid backdrops have to reach the edges over a picture that does (ADR-051).
      */
     val fullBleed: Boolean
-        get() = this == HOME || this == GUIDE
+        get() = this == HOME || this == GUIDE || this == YOUTUBE
 
     /**
      * Whether this overlay draws Studio's top bar inside its own layout, so [OverlayScaffold]
@@ -283,6 +305,17 @@ fun TvRoot(
         }
     }
 
+    // YouTube (ADR-061): one player, a WebView, for the whole visit to its two overlays, made as
+    // the visit starts and let go as it ends, whichever way it was left. The full-screen player
+    // stands down for it and starts again after, unless the way out is to Sport or News mode.
+    val youtubeOn = overlay.isYouTube
+    val ytContext = LocalContext.current
+    val ytSession = remember(youtubeOn) { if (youtubeOn) YouTubeSession(ytContext, ServiceLocator.youtube) else null }
+    DisposableEffect(ytSession) { onDispose { ytSession?.release() } }
+    LaunchedEffect(youtubeOn) {
+        if (youtubeOn) vm.enterYouTube() else vm.leaveYouTube(restart = !overlay.isPanels)
+    }
+
     LaunchedEffect(details?.first?.id) {
         val channel = details?.first
         upcoming = if (channel == null) emptyList() else {
@@ -305,7 +338,7 @@ fun TvRoot(
         // and two surfaces covering the same pixels have no defined order — this one's last frame
         // could sit on top of the panels. The full-screen player is silent while it is up, and is
         // attached again as it is left.
-        if (!overlay.isPanels) {
+        if (!overlay.ownsPlayback) {
             PlayerSurface(
                 engine = ServiceLocator.player,
                 aspectMode = prefs.aspectMode,
@@ -334,7 +367,7 @@ fun TvRoot(
         // Not under Sport mode (ADR-041), whose opaque grid would hide it anyway: its play button
         // is focusable, and the remote's search for the next panel goes by position, not by what
         // is drawn on top — an arrow could land on a button nobody can see.
-        val sport = overlay.isPanels
+        val sport = overlay.ownsPlayback
         // On the radio's own screen only (ADR-047): the bare picture and the surfaces over it. Not
         // behind a browse screen, which covers it — the guide included, whose band leaves the top
         // of the panel showing (ADR-051): drawn there, its moving light and equaliser cost a Google
@@ -708,9 +741,26 @@ fun TvRoot(
                         modifier = Modifier.fillMaxSize(),
                     )
 
+                    // Null while it fades out after the visit ended: the player has gone already.
+                    TvOverlay.YOUTUBE -> ytSession?.let { session ->
+                        TvYouTubeScreen(
+                            session = session,
+                            onFullscreen = { onOverlayChange(TvOverlay.YOUTUBE_FULL) },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+
                     else -> Unit
                 }
             }
+        }
+
+        // YouTube's player, over its screen's frame or the whole screen, at this one place for the
+        // whole visit so it is never made again on the way to full screen and back (ADR-061).
+        // Full screen's own controls — the list of live channels and the remote — come after it.
+        ytSession?.let { session ->
+            YouTubePlayerLayer(session = session, full = overlay == TvOverlay.YOUTUBE_FULL)
+            if (overlay == TvOverlay.YOUTUBE_FULL) TvYouTubeFull(session = session)
         }
 
         details?.let { (channel, programme) ->

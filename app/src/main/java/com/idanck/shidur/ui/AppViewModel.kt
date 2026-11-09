@@ -997,6 +997,32 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Sport or News mode left some other way — a launcher card, which decides for itself what plays. */
     fun closeSport() = sport.close()
 
+    /** Whether YouTube's screen has the full-screen player standing down (ADR-061). */
+    private var inYouTube = false
+
+    /**
+     * YouTube's screen opens (ADR-061): its own player plays, and only one player may play on a
+     * screen, so the full-screen one stands down, as it does for Sport mode, after writing down
+     * where an on-demand title had got to.
+     */
+    fun enterYouTube() {
+        if (inYouTube) return
+        inYouTube = true
+        saveVodProgress()
+        player.silence()
+        player.setPlayWhenReady(false)
+    }
+
+    /**
+     * YouTube's screen is left: what played before it starts again, unless the way out leads to
+     * Sport or News mode, whose panels take the screen instead ([restart] false).
+     */
+    fun leaveYouTube(restart: Boolean) {
+        if (!inYouTube) return
+        inYouTube = false
+        if (restart) retryPlayback()
+    }
+
     /** Back from the background: the panels start again, any the parental lock now covers aside. */
     fun resumeSport() = sport.resume { channel -> !channelNeedsPin(channel) }
 

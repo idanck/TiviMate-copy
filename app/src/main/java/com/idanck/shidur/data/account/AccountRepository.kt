@@ -144,7 +144,8 @@ class AccountRepository(context: Context, private val scope: CoroutineScope) {
 
     private fun auth(): FirebaseAuth? = app?.let(FirebaseAuth::getInstance)
 
-    private fun functions(): FirebaseFunctions? = app?.let { FirebaseFunctions.getInstance(it, FirebaseSetup.FUNCTIONS_REGION) }
+    /** The project's callables in their region, or null in a build without a Firebase project. */
+    internal fun functions(): FirebaseFunctions? = app?.let { FirebaseFunctions.getInstance(it, FirebaseSetup.FUNCTIONS_REGION) }
 
     /** Whether this device can offer "Sign in with Google" at all. */
     val canSignInWithGoogle: Boolean
