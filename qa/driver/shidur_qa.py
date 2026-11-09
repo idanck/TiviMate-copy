@@ -29,8 +29,10 @@ try:
 except ImportError:  # pragma: no cover
     Image = None
 
-PKG = "com.tivicopy.player.debug"
-ACTIVITY = "com.tivicopy.player.ui.MainActivity"
+PKG = "com.idanck.shidur.debug"
+ACTIVITY = "com.idanck.shidur.ui.MainActivity"
+# ADR-060: the bridge, the old package's last build (debug: the old package's debug name).
+LEGACY_PKG = "com.tivicopy.player.debug"
 
 
 # ====================================================================== adb plumbing
@@ -313,8 +315,9 @@ def q(db, sql, *args):
 # ====================================================================== runner
 
 class Runner:
-    def __init__(self, form, apk, out, mock):
+    def __init__(self, form, apk, out, mock, bridge_apk=None):
         self.form, self.apk, self.out, self.mock = form, apk, out, mock.rstrip("/")
+        self.bridge_apk = bridge_apk
         os.makedirs(out, exist_ok=True)
         self.ui = UI(out)
         self.ev = Evidence(out)
@@ -506,6 +509,8 @@ class Runner:
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
         self.s20_audit()
+        # Last: it removes the new app and installs it again.
+        self.s28_handover()
         self.finish()
 
     def s01_install(self):
@@ -1765,7 +1770,7 @@ class Runner:
             sh(f"am kill {PKG}")
             time.sleep(3)
             killed = not pid()
-            armed = sh("dumpsys alarm | grep -c com.tivicopy.player.record.ALARM").strip()
+            armed = sh("dumpsys alarm | grep -c com.idanck.shidur.record.ALARM").strip()
             notes.append(f"process killed={killed}; alarm entries={armed}")
             before = len(self.mock_requests("/ts/b.ts"))
 
@@ -1822,6 +1827,112 @@ class Runner:
                 json.dump(summary, f, ensure_ascii=False, indent=1, default=str)
             self.facts["db_summary"] = summary
 
+    def s28_handover(self):
+        @self.scenario("QA-28", "The bridge hands everything to a fresh install of the new app (ADR-060)", "install")
+        def _(sid, title, area):
+            if not self.bridge_apk or not os.path.exists(self.bridge_apk):
+                self.record(sid, title, "SKIP", "no bridge APK in this run", area=area)
+                return
+            legacy = LEGACY_PKG
+            # The run so far left a full install of the new app: playlists from the mock provider,
+            # favourites, history, a scheduled recording, settings. That becomes the old install.
+            force_stop()
+            tmp = tempfile.mkdtemp(dir=self.out)
+            path = os.path.join(tmp, "tivicopy.db")
+            for suffix in ("", "-wal", "-shm"):
+                data = adb("exec-out", "run-as", PKG, "cat", f"databases/tivicopy.db{suffix}", binary=True, timeout=60)
+                if data and not data.startswith(b"cat:") and not data.startswith(b"run-as:"):
+                    with open(path + suffix, "wb") as f:
+                        f.write(data)
+            db = sqlite3.connect(path)
+            # Sealed with the new app's Keystore key, which the bridge does not have; an old install
+            # held its own. Plain values stand in, which the bridge reads as they are.
+            db.execute("UPDATE playlists SET username = 'qa-user' WHERE username IS NOT NULL")
+            db.execute("UPDATE playlists SET password = 'qa-pass' WHERE password IS NOT NULL")
+            db.commit()
+            db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            db.execute("PRAGMA journal_mode=DELETE")
+            db.close()
+            prefs = adb("exec-out", "run-as", PKG, "cat", "shared_prefs/settings.xml", timeout=30)
+            prefs_path = os.path.join(tmp, "settings.xml")
+            with open(prefs_path, "w", encoding="utf-8") as f:
+                f.write(prefs)
+
+            sh(f"pm uninstall {legacy}")
+            out = adb("install", "-r", "-g", self.bridge_apk, timeout=240)
+            if "Success" not in out:
+                self.record(sid, title, "FAIL", f"bridge install: {out.strip()[-160:]}", area=area)
+                return
+            sh(f"am start -W -n {legacy}/{ACTIVITY}", timeout=60)
+            time.sleep(4)
+            bridge_offer = self.ev.shot(f"{sid}_bridge_offer")
+            sh(f"am force-stop {legacy}")
+            time.sleep(1)
+            adb("push", path, "/data/local/tmp/qa_bridge.db", timeout=60)
+            adb("push", prefs_path, "/data/local/tmp/qa_bridge_prefs.xml", timeout=60)
+            sh("chmod 644 /data/local/tmp/qa_bridge.db /data/local/tmp/qa_bridge_prefs.xml")
+            sh(f"run-as {legacy} sh -c 'mkdir -p databases shared_prefs && "
+               f"cat /data/local/tmp/qa_bridge.db > databases/tivicopy.db && "
+               f"rm -f databases/tivicopy.db-wal databases/tivicopy.db-shm && "
+               f"cat /data/local/tmp/qa_bridge_prefs.xml > shared_prefs/settings.xml'")
+
+            # A fresh install of the new app, as on a television that has only had the bridge.
+            sh(f"pm uninstall {PKG}")
+            out = adb("install", "-r", "-g", self.apk, timeout=240)
+            if "Success" not in out:
+                self.record(sid, title, "FAIL", f"new app install: {out.strip()[-160:]}", area=area)
+                return
+            launch()
+            done = None
+            for _ in range(12):
+                done = self.ui.find("Your data is here") or self.ui.find("הנתונים הועברו")
+                failed = self.ui.find("could not be moved") or self.ui.find("העברת הנתונים נכשלה")
+                if done or failed:
+                    break
+                time.sleep(5)
+            imported = self.ev.shot(f"{sid}_imported")
+            summary = " ".join(t for t in self.ui.texts() if t)[:400]
+            if not done:
+                self.record(sid, title, "FAIL", f"no import report on screen: {summary}",
+                            [bridge_offer, imported], area)
+                return
+
+            # "Continue" restarts the app over the data it now holds.
+            if self.form == "tv":
+                key("KEYCODE_DPAD_CENTER")
+            else:
+                self.ui.tap_label("Continue", scrolls=0) or self.ui.tap_label("המשך", scrolls=0)
+            time.sleep(6)
+            removal = self.ui.wait_for("Remove the previous version", timeout=15) or \
+                self.ui.find("להסיר את הגרסה הקודמת")
+            removal_shot = self.ev.shot(f"{sid}_removal_prompt")
+            if removal:
+                self.ui.tap_label("Not now", scrolls=0) or self.ui.tap_label("לא עכשיו", scrolls=0)
+
+            def counts(conn):
+                return {
+                    "playlists": q(conn, "SELECT COUNT(*) FROM playlists"),
+                    "favourites": q(conn, "SELECT (SELECT COUNT(*) FROM channels WHERE favourite = 1) + "
+                                          "(SELECT COUNT(*) FROM vod WHERE favourite = 1)"),
+                    "hidden": q(conn, "SELECT COUNT(*) FROM channels WHERE hidden = 1"),
+                    "history": q(conn, "SELECT COUNT(*) FROM history"),
+                    "recordings": q(conn, "SELECT COUNT(*) FROM recordings"),
+                }
+
+            sent = counts(sqlite3.connect(path))
+            new_db = self.db()
+            got = counts(new_db) if new_db else {}
+            credentials = q(new_db, "SELECT COUNT(*) FROM playlists WHERE username IS NOT NULL") if new_db else []
+            bridge_prefs = adb("exec-out", "run-as", legacy, "cat", "shared_prefs/settings.xml", timeout=30)
+            told = "bridge_handed_over_utc" in bridge_prefs
+            self.facts["handover"] = {"sent": sent, "got": got, "credentials": credentials,
+                                      "bridge_told": told, "removal_prompt": bool(removal)}
+            ok = new_db is not None and sent == got and told and bool(removal)
+            self.record(sid, title, "PASS" if ok else "FAIL",
+                        f"sent {sent} · got {got} · bridge told {told} · removal prompt {bool(removal)}",
+                        [bridge_offer, imported, removal_shot], area)
+            sh(f"pm uninstall {legacy}")
+
     def finish(self):
         counts = {}
         for r in self.results:
@@ -1848,8 +1959,9 @@ def main():
     ap.add_argument("--apk", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--mock", default="http://10.0.2.2:8080")
+    ap.add_argument("--bridge-apk", default=None)
     a = ap.parse_args()
-    Runner(a.form, a.apk, a.out, a.mock).run_all()
+    Runner(a.form, a.apk, a.out, a.mock, a.bridge_apk).run_all()
 
 
 if __name__ == "__main__":

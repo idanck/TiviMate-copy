@@ -26,21 +26,23 @@
 ## 4. אפליקציות אנדרואיד וטביעות האצבע
 
 1. ‏Project settings → General → Add app → Android:
-   - Package name: ‏`com.tivicopy.player`
+   - Package name: ‏`com.idanck.shidur`
    - SHA-1: של מפתח ה-release ש-CI חותם בו (הקובץ ש-`RELEASE_KEYSTORE_B64` מחזיק):
      ```
      keytool -list -v -keystore release.jks -alias <alias>
      ```
    - אחרי ההוספה: Add fingerprint → גם ה-SHA-256 של אותו מפתח.
-2. אפליקציה שנייה: ‏`com.tivicopy.player.debug`, עם ה-SHA-1 של מפתח ה-debug בכל מחשב שבונה debug:
+2. אפליקציה שנייה: ‏`com.idanck.shidur.debug`, עם ה-SHA-1 של מפתח ה-debug בכל מחשב שבונה debug:
    ```
    keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
    ```
 3. אם האפליקציה תגיע פעם ל-Google Play: גם טביעת האצבע של Play App Signing
-   (Play Console → Setup → App signing), על `com.tivicopy.player`.
-4. **רק אחרי שלב 2** הורד את `google-services.json`. הוא צריך להכיל `"client_type": 3`, כלומר את ה-web
+   (Play Console → Setup → App signing), על `com.idanck.shidur`.
+4. ‏`com.tivicopy.player` ו-`com.tivicopy.player.debug`, שנרשמו קודם, נשארים: זו החבילה של הגשר
+   (ADR-060). מוחקים אותם רק כשאין יותר אף התקנה של החבילה הישנה.
+5. **רק אחרי שלב 2** הורד את `google-services.json`. הוא צריך להכיל `"client_type": 3`, כלומר את ה-web
    client ש-Sign in with Google צריך. אם הוא חסר, הורד את הקובץ מחדש.
-5. ‏GitHub secret בשם **`FIREBASE_ANDROID_CONFIG`**: הדבק את כל תוכן הקובץ, כמו שהוא.
+6. ‏GitHub secret בשם **`FIREBASE_ANDROID_CONFIG`**: הדבק את כל תוכן הקובץ, כמו שהוא.
 
 ## 5. אפליקציית ווב ו-Hosting
 

@@ -30,6 +30,18 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
 
+    <!-- ADR-060: the move from com.tivicopy.player to com.idanck.shidur. Both packages declare
+         the permission that guards the bridge's data and both hold it; `signature` grants it only
+         to a package signed with the same key. Debug builds name another one, since each
+         machine's debug key differs from the release key (app/build.gradle.kts). -->
+    <permission
+        android:name="${migrationPermission}"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="${migrationPermission}" />
+    <!-- Offering to remove the other package once the data has moved: the new app removes the
+         old one, the bridge removes itself. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
     <!-- Google TV "Continue watching" (FR-TVI-02). Declared because the platform documents it
          for apps writing Watch Next rows; on a device where it is not granted, the writes in
          tv/WatchNextSync.kt fail and are swallowed, which costs a launcher row and nothing else. -->
@@ -57,6 +69,11 @@
         <package android:name="com.spotify.music" />
         <package android:name="com.plexapp.android" />
         <package android:name="com.cellcom.cellcom_tv" />
+        <!-- ADR-060: each package of this app has to see the other one, and its provider. -->
+        <package android:name="com.tivicopy.player" />
+        <package android:name="com.tivicopy.player.debug" />
+        <package android:name="com.idanck.shidur" />
+        <package android:name="com.idanck.shidur.debug" />
     </queries>
 
     <!-- One binary for both form factors: neither leanback nor a touchscreen is required. -->
@@ -147,7 +164,7 @@
             android:name=".record.RecordingAlarmReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.tivicopy.player.record.ALARM" />
+                <action android:name="com.idanck.shidur.record.ALARM" />
             </intent-filter>
         </receiver>
 
@@ -162,6 +179,15 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+        <!-- ADR-060: the bridge's data, for the new app only. Enabled in the bridge alone. -->
+        <provider
+            android:name=".data.handover.HandoverProvider"
+            android:authorities="${applicationId}.handover"
+            android:enabled="${bridgeProvider}"
+            android:exported="true"
+            android:grantUriPermissions="false"
+            android:permission="${migrationPermission}" />
+
         <!-- Addressed by class from the installer session's PendingIntent, so it needs no
              intent filter and is never reachable from outside the app. -->
         <receiver

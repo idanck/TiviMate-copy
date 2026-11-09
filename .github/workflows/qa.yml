@@ -58,6 +58,16 @@ jobs:
           echo "unit=${{ steps.unit.outcome }}" > build-evidence/outcomes.txt
           ls -la build-evidence
 
+      - name: Assemble the bridge (debug)
+        # ADR-060: QA-28 moves a full install from the bridge to the new app. Built in this job so
+        # both carry the same debug key, which the hand-over's signature permission requires.
+        continue-on-error: true
+        run: |
+          ./gradlew --no-daemon -Pshidur.bridge=true assembleDebug
+          mkdir -p build-evidence/bridge
+          cp app/build/outputs/apk/debug/shidur-bridge-*.apk build-evidence/bridge/
+          ls -la build-evidence/bridge
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

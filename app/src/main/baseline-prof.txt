@@ -25,19 +25,19 @@
 # runtime it draws with.
 
 # The two Compose shells and everything they draw: this is the frame-rate-critical half.
-HSPLcom/tivicopy/player/ui/**->**(**)**
+HSPLcom/idanck/shidur/ui/**->**(**)**
 
 # The models and formatters the shells call while composing — time formatting in particular runs
 # per programme cell, and there are a few hundred of those in one guide screen.
-HSPLcom/tivicopy/player/core/**->**(**)**
+HSPLcom/idanck/shidur/core/**->**(**)**
 
 # Playlists, the guide, preferences and the database: everything a screen waits on.
-HSPLcom/tivicopy/player/data/**->**(**)**
+HSPLcom/idanck/shidur/data/**->**(**)**
 
 # The player engine and its listeners, which run on the frames a channel change costs.
-HSPLcom/tivicopy/player/player/**->**(**)**
+HSPLcom/idanck/shidur/player/**->**(**)**
 
 # Application startup itself, the service locator, and the build stamp read by Settings.
-HSPLcom/tivicopy/player/App;->**(**)**
-HSPLcom/tivicopy/player/ServiceLocator;->**(**)**
-HSPLcom/tivicopy/player/BuildInfo;->**(**)**
+HSPLcom/idanck/shidur/App;->**(**)**
+HSPLcom/idanck/shidur/ServiceLocator;->**(**)**
+HSPLcom/idanck/shidur/BuildInfo;->**(**)**

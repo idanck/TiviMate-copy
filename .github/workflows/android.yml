@@ -16,6 +16,8 @@ on:
       # The Firebase project (ADR-059) deploys from its own workflow.
       - "firebase/**"
       - ".github/workflows/firebase.yml"
+      # The bridge (ADR-060) is built and published from its own workflow, by hand.
+      - ".github/workflows/bridge.yml"
   workflow_dispatch:
 
 permissions:
@@ -170,10 +172,17 @@ jobs:
       - name: Publish the update manifest
         # Only a properly signed build from the integration branch can update an install, so
         # only that one is announced to the app (FR-UPD-01).
+        #
+        # ADR-060: this is the new package, com.idanck.shidur, and it goes to its own manifest,
+        # shidur/latest.json. `latest.json` belongs to the bridge (bridge.yml) for good: every
+        # install still on the old package reads it, and an APK of another package there would
+        # be refused by each of them and leave them stranded. This step never writes it.
         if: github.ref == 'refs/heads/main' && github.event_name == 'push' && env.SIGNED == 'true'
         env:
           UPLOAD_TOKEN: ${{ secrets.UPDATES_UPLOAD_TOKEN }}
           HOST: https://updates.idanck.com
+          MANIFEST: shidur/latest.json
+          PACKAGE: com.idanck.shidur
         run: |
           set -euo pipefail
           if [ -z "${UPLOAD_TOKEN:-}" ]; then
@@ -183,6 +192,12 @@ jobs:
 
           apk=$(ls dist/*.apk | head -1)
           name=$(basename "$apk")
+          aapt2="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2"
+          pkg=$("$aapt2" dump packagename "$apk")
+          if [ "$pkg" != "$PACKAGE" ]; then
+            echo "::error::The APK is $pkg, not $PACKAGE; nothing published."
+            exit 1
+          fi
           sha=$(sha256sum "$apk" | cut -d' ' -f1)
           size=$(stat -c%s "$apk")
           versionCode=$(grep '^versionCode=' version.properties | cut -d= -f2 | tr -d '[:space:]')
@@ -196,7 +211,7 @@ jobs:
           # Only a 404 means nothing is published yet. Any other failure used to read as "{}",
           # i.e. versionCode 0, and the version check below passed without having seen anything.
           # Any 2xx is a manifest: the update Worker answers 206 with the whole file.
-          status=$(curl -sS -o "$RUNNER_TEMP/published.json" -w '%{http_code}' "$HOST/latest.json") || {
+          status=$(curl -sS -o "$RUNNER_TEMP/published.json" -w '%{http_code}' "$HOST/$MANIFEST") || {
             echo "::error::Could not reach $HOST to read the published version; nothing published."
             exit 1
           }
@@ -204,12 +219,12 @@ jobs:
             2??) published=$(cat "$RUNNER_TEMP/published.json") ;;
             404) published='{}' ;;
             *)
-              echo "::error::$HOST/latest.json answered HTTP $status; nothing published."
+              echo "::error::$HOST/$MANIFEST answered HTTP $status; nothing published."
               exit 1
               ;;
           esac
           pubCode=$(jq -er '.versionCode // 0' <<<"$published") || {
-            echo "::error::$HOST/latest.json is not a manifest; nothing published."
+            echo "::error::$HOST/$MANIFEST is not a manifest; nothing published."
             exit 1
           }
           pubSha=$(jq -r '.sha256 // ""' <<<"$published")
@@ -242,10 +257,16 @@ jobs:
               sizeBytes: $size, minSdk: $min, notes: {he: $notes, en: $notes}}' > "$RUNNER_TEMP/latest.json"
 
           # The APK is uploaded first, so the manifest never points at a file that is not there.
+          # The update host's Worker is not in this repository (ADR-012). If it refuses a manifest
+          # under shidur/, this fails here, before anything reaches a device: the old package's
+          # latest.json is untouched, and bridge.yml will not publish the bridge without this one.
           curl -fsS -X PUT -H "Authorization: Bearer $UPLOAD_TOKEN" \
-            --data-binary @"$RUNNER_TEMP/latest.json" "$HOST/publish/latest.json" > /dev/null
+            --data-binary @"$RUNNER_TEMP/latest.json" "$HOST/publish/$MANIFEST" > /dev/null || {
+            echo "::error::$HOST refused $MANIFEST. The update Worker has to accept /publish/$MANIFEST and serve /$MANIFEST (ADR-060)."
+            exit 1
+          }
 
-          served=$(curl -fsS "$HOST/latest.json")
+          served=$(curl -fsS "$HOST/$MANIFEST")
           [ "$(jq -r .sha256 <<<"$served")" = "$sha" ]
           [ "$(curl -fsS -o /dev/null -w '%{http_code}' -I "$HOST/apk/$name")" = "200" ]
           echo "Published $versionName ($versionCode) — $name"

@@ -6,12 +6,12 @@ the artboards it wrote describe the system before Studio and are kept for histor
 
 Every value here is lifted verbatim from the app's own source:
 
-  app/src/main/java/com/tivicopy/player/ui/theme/Theme.kt      colours, shapes
-  app/src/main/java/com/tivicopy/player/ui/theme/Type.kt       the type ramp
-  app/src/main/java/com/tivicopy/player/ui/tv/TvSurfaces.kt    panel and card
-  app/src/main/java/com/tivicopy/player/ui/common/Motion.kt    durations, spring
-  app/src/main/java/com/tivicopy/player/ui/common/TvMetrics.kt ten-foot metrics
-  app/src/main/java/com/tivicopy/player/ui/common/Components.kt shared widgets
+  app/src/main/java/com/idanck/shidur/ui/theme/Theme.kt      colours, shapes
+  app/src/main/java/com/idanck/shidur/ui/theme/Type.kt       the type ramp
+  app/src/main/java/com/idanck/shidur/ui/tv/TvSurfaces.kt    panel and card
+  app/src/main/java/com/idanck/shidur/ui/common/Motion.kt    durations, spring
+  app/src/main/java/com/idanck/shidur/ui/common/TvMetrics.kt ten-foot metrics
+  app/src/main/java/com/idanck/shidur/ui/common/Components.kt shared widgets
 
 Run it from this directory; it writes the .dc.html artboards and canvas.json
 next to itself. Those files are what the canvas is seeded from.
@@ -400,7 +400,7 @@ RADII_IN_USE = [
     ("50%",  "CircleShape", "לוחית תחנת רדיו — רק כשהיצירה היא הסמל של התחנה עצמה — והנקודה בתג השידור החי"),
 ]
 
-# Counted over app/src/main/java/com/tivicopy/player/ui with a grep for `N.dp`.
+# Counted over app/src/main/java/com/idanck/shidur/ui with a grep for `N.dp`.
 SPACING = [
     (2, 23), (4, 21), (6, 30), (8, 59), (10, 16),
     (12, 72), (16, 21), (20, 8), (24, 9), (32, 5),

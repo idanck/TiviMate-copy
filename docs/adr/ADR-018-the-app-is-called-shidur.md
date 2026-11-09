@@ -1,6 +1,8 @@
 # ADR-018 — The app is called Shidur, and the package is not renamed
 
-**Status:** accepted
+**Status:** accepted; the package half superseded by ADR-060 (2026-11-09), which renames the
+package to `com.idanck.shidur` and moves the existing installs with a bridge build. The name half
+stands.
 
 ## Decision
 

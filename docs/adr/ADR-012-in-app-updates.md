@@ -1,6 +1,8 @@
 # ADR-012 — The app updates itself from a manifest on its own host
 
-**Status:** accepted
+**Status:** accepted; amended by ADR-060 (2026-11-09): one manifest per package. The app,
+`com.idanck.shidur`, reads `shidur/latest.json`; `latest.json` holds the bridge of the old package
+for good.
 
 ## Decision
 

@@ -547,4 +547,32 @@
     <string name="account_tv_code_failed">לא הצלחנו לקבל קוד. בדוק את החיבור של הטלוויזיה לרשת.</string>
     <string name="account_tv_code_paused">פג תוקף הקוד.</string>
     <string name="account_tv_new_code">קוד חדש</string>
+
+    <!-- ADR-060: המעבר מ-com.tivicopy.player ל-com.idanck.shidur. הצד של הגשר. -->
+    <string name="handover_bridge_title">שידור עובר לגרסה חדשה</string>
+    <string name="handover_bridge_body">הגרסה החדשה היא אפליקציה נפרדת. הערוצים, המועדפים, ההיסטוריה, ההגדרות וההקלטות עוברים אליה לבד. צריך רק לאשר את ההתקנה שלה, ואחר כך את ההסרה של הגרסה הזו.</string>
+    <string name="handover_bridge_go">עבור עכשיו</string>
+    <string name="handover_bridge_checking">מחפש את הגרסה החדשה…</string>
+    <string name="handover_bridge_not_found">הגרסה החדשה עוד לא נמצאת בשרת העדכונים. נסה שוב מאוחר יותר.</string>
+    <string name="handover_bridge_installed_body">הגרסה החדשה מותקנת. פתח אותה, והיא תעביר אליה את הנתונים.</string>
+    <string name="handover_bridge_open">פתח את שידור החדשה</string>
+    <string name="handover_bridge_done_title">שידור עבר לגרסה החדשה</string>
+    <string name="handover_bridge_done_body">הנתונים נמצאים בגרסה החדשה. אין צורך יותר בגרסה הזו, ואפשר להסיר אותה.</string>
+    <string name="handover_bridge_remove">הסר גרסה זו</string>
+    <!-- הצד של האפליקציה החדשה. -->
+    <string name="handover_import_title">מעביר את הנתונים</string>
+    <string name="handover_importing">מעתיק ערוצים, מועדפים, היסטוריה, הגדרות והקלטות מהגרסה הקודמת…</string>
+    <string name="handover_imported_title">הנתונים הועברו</string>
+    <string name="handover_imported_summary">עברו %1$d רשימות ערוצים, %2$d ערוצים, %3$d מועדפים, %4$d ערוצים בהיסטוריה ו-%5$d הקלטות.</string>
+    <string name="handover_imported_folder">בחר שוב את תיקיית ההקלטות בהגדרות ההקלטה. הגישה של הגרסה הקודמת לתיקייה לא עוברת.</string>
+    <string name="handover_imported_credentials">ב-%1$d רשימות הסיסמה השמורה לא עברה. הזן אותה שוב בהגדרות הרשימה.</string>
+    <string name="handover_continue">המשך</string>
+    <string name="handover_failed_title">העברת הנתונים נכשלה</string>
+    <string name="handover_failed_body">שום דבר לא השתנה. הגרסה הקודמת עדיין מותקנת, עם כל הנתונים.</string>
+    <string name="handover_not_now">לא עכשיו</string>
+    <string name="handover_remove_title">להסיר את הגרסה הקודמת?</string>
+    <string name="handover_remove_body">כל הנתונים כבר בגרסה הזו. אין צורך יותר בגרסה הקודמת.</string>
+    <string name="handover_remind_title">הגרסה הקודמת עדיין מותקנת</string>
+    <string name="handover_remind_body">אין בה צורך יותר. זו הפעם האחרונה שנזכיר אותה.</string>
+    <string name="handover_remove">הסר</string>
 </resources>
