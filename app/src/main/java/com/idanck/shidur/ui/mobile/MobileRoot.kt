@@ -305,10 +305,12 @@ fun MobileRoot(
                     // Studio's five tabs, in the canvas's order (ADR-032): recordings has the
                     // place on-demand held, since this installation carries no on-demand (ADR-016).
                     PhoneNavBar(
-                        tabs = listOf(
+                        // The Radio tab leaves with the radio playlist, removed or turned off in Settings.
+                        tabs = listOfNotNull(
                             PhoneTab(MobileTab.LIVE, stringResource(R.string.nav_live), StudioIcons.Tv),
                             PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
-                            PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio),
+                            PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio)
+                                .takeIf { vm.isRadioShown(state.playlists) },
                             PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
                             PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),

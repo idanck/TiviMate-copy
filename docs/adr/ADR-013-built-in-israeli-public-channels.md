@@ -71,3 +71,17 @@ purpose:
   drop the twelve provider entries that duplicate free channels — Channel 9 / 9 HD, 11, 12, 13,
   14, i24NEWS, Makan, Hala TV and the HOT copies of 9, 12 and 13 — from every playlist it writes,
   Emby's included. Only Pi-side files changed, outside this repository.
+- **2026-11-09 (0.24.0): playlists can be turned off and deleted on Android, built-ins included.**
+  Settings had no way to do either (the computer version already had both, built-ins excepted).
+  A playlist's row now opens its actions: use it, refresh it, turn it off or on, delete it. A
+  playlist that is off keeps everything, but is not refreshed and its channels leave every screen:
+  it is never the active one, and the queries that span playlists (favourites, recents, continue
+  watching, a guide hit's channel) skip it (`IN_ENABLED_PLAYLIST` in the DAO). The owner chose to
+  let the two built-ins (this one and ADR-015's radio) be deleted as well. Because bootstrap
+  reinstates a missing built-in, a deletion from Settings is remembered (`builtin_tv_removed`,
+  `builtin_radio_removed` in `Settings`, carried by backups and the hand-over like any other key)
+  and bootstrap leaves the playlist out until "Restore the built-in playlists". With the radio
+  playlist off or removed, the Radio entry leaves the television's menu and the phone's tab bar,
+  and Android Auto offers no stations. A row deleted straight from the database still comes back
+  on the next cold start, as before.
+

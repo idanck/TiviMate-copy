@@ -111,8 +111,10 @@ class SourceRepository(
     /**
      * The one bundled playlist this app ships with (docs/00-scope-and-platforms.md §0.1).
      * Idempotent and self-healing: run on every cold start, it only inserts the row the first
-     * time, and quietly reinstates it if the user ever deletes it — no separate "first run" flag,
+     * time, and quietly reinstates it if the row goes missing — no separate "first run" flag,
      * matching the rest of the app's preference for idempotent bootstrap over stored one-shot state.
+     * The one exception is a removal the owner asked for in Settings ([removePlaylist]), which is
+     * remembered and honoured until he restores the built-ins ([restoreBuiltInPlaylists]).
      *
      * A row seeded at one of [IsraelPublicChannels.LEGACY_M3U_URLS] is this same playlist at an
      * address that has stopped serving it, so it is corrected in place — keeping its id, and with
@@ -133,6 +135,8 @@ class SourceRepository(
     }
 
     private fun ensureBuiltInPlaylistLocked() {
+        // Removed by the owner from Settings: left out until he restores it (see [removePlaylist]).
+        if (settings.isBuiltInRemoved(IsraelPublicChannels.M3U_URL)) return
         val playlists = dao.playlists()
         if (playlists.any { it.url == IsraelPublicChannels.M3U_URL }) return
 
@@ -169,6 +173,37 @@ class SourceRepository(
      * second copy of that shape rather than a shared helper, matching this app's preference for
      * explicit code over an abstraction serving exactly two call sites.
      */
+    /**
+     * Deletes a playlist with everything it carries (its groups, channels and on-demand go with
+     * the row, `ON DELETE CASCADE`). A bundled one is remembered as removed, because bootstrap
+     * would otherwise put it straight back on the next cold start; [restoreBuiltInPlaylists]
+     * undoes that.
+     */
+    suspend fun removePlaylist(id: Long) = withContext(Dispatchers.IO) {
+        bootstrapLock.withLock {
+            val playlist = dao.playlist(id) ?: return@withLock
+            if (playlist.url == IsraelPublicChannels.M3U_URL || playlist.url == IsraelRadioStations.M3U_URL) {
+                settings.setBuiltInRemoved(playlist.url, true)
+            }
+            dao.deletePlaylist(id)
+        }
+    }
+
+    /** Turns a playlist off or on; an off one is not refreshed and none of its channels show. */
+    suspend fun setPlaylistEnabled(id: Long, enabled: Boolean) = withContext(Dispatchers.IO) {
+        dao.setPlaylistEnabled(id, enabled)
+    }
+
+    /** Brings back whichever bundled playlists were removed, as on a fresh install. */
+    suspend fun restoreBuiltInPlaylists() = withContext(Dispatchers.IO) {
+        settings.setBuiltInRemoved(IsraelPublicChannels.M3U_URL, false)
+        settings.setBuiltInRemoved(IsraelRadioStations.M3U_URL, false)
+        bootstrapLock.withLock {
+            ensureBuiltInPlaylistLocked()
+            ensureRadioPlaylistLocked()
+        }
+    }
+
     suspend fun ensureRadioPlaylist() = withContext(Dispatchers.IO) {
         bootstrapLock.withLock {
             ensureRadioPlaylistLocked()
@@ -176,6 +211,7 @@ class SourceRepository(
     }
 
     private fun ensureRadioPlaylistLocked() {
+        if (settings.isBuiltInRemoved(IsraelRadioStations.M3U_URL)) return
         val playlists = dao.playlists()
         if (playlists.any { it.url == IsraelRadioStations.M3U_URL }) return
 

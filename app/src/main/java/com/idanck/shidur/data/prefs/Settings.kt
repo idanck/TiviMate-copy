@@ -389,6 +389,25 @@ class Settings(context: Context) {
     fun setLockChannels(v: Boolean) = commit { putBoolean(K_LOCK_CHANNELS, v) }
     fun setHideLockedChannels(v: Boolean) = commit { putBoolean(K_HIDE_LOCKED, v) }
     fun setActivePlaylist(id: Long) = commit { putLong(K_ACTIVE_PLAYLIST, id) }
+
+    /**
+     * Whether the owner removed one of the two bundled playlists (ADR-013, ADR-015) from Settings.
+     * Bootstrap reinstates a missing built-in on every cold start, so a removal is remembered here
+     * and bootstrap leaves the playlist out while it holds. [url] is the built-in's playlist URL;
+     * anything else is never "removed" in this sense.
+     */
+    fun isBuiltInRemoved(url: String): Boolean = builtInKey(url)?.let { prefs.getBoolean(it, false) } ?: false
+
+    fun setBuiltInRemoved(url: String, removed: Boolean) {
+        val key = builtInKey(url) ?: return
+        commit { putBoolean(key, removed) }
+    }
+
+    private fun builtInKey(url: String): String? = when (url) {
+        com.idanck.shidur.data.builtin.IsraelPublicChannels.M3U_URL -> K_BUILTIN_TV_REMOVED
+        com.idanck.shidur.data.builtin.IsraelRadioStations.M3U_URL -> K_BUILTIN_RADIO_REMOVED
+        else -> null
+    }
     fun setVerboseLogging(v: Boolean) = commit { putBoolean(K_VERBOSE, v) }
 
     /** FR-UPD-06: the background check and the metered-network guard are both opt-out. */
@@ -702,6 +721,8 @@ class Settings(context: Context) {
         const val K_LOCK_CHANNELS = "lock_channels"
         const val K_HIDE_LOCKED = "hide_locked"
         const val K_ACTIVE_PLAYLIST = "active_playlist"
+        const val K_BUILTIN_TV_REMOVED = "builtin_tv_removed"
+        const val K_BUILTIN_RADIO_REMOVED = "builtin_radio_removed"
         const val K_VERBOSE = "verbose_logging"
         const val K_UPDATE_AUTO = "update_auto_check"
         const val K_UPDATE_WIFI_ONLY = "update_wifi_only"

@@ -578,6 +578,8 @@ fun TvRoot(
                         current = browse,
                         onOpen = onOverlayChange,
                         onTowardContent = if (browse == TvOverlay.HOME) homeFocus::restore else null,
+                        // Removed or turned off in Settings: the Radio entry goes with it.
+                        showRadio = vm.isRadioShown(state.playlists),
                     )
                 },
             ) {

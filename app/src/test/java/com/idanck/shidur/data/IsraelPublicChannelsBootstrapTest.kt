@@ -84,6 +84,24 @@ class IsraelPublicChannelsBootstrapTest {
         assertEquals(1, dao.playlists().count { it.url == IsraelPublicChannels.M3U_URL })
     }
 
+    @Test
+    fun `removing it from Settings keeps it away until it is restored`() {
+        val sources = sources()
+        val dao = Dao(opened.first())
+
+        runBlocking { sources.ensureBuiltInPlaylist() }
+        val seeded = dao.playlists().first { it.url == IsraelPublicChannels.M3U_URL }
+        runBlocking {
+            sources.removePlaylist(seeded.id)
+            sources.ensureBuiltInPlaylist()
+        }
+        assertEquals(0, dao.playlists().count { it.url == IsraelPublicChannels.M3U_URL })
+
+        runBlocking { sources.restoreBuiltInPlaylists() }
+
+        assertEquals(1, dao.playlists().count { it.url == IsraelPublicChannels.M3U_URL })
+    }
+
     /**
      * 0.4.4 shipped seeding this playlist at a URL that was never served (ADR-013). Correcting the
      * constant is only half the fix: the row already on those devices has to be moved to the new

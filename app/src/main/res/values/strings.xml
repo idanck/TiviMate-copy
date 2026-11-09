@@ -78,6 +78,17 @@
     <string name="playlist_refreshing">Refreshing…</string>
     <string name="playlist_never_refreshed">Never refreshed</string>
     <string name="playlist_last_refresh">Last refreshed %1$s</string>
+    <string name="playlist_use">Use this playlist</string>
+    <string name="playlist_turn_off">Turn off</string>
+    <string name="playlist_turn_on">Turn on</string>
+    <string name="playlist_off">Turned off</string>
+    <string name="playlist_off_hint">A playlist that is turned off is kept, but not refreshed, and its channels show on no screen.</string>
+    <string name="playlist_delete_title">Delete \"%1$s\"?</string>
+    <string name="playlist_delete_body">Its channels, favourites and edits are removed from this device.</string>
+    <string name="playlist_delete_builtin_body">Its channels and favourites are removed from this device. It stays away until you restore the built-in playlists.</string>
+    <string name="playlist_deleted">Playlist deleted</string>
+    <string name="playlist_restore_builtin">Restore the built-in playlists</string>
+    <string name="playlist_restore_builtin_hint">Israel\'s open channels and Israeli radio, as on a fresh install</string>
     <string name="refresh_report">%1$d added · %2$d removed · %3$d renamed · %4$d total</string>
     <string name="refresh_failed_kept">Refresh failed — your previous channel list is unchanged.</string>
     <string name="refresh_interval">Auto update</string>

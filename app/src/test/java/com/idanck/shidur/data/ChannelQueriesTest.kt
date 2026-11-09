@@ -88,6 +88,28 @@ class ChannelQueriesTest {
     // ------------------------------------------------------------ favourites
 
     @Test
+    fun `a playlist turned off leaves the views that span playlists`() {
+        val dao = dao()
+        val on = dao.newPlaylist(name = "On", url = "http://example.invalid/on.m3u")
+        val off = dao.newPlaylist(name = "Off", url = "http://example.invalid/off.m3u")
+        val kept = dao.newChannel(on, "Kept")
+        val gone = dao.newChannel(off, "Gone")
+        listOf(kept, gone).forEach {
+            dao.setChannelFlags(it, favourite = true)
+            dao.recordWatch(it, 1_700_000_000_000)
+        }
+
+        dao.setPlaylistEnabled(off, false)
+
+        assertEquals(listOf(kept), dao.favouriteChannels().map { it.id })
+        assertEquals(listOf(kept), dao.recentChannels().map { it.id })
+        // Nothing is lost: turned back on, it is all there again.
+        dao.setPlaylistEnabled(off, true)
+        assertEquals(setOf(kept, gone), dao.favouriteChannels().map { it.id }.toSet())
+        assertTrue(dao.playlists().first { it.id == off }.enabled)
+    }
+
+    @Test
     fun `the favourites view returns only what was marked`() {
         val dao = dao()
         val playlist = dao.newPlaylist()

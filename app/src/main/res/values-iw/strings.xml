@@ -68,6 +68,17 @@
     <string name="playlist_refreshing">מרענן…</string>
     <string name="playlist_never_refreshed">מעולם לא רוענן</string>
     <string name="playlist_last_refresh">רוענן לאחרונה %1$s</string>
+    <string name="playlist_use">השתמש ברשימה הזו</string>
+    <string name="playlist_turn_off">השבתה</string>
+    <string name="playlist_turn_on">הפעלה</string>
+    <string name="playlist_off">מושבתת</string>
+    <string name="playlist_off_hint">רשימה מושבתת נשמרת, אבל לא מתרעננת, והערוצים שלה לא מופיעים באף מסך.</string>
+    <string name="playlist_delete_title">למחוק את \"%1$s\"?</string>
+    <string name="playlist_delete_body">הערוצים, המועדפים והעריכות שלה יימחקו מהמכשיר הזה.</string>
+    <string name="playlist_delete_builtin_body">הערוצים והמועדפים שלה יימחקו מהמכשיר הזה. היא לא תחזור עד שתשחזר את הרשימות המובנות.</string>
+    <string name="playlist_deleted">הרשימה נמחקה</string>
+    <string name="playlist_restore_builtin">שחזור הרשימות המובנות</string>
+    <string name="playlist_restore_builtin_hint">ערוצים פתוחים בישראל ורדיו ישראלי, כמו בהתקנה חדשה</string>
     <string name="refresh_report">%1$d נוספו · %2$d הוסרו · %3$d שונו · %4$d סה\"כ</string>
     <string name="refresh_failed_kept">הרענון נכשל — רשימת הערוצים הקודמת נשמרה ללא שינוי.</string>
     <string name="refresh_interval">עדכון אוטומטי</string>
