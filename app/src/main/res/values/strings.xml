@@ -571,4 +571,12 @@
     <string name="account_delete_confirm_title">Delete the account?</string>
     <string name="account_delete_confirm_body">The account and everything stored with it on the server are deleted for good. Playlists and settings on this device stay.</string>
     <string name="account_error_delete">The account could not be deleted. Check the connection and try again.</string>
+    <string name="account_tv_on_this_tv">Sign in on this television with the Google account already on it.</string>
+    <string name="account_tv_pair_title">Or sign in from your phone</string>
+    <string name="account_tv_qr_description">QR code that opens the sign-in page on a phone</string>
+    <string name="account_tv_pair_steps">Scan the code with your phone, or open %1$s and type the code above. Sign in with Google and approve: this screen continues by itself.</string>
+    <string name="account_tv_code_loading">Getting a code…</string>
+    <string name="account_tv_code_failed">Could not get a code. Check the television\'s connection.</string>
+    <string name="account_tv_code_paused">The code expired.</string>
+    <string name="account_tv_new_code">New code</string>
 </resources>

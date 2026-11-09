@@ -256,6 +256,9 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
+    // The QR code a television shows for signing in from a phone: the encoder only, drawn in
+    // Compose (ui/account/QrCode.kt).
+    implementation(libs.zxing.core)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

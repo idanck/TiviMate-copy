@@ -49,7 +49,7 @@ fun AccountSection() {
                 title = stringResource(R.string.account_signed_out),
                 subtitle = stringResource(R.string.account_signed_out_sub),
             )
-            GoogleSignInBlock(initialFocus = false)
+            if (StudioTheme.television) TvAccountSignIn() else GoogleSignInBlock(initialFocus = false)
         }
 
         is AccountState.SignedIn -> {
