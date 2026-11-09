@@ -504,8 +504,15 @@ private fun ChannelRow(
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
-                // A favourite is a full star in white (`star-on`), never the cue: amber marks focus.
-                tint = if (channel.favourite) StudioTheme.colors.ink else StudioTheme.colors.ink2,
+                // A favourite is a full star (`star-on`). On a television it is amber, the "current"
+                // colour, because a white full star beside a grey outline was hard to tell apart
+                // from the sofa (ADR-058); the television's cue is white, so amber is free there.
+                // On a phone the cue is amber, so the star stays white.
+                tint = when {
+                    !channel.favourite -> StudioTheme.colors.ink2
+                    StudioTheme.television -> StudioTheme.colors.current
+                    else -> StudioTheme.colors.ink
+                },
             )
         }
     }

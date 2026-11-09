@@ -108,6 +108,12 @@ class TvMetricsTest {
         }
     }
 
+    @Test
+    fun `a home card on a 1080p television is a fifth smaller than it was`() {
+        // ADR-058: 144dp (288px), down from 180dp.
+        assertEquals(144f, tvMetricsFor(hd.first, hd.second).homeCardWidth.value, 0.5f)
+    }
+
     /**
      * The rail expands over the screen rather than beside it, so the only thing the two widths
      * have to agree on is which is which — but a collapsed rail narrower than a focus ring around

@@ -494,6 +494,8 @@ fun AudioOnlyNowPlaying(
                                 icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
                                 iconOnly = true,
                                 size = StudioButtonSize.MEDIUM,
+                                // A favourite station is amber, filled and ringed (ADR-058).
+                                active = channel.favourite,
                                 onClick = onFavourite,
                             )
                         }
