@@ -49,6 +49,13 @@ sealed interface ClaimOutcome {
 fun signInRequired(state: AccountState, requireSignIn: Boolean): Boolean =
     requireSignIn && state is AccountState.SignedOut
 
+/**
+ * Whether `ensureProfile` should be called for [uid]: not when this device already confirmed the
+ * profile of that account ([confirmedUid]), and not while a call for it is running ([runningUid]).
+ */
+fun profileCheckNeeded(uid: String, confirmedUid: String?, runningUid: String?): Boolean =
+    uid != confirmedUid && uid != runningUid
+
 /** Parses the createPairing response; null when it is not one. */
 internal fun parsePairing(data: Any?): Pairing? {
     val map = data as? Map<*, *> ?: return null

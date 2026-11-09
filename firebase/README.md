@@ -8,7 +8,7 @@ Setting the project up is a manual job: `docs/12-firebase-setup.md`.
 |---|---|
 | `firestore.rules` | Who reads and writes what. No client writes anything. |
 | `firestore.indexes.json` | TTL on `pairings.expiresAt` and `rateLimits.expiresAt`. |
-| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `deleteAccount`, and the `createProfile`/`removeProfile` Auth triggers. Node 22, TypeScript. |
+| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`. All second-generation callables. Node 22, TypeScript. |
 | `hosting/` | The approval and deletion pages, bundled with esbuild into `hosting/dist`. |
 | `test/` | Rules and the whole pairing, against the emulators. |
 
@@ -30,8 +30,10 @@ from `localhost`, talk to the emulators too.
 `.github/workflows/firebase.yml` deploys on every push to `main` that touches `firebase/`, and when
 started by hand on `main`, once `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_PROJECT_ID` are set.
 
-The region, `europe-west1`, is in `functions/src/config.ts`, `hosting/src/firebase.ts` and the app's
-`FirebaseSetup.kt`. Change all three together.
+The region, `me-west1` (Tel Aviv, where Firestore is), is in `functions/src/config.ts`,
+`hosting/src/firebase.ts` and the app's `FirebaseSetup.kt`, and in `test/pairing.test.ts`. Change
+them together. `me-west1` has only the second generation of Cloud Functions, so nothing here may
+use `firebase-functions/v1`: that rules out Auth triggers, and is why `ensureProfile` exists.
 
 Environment, read by the Functions at deploy time from `functions/.env` (not in git):
 

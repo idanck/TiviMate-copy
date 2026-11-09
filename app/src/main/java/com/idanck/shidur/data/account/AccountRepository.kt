@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -36,8 +37,11 @@ import kotlinx.coroutines.tasks.await
  *
  * In a build without a Firebase project every call is a no-op and [state] stays
  * [AccountState.Unavailable], so nothing here can stop such a build from starting.
+ *
+ * After each sign-in, whichever way it came (Google on a phone or a television, or a pairing's
+ * custom token), the `ensureProfile` function makes sure `users/{uid}` exists; see [ensureProfile].
  */
-class AccountRepository(context: Context, scope: CoroutineScope) {
+class AccountRepository(context: Context, private val scope: CoroutineScope) {
 
     private val appContext = context.applicationContext
     private val prefs = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -61,6 +65,9 @@ class AccountRepository(context: Context, scope: CoroutineScope) {
         .stateIn(scope, SharingStarted.Eagerly, signInRequired(_state.value, _requireSignIn.value))
 
     private var app: FirebaseApp? = null
+
+    /** The account an `ensureProfile` call is running for, so two auth events make one call. */
+    private var ensuring: String? = null
 
     /** Connects to the project. Called once from `ServiceLocator.init`; safe to call again. */
     @Synchronized
@@ -94,6 +101,38 @@ class AccountRepository(context: Context, scope: CoroutineScope) {
             AccountState.SignedOut
         } else {
             AccountState.SignedIn(uid = user.uid, name = user.displayName, email = user.email)
+        }
+        if (user == null) {
+            // The next sign-in, even to the same account, checks the profile again.
+            prefs.edit().remove(K_PROFILE_UID).apply()
+        } else {
+            ensureProfile(user.uid)
+        }
+    }
+
+    /**
+     * Asks the server to create `users/{uid}` if it is not there yet (the `ensureProfile`
+     * function; it never touches one that exists). Runs once per sign-in: the account is
+     * remembered only after the call succeeded, so a failed call is made again at the next start,
+     * when the auth listener reports the same account. A failure never stops the app, and nothing
+     * here reads `users/{uid}`, so a profile that does not exist yet changes nothing.
+     */
+    private fun ensureProfile(uid: String) {
+        synchronized(this) {
+            if (!profileCheckNeeded(uid, prefs.getString(K_PROFILE_UID, null), ensuring)) return
+            ensuring = uid
+        }
+        scope.launch {
+            val ok = runCatchingCancellable {
+                val functions = functions() ?: error("accounts are not configured")
+                functions.getHttpsCallable("ensureProfile").call(emptyMap<String, Any>()).await()
+            }.onFailure { Log.w(TAG, "ensureProfile failed; trying again at the next start", it) }
+                .isSuccess
+            synchronized(this@AccountRepository) {
+                if (ensuring == uid) ensuring = null
+                // Only if the account is still the one signed in: a sign-out meanwhile cleared it.
+                if (ok && auth()?.currentUser?.uid == uid) prefs.edit().putString(K_PROFILE_UID, uid).apply()
+            }
         }
     }
 
@@ -198,6 +237,9 @@ class AccountRepository(context: Context, scope: CoroutineScope) {
         const val PREFS_NAME = "account"
         const val K_REQUIRE = "require_sign_in"
         const val FIELD_REQUIRE = "requireSignIn"
+
+        /** The account whose profile `ensureProfile` last confirmed on this device. */
+        const val K_PROFILE_UID = "profile_uid"
     }
 }
 

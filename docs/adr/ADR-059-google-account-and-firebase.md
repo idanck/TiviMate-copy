@@ -1,6 +1,7 @@
 # ADR-059 — A Google account, on Firebase
 
-**Status:** accepted, stages 0 to 4 built (2026-11-09). Stage 5 (the web version) and stage 6
+**Status:** accepted, stages 0 to 4 built (2026-11-09); everything moved to `me-west1` and the
+profile made by a callable instead of Auth triggers the same day (*The region*, below). Stage 5 (the web version) and stage 6
 (sync) wait for the owner's decisions, listed under *Open* below. Partly supersedes ADR-007: the
 app now has accounts and a place for entitlements, though nothing is gated by them yet.
 
@@ -61,7 +62,7 @@ on the sign-in screen overnight costs nothing. Each function is capped at 10 ins
 ### Data and rules
 
 - `users/{uid}`: `createdAt`, `displayName`, `entitlements: { premium: false, web: false }`,
-  created by the `createProfile` Auth trigger (with `create`, so a second run cannot reset what the
+  created by the `ensureProfile` callable (with `create`, so a second call cannot reset what the
   owner granted). The owner reads their own document; **no client writes it at all**, so
   `entitlements` changes only from Functions or the console.
 - `pairings/{code}` and `rateLimits/{id}`: Functions only; each carries `expiresAt` with a TTL
@@ -75,9 +76,37 @@ on the sign-in screen overnight costs nothing. Each function is capped at 10 ins
 Google Play requires that an account created in the app can be deleted from the app and from a web
 link. Both call `deleteAccount`, which deletes `users/{uid}` recursively and then the Auth user, on
 the server — so it needs no recent sign-in, which a television signed in by pairing could not
-give. Settings → Account in the app, and `/delete` on the Hosting site. Deleting a user in the
-console runs the same cleanup through the `removeProfile` trigger. Local playlists and settings
-are not the account's and stay on the device.
+give. Settings → Account in the app, and `/delete` on the Hosting site. Local playlists and
+settings are not the account's and stay on the device.
+
+**A gap, left open on purpose:** deleting a user in the Firebase console goes around
+`deleteAccount`, and with no Auth trigger (see *The region*) nothing removes their `users/{uid}`
+and what is under it: those documents stay in Firestore until the owner deletes them there too.
+Nothing is built for it now. Delete an account from the app or `/delete`, or delete the user's
+documents in the console along with the user.
+
+### The region, and why there are no Auth triggers
+
+Firestore was created in **`me-west1`** (Tel Aviv), which cannot be changed, and the Functions run
+there too. `me-west1` has only the second generation of Cloud Functions (checked with
+`gcloud functions regions list --gen2` and `--no-gen2`), and the `auth.user().onCreate`/`onDelete`
+triggers exist only in the first. So the two triggers the first build had are gone:
+
+- `createProfile` (on create) is replaced by **`ensureProfile`**, a second-generation callable.
+  It needs a signed-in caller, is limited to 20 calls per account per 10 minutes, and creates
+  `users/{uid}` with `create`: an existing document, entitlements and all, is left as it is. The
+  name comes from the ID token, or from Auth for a television signed in by custom token. The app
+  calls it after every sign-in, on a phone or a television, by Google or by pairing (the auth
+  listener in `AccountRepository`), and remembers the account only once the call succeeded, so a
+  failed call is made again at the next start. A failure never blocks the app, and nothing in the
+  app reads `users/{uid}`, so a profile that is not there yet changes nothing.
+- `removeProfile` (on delete) is not replaced: `deleteAccount` already deletes the documents and
+  then the Auth user. The console case is the gap above.
+
+Rejected: the blocking functions (`beforeUserCreated`), which are second generation but need
+Identity Platform, a paid upgrade of Firebase Auth, for one document; and running only the
+triggers in another region, which would split the Functions across two regions for the same
+reason the move was made.
 
 ### Nothing about the project is in the repository
 
@@ -95,7 +124,7 @@ Actions secrets at build time:
   block third-party storage; it needs the site's `/__/auth/handler` among the web client's
   redirect addresses (docs/12, step 6).
 - **Deploy:** `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_PROJECT_ID`. The Functions region,
-  `europe-west1`, is not a secret and is written in three places that must agree:
+  `me-west1`, is not a secret and is written in three places that must agree:
   `firebase/functions/src/config.ts`, `firebase/hosting/src/firebase.ts` and `FirebaseSetup.kt`.
 
 ### The signing key's fingerprints

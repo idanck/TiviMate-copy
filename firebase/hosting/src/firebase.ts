@@ -12,7 +12,7 @@ import {
 import { connectFunctionsEmulator, getFunctions, httpsCallable, type Functions } from 'firebase/functions';
 
 /** Same region as `functions/src/config.ts`; a callable function is addressed by it. */
-export const REGION = 'europe-west1';
+export const REGION = 'me-west1';
 
 export interface Session {
   auth: Auth;
