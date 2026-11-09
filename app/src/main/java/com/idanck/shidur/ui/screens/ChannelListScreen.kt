@@ -30,7 +30,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +59,8 @@ import com.idanck.shidur.ui.common.StudioButtonSize
 import com.idanck.shidur.ui.common.StudioButtonVariant
 import com.idanck.shidur.ui.common.StudioField
 import com.idanck.shidur.ui.common.TwoLine
+import com.idanck.shidur.ui.common.claim
+import com.idanck.shidur.ui.common.remoteDriving
 import com.idanck.shidur.ui.theme.StudioTheme
 import com.idanck.shidur.ui.common.LocalTvMetrics
 import com.idanck.shidur.ui.mobile.PhoneChip
@@ -140,6 +141,10 @@ fun ChannelListScreen(
     // branch: a filter that momentarily empties the list tears that branch down, and a guard
     // living there would reset and re-hijack the scroll when the list refills.
     var anchored by remember { mutableStateOf(false) }
+    // [focusCurrent]'s half of it, apart from the scroll: in touch mode no row can take focus, so
+    // the claim waits for the remote and is made then, once (`FocusClaim.kt`).
+    var focusClaimed by remember { mutableStateOf(false) }
+    val remote = remoteDriving()
 
     LaunchedEffect(previewChannel?.id) {
         val channel = previewChannel
@@ -218,15 +223,26 @@ fun ChannelListScreen(
                     LaunchedEffect(channels, state.currentChannel?.id) {
                         if (anchored) return@LaunchedEffect
                         val currentId = state.currentChannel?.id ?: return@LaunchedEffect
-                        anchored = true
                         val index = channels.indexOfFirst { it.id == currentId }
                         if (index > 0) listState.scrollToItem(index)
-                        if (focusCurrent && index >= 0) {
-                            // One frame so the scrolled-to row is composed and carries the
-                            // requester; if a re-query removed it in between, no focus jump.
-                            withFrameNanos { }
-                            runCatching { currentFocus.requestFocus() }
-                        }
+                        // Nothing to focus: the playing channel is not in this list.
+                        if (index < 0) focusClaimed = true
+                        // Last: this effect lives inside `!anchored`, so the recomposition this
+                        // causes ends it. The focus request used to follow it here, a frame later,
+                        // where that recomposition could cancel it before it ran.
+                        anchored = true
+                    }
+                }
+                if (focusCurrent && anchored && !focusClaimed) {
+                    // After the anchor's scroll, so the row is composed and carries the requester,
+                    // and in an effect of its own that nothing ends before it has run. Asked until
+                    // a row has the remote: the list opened from the video came up with nothing
+                    // focused, or with the group column's first row, and OK there opened nothing
+                    // (QA-24, issue #152).
+                    LaunchedEffect(remote) {
+                        if (!remote) return@LaunchedEffect
+                        currentFocus.claim { previewChannel != null }
+                        focusClaimed = true
                     }
                 }
 

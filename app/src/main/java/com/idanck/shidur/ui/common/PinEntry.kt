@@ -29,7 +29,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -79,10 +78,22 @@ fun PinEntry(
     val context = LocalContext.current
     val focus = remember { FocusRequester() }
     val tv = StudioTheme.television
-    LaunchedEffect(Unit) {
-        // The keypad's key is laid out a frame later than the field was.
-        if (tv) withFrameNanos { }
-        runCatching { focus.requestFocus() }
+    // Whether the remote is on the prompt: what says the keypad's claim has landed.
+    var holdsFocus by remember { mutableStateOf(false) }
+    // A television's keypad cannot take focus while the window is in touch mode — Settings opened
+    // with a tap, or an air mouse — and a digit typed with nothing here focused went past the
+    // prompt to the activity, as a channel number (QA-22, issue #152). So the claim waits for the
+    // remote, and is made again whenever the remote comes back (`FocusClaim.kt`).
+    val remote = if (tv) remoteDriving() else true
+    LaunchedEffect(remote) {
+        if (!tv) {
+            runCatching { focus.requestFocus() }
+            return@LaunchedEffect
+        }
+        if (!remote) return@LaunchedEffect
+        // The keypad's key is laid out a frame later than the field was; the claim's first ask
+        // waits that frame.
+        focus.claim { holdsFocus }
     }
 
     fun submit() {
@@ -111,7 +122,7 @@ fun PinEntry(
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     Column(
-        modifier = modifier.then(
+        modifier = modifier.onFocusChanged { holdsFocus = it.hasFocus }.then(
             if (tv) {
                 Modifier.onPreviewKeyEvent { event ->
                     val digit = remoteDigit(event.nativeKeyEvent.keyCode)
