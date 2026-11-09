@@ -8,6 +8,7 @@ import android.os.Build
 import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
+import com.tivicopy.player.data.account.AccountRepository
 import com.tivicopy.player.data.backup.BackupManager
 import com.tivicopy.player.data.cache.CacheBudget
 import com.tivicopy.player.data.db.Dao
@@ -54,6 +55,7 @@ object ServiceLocator {
     lateinit var featured: FeaturedRepository private set
     lateinit var tasks: TaskRepository private set
     lateinit var news: NewsRepository private set
+    lateinit var account: AccountRepository private set
 
     /**
      * A scope for writes that must outlive the screen that ordered them.
@@ -104,7 +106,11 @@ object ServiceLocator {
         featured = FeaturedRepository(settings)
         tasks = TaskRepository(settings)
         news = NewsRepository(settings)
+        account = AccountRepository(appContext, appScope)
         initialised = true
+        // After `initialised`: a Firebase start that throws must not leave the rest unbuilt, and
+        // AccountRepository.start catches everything it can throw anyway (ADR-059).
+        account.start()
     }
 }
 

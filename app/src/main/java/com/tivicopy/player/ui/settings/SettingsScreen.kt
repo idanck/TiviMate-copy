@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tivicopy.player.BuildInfo
 import com.tivicopy.player.R
+import com.tivicopy.player.ui.account.AccountSection
 import com.tivicopy.player.ServiceLocator
 import com.tivicopy.player.core.TimeModel
 import com.tivicopy.player.data.cache.CacheBudget
@@ -57,7 +58,7 @@ import com.tivicopy.player.ui.common.glass
 import com.tivicopy.player.ui.theme.StudioTheme
 import com.tivicopy.player.ui.common.StudioIcons
 
-enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT }
+enum class SettingsSection { ROOT, SOURCES, PLAYBACK, APPEARANCE, NETWORK, RECORDING, PARENTAL, BACKUP, DIAGNOSTICS, ABOUT, ACCOUNT }
 
 /**
  * Settings, organised so every screen is reachable with a D-pad alone (FR-UI-01).
@@ -541,6 +542,8 @@ fun SettingsScreen(
 
             SettingsSection.DIAGNOSTICS -> DiagnosticsSection(vm)
 
+            SettingsSection.ACCOUNT -> AccountSection()
+
             SettingsSection.ABOUT -> {
                 SettingsSectionTitle(stringResource(R.string.settings_about), topDivider = false)
                 Text(
@@ -645,6 +648,8 @@ fun OffsetRow(title: String, minutes: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun SettingsSectionRows(selected: SettingsSection?, onNavigate: (SettingsSection) -> Unit) {
     val entries = listOf(
+        // ADR-059. First, because it is the one a person signed out of comes looking for.
+        Triple(SettingsSection.ACCOUNT, R.string.settings_account, StudioIcons.Account),
         Triple(SettingsSection.SOURCES, R.string.settings_sources, StudioIcons.Tv),
         Triple(SettingsSection.PLAYBACK, R.string.settings_playback, StudioIcons.Play),
         Triple(SettingsSection.APPEARANCE, R.string.settings_appearance, StudioIcons.Appearance),

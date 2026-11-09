@@ -38,6 +38,58 @@ val buildStamp: String = System.getenv("BUILD_STAMP")?.takeIf { it.isNotBlank() 
         .withZone(ZoneOffset.UTC)
         .format(Instant.now())
 
+/**
+ * One Android client of the Firebase project (ADR-059), as `google-services.json` describes it.
+ * The Google Services Gradle plugin is not used: it fails a build that has no such file, and this
+ * repository is public, so the file never enters it. CI writes it from a secret and names it in
+ * FIREBASE_ANDROID_CONFIG_PATH; a local build may drop one at `app/google-services.json`, which
+ * `.gitignore` keeps out. Without it every field below is empty and the app starts with no
+ * accounts at all.
+ */
+data class FirebaseClient(
+    val apiKey: String,
+    val appId: String,
+    val projectId: String,
+    val senderId: String,
+    val storageBucket: String,
+    val webClientId: String,
+)
+
+val firebaseConfigFile: File? = (
+    System.getenv("FIREBASE_ANDROID_CONFIG_PATH")?.takeIf { it.isNotBlank() }?.let { File(it) }
+        ?: file("google-services.json")
+    ).takeIf { it.isFile }
+
+/** The client registered for [packageName] in [config], or null when there is none. */
+fun firebaseClientFor(config: File?, packageName: String): FirebaseClient? {
+    if (config == null) return null
+    return runCatching {
+        val root = groovy.json.JsonSlurper().parse(config) as Map<*, *>
+        val info = root["project_info"] as Map<*, *>
+        val client = (root["client"] as List<*>).map { it as Map<*, *> }.firstOrNull { c ->
+            val androidInfo = (c["client_info"] as Map<*, *>)["android_client_info"] as Map<*, *>
+            androidInfo["package_name"] == packageName
+        } ?: return@runCatching null
+        // The web client (type 3) is the audience Google signs the ID token for; Firebase Auth
+        // accepts only a token issued to it.
+        val services = client["services"] as? Map<*, *>
+        val invite = services?.get("appinvite_service") as? Map<*, *>
+        val oauth = (client["oauth_client"] as? List<*>).orEmpty() +
+            (invite?.get("other_platform_oauth_client") as? List<*>).orEmpty()
+        val webClient = oauth.map { it as Map<*, *> }
+            .firstOrNull { (it["client_type"] as? Number)?.toInt() == 3 }
+            ?.get("client_id") as? String
+        FirebaseClient(
+            apiKey = ((client["api_key"] as List<*>).first() as Map<*, *>)["current_key"] as String,
+            appId = (client["client_info"] as Map<*, *>)["mobilesdk_app_id"] as String,
+            projectId = info["project_id"] as String,
+            senderId = info["project_number"]?.toString().orEmpty(),
+            storageBucket = (info["storage_bucket"] as? String).orEmpty(),
+            webClientId = webClient.orEmpty(),
+        )
+    }.onFailure { System.err.println("w: google-services.json could not be read: ${it.message}") }.getOrNull()
+}
+
 /** Release keystore, when the environment supplies a readable one. */
 val releaseKeystore: File? = System.getenv("RELEASE_KEYSTORE_PATH")
     ?.takeIf { it.isNotBlank() }
@@ -104,6 +156,17 @@ android {
         buildConfigField("String", "GIT_SHA", "\"$gitSha\"")
         buildConfigField("String", "BUILD_STAMP", "\"$buildStamp\"")
         buildConfigField("String", "BUILD_FLAVOUR", "\"${variant.buildType.name}\"")
+        // ADR-059: the debug build is `.debug` and is a client of its own in the Firebase project.
+        val firebase = firebaseClientFor(firebaseConfigFile, variant.applicationId)
+        if (firebase == null && firebaseConfigFile != null) {
+            System.err.println("w: no Firebase client for ${variant.applicationId}; accounts are off in this build")
+        }
+        buildConfigField("String", "FIREBASE_API_KEY", "\"${firebase?.apiKey.orEmpty()}\"")
+        buildConfigField("String", "FIREBASE_APP_ID", "\"${firebase?.appId.orEmpty()}\"")
+        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${firebase?.projectId.orEmpty()}\"")
+        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${firebase?.senderId.orEmpty()}\"")
+        buildConfigField("String", "FIREBASE_STORAGE_BUCKET", "\"${firebase?.storageBucket.orEmpty()}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${firebase?.webClientId.orEmpty()}\"")
         outputs.all {
             val out = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
             out.outputFileName = "shidur-${appVersionName}-${variant.buildType.name}-${gitSha}.apk"
@@ -183,6 +246,16 @@ dependencies {
     // to the JIT. It arrives transitively with Compose; named here so the profile does not
     // silently stop being installed if that ever changes (ADR-021).
     implementation(libs.androidx.profileinstaller)
+
+    // Accounts (ADR-059).
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.functions)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
