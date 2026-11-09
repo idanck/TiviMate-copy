@@ -25,7 +25,7 @@ export const ready = signal(false);
 /** The clock every "now" on screen reads, ticking on the half minute. */
 export const now = signal(Date.now());
 
-export const serverInfo = signal<{ version: string; remux: boolean; authRequired: boolean } | null>(null);
+export const serverInfo = signal<{ version: string; remux: boolean; authRequired: boolean; mode?: 'firebase' | 'password' | 'open' } | null>(null);
 
 const STALE_MS = 12 * 3600_000;
 const GUIDE_BEHIND_MS = 12 * 3600_000;

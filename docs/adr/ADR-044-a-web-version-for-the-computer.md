@@ -4,6 +4,8 @@
 this on the computer.*
 Its look follows ADR-046 (Merhav) from 0.20.0: the Studio colours and two typefaces this record reuses
 are replaced by Merhav's tokens and Noto Sans Hebrew.
+From 0.23.3 the server can let in only a Google account with a web subscription (ADR-059, stage 5),
+and so has one dependency, `firebase-admin` (decisions 2 and 3 below).
 
 ## Context
 
@@ -35,8 +37,10 @@ A browser, though, cannot do by itself what the Android app does through OkHttp 
    wrapper were rejected: the first is a migration of the whole data layer for one more target,
    the second is not an app on a computer.
 
-2. **It needs its own small server, which is also what serves it.** `web/server`, plain Node with
-   no dependencies: the built app, and a proxy that every provider URL goes through — text through
+2. **It needs its own small server, which is also what serves it.** `web/server`, plain Node —
+   with no dependencies until ADR-059's stage 5, and since then one, `firebase-admin`, which checks
+   Google sign-in's ID tokens (`package.json`'s `dependencies` are the server's alone; the browser's
+   libraries are bundled at build time and are development dependencies): the built app, and a proxy that every provider URL goes through — text through
    `/api/fetch` (gzip-decoded whatever the server said), media through `/api/stream` (ranges
    intact; HLS playlists rewritten so every segment, key and variant comes back through it, against
    the playlist's address after redirects), a stream-type probe for addresses with no extension,
@@ -44,8 +48,10 @@ A browser, though, cannot do by itself what the Android app does through OkHttp 
    headers travel as `h=<base64url JSON>` so a rewritten playlist hands them on to its segments.
    The server stores nothing and logs only failures, with credentials redacted.
 
-3. **The proxy is guarded.** A password (`SHIDUR_WEB_PASSWORD`) puts a signed, stateless session
-   cookie in front of every route that reaches out; ten wrong passwords lock an address out for
+3. **The proxy is guarded.** With a Firebase project configured, only a Google account whose
+   `entitlements.web` is true gets a session (ADR-059, stage 5). Otherwise a password
+   (`SHIDUR_WEB_PASSWORD`) puts a signed, stateless session cookie in front of every route that
+   reaches out; ten wrong passwords lock an address out for
    ten minutes. Upstream addresses on private, loopback, link-local and CGNAT ranges are refused
    unless `SHIDUR_WEB_ALLOW_PRIVATE=1`, so a proxy on a home server is no way into the home
    network. Redirects are followed by hand so every hop passes the same check.

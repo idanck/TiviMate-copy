@@ -22,9 +22,12 @@ RUN if [ "${WITH_FFMPEG}" = "1" ]; then apk add --no-cache ffmpeg; fi
 WORKDIR /app/web
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=8787
 COPY --from=build /src/version.properties /app/version.properties
+# The server's own dependencies only (`dependencies`: firebase-admin, for the Google sign-in mode);
+# the browser's libraries are already in dist/.
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund && npm cache clean --force
 COPY --from=build /src/web/dist ./dist
 COPY web/server ./server
-COPY web/package.json ./
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=60s --timeout=5s CMD wget -qO- "http://127.0.0.1:${PORT}/api/health" > /dev/null || exit 1

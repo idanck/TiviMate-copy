@@ -1,8 +1,9 @@
 # ADR-059 — A Google account, on Firebase
 
 **Status:** accepted, stages 0 to 4 built (2026-11-09); everything moved to `me-west1` and the
-profile made by a callable instead of Auth triggers the same day (*The region*, below). Stage 5 (the web version) and stage 6
-(sync) wait for the owner's decisions, listed under *Open* below. Partly supersedes ADR-007: the
+profile made by a callable instead of Auth triggers the same day (*The region*, below). Stage 5 (the
+web version) built the same day, on the owner's decisions of *Open* 1 and 2 (*Stage 5*, below).
+Stage 6 (sync) waits for the owner's decisions, listed under *Open* below. Partly supersedes ADR-007: the
 app now has accounts and a place for entitlements, though nothing is gated by them yet.
 
 ## Decision
@@ -19,7 +20,7 @@ console.
 | Platform | Sign-in |
 |---|---|
 | Android phone and Google TV | Required, free use included — behind the remote switch below |
-| Web (`web/`) | Only a registered, paying subscriber (`entitlements.web`); stage 5, not built yet |
+| Web (`web/`) | Only a registered, paying subscriber (`entitlements.web`); stage 5, below |
 | iPhone | Later, not in this plan |
 | webOS (`webos/`) | Out of scope; untouched |
 
@@ -124,8 +125,9 @@ Actions secrets at build time:
   block third-party storage; it needs the site's `/__/auth/handler` among the web client's
   redirect addresses (docs/12, step 6).
 - **Deploy:** `FIREBASE_SERVICE_ACCOUNT` and `FIREBASE_PROJECT_ID`. The Functions region,
-  `me-west1`, is not a secret and is written in three places that must agree:
-  `firebase/functions/src/config.ts`, `firebase/hosting/src/firebase.ts` and `FirebaseSetup.kt`.
+  `me-west1`, is not a secret and is written in four places that must agree:
+  `firebase/functions/src/config.ts`, `firebase/hosting/src/firebase.ts`, `FirebaseSetup.kt` and
+  `web/server/firebase.mjs`.
 
 ### The signing key's fingerprints
 
@@ -151,6 +153,48 @@ route keeps working: it never touches the device's certificate.
 
 The account sits beside the hand-written SQLite (ADR-006) and SharedPreferences, never under them.
 Sync, when stage 6 builds it, goes above them too.
+
+### Stage 5: the web version
+
+The web server (`web/`, ADR-044) has three modes, chosen by its configuration:
+
+| Configuration | Who gets in |
+|---|---|
+| `SHIDUR_FIREBASE_PROJECT_ID` and `SHIDUR_FIREBASE_WEB_CONFIG` | A Google account whose `users/{uid}.entitlements.web` is `true`, and nobody else |
+| No project, `SHIDUR_WEB_PASSWORD` | Whoever has the password, as before — the self-hosting option |
+| Neither | Anyone who reaches the server, as before |
+
+With a project **and** a password, the project wins and the password is not read; the server says so
+when it starts.
+
+- **The ID token is checked with the Admin SDK** (`firebase-admin`, *Open* 1 (b)), with the project
+  ID alone: `verifyIdToken` checks the signature against Google's public keys and `aud`, `iss`,
+  `exp`, `iat` and `auth_time`, and needs no service account. Without one it cannot ask whether a
+  token was revoked; the entitlement read is the live check instead.
+- **The entitlement is read as the account itself:** `users/{uid}` through Firestore's REST API,
+  with the user's own ID token, which the rules already allow. The server holds no credentials of
+  any kind. A missing document is no entitlement; any other answer than 200 or 404 is reported as
+  the server being unable to check (502), never read as "no subscription".
+- **The session** is the password mode's signed cookie with the account in it,
+  `<expiry>.<uid>.<hmac>`, stored nowhere, and it lasts exactly as long as the ID token it was made
+  from (an hour at most). The page renews it every **30 minutes** with a fresh token, and each
+  renewal checks the entitlement again. An entitlement switched off therefore ends the session
+  within 30 minutes while the app is open, and within the hour in any case, since an unrenewed
+  session expires; the page then shows *the subscription is not active*. The signing key is
+  `SHIDUR_WEB_SECRET`, or random at each start, which only makes the page sign in again silently.
+- **The browser** signs in with Google (a popup; a full-page redirect when the popup is blocked or
+  the app runs from an iPhone's home screen), calls `ensureProfile` as the app does after every
+  sign-in, and hands the ID token to `POST /api/login`. An account with no `entitlements.web` sees
+  *the subscription is not active*, with no payment link, since there is no payment yet. Firebase is
+  a separate chunk of the build, loaded only in this mode.
+- **`authDomain` is the site's own host,** and the server relays Firebase Auth's pages,
+  `/__/auth/*` and `/__/firebase/*`, from `<project>.firebaseapp.com` (the *proxy* route of
+  Firebase's *Best practices for using signInWithRedirect*). The owner chose it over a popup on
+  `firebaseapp.com`: sign-in then needs no third-party storage, which Safari, iOS and the current
+  Chrome and Firefox no longer give a page, and the redirect works for an app installed on an
+  iPhone, where a popup does not return. It needs the site's handler among the web client's redirect
+  addresses (docs/12, step 6). The project's web configuration comes from the server's environment
+  and reaches the page in `/api/session`; none of it is in the repository.
 
 ## Rejected
 
@@ -185,12 +229,10 @@ Sync, when stage 6 builds it, goes above them too.
 
 ## Open (the owner decides before the work starts)
 
-1. **Stage 5 — how the web server checks the ID token.** (a) By itself, against Google's public
-   keys: keeps the server free of dependencies, but the verification (key rotation, `aud`, `iss`,
-   `exp`, `auth_time`) is ours to get right. (b) The Admin SDK: the reference implementation, about
-   a dozen dependencies in a server that has none.
-2. **Stage 5 — the password mode** (`SHIDUR_WEB_PASSWORD`): kept as the self-hosting option, or
-   removed.
+1. ~~**Stage 5 — how the web server checks the ID token.**~~ Decided 2026-11-09: (b), the Admin
+   SDK, the server's first dependency (ADR-044). See *Stage 5*.
+2. ~~**Stage 5 — the password mode** (`SHIDUR_WEB_PASSWORD`).~~ Decided 2026-11-09: kept, for a
+   server with no Firebase project; a project wins when both are set. See *Stage 5*.
 3. **Stage 6 — Xtream credentials and playlist addresses:** (a) synced, encrypted on the client
    with a key the server never sees, as docs/06 §6.5 says today; or (b) not synced, typed again on
    each device.

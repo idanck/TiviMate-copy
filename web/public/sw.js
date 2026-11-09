@@ -3,8 +3,10 @@
 // The shell (index.html) is fetched network-first so a new build is picked up on the next
 // launch, and falls back to the cached copy offline. Built assets carry a content hash in their
 // name, so they are cached the first time they are fetched and never revalidated. Nothing under
-// /api/ is ever cached: those are live playlists, guides and streams, proxied by the server.
-const CACHE = 'shidur-shell-v3';
+// /api/ is ever cached: those are live playlists, guides and streams, proxied by the server. Nor
+// anything under /__/: Firebase Auth's sign-in pages, relayed by the server, which must never be
+// answered with the app's own page.
+const CACHE = 'shidur-shell-v4';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png'];
 
 self.addEventListener('install', (event) => {
@@ -23,7 +25,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/__/')) return;
 
   if (req.mode === 'navigate') {
     event.respondWith(

@@ -92,8 +92,10 @@ checked against both shells, not just the one you're looking at.
 
 ## The web version (`web/`) ships separately
 
-`web/` is Shidur for the computer (ADR-044): a Preact/TypeScript PWA and a dependency-free Node
-server that proxies providers. Its CI is `.github/workflows/web.yml` (typecheck, `vitest`, build,
+`web/` is Shidur for the computer (ADR-044): a Preact/TypeScript PWA and a small Node server that
+proxies providers. The server's one dependency is `firebase-admin`, for its Google sign-in mode
+(ADR-059, stage 5); `package.json`'s `dependencies` are the server's alone, and the browser's
+libraries are devDependencies, bundled by Vite. Its CI is `.github/workflows/web.yml` (typecheck, `vitest`, build,
 Docker image) and it runs fine in the cloud sandbox — `cd web && npm ci && npm run check` works
 there, unlike Gradle. `android.yml` ignores `web/**`, so a web-only change builds and publishes no
 APK and needs no `versionCode` bump; a change that also touches the app still follows the rules
@@ -123,7 +125,7 @@ plugin, and a build without it has no accounts and must still start. It needs a 
 `com.idanck.shidur` (the app) and keeps the one for `com.tivicopy.player` (the bridge, ADR-060).
 The sign-in screen is behind
 the remote switch `config/app.requireSignIn`, which the owner turns on himself — never ship a
-change that makes it default to on. The Functions' region is written in three places
+change that makes it default to on. The Functions' region is written in four places
 (`firebase/README.md`).
 
 ## The webOS version (`webos/`) ships separately too
