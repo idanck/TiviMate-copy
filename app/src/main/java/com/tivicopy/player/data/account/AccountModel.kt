@@ -60,9 +60,12 @@ internal fun parsePairing(data: Any?): Pairing? {
     return Pairing(code = code, display = display, secret = secret, expiresAtUtc = expires, url = url)
 }
 
-/** Parses a claimPairing response into the outcome and, when approved, the custom token. */
+/**
+ * Parses a claimPairing response into its status and, only when it is `approved`, the custom
+ * token: a token beside any other status is not one to sign in with.
+ */
 internal fun parseClaim(data: Any?): Pair<String, String?> {
     val map = data as? Map<*, *> ?: return "invalid" to null
-    val status = map["status"] as? String ?: "invalid"
-    return status to (map["token"] as? String)
+    val status = map["status"] as? String ?: return "invalid" to null
+    return status to (map["token"] as? String).takeIf { status == "approved" }
 }
