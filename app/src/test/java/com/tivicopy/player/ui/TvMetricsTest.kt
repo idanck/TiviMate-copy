@@ -109,6 +109,13 @@ class TvMetricsTest {
     }
 
     @Test
+    fun `the rails' panel is the bottom third of a 1080p television`() {
+        // ADR-058: the banner keeps two thirds and never scrolls; the opaque panel is the rest.
+        val metrics = tvMetricsFor(hd.first, hd.second)
+        assertEquals(360f, metrics.homeHeroHeight.value, 0.5f)
+    }
+
+    @Test
     fun `a home card on a 1080p television is a fifth smaller than it was`() {
         // ADR-058: 144dp (288px), down from 180dp.
         assertEquals(144f, tvMetricsFor(hd.first, hd.second).homeCardWidth.value, 0.5f)

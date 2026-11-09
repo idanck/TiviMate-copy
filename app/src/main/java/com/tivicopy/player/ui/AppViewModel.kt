@@ -30,7 +30,6 @@ import com.tivicopy.player.data.model.VodItem
 import com.tivicopy.player.data.prefs.ParentalGate
 import com.tivicopy.player.data.prefs.ParentalPin
 import com.tivicopy.player.data.prefs.PinAttemptLimiter
-import com.tivicopy.player.data.radio.RadioCategory
 import com.tivicopy.player.data.radio.RadioCategoryClassifier
 import com.tivicopy.player.data.radio.RadioShelf
 import com.tivicopy.player.data.repo.EpgProgress
@@ -321,11 +320,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Every bundled station but the Russian ones, each with its category, for the radio screen's
+     * Every bundled station but the Russian ones, each with the shelves of the radio menu it is on
+     * (ADR-050: where it is heard, and its genre if its name says one), for the radio screen's
      * station strip (`canvas/Radio.dc.html`). Read straight from the database, so it does not
      * depend on the Radio list being the one open. Empty until the radio playlist exists.
+     *
+     * Until 0.21.7 the strip sorted by `RadioCategory`, the feed's `group-title`s — genres now, with
+     * only a couple of stations filed as regional — so nearly every station landed under "other"
+     * and the regions never showed (owner's report, 2026-11-09).
      */
-    suspend fun radioStations(): List<Pair<Channel, RadioCategory>> = withContext(Dispatchers.IO) {
+    suspend fun radioStations(): List<Pair<Channel, List<RadioShelf>>> = withContext(Dispatchers.IO) {
         val playlist = dao.playlists().firstOrNull { it.url == IsraelRadioStations.M3U_URL }
             ?: return@withContext emptyList()
         val groups = dao.groups(playlist.id, includeHidden = true)
@@ -334,7 +338,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             if (RadioCategoryClassifier.isRussian(channel.displayName, group)) {
                 null
             } else {
-                channel to RadioCategoryClassifier.classify(group, channel.displayName)
+                channel to RadioCategoryClassifier.shelves(group, channel.displayName)
             }
         }
     }

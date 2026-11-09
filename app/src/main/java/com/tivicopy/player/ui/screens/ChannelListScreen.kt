@@ -673,9 +673,12 @@ private fun radioCategoryBuckets(
     return shelves.map { shelf -> shelf to radioShelfLabel(shelf) }
 }
 
-/** What a shelf of the radio menu is called: the region's name, or the genre's own label. */
+/**
+ * What a shelf of the radio menu is called: the region's name, or the genre's own label. Shared
+ * with the radio screen's station strip (`TvStationStrip`), whose chips are the same shelves.
+ */
 @Composable
-private fun radioShelfLabel(shelf: com.tivicopy.player.data.radio.RadioShelf): String = when (shelf) {
+internal fun radioShelfLabel(shelf: com.tivicopy.player.data.radio.RadioShelf): String = when (shelf) {
     com.tivicopy.player.data.radio.RadioShelf.National -> stringResource(R.string.radio_category_national)
     is com.tivicopy.player.data.radio.RadioShelf.Regional -> stringResource(
         when (shelf.region) {
