@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>מחיקת חשבון · שידור</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <h1>מחיקת חשבון שידור</h1>
+  <p>המחיקה מסירה את החשבון ואת כל מה שנשמר בו בשרת. ההגדרות והפלייליסטים שבמכשירים עצמם לא נמחקים מהם.
+     אפשר למחוק את החשבון גם מתוך האפליקציה: הגדרות, חשבון.</p>
+
+  <section id="signed-out" hidden>
+    <button id="sign-in" type="button">התחברות עם Google</button>
+  </section>
+
+  <section id="signed-in" hidden>
+    <p>מחובר בתור <span id="who" class="who"></span></p>
+    <label class="check"><input id="confirm" type="checkbox"> אני מבין שהמחיקה סופית ואי אפשר לבטל אותה.</label>
+    <button id="delete" type="button" class="danger">למחוק את החשבון</button>
+    <button id="switch" type="button" class="secondary">התחברות עם חשבון אחר</button>
+  </section>
+
+  <div id="message" role="status" aria-live="polite"></div>
+</main>
+<script type="module" src="/delete.js"></script>
+</body>
+</html>

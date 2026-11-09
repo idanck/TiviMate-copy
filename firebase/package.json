@@ -1,0 +1,27 @@
+{
+  "name": "shidur-firebase",
+  "private": true,
+  "description": "Shidur's Firebase project: Firestore rules, the approval pages, and the emulator tests (ADR-059). The Functions are in functions/.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node hosting/build.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:emulated": "vitest run --config vitest.emulated.config.ts",
+    "emulated": "firebase emulators:exec --project demo-shidur --only auth,firestore,functions \"npm run test:emulated\"",
+    "check": "npm run typecheck && npm run build && npm --prefix functions run typecheck && npm --prefix functions test"
+  },
+  "dependencies": {
+    "firebase": "13.2.0"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "@types/node": "22.20.5",
+    "esbuild": "0.28.2",
+    "firebase-tools": "15.35.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

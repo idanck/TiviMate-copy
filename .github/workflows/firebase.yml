@@ -1,0 +1,106 @@
+name: Firebase
+
+# Shidur's Firebase project (firebase/, ADR-059): the Functions' unit tests, the Firestore rules
+# and the whole television pairing against the emulators, and the approval pages' build. A push
+# to main deploys rules, indexes, Functions and Hosting once the project's secrets exist. It builds
+# no APK: android.yml ignores firebase/**. Started by hand on main, it deploys too.
+on:
+  push:
+    branches-ignore: ["apk", "apk-preview", "qa-results"]
+    paths:
+      - "firebase/**"
+      - ".github/workflows/firebase.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            firebase/package-lock.json
+            firebase/functions/package-lock.json
+
+      # The Firestore emulator is a Java program.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install
+        run: |
+          npm ci --no-audit --no-fund
+          npm --prefix functions ci --no-audit --no-fund
+
+      - name: Typecheck, build the pages, unit tests
+        run: npm run check
+
+      - name: Build the Functions
+        run: npm --prefix functions run build
+
+      - name: Rules and pairing against the emulators
+        run: npm run emulated
+
+  deploy:
+    needs: check
+    # main only: on a push, and by hand once the secrets are first set (docs/12-firebase-setup.md).
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            firebase/package-lock.json
+            firebase/functions/package-lock.json
+
+      - name: Credentials
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SERVICE_ACCOUNT:-}" ] || [ -z "${PROJECT_ID:-}" ]; then
+            echo "::warning::FIREBASE_SERVICE_ACCOUNT or FIREBASE_PROJECT_ID is not set; nothing deployed."
+            echo "DEPLOY=false" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          echo "DEPLOY=true" >> "$GITHUB_ENV"
+
+      - name: Install
+        if: env.DEPLOY == 'true'
+        run: |
+          npm ci --no-audit --no-fund
+          npm --prefix functions ci --no-audit --no-fund
+          npm run build
+
+      - name: Deploy
+        if: env.DEPLOY == 'true'
+        env:
+          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        # --force answers the one question a first Functions deploy asks: how long to keep old
+        # container images (the default cleanup policy).
+        run: npx firebase deploy --only firestore,functions,hosting --project "$PROJECT_ID" --non-interactive --force
