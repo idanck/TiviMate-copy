@@ -59,3 +59,15 @@ purpose:
   to the Pi-side filter, so the playlist now carries nine channels. Both are open, unencrypted
   streams on iptv-org's Israeli list; their logos sit beside the others on the Worker. Only the
   Pi's `build_channels_m3u.py` and `config/il.channels.xml` changed, outside this repository.
+- **2026-11-09: Channel 9, Hala TV and Channel 10 Kalkala; the provider list drops the duplicates.**
+  The owner had the two remaining Idan+ channels added — Channel 9 (`Channel9.il@SD`, guide from
+  `yes.co.il`'s `TV50`) and Hala TV (`HalaTV.il@SD`, `PT63`; iptv-org marks the stream "Not 24/7"
+  and `yes.co.il` returned no programmes for it on the first grab) — plus Channel 10 Kalkala, which
+  is free but online-only. iptv-org does not carry Channel 10, so the Pi script appends it from an
+  `EXTRA` list (`Channel10Kalkala.il@SD`, the official Redge CDN stream its own player uses, guide
+  from `CN32`). The playlist now carries twelve channels. Logos for the three come from Wikimedia
+  (Commons for Channel 9, the Hebrew Wikipedia infobox SVGs for the other two). In the same change
+  the owner had the separate provider pipeline (`iptv-epg/channel_map.json`, `"exclude": true`)
+  drop the twelve provider entries that duplicate free channels — Channel 9 / 9 HD, 11, 12, 13,
+  14, i24NEWS, Makan, Hala TV and the HOT copies of 9, 12 and 13 — from every playlist it writes,
+  Emby's included. Only Pi-side files changed, outside this repository.
