@@ -23,19 +23,20 @@ import java.util.concurrent.Executor
 /**
  * Browse tree + queue resolution for the radio [MediaLibrarySession] (ADR-015).
  *
- * The tree is two levels: [RadioBrowseTree.ROOT_ID] holds one browsable folder per category
- * (Favourites/National/Regional/genre/Other), and each folder holds its own stations.
+ * The tree is two levels: [RadioBrowseTree.ROOT_ID] holds Favourites and the radio menu's shelves
+ * gathered into at most three more folders — national, the regions, the genres (ADR-064) — and
+ * each folder holds its own stations.
  * [onGetChildren] tells [RadioBrowseTree.FAVOURITES_ID], a category id ([RadioBrowseTree.isCategoryId]),
  * and the root apart.
  *
  * [onSetMediaItems] is where a single tapped station becomes a full queue: the car passes just
  * the one selected [MediaItem] (carrying only the `mediaId` set in [RadioBrowseTree]), and this
- * resolves it against that station's own category ([RadioBrowseTree.categoryQueue]) so the
- * underlying player gets that category as its playlist, positioned at the one the user picked —
- * which is what makes the car's native skip-next/previous controls walk the other stations in the
- * same category for free. That holds regardless of whether the station was tapped from its
- * category folder or from Favourites, so a favourited station's queue is still its category, not
- * the favourites list — simplest to reason about, and consistent with how it behaves everywhere
+ * resolves it against the folder of that station's place ([RadioBrowseTree.categoryQueue]) so the
+ * underlying player gets that folder as its playlist, positioned at the one the user picked —
+ * which is what makes the car's native skip-next/previous controls walk the stations around it
+ * for free. That holds regardless of whether the station was tapped from its place's folder, the
+ * genres or Favourites, so a favourited station's queue is still its place's, not the favourites
+ * list — simplest to reason about, and consistent with how it behaves everywhere
  * else a station can be reached from.
  *
  * [onCustomCommand] handles [TOGGLE_FAVOURITE_ACTION]: a "Favourite" [CommandButton] Android Auto

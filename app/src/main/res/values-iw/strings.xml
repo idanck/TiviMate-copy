@@ -99,6 +99,8 @@
     <string name="radio_region_jerusalem">ירושלים</string>
     <string name="radio_region_south">דרום</string>
     <string name="radio_region_other">אזורים נוספים</string>
+    <string name="radio_folder_regions">אזורים</string>
+    <string name="radio_folder_genres">סגנונות</string>
     <string name="radio_now_playing">מתנגן עכשיו</string>
     <string name="all_channels">כל הערוצים</string>
     <string name="favourites">מועדפים</string>

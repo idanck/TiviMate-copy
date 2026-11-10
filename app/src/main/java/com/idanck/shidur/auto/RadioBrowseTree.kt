@@ -10,18 +10,26 @@ import com.idanck.shidur.data.builtin.IsraelRadioStations
 import com.idanck.shidur.data.model.Channel
 import com.idanck.shidur.data.model.ChannelSort
 import com.idanck.shidur.data.model.Playlist
-import com.idanck.shidur.data.radio.RadioCategory
 import com.idanck.shidur.data.radio.RadioCategoryClassifier
 import com.idanck.shidur.data.radio.RadioRegion
+import com.idanck.shidur.data.radio.RadioShelf
 import kotlinx.coroutines.runBlocking
 
 /**
- * The Android Auto browse tree for the built-in radio playlist (ADR-015): a "Favourites" folder,
- * then a category folder per [RadioCategory] bucket (National/Regional/genre/Other — the same
- * client-side classification the phone/TV radio screen uses, see [RadioCategoryClassifier]), each
- * containing that category's stations. Built fresh from the DB on every call, not cached — a
- * playlist refresh or a hide/unhide is picked up the next time the car asks, with no invalidation
- * to get wrong. All methods here do DB I/O and must be called off the main thread.
+ * The Android Auto browse tree for the built-in radio playlist (ADR-015), on the radio menu's
+ * shelves (ADR-050, brought to the car by ADR-064): a "Favourites" folder, then national, the
+ * regions and the genres — the same split the phone's chips and the television's strip use.
+ *
+ * Four folders at most, because a car shows four tabs at the root and may drop the rest
+ * (`BROWSER_ROOT_HINTS_KEY_ROOT_CHILDREN_LIMIT`, four in most cars). So the regions are one folder
+ * with a heading per region — north, centre, Jerusalem, south, other regions — and the genres one
+ * folder with a heading per genre, rather than a tab each. Before this the folders were
+ * [com.idanck.shidur.data.radio.RadioCategory], the feed's `group-title`s, which are genres now:
+ * nearly every station sat in "Other" and the regions never showed.
+ *
+ * Built fresh from the DB on every call, not cached — a playlist refresh or a hide/unhide is
+ * picked up the next time the car asks, with no invalidation to get wrong. All methods here do DB
+ * I/O and must be called off the main thread.
  *
  * The one piece of state it does hold is [setNowPlaying]: which station the car is playing, so
  * every list it builds can mark it. That is pushed in from [RadioMediaLibraryService]'s player
@@ -64,6 +72,7 @@ class RadioBrowseTree {
      * empty station list. [com.idanck.shidur.data.repo.SourceRepository.ensureRadioPlaylist]
      * is idempotent and cheap once the row exists, so calling it again here — blocking only the
      * background thread this is invoked from, never the main thread — closes that race for free.
+     * It does not bring back a built-in list the viewer deleted.
      */
     fun radioPlaylist(): Playlist? {
         runBlocking { ServiceLocator.sources.ensureRadioPlaylist() }
@@ -73,22 +82,22 @@ class RadioBrowseTree {
 
     /**
      * Every station with Russian-language ones excluded ([RadioCategoryClassifier.isRussian]),
-     * each paired with the [RadioCategory] it classifies into — the one place [categories] and
-     * [stationsIn] both read from, so a station can never appear in a category folder that
-     * [categories] itself does not list.
+     * each with the shelves it is on ([RadioCategoryClassifier.shelves]: its place, and its genre
+     * if its name says one) — the one place [categories], [stationsIn] and [categoryQueue] all
+     * read from, so a station can never appear in a folder that [categories] does not list.
      */
-    private fun categorizedChannels(): List<Pair<Channel, RadioCategory>> {
+    private fun shelvedChannels(): List<Pair<Channel, List<RadioShelf>>> {
         val playlistId = radioPlaylist()?.id ?: return emptyList()
         val groups = ServiceLocator.dao.groups(playlistId, includeHidden = true)
         fun groupNameOf(channel: Channel) = groups.firstOrNull { it.id == channel.groupId }?.name
         return ServiceLocator.dao.channels(playlistId = playlistId, sort = ChannelSort.PROVIDER)
             .filterNot { RadioCategoryClassifier.isRussian(it.displayName, groupNameOf(it)) }
-            .map { channel -> channel to RadioCategoryClassifier.classify(groupNameOf(channel), channel.displayName) }
+            .map { channel -> channel to RadioCategoryClassifier.shelves(groupNameOf(channel), channel.displayName) }
     }
 
     /**
-     * A leading "Favourites" folder ([FAVOURITES_ID]) followed by one browsable folder per
-     * category with at least one station in it.
+     * A leading "Favourites" folder ([FAVOURITES_ID]), then national, the regions and the genres,
+     * each only when a station is in it.
      *
      * Favourites is listed **unconditionally**, even with nothing in it yet: these folders are
      * what the car renders as its top-level tabs, and a tab that appears only once a favourite
@@ -101,19 +110,15 @@ class RadioBrowseTree {
      * station that is on is visible from the screen the user comes back to to change it.
      */
     fun categories(): List<MediaItem> {
-        val channels = categorizedChannels()
-        val present = channels.map { it.second }.toSet()
-        val ordered = mutableListOf<RadioCategory>()
-        if (RadioCategory.NATIONAL in present) ordered += RadioCategory.NATIONAL
-        if (RadioCategory.REGIONAL in present) ordered += RadioCategory.REGIONAL
-        present.filterIsInstance<RadioCategory.GENRE>().sortedBy { it.label }.forEach { ordered += it }
-        if (RadioCategory.OTHER in present) ordered += RadioCategory.OTHER
+        val channels = shelvedChannels()
+        val present = channels.flatMapTo(HashSet<CarFolder>()) { (_, shelves) -> shelves.map { it.carFolder() } }
         val playing = channels.firstOrNull { (channel, _) -> channel.id.toString() == nowPlayingId }
-        val categoryItems = ordered.map { category ->
+        val playingIn = playing?.second.orEmpty().map { it.carFolder() }.toSet()
+        val folders = CarFolder.entries.filter { it in present }.map { folder ->
             folder(
-                mediaId = categoryId(category),
-                title = categoryLabel(category),
-                subtitle = playing?.takeIf { it.second == category }?.let { nowPlayingSubtitle(it.first) },
+                mediaId = folderId(folder),
+                title = folderLabel(folder),
+                subtitle = playing?.takeIf { folder in playingIn }?.let { nowPlayingSubtitle(it.first) },
             )
         }
         val favouritesSubtitle = playing?.takeIf { it.first.favourite }?.let { nowPlayingSubtitle(it.first) }
@@ -123,7 +128,7 @@ class RadioBrowseTree {
                 title = ServiceLocator.locale.getString(R.string.favourites),
                 subtitle = favouritesSubtitle,
             ),
-        ) + categoryItems
+        ) + folders
     }
 
     private fun folder(mediaId: String, title: String, subtitle: String?): MediaItem = MediaItem.Builder()
@@ -145,40 +150,39 @@ class RadioBrowseTree {
 
     /**
      * The favourited stations, in provider order — the [FAVOURITES_ID] folder's children. Listed
-     * flat, with no regional grouping: a favourites list is the user's own selection across
-     * categories, and splitting it by where each station broadcasts would be noise.
+     * flat, with no headings: a favourites list is the user's own selection across shelves, and
+     * splitting it by where each station broadcasts would be noise.
      */
     fun favouriteStations(): List<MediaItem> =
-        categorizedChannels()
+        shelvedChannels()
             .filter { (channel, _) -> channel.favourite }
             .mapNotNull { (channel, _) -> toMediaItem(channel) }
 
     /**
-     * The playable stations inside one category folder — also what a tapped station's queue is
-     * scoped to ([RadioSessionCallback.onSetMediaItems]), so the car's native skip-next/previous
-     * walks the rest of that category rather than jumping between unrelated ones, which suits a
-     * driving context better than one queue across all stations.
-     *
-     * Provider order, except in the Regional folder: see [byRegion].
+     * The playable stations inside one folder, in the order [inCarFolder] gives them: provider
+     * order in national, under a heading per region or per genre in the other two.
      */
-    fun stationsIn(categoryMediaId: String): List<MediaItem> =
-        byRegion(categorizedChannels().filter { (_, category) -> categoryId(category) == categoryMediaId })
-            .mapNotNull { (channel, region) -> toMediaItem(channel, region) }
+    fun stationsIn(folderMediaId: String): List<MediaItem> {
+        val folder = CarFolder.entries.firstOrNull { folderId(it) == folderMediaId } ?: return emptyList()
+        return shelvedChannels().inCarFolder(folder)
+            .mapNotNull { (channel, shelf) -> toMediaItem(channel, headingOf(shelf)) }
+    }
 
     /** All (non-Russian) stations, flattened, in provider order. */
-    fun stations(): List<MediaItem> = categorizedChannels().mapNotNull { (channel, _) -> toMediaItem(channel) }
+    fun stations(): List<MediaItem> = shelvedChannels().mapNotNull { (channel, _) -> toMediaItem(channel) }
 
     /** Every station logo URL, for [RadioArtwork.prefetch] to warm before anything is played. */
     fun logoUrls(): List<String> =
-        categorizedChannels().mapNotNull { (channel, _) -> channel.displayLogo?.takeIf { it.isNotBlank() } }
+        shelvedChannels().mapNotNull { (channel, _) -> channel.displayLogo?.takeIf { it.isNotBlank() } }
 
     /**
-     * The queue [RadioSessionCallback.onSetMediaItems] hands the player for a tapped station: every
-     * station in *that station's own category*, not the whole playlist — one DB read, so the
-     * station's category is looked up and its sibling stations resolved together. In the same order
-     * the folder showed them, so skip-next moves to the station that was listed underneath. Falls
-     * back to every station if the id is somehow not one [categorizedChannels] knows (should not
-     * happen — a car can only tap something [stationsIn] handed it).
+     * The queue [RadioSessionCallback.onSetMediaItems] hands the player for a tapped station: the
+     * folder of *that station's place* — national, or the regions — in the order the folder shows
+     * it, so the car's skip-next moves to the station listed underneath and, at the end of a
+     * region, on to the next region. Its place rather than the folder it was tapped in, because the
+     * car hands back only the station's id: a station is in exactly one place, and in at most one
+     * genre besides. Falls back to every station if the id is somehow not one [shelvedChannels]
+     * knows (should not happen — a car can only tap something [stationsIn] handed it).
      *
      * Queue items — and only queue items — carry a rendered square logo ([RadioArtwork]) rather
      * than just the logo URL, because this is what ends up on the car's Now Playing screen. The
@@ -187,15 +191,15 @@ class RadioBrowseTree {
      * for a station the user has not asked for would be the wrong trade.
      */
     fun categoryQueue(stationMediaId: String): List<MediaItem> {
-        val all = categorizedChannels()
+        val all = shelvedChannels()
         val target = all.firstOrNull { (channel, _) -> channel.id.toString() == stationMediaId }
             ?: return all.mapNotNull { (channel, _) ->
                 toMediaItem(channel, artworkData = artworkFor(channel.displayLogo, fetch = false))
             }
-        return byRegion(all.filter { (_, category) -> category == target.second })
-            .mapNotNull { (channel, region) ->
+        return all.inCarFolder(placeFolder(target.second))
+            .mapNotNull { (channel, shelf) ->
                 val isTapped = channel.id == target.first.id
-                toMediaItem(channel, region, artworkFor(channel.displayLogo, fetch = isTapped))
+                toMediaItem(channel, headingOf(shelf), artworkFor(channel.displayLogo, fetch = isTapped))
             }
     }
 
@@ -203,35 +207,27 @@ class RadioBrowseTree {
         if (fetch) RadioArtwork.square(logoUrl) else RadioArtwork.cached(logoUrl)
 
     /**
-     * Pairs each station with the [RadioRegion] its name places it in — but only for stations in
-     * [RadioCategory.REGIONAL], and sorts them so the regions come out in
-     * [RadioRegion]'s own declaration order, north first. Everything else keeps provider order
-     * and gets no region (Kotlin's sort is stable, and a null region sorts as the first bucket,
-     * so a non-regional list comes back untouched).
-     *
-     * The region is what the Regional folder is separated by: each station carries it both as the
-     * car's group-title hint — which draws a heading above the run of stations that share it —
-     * and as its own subtitle, so the split is still legible on a head unit that ignores the hint.
+     * The words a station is grouped under in its folder: its region in the regions folder, its
+     * genre in the genres folder, nothing in national. Each station carries it both as the car's
+     * group-title hint — which draws a heading above the run of stations that share it — and as
+     * its own subtitle, so the split is still legible on a head unit that ignores the hint.
      */
-    private fun byRegion(entries: List<Pair<Channel, RadioCategory>>): List<Pair<Channel, RadioRegion?>> =
-        entries
-            .map { (channel, category) ->
-                channel to RadioCategoryClassifier.region(channel.displayName)
-                    .takeIf { category == RadioCategory.REGIONAL }
-            }
-            .sortedBy { (_, region) -> region?.ordinal ?: -1 }
+    private fun headingOf(shelf: RadioShelf): String? = when (shelf) {
+        RadioShelf.National -> null
+        is RadioShelf.Regional -> regionLabel(shelf.region)
+        is RadioShelf.Genre -> shelf.label
+    }
 
     private fun toMediaItem(
         channel: Channel,
-        region: RadioRegion? = null,
+        heading: String? = null,
         artworkData: ByteArray? = null,
     ): MediaItem? {
         val url = channel.urls.firstOrNull() ?: return null
-        val regionText = region?.let { regionLabel(it) }
         val subtitle = listOfNotNull(
             ServiceLocator.locale.getString(R.string.radio_now_playing)
                 .takeIf { channel.id.toString() == nowPlayingId },
-            regionText,
+            heading,
         ).joinToString(" · ").takeIf { it.isNotEmpty() }
         val metadata = MediaMetadata.Builder()
             .setTitle(channel.displayName)
@@ -242,7 +238,7 @@ class RadioBrowseTree {
             .apply {
                 channel.displayLogo?.let { setArtworkUri(Uri.parse(it)) }
                 artworkData?.let { setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER) }
-                regionText?.let { setExtras(Bundle().apply { putString(EXTRA_GROUP_TITLE, it) }) }
+                heading?.let { setExtras(Bundle().apply { putString(EXTRA_GROUP_TITLE, it) }) }
             }
             .build()
         return MediaItem.Builder()
@@ -255,7 +251,7 @@ class RadioBrowseTree {
     companion object {
         const val ROOT_ID = "radio_root"
 
-        /** The synthetic "Favourites" folder's media id, a sibling of the category folders. */
+        /** The synthetic "Favourites" folder's media id, a sibling of the shelf folders. */
         const val FAVOURITES_ID = "radio_favourites"
 
         /**
@@ -272,21 +268,22 @@ class RadioBrowseTree {
 
         private const val CATEGORY_ID_PREFIX = "radio_cat_"
 
-        private fun categoryId(category: RadioCategory): String = when (category) {
-            RadioCategory.NATIONAL -> "${CATEGORY_ID_PREFIX}national"
-            RadioCategory.REGIONAL -> "${CATEGORY_ID_PREFIX}regional"
-            RadioCategory.OTHER -> "${CATEGORY_ID_PREFIX}other"
-            is RadioCategory.GENRE -> "$CATEGORY_ID_PREFIX${category.label}"
+        // "national" as before, so a car that remembered the national tab finds it again.
+        private fun folderId(folder: CarFolder): String = CATEGORY_ID_PREFIX + when (folder) {
+            CarFolder.NATIONAL -> "national"
+            CarFolder.REGIONS -> "regions"
+            CarFolder.GENRES -> "genres"
         }
 
-        // Same strings the phone/TV radio screen uses, read through the app's own locale context
-        // (see ServiceLocator.locale) rather than duplicated here, so a language change moves both.
-        private fun categoryLabel(category: RadioCategory): String = when (category) {
-            RadioCategory.NATIONAL -> ServiceLocator.locale.getString(R.string.radio_category_national)
-            RadioCategory.REGIONAL -> ServiceLocator.locale.getString(R.string.radio_category_regional)
-            RadioCategory.OTHER -> ServiceLocator.locale.getString(R.string.radio_category_other)
-            is RadioCategory.GENRE -> category.label
-        }
+        // Same strings the phone/TV radio screen uses where there is one, read through the app's
+        // own locale context (see ServiceLocator.locale), so a language change moves both.
+        private fun folderLabel(folder: CarFolder): String = ServiceLocator.locale.getString(
+            when (folder) {
+                CarFolder.NATIONAL -> R.string.radio_category_national
+                CarFolder.REGIONS -> R.string.radio_folder_regions
+                CarFolder.GENRES -> R.string.radio_folder_genres
+            },
+        )
 
         private fun regionLabel(region: RadioRegion): String = ServiceLocator.locale.getString(
             when (region) {
@@ -299,3 +296,35 @@ class RadioBrowseTree {
         )
     }
 }
+
+/** The car's folders after Favourites, in the order its tabs show them (ADR-064). */
+internal enum class CarFolder { NATIONAL, REGIONS, GENRES }
+
+/** Which of the car's folders a shelf of the radio menu is gathered into. */
+internal fun RadioShelf.carFolder(): CarFolder = when (this) {
+    RadioShelf.National -> CarFolder.NATIONAL
+    is RadioShelf.Regional -> CarFolder.REGIONS
+    is RadioShelf.Genre -> CarFolder.GENRES
+}
+
+/**
+ * The folder a station's queue walks: the one its place is in. Every station is on exactly one of
+ * the place shelves ([RadioCategoryClassifier.regionShelf]); national if, against that, none is.
+ */
+internal fun placeFolder(shelves: List<RadioShelf>): CarFolder =
+    shelves.map { it.carFolder() }.firstOrNull { it != CarFolder.GENRES } ?: CarFolder.NATIONAL
+
+/**
+ * The items on [folder]'s shelves, each with the shelf that put it there, in the order the car
+ * lists them: the regions in [RadioRegion]'s order (north, centre, Jerusalem, south, other
+ * regions), the genres alphabetically, and within a shelf the order given — the provider's, since
+ * the sort is stable.
+ */
+internal fun <T> List<Pair<T, List<RadioShelf>>>.inCarFolder(folder: CarFolder): List<Pair<T, RadioShelf>> =
+    flatMap { (item, shelves) -> shelves.filter { it.carFolder() == folder }.map { item to it } }
+        .sortedWith(
+            compareBy<Pair<T, RadioShelf>>(
+                { (it.second as? RadioShelf.Regional)?.region?.ordinal ?: -1 },
+                { (it.second as? RadioShelf.Genre)?.label.orEmpty() },
+            ),
+        )

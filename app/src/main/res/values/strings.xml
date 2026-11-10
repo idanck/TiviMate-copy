@@ -111,6 +111,8 @@
     <string name="radio_region_jerusalem">Jerusalem</string>
     <string name="radio_region_south">South</string>
     <string name="radio_region_other">Other regions</string>
+    <string name="radio_folder_regions">Regions</string>
+    <string name="radio_folder_genres">Genres</string>
     <string name="radio_now_playing">Now playing</string>
     <string name="all_channels">All channels</string>
     <string name="favourites">Favourites</string>

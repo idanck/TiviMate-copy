@@ -190,9 +190,9 @@ Android Auto's "Unknown sources" developer setting and a car or Desktop Head Uni
 
 | ID | Status | Notes |
 |---|---|---|
-| FR-AUTO-01 | Done | `auto/RadioMediaLibraryService.kt`, `auto/RadioBrowseTree.kt` — flat browse tree over the FR-SRC-16 playlist. |
+| FR-AUTO-01 | Done | `auto/RadioMediaLibraryService.kt`, `auto/RadioBrowseTree.kt` — browse tree over the FR-SRC-16 playlist: Favourites, then national, the regions and the genres, the radio menu's shelves (ADR-064, 0.30.0). |
 | FR-AUTO-02 | Done | `auto/RadioPlayerFactory.kt` builds a dedicated ExoPlayer, never `ServiceLocator.player`. |
-| FR-AUTO-03 | Done | `RadioSessionCallback.onSetMediaItems` hands the whole station list to the player positioned at the selection, so native skip-next/previous walks it. |
+| FR-AUTO-03 | Done | `RadioSessionCallback.onSetMediaItems` hands the player the folder of the tapped station's place (national, or the regions in order) positioned at the selection, so native skip-next/previous walks it. |
 | FR-AUTO-04 | Done | `res/xml/automotive_app_desc.xml` + manifest service declaration; no Play-review-gated code path. |
 
 ## UPD — In-app updates

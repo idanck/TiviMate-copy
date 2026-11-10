@@ -3,6 +3,7 @@
 **Status:** accepted. Decided by the owner on 2026-10-30: *radio stations by region in the menu,
 the region taken from the station's name.* Narrows ADR-015's categories in the radio list's menu
 only; Android Auto's folders and the radio screen's station strip still sort by `RadioCategory`.
+The strip moved to the shelves in 0.21.8, and the car's folders in 0.30.0 (ADR-064).
 
 ## Context
 
