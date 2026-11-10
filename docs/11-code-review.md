@@ -273,6 +273,9 @@ threads — but a map that only grows is still a leak. Pre-existing. **Fixed** �
   `StatFs` against internal storage whenever the destination is a SAF tree, which is the only
   thing the picker can produce on Android 10 and later — so the space check and the low-space
   warning are both wrong in both directions for the common case.
+  **Fixed on 2026-11-10** (0.30.1): a `content://` tree is measured on its own volume — its
+  directory opened read-only through the provider and `Os.fstatvfs` asked — and a provider that
+  will not open a directory answers -1, unknown, which neither refuses nor warns.
 - **Cold start does disk I/O on the main thread.** `Application.onCreate` opens the database,
   re-arms recordings and walks the whole cache tree before the first frame; `BootReceiver` does
   the same inside a broadcast's ten-second window.
