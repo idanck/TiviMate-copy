@@ -1628,12 +1628,19 @@ class Runner:
             # run 42631443554 read only stdout, called both forms' aborts "no app crash", and its
             # ANRs surfaced only in the log audit. Both streams are read now, and the monkey carries
             # on past an ANR so the rest of the 4,000 events still run.
+            # A crash is counted against the app only when it is the app's: run 42809277481 stopped at
+            # event 1,393 on a NullPointerException inside the television's own keyboard
+            # (com.google.android.inputmethod.latin), which the monkey reported as "// CRASH" and the
+            # scenario called a failure. --ignore-crashes lets the rest of the events run past a
+            # system app's crash; the app's own still fails the scenario below.
             out = sh(f"monkey -p {PKG} -s 4242 --throttle 120 --pct-syskeys 0 --pct-appswitch 2 {nav} "
-                     f"--ignore-security-exceptions --ignore-timeouts -v 4000 2>&1", timeout=900)
+                     f"--ignore-crashes --ignore-security-exceptions --ignore-timeouts -v 4000 2>&1",
+                     timeout=900)
             with open(os.path.join(self.out, "monkey.txt"), "w") as f:
                 f.write(out)
-            crashed = "// CRASH" in out
-            anr = "NOT RESPONDING" in out
+            crashed = f"// CRASH: {PKG} " in out
+            anr = f"NOT RESPONDING: {PKG} " in out
+            others = sorted(set(re.findall(r"// (?:CRASH|NOT RESPONDING): (\S+) ", out)) - {PKG})
             done = "Monkey finished" in out
             m = re.search(r"Events injected: (\d+)", out)
             # Monkey may switch network/airplane; restore.
@@ -1644,8 +1651,10 @@ class Runner:
             close_system_ui()
             crash_line = next((l for l in out.splitlines() if "Long Msg" in l or "Short Msg" in l), "")
             aborted = "Monkey aborted" in out
-            self.record(sid, title, "FAIL" if crashed or anr else ("PASS" if done else "WARN"),
+            status = "FAIL" if crashed or anr else ("PASS" if done and not others else "WARN")
+            self.record(sid, title, status,
                         f"injected {m.group(1) if m else '?'}; crash={crashed} anr={anr}"
+                        f"{f'; other processes crashed or hung: {others}' if others else ''}"
                         f"{' (monkey itself aborted, no app crash)' if aborted and not crashed else ''} {crash_line[:200]}",
                         [shot], area)
             self.ensure_running()
@@ -1956,6 +1965,9 @@ class Runner:
             launch()
             done = None
             for _ in range(12):
+                # Run 42809277481 read quick settings instead of the report: the shade the monkey
+                # (QA-18) had pulled down on the phone was still over the app.
+                close_system_ui()
                 done = self.ui.find("Your data is here") or self.ui.find("הנתונים הועברו")
                 failed = self.ui.find("could not be moved") or self.ui.find("העברת הנתונים נכשלה")
                 if done or failed:
