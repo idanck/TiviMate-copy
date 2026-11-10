@@ -9,6 +9,8 @@
     <string name="channel_alerts_desc">Reminders, recording results and subscription warnings.</string>
     <string name="channel_radio">Radio playback</string>
     <string name="channel_radio_desc">Shown while a radio station keeps playing behind a locked screen.</string>
+    <string name="channel_updates">Updates</string>
+    <string name="channel_updates_desc">Shown once, right after an update, to open the app again.</string>
     <string name="radio_notif_playing">Playing in the background</string>
 
     <!-- Generic actions -->
@@ -440,6 +442,8 @@
     <string name="update_blocked_metered">Waiting for Wi-Fi, or turn off Wi-Fi-only downloads</string>
     <string name="update_blocked_android">This update needs a newer version of Android</string>
     <string name="update_blocked_space">Not enough free space for the download</string>
+    <string name="update_done_title">Shidur was updated to %1$s</string>
+    <string name="update_done_text">Press to open</string>
     <string name="nav_home">Home</string>
     <string name="home_rail_featured">Featured</string>
     <string name="home_rail_continue">Continue watching</string>

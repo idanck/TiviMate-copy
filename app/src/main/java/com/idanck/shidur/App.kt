@@ -200,6 +200,9 @@ class App : Application(), ImageLoaderFactory {
         const val CHANNEL_ALERTS = "alerts"
         const val CHANNEL_RADIO = "radio_playback"
 
+        /** "Updated — open it" after an in-app update (FR-UPD-09); temporary, see ADR-062. */
+        const val CHANNEL_UPDATES = "updates"
+
         /** Everything a cold start sets going once the database is this install's to write. */
         fun startBackgroundWork(context: Context) {
             val app = context.applicationContext
@@ -264,6 +267,14 @@ class App : Application(), ImageLoaderFactory {
                     strings.getString(R.string.channel_radio),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply { description = strings.getString(R.string.channel_radio_desc) },
+            )
+            // HIGH: the whole point is to be seen right after the app closed for an update.
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_UPDATES,
+                    strings.getString(R.string.channel_updates),
+                    NotificationManager.IMPORTANCE_HIGH,
+                ).apply { description = strings.getString(R.string.channel_updates_desc) },
             )
         }
     }

@@ -43,6 +43,7 @@ fun UpdatePrompt() {
     val updates = ServiceLocator.updates
     val state by updates.state.collectAsState()
     val context = LocalContext.current
+    val startUpdate = rememberUpdateStarter()
 
     var postponed by rememberSaveable { mutableStateOf(false) }
     // Only the person who pressed "update" here should be shown its progress; a download the
@@ -85,7 +86,7 @@ fun UpdatePrompt() {
                         label = stringResource(R.string.update_now),
                         onClick = {
                             watching = true
-                            ServiceLocator.appScope.launch { updates.downloadAndInstall(manifest) }
+                            startUpdate(manifest)
                         },
                         variant = StudioButtonVariant.SECONDARY,
                         icon = StudioIcons.Update,

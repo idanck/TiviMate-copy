@@ -89,7 +89,7 @@
 ## 5.6a Updates
 
 The app is installed outside a store, so Settings → About carries what a store would otherwise
-do (FR-UPD-01..08, `docs/adr/ADR-012`):
+do (FR-UPD-01..09, `docs/adr/ADR-012`, `ADR-062`):
 
 - **Check for updates** — asks the published manifest now; the same check runs on launch and
   from the hourly refresh worker, rate-limited to once a day.
@@ -100,6 +100,8 @@ do (FR-UPD-01..08, `docs/adr/ADR-012`):
   "install unknown apps" permission, a metered connection, a too-old Android, no room on disk.
 - The downloaded APK is installed only if its SHA-256 matches the manifest and its signing
   certificate matches the running app's.
+- The app closes when the update installs, and a notification says it was updated and opens it
+  again; the notification permission is asked for the first time "update" is pressed.
 
 ## 5.7 Settings that must NOT exist
 

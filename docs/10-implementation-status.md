@@ -211,6 +211,7 @@ is claimed here is that the code exists and its logic is covered; see `docs/11`.
 | FR-UPD-06 | Done | Both switches in Settings → About, on by default. The skip is stored as a floor, so a newer build clears it. |
 | FR-UPD-07 | Done | `blockingReason` refuses while `dao.activeRecordings()` is non-empty, and the refusal names itself. |
 | FR-UPD-08 | Done | `BootReceiver` also answers `MY_PACKAGE_REPLACED` and re-arms the schedule. |
+| FR-UPD-09 | Done | `UpdatedNotice`: marked before the commit, posted by `BootReceiver` on `MY_PACKAGE_REPLACED`, channel `updates`; permission asked by `rememberUpdateStarter`. To be removed if a Google Play update reopens the app by itself (ADR-062). |
 
 ## Non-functional
 

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.idanck.shidur.ServiceLocator
+import com.idanck.shidur.data.update.UpdatedNotice
 
 /** Starts the recorder when an exact alarm fires. */
 class RecordingAlarmReceiver : BroadcastReceiver() {
@@ -28,7 +29,9 @@ class RecordingAlarmReceiver : BroadcastReceiver() {
  * Replacing the package clears its alarms exactly as a reboot does, so an update — in-app
  * (FR-UPD-04) or sideloaded by hand — would otherwise drop every scheduled recording on the
  * floor. `MY_PACKAGE_REPLACED` re-arms them; it deliberately does not re-launch the app, which
- * is a boot-time courtesy and would be an ambush mid-update.
+ * is a boot-time courtesy and would be an ambush mid-update — and Android would refuse it from the
+ * background anyway. After an update the app installed itself it posts a notification that opens
+ * the app instead (FR-UPD-09, [UpdatedNotice]).
  */
 class BootReceiver : BroadcastReceiver() {
 
@@ -43,6 +46,7 @@ class BootReceiver : BroadcastReceiver() {
 
         ServiceLocator.init(context)
         ServiceLocator.recordings.rearmAll()
+        if (action == Intent.ACTION_MY_PACKAGE_REPLACED) UpdatedNotice.onPackageReplaced(context)
 
         if (booted && ServiceLocator.settings.state.value.autoStartOnBoot) {
             val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
