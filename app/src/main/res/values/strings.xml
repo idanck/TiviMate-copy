@@ -118,6 +118,7 @@
     <string name="no_guide_data">No guide data</string>
     <string name="now_next">Now / Next</string>
     <string name="guide_jump_now">Now</string>
+    <string name="guide_still_playing">Still playing</string>
     <string name="guide_day_yesterday">Yesterday</string>
     <string name="guide_day_today">Today</string>
     <string name="guide_day_tomorrow">Tomorrow</string>

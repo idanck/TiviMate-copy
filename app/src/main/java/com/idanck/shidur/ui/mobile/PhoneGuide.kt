@@ -56,6 +56,9 @@ internal fun PhoneGuide(
             vm = vm,
             onPlay = onPlay,
             onOpenProgramme = { channel, programme -> pick = channel to programme },
+            // The phone's own status bar carries the time; the row it sat in is the grid's now
+            // (ADR-063).
+            showClock = false,
             modifier = Modifier.fillMaxWidth().weight(1f),
         )
         pick?.let { (channel, programme) ->

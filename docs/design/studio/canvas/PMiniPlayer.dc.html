@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="utf-8">
-<title>רכיב טלפון — נגן מוקטן</title>
+<title>רכיב טלפון — נגן מוקטן (ADR-063: אטום, מסגרת ענבר, אקולייזר)</title>
 <script src="./support.js"></script>
 <link rel="stylesheet" href="studio.css">
 <link rel="stylesheet" href="studio-phone.css">
@@ -14,11 +14,11 @@
 <style>body{margin:0}</style>
 </helmet>
 <div style="width: 390px; box-sizing: border-box; padding: 0 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
-<div style="position: relative; height: var(--st-h-mini); box-sizing: border-box; padding: 0 10px 0 4px; border-radius: var(--st-r-control); background: var(--st-card); box-shadow: inset 0 0 0 1px var(--st-hairline-soft), var(--st-lift); display: flex; align-items: center; gap: 12px; overflow: hidden">
+<div style="position: relative; height: var(--st-h-mini); box-sizing: border-box; padding: 0 10px 0 4px; border-radius: var(--st-r-control); background: linear-gradient(color-mix(in srgb, var(--st-cue) 16%, transparent), color-mix(in srgb, var(--st-cue) 16%, transparent)), var(--st-drawer); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--st-cue) 70%, transparent), 0 10px 28px rgba(0, 0, 0, 0.8); display: flex; align-items: center; gap: 12px; overflow: hidden">
 <sc-if value="{{disc}}" hint-placeholder-val="{{false}}"><span style="flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; background: var(--st-surface); box-shadow: inset 0 0 0 1px var(--st-hairline); color: var(--st-ink-2); display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="radio" size="22" hint-size="22px,22px"></dc-import></span></sc-if>
 <sc-if value="{{video}}" hint-placeholder-val="{{true}}"><span style="flex: 0 0 72px; width: 72px; height: 40px; border-radius: 6px; overflow: hidden"><dc-import name="Picture" scene="studio" width="72" height="40" label="" hint-size="72px,40px"></dc-import></span></sc-if>
 <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
-<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--st-ink-2)"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: var(--st-tally)"></span>{{channel}}</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--st-cue)"><span aria-hidden="true" style="display: flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 3px; height: 6px; border-radius: 2px; background: var(--st-cue)"></span><span style="width: 3px; height: 14px; border-radius: 2px; background: var(--st-cue)"></span><span style="width: 3px; height: 9px; border-radius: 2px; background: var(--st-cue)"></span><span style="width: 3px; height: 12px; border-radius: 2px; background: var(--st-cue)"></span></span>מתנגן עכשיו · {{channel}}</span>
 <span style="font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</span>
 </span>
 <button aria-label="{{aria}}" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{glyph}}" size="26" hint-size="26px,26px"></dc-import></button>
