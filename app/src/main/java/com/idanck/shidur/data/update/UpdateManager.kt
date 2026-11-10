@@ -281,9 +281,13 @@ class UpdateManager(
         }
 
         _state.value = UpdateState.Installing(manifest, System.currentTimeMillis())
+        // Before the commit, which can end this process at once: the new build reads it back
+        // and says it was updated (FR-UPD-09). The bridge's install of another app is not one.
+        if (targetPackage == null) UpdatedNotice.expect(context, manifest.versionCode)
         val committed = withContext(Dispatchers.IO) { commitSession(file) }
         if (committed is Outcome.Err) {
             file.delete()
+            if (targetPackage == null) UpdatedNotice.forget(context)
             _state.value = UpdateState.Failed(committed.error)
         }
         return committed
@@ -337,6 +341,7 @@ class UpdateManager(
     }
 
     internal fun onInstallFailed(error: AppError) {
+        if (targetPackage == null) UpdatedNotice.forget(context)
         _state.value = UpdateState.Failed(error)
     }
 

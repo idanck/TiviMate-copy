@@ -44,6 +44,7 @@ import androidx.lifecycle.Lifecycle
 import com.idanck.shidur.App
 import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
+import com.idanck.shidur.data.update.UpdatedNotice
 import com.idanck.shidur.data.news.NewsDigests
 import com.idanck.shidur.data.news.NewsRepository
 import com.idanck.shidur.data.prefs.AppLocale
@@ -1206,6 +1207,8 @@ class MainActivity : ComponentActivity() {
         // is what lets a refused update pick itself back up instead of sending the user round
         // "check for updates" a second time (issue #29).
         ServiceLocator.updates.refreshInstallPermission()
+        // Opened, by the notification or by hand: "updated — open it" has done its job.
+        UpdatedNotice.dismiss(this)
         // A window recreated in place passes through here too, and is still a window.
         if (!inPip) leftForPip = false
         resumeIfFocusTookIt()

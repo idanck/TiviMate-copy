@@ -25,6 +25,7 @@ import com.idanck.shidur.ui.common.StudioButtonVariant
 import com.idanck.shidur.ui.common.StudioProgress
 import com.idanck.shidur.ui.common.describe
 import com.idanck.shidur.ui.common.openUnknownSources
+import com.idanck.shidur.ui.common.rememberUpdateStarter
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -42,6 +43,7 @@ fun UpdateSettingsBlock() {
     val state by updates.state.collectAsState()
     val context = LocalContext.current
     val canInstall by updates.canInstall.collectAsState()
+    val startUpdate = rememberUpdateStarter()
 
     SettingsSectionTitle(stringResource(R.string.update_title))
 
@@ -74,7 +76,7 @@ fun UpdateSettingsBlock() {
         UpdateNotes(offered)
         StudioButton(
             label = stringResource(R.string.update_install),
-            onClick = { ServiceLocator.appScope.launch { updates.downloadAndInstall(offered) } },
+            onClick = { startUpdate(offered) },
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
             variant = StudioButtonVariant.PRIMARY,
             size = StudioButtonSize.MEDIUM,
