@@ -5,9 +5,14 @@ file is that a reader can tell implemented from not-implemented without running 
 
 Legend: **Done** · **Partial** (works, with the limitation named) · **Not implemented**.
 
-Entitlements are out of scope for this build by decision — see `docs/adr/ADR-007`. Every
-requirement whose only reason to exist was tier gating is marked accordingly, and every `Paid`
-feature that was otherwise in scope is simply available.
+Entitlements were out of scope by decision — see `docs/adr/ADR-007`. ADR-059 (2026-11-09) partly
+supersedes it: the app signs in with Google on Firebase, behind the remote switch
+`config/app.requireSignIn` (off until the owner turns it on), and each account's `users/{uid}`
+carries an `entitlements` map the owner sets by hand in the console. In the app nothing is gated
+by it yet, so every requirement whose only reason to exist was tier gating is still marked
+accordingly, and every `Paid` feature that was otherwise in scope is simply available. The one
+place an entitlement is read is the web version's Google sign-in mode (`entitlements.web`, see
+WEB below). Payment is not built, and neither is sync (FR-SET-10, ADR-059's stage 6).
 
 ## SRC — Sources and playlists
 
@@ -173,7 +178,7 @@ feature that was otherwise in scope is simply available.
 | FR-SET-14 | Done | Copy report. |
 | FR-SET-15 | Done | Budgeted, LRU-evicted, size shown, three clear actions. |
 | FR-SET-16 / 17 | Not implemented | Verbose file logging, revert playback settings. |
-| FR-LIC-* | N/A | See `docs/adr/ADR-007`. FR-LIC-10 (no advertising) holds — there is no ad code. |
+| FR-LIC-* | N/A | See `docs/adr/ADR-007`, and ADR-059 for the accounts and the `entitlements` map that now exist with nothing in the app gated by them. FR-LIC-10 (no advertising) holds — there is no ad code. |
 | FR-TVI-01 | Done | Leanback launcher category and a TV banner. Since 0.17.5 the banner and the launcher icon are Studio's option D (`docs/design/studio/ICON.md`): an adaptive icon with a monochrome layer for themed icons, legacy PNGs at every density, and a 320×180 banner, all drawn from Karantina's outlines by `docs/design/studio/render_icon.py`. `AppIconResourcesTest` checks the sizes and the layers. |
 | FR-TVI-02 | Done | Recently watched channels are published to Google TV's "Continue watching" row (`tv/WatchNextPlan.kt` decides, `tv/WatchNextSync.kt` writes), capped at ten and expiring after thirty days, with an opt-out in Settings ▸ Playback. Poster art is the channel logo declared as 1:1 — see ADR-017 for why, and what the better answer would cost. |
 | FR-TVI-03 | Done | One preview channel, "שידור", on the Google TV home screen: favourites first, then recently watched, with the programme on now as each TV card's title (the channel name where the guide has none) (`tv/HomeRowPlan.kt` decides, `tv/HomeRowSync.kt` writes). Its own opt-out in Settings ▸ Playback. See ADR-056. |
@@ -272,4 +277,5 @@ same requirements; only what differs from the Android column above is listed.
 | UI | Partial | Channels, guide, radio, search, settings, Hebrew only. Favourites and recents; no hiding, renaming or custom groups; no parental lock, screensaver, sport or news multi-view. |
 | Recording, catch-up, VOD | Not implemented | |
 | Backup | Done | Reads and writes the Android format 1 file, with or without credentials. |
+| Sign-in | Done | With `SHIDUR_FIREBASE_PROJECT_ID` set, Google sign-in, and only an account whose `entitlements.web` is true gets a session (ADR-059, stage 5). Without it, the `SHIDUR_WEB_PASSWORD` mode. |
 | Updates | N/A | A browser loads the new build from the server the next time the app opens. |
