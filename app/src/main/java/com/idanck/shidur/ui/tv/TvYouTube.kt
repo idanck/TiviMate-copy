@@ -203,8 +203,26 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
         heldPlaying = false
     }
 
+    /** A channel asked for that is not live right now: its title, said where the picture would be. */
+    var offAir by mutableStateOf<String?>(null)
+
+    /** A YouTube channel picked in Shidur's channel list: its live stream, or [offAir] when it has none. */
+    suspend fun playChannel(id: String) {
+        started = true
+        val state = repo.channel(id)
+        val live = state?.live?.firstOrNull()
+        if (live != null) {
+            play(live)
+        } else {
+            noteCurrent()
+            player.stop()
+            offAir = state?.channel?.title ?: repo.listed.value.firstOrNull { it.id == id }?.title ?: ""
+        }
+    }
+
     fun play(video: YtVideo) {
         started = true
+        offAir = null
         heldPlaying = false
         noteCurrent()
         player.load(video, repo.positionOf(video.id))
@@ -499,11 +517,12 @@ private fun YouTubeHome(
     val subsTitle = stringResource(R.string.yt_rail_subs)
     val subsCaption = stringResource(R.string.yt_rail_subs_caption)
     val subsEmpty = stringResource(R.string.yt_channel_empty)
+    val subsFailed = stringResource(R.string.yt_subs_failed)
     val rails = remember(saved, channels, live, history, subs, liveTitle) {
         buildList<YtRail> {
             add(YtRail.Videos("live", liveTitle, liveCaption, live, empty = if (channels.isEmpty()) null else noLive))
             when (subs) {
-                is YtSubsState.Feed -> add(YtRail.Videos("subs", subsTitle, subsCaption, subs.videos, empty = subsEmpty))
+                is YtSubsState.Feed -> add(YtRail.Videos("subs", subsTitle, subsCaption, subs.videos, empty = if (subs.failed) subsFailed else subsEmpty))
                 is YtSubsState.Invite -> add(YtRail.Connect("subs", subsTitle, subs.revoked))
                 YtSubsState.Hidden -> Unit
             }
@@ -1068,6 +1087,17 @@ private fun YouTubeChannelPage(
                 active = saved,
                 focusRequester = saveFocus,
             )
+            // Also into Shidur's channel list and guide, with a number from 900 (`TvYouTubeInList`).
+            val listed by repo.listed.collectAsState()
+            val inList = listed.any { it.id == id }
+            StudioButton(
+                label = stringResource(if (inList) R.string.yt_remove_from_list else R.string.yt_add_to_list),
+                onClick = { if (inList) repo.removeFromList(id) else state?.let(repo::addToList) },
+                icon = if (inList) StudioIcons.Check else StudioIcons.Plus,
+                size = StudioButtonSize.MEDIUM,
+                active = inList,
+                enabled = inList || state != null,
+            )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.focusGroup()) {
             listOf(R.string.yt_tab_live, R.string.yt_tab_videos).forEachIndexed { index, label ->
@@ -1269,6 +1299,25 @@ internal fun TvYouTubeFull(session: YouTubeSession, modifier: Modifier = Modifie
             .focusable(),
     ) {
         // The player could not play this here: say so where it would have been, and offer YouTube.
+        session.offAir?.takeIf { state.video == null }?.let { title ->
+            val next = live.firstOrNull()
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(stringResource(R.string.yt_off_air, title), style = StudioTheme.type.title, color = StudioTheme.colors.ink)
+                if (next != null) {
+                    StudioButton(
+                        label = stringResource(R.string.yt_next_live),
+                        onClick = { session.play(next) },
+                        icon = StudioIcons.Forward,
+                        variant = StudioButtonVariant.PRIMARY,
+                        size = StudioButtonSize.MEDIUM,
+                    )
+                }
+            }
+        }
         if (state.liveEnded) {
             val next = live.firstOrNull { it.id != state.video?.id }
             Column(

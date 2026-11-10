@@ -697,4 +697,8 @@
     <string name="yt_connect_retry">New code</string>
     <string name="yt_connect_later">Not now</string>
     <string name="yt_connect_qr">Opens Google\'s page; enter the code there</string>
+    <string name="yt_off_air">%1$s is not streaming live right now</string>
+    <string name="yt_add_to_list">Add to the channel list</string>
+    <string name="yt_remove_from_list">In the channel list</string>
+    <string name="yt_subs_failed">The subscriptions could not be loaded right now</string>
 </resources>

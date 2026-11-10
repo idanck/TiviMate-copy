@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.idanck.shidur.R
+import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.core.TimeModel
 import com.idanck.shidur.data.model.Channel
 import com.idanck.shidur.data.model.ChannelGroup
@@ -588,6 +589,7 @@ private fun GroupColumn(
     // not `@Composable`, so a @Composable function (this one calls stringResource) can only be
     // invoked from it indirectly, via a value already computed outside.
     val radioCategories = if (isRadio) radioCategoryBuckets(state) else emptyList()
+    val youtubeListed = ServiceLocator.youtube.listed.collectAsState().value.isNotEmpty()
     LazyColumn(
         modifier = modifier,
         contentPadding = androidx.compose.foundation.layout.PaddingValues(8.dp),
@@ -638,6 +640,16 @@ private fun GroupColumn(
                 state.list.selectedGroupId == VirtualGroup.HIDDEN,
                 icon = StudioIcons.Hide,
             ) { vm.selectGroup(VirtualGroup.HIDDEN) }
+        }
+        // The YouTube channels added to the list (ADR-061), once there is one.
+        if (!isRadio && youtubeListed) {
+            item {
+                GroupRow(
+                    stringResource(R.string.nav_youtube),
+                    state.list.selectedGroupId == VirtualGroup.YOUTUBE,
+                    icon = StudioIcons.Stream,
+                ) { vm.selectGroup(VirtualGroup.YOUTUBE) }
+            }
         }
         item { SectionHeader(text = stringResource(R.string.filter_categories)) }
         if (isRadio) {
@@ -739,6 +751,7 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
     // See the matching comment in GroupColumn: computed here, in the composable body, not inside
     // the plain (non-@Composable) LazyRow content block below.
     val radioCategories = if (isRadio) radioCategoryBuckets(state) else emptyList()
+    val youtubeListed = ServiceLocator.youtube.listed.collectAsState().value.isNotEmpty()
     // Studio's chip row (`canvas/PChannels.dc.html`): one row of `PChip`s, the quick filters first
     // and then the categories, the selected one in ink.
     androidx.compose.foundation.lazy.LazyRow(
@@ -776,6 +789,15 @@ private fun GroupChips(vm: AppViewModel, isRadio: Boolean = false, onManageGroup
                 selected = state.list.selectedGroupId == VirtualGroup.HIDDEN,
                 onClick = { vm.selectGroup(VirtualGroup.HIDDEN) },
             )
+        }
+        if (!isRadio && youtubeListed) {
+            item {
+                PhoneChip(
+                    label = stringResource(R.string.nav_youtube),
+                    selected = state.list.selectedGroupId == VirtualGroup.YOUTUBE,
+                    onClick = { vm.selectGroup(VirtualGroup.YOUTUBE) },
+                )
+            }
         }
         if (isRadio) {
             items(radioCategories, key = { it.second }) { (shelf, label) ->

@@ -53,6 +53,10 @@ class YouTubeRepository(
     /** Watched here, newest first. */
     val history: StateFlow<List<YtWatched>> = _history
 
+    private val _listed = MutableStateFlow(readListed())
+    /** The YouTube channels in Shidur's channel list, by number. */
+    val listed: StateFlow<List<YtListed>> = _listed
+
     private val _subs = MutableStateFlow<YtSubsState>(YtSubsState.Hidden)
     /** The subscriptions rail: hidden, an invitation to connect, or the feed. */
     val subs: StateFlow<YtSubsState> = _subs
@@ -144,8 +148,10 @@ class YouTubeRepository(
             _subs.value = YtSubsState.Hidden
             return
         }
+        var linkedNow = false
         try {
             val status = YtParse.linkStatus(call("ytLinkStatus"))
+            linkedNow = status.linked
             if (!status.linked) {
                 _subs.value = if (status.tvReady) YtSubsState.Invite(revoked = prefs.getBoolean(K_WAS_LINKED, false)) else YtSubsState.Hidden
                 return
@@ -162,7 +168,13 @@ class YouTubeRepository(
             throw e
         } catch (e: YtException) {
             if (e.problem == YtProblem.QUOTA) _stale.value = true
-            if (e.problem == YtProblem.SIGNED_OUT) _subs.value = YtSubsState.Hidden
+            _subs.value = when {
+                e.problem == YtProblem.SIGNED_OUT -> YtSubsState.Hidden
+                // Connected, but the feed did not come: what was shown stays, or the rail says the
+                // feed could not be loaded. Never the invitation to connect an account that is.
+                linkedNow -> (_subs.value as? YtSubsState.Feed) ?: YtSubsState.Feed(emptyList(), failed = true)
+                else -> _subs.value
+            }
         }
     }
 
@@ -197,6 +209,38 @@ class YouTubeRepository(
         Result.failure(e)
     } catch (e: Exception) {
         Result.failure(YtException(YtProblem.OTHER))
+    }
+
+    fun isListed(id: String): Boolean = _listed.value.any { it.id == id }
+
+    /**
+     * Puts [state]'s channel in Shidur's channel list with the lowest number free from 900, and
+     * saves it too, so its live stream is kept up to date with the rest.
+     */
+    fun addToList(state: YtChannelState) {
+        if (isListed(state.channel.id)) return
+        save(state.channel.id)
+        val taken = _listed.value.map { it.number }.toSet()
+        val number = generateSequence(YouTubeChannels.FIRST_NUMBER) { it + 1 }.first { it !in taken }
+        writeListed((_listed.value + YtListed(state.channel.id, number, state.channel.title, state.channel.thumb)).sortedBy { it.number })
+    }
+
+    fun removeFromList(id: String) = writeListed(_listed.value.filterNot { it.id == id })
+
+    private fun readListed(): List<YtListed> = runCatching {
+        val array = JSONArray(prefs.getString(K_LISTED, null) ?: return emptyList())
+        (0 until array.length()).mapNotNull { i ->
+            val o = array.optJSONObject(i) ?: return@mapNotNull null
+            val id = o.optString("id").ifEmpty { return@mapNotNull null }
+            YtListed(id, o.optInt("number", 0), o.optString("title"), o.optString("thumb").ifEmpty { null })
+        }.filter { it.number > 0 }.sortedBy { it.number }
+    }.getOrDefault(emptyList())
+
+    private fun writeListed(list: List<YtListed>) {
+        _listed.value = list
+        val array = JSONArray()
+        for (l in list) array.put(JSONObject().put("id", l.id).put("number", l.number).put("title", l.title).put("thumb", l.thumb ?: ""))
+        prefs.edit().putString(K_LISTED, array.toString()).apply()
     }
 
     fun isSaved(id: String): Boolean = id in _saved.value
@@ -309,6 +353,7 @@ class YouTubeRepository(
         private const val K_SEEDED = "seeded"
         private const val K_HISTORY = "history"
         private const val K_WAS_LINKED = "was_linked"
+        private const val K_LISTED = "listed"
 
         /** The server takes at most 50 ids a call. */
         const val MAX_SAVED = 50

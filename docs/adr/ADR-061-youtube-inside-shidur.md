@@ -1,6 +1,6 @@
 # ADR-061 — YouTube inside Shidur
 
-**Status:** accepted 2026-11-09. Stage 1 (the server), stage 2 (the television's screen, 0.25.0) and the first part of stage 3 (search, the subscriptions rail, connecting an account, the states; 0.26.0) built; YouTube channels in the channel list and guide, and the phone (stage 4), follow.
+**Status:** accepted 2026-11-09. Stage 1 (the server), stage 2 (the television's screen, 0.25.0) and stage 3 (search, the subscriptions rail, connecting an account, the states, 0.26.0; YouTube channels in the channel list and guide, 0.27.0) built; the phone (stage 4) follows.
 
 ## Decision
 
@@ -99,6 +99,26 @@ Callables in `me-west1`, beside the account Functions (ADR-059):
   hidden, behind it.
 - A live stream that ends while it plays empties the frame and offers the next live stream on the
   saved channels.
+
+### YouTube channels in the channel list and guide (0.27.0)
+
+- A channel's page adds it to Shidur's list ("להוסיף לרשימת הערוצים"), with the lowest number free
+  from 900; it is saved too, so its live stream stays current. The list is the YouTube
+  repository's (SharedPreferences `youtube`, key `listed`), and the rows are made from it each
+  time the channel list is read (`YouTubeChannels`): negative ids, a `youtube:` URL, no database
+  row. So playlists, refreshes, backups and the hand-over are untouched, and the web and webOS
+  versions never meet a source they cannot read. The price: a favourite, a lock or a rename does
+  not stick to these rows.
+- They follow every channel of the playlist in "All" and have a group of their own, "YouTube"; the
+  guide shows what each streams live (and what it has announced), from the shared cache. Not on
+  the radio.
+- Playing one goes through `AppViewModel.play`, which hands the channel to the shell instead of
+  ExoPlayer (`youtubeRequest`): the television opens YouTube's player on the whole screen with
+  its live stream, or says it is off air; the phone, which has no YouTube player of its own until
+  stage 4, opens the YouTube app on the channel's live page. What was playing stays the current
+  channel, so leaving YouTube returns to it.
+- Connected, but the subscriptions feed could not be loaded: the rail says so, rather than inviting
+  to connect an account that already is.
 
 ## Rejected
 

@@ -383,6 +383,23 @@ class MainActivity : ComponentActivity() {
             // FR-UI-31, ADR-024: the burn-in guard. Everything but a picture being watched needs
             // protecting (ADR-040), and a live channel left on full screen on the television has a
             // screensaver of its own after a longer wait (ADR-049); the countdown below decides when.
+            // A YouTube channel picked in the phone's channel list (ADR-061): the phone has no
+            // YouTube player of its own yet, so the YouTube app plays its live stream. The
+            // television's shell takes these itself (TvRoot).
+            val youtubeRequest by vm.youtubeRequest.collectAsState()
+            LaunchedEffect(youtubeRequest) {
+                val id = youtubeRequest ?: return@LaunchedEffect
+                if (isTelevision) return@LaunchedEffect
+                vm.consumeYoutubeRequest()
+                runCatching {
+                    startActivity(
+                        android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            android.net.Uri.parse("https://www.youtube.com/channel/$id/live"),
+                        ),
+                    )
+                }
+            }
             val sportPlaying by vm.sport.anyPlaying.collectAsState()
             val inSport = if (isTelevision) overlay.isPanels else panelsOpen != null
             val youtubePlaying by YouTubePlayerController.playingNow.collectAsState()

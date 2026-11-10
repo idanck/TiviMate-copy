@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
+import com.idanck.shidur.data.youtube.YouTubeChannels
+import com.idanck.shidur.data.youtube.youtubeChannelId
 import com.idanck.shidur.core.AppError
 import com.idanck.shidur.core.Outcome
 import com.idanck.shidur.core.TimeModel
@@ -44,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,6 +97,9 @@ object VirtualGroup {
      * its own: it is reachable with a D-pad, identical on both shells, and needs no navigation.
      */
     const val HIDDEN = -4L
+
+    /** The YouTube channels added to the channel list (ADR-061), numbered from 900. */
+    const val YOUTUBE = -5L
 }
 
 data class ChannelListState(
@@ -215,6 +221,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             post(UiMessage(text = noticeText(error, what), error = error))
         }
         reload()
+        // YouTube channels added to or taken off the list show at once (ADR-061).
+        viewModelScope.launch {
+            ServiceLocator.youtube.listed.drop(1).collect { loadChannels() }
+        }
     }
 
     // `ServiceLocator.locale`, not the application context: `Application` is attached once and
@@ -510,6 +520,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     // Always in the playlist's own order: this is a repair screen, and the point
                     // is to find the channel you hid, not to browse.
                     VirtualGroup.HIDDEN -> dao.channels(active.id, hiddenOnly = true, search = search)
+                    VirtualGroup.YOUTUBE -> emptyList()
                     else -> dao.channels(
                         active.id,
                         groupId = listState.selectedGroupId,
@@ -535,7 +546,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 } else {
                     raw
                 }
-                if (hideLocked) radioFiltered.filter { !it.locked } else radioFiltered
+                val shown = if (hideLocked) radioFiltered.filter { !it.locked } else radioFiltered
+                // YouTube channels in the list (ADR-061): after every channel of the playlist in
+                // "All", and alone in a group of their own; never on the radio.
+                if (isRadio) {
+                    shown
+                } else {
+                    val youtube = YouTubeChannels.channels(ServiceLocator.youtube.listed.value, active.id)
+                        .filter { search == null || it.displayName.contains(search, ignoreCase = true) }
+                    when (listState.selectedGroupId) {
+                        VirtualGroup.ALL -> shown + youtube
+                        VirtualGroup.YOUTUBE -> youtube
+                        else -> shown
+                    }
+                }
             }
             _state.value = _state.value.copy(list = _state.value.list.copy(channels = channels))
         }
@@ -577,6 +601,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // one gate. Until 2026-10-13 a locked channel played on the first press.
         if (channelNeedsPin(channel)) {
             _pinRequest.value = PinRequest.Play(channel)
+            return
+        }
+        // A YouTube channel from the list plays in YouTube's own player, which the shell opens
+        // (ADR-061). What was playing stays the "current" channel, so leaving YouTube returns to it.
+        channel.youtubeChannelId?.let {
+            _youtubeRequest.value = it
             return
         }
         leaveVod()
@@ -1548,8 +1578,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------------------------------------------------------- guide
 
-    suspend fun guideWindow(channels: List<Channel>, fromUtc: Long, toUtc: Long): Map<Long, List<Programme>> =
-        withContext(Dispatchers.IO) { epg.guideWindow(channels, fromUtc, toUtc) }
+    suspend fun guideWindow(channels: List<Channel>, fromUtc: Long, toUtc: Long): Map<Long, List<Programme>> {
+        val (youtube, rest) = channels.partition { it.youtubeChannelId != null }
+        val guide = withContext(Dispatchers.IO) { epg.guideWindow(rest, fromUtc, toUtc) }
+        if (youtube.isEmpty()) return guide
+        // What a YouTube channel streams live is its guide (ADR-061), from the shared cache: asked
+        // for again only when the last answer is a few minutes old.
+        val repo = ServiceLocator.youtube
+        viewModelScope.launch { repo.refresh() }
+        val now = System.currentTimeMillis()
+        val states = repo.channels.value
+        return guide + youtube.associate { channel ->
+            channel.id to YouTubeChannels.programmes(channel, states[channel.youtubeChannelId], now)
+                .filter { it.endUtc > fromUtc && it.startUtc < toUtc }
+        }
+    }
+
+    private val _youtubeRequest = MutableStateFlow<String?>(null)
+
+    /** A YouTube channel picked in the channel list or the guide, for the shell to open (ADR-061). */
+    val youtubeRequest: StateFlow<String?> = _youtubeRequest
+
+    fun consumeYoutubeRequest() {
+        _youtubeRequest.value = null
+    }
 
     suspend fun programmesFor(channel: Channel, fromUtc: Long, toUtc: Long): List<Programme> =
         withContext(Dispatchers.IO) { epg.programmesFor(channel, fromUtc, toUtc) }

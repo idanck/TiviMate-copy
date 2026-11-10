@@ -315,6 +315,18 @@ fun TvRoot(
     LaunchedEffect(youtubeOn) {
         if (youtubeOn) vm.enterYouTube() else vm.leaveYouTube(restart = !overlay.isPanels)
     }
+    // A YouTube channel picked in the channel list or the guide (ADR-061): its live stream, on
+    // YouTube's player, on the whole screen. Taken by the session once the visit has one.
+    val ytRequest by vm.youtubeRequest.collectAsState()
+    LaunchedEffect(ytRequest) {
+        if (ytRequest != null && overlay != TvOverlay.YOUTUBE_FULL) onOverlayChange(TvOverlay.YOUTUBE_FULL)
+    }
+    LaunchedEffect(ytSession, ytRequest) {
+        val id = ytRequest ?: return@LaunchedEffect
+        val session = ytSession ?: return@LaunchedEffect
+        vm.consumeYoutubeRequest()
+        session.playChannel(id)
+    }
 
     LaunchedEffect(details?.first?.id) {
         val channel = details?.first
