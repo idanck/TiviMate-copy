@@ -1,5 +1,6 @@
 package com.idanck.shidur.data
 
+import com.idanck.shidur.data.youtube.YtLinkPoll
 import com.idanck.shidur.data.youtube.YtParse
 import com.idanck.shidur.data.youtube.YtWatched
 import org.junit.Assert.assertEquals
@@ -72,5 +73,34 @@ class YouTubeParseTest {
         assertEquals(0.5f, YtWatched(v, 106, 0L).progress!!, 0.001f)
         assertEquals(1f, YtWatched(v, 999, 0L).progress!!, 0.001f)
         assertNull(YtWatched(v.copy(duration = null), 10, 0L).progress)
+    }
+
+    @Test
+    fun `search results, link status, a link code and a poll`() {
+        val search = YtParse.search(
+            mapOf(
+                "channels" to listOf(mapOf("id" to "UCisowXt5wZkp2sR3rFh9lnQ", "title" to "i24NEWS עברית", "thumb" to null), mapOf("title" to "no id")),
+                "videos" to listOf(video("v1")),
+                "cached" to true,
+            ),
+        )
+        assertEquals(listOf("UCisowXt5wZkp2sR3rFh9lnQ"), search.channels.map { it.id })
+        assertEquals(listOf("v1"), search.videos.map { it.id })
+
+        val status = YtParse.linkStatus(mapOf("linked" to false, "tvReady" to true, "phoneReady" to true))
+        assertFalse(status.linked)
+        assertTrue(status.tvReady)
+
+        val code = YtParse.linkCode(mapOf("userCode" to "ABCD-EFGH", "verificationUrl" to "https://www.google.com/device", "interval" to 5, "expiresIn" to 1800))!!
+        assertEquals("ABCD-EFGH", code.userCode)
+        assertEquals(1800, code.expiresInSeconds)
+        assertNull(YtParse.linkCode(mapOf("interval" to 5)))
+
+        assertEquals(YtLinkPoll.LINKED, YtParse.linkPoll(mapOf("status" to "linked")))
+        assertEquals(YtLinkPoll.PENDING, YtParse.linkPoll(null))
+
+        val subs = YtParse.subscriptions(mapOf("linked" to true, "channels" to emptyList<Any>(), "feed" to listOf(video("f1")), "stale" to false))
+        assertTrue(subs.linked)
+        assertEquals(listOf("f1"), subs.feed.map { it.id })
     }
 }

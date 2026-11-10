@@ -53,6 +53,10 @@ class YouTubeRepository(
     /** Watched here, newest first. */
     val history: StateFlow<List<YtWatched>> = _history
 
+    private val _subs = MutableStateFlow<YtSubsState>(YtSubsState.Hidden)
+    /** The subscriptions rail: hidden, an invitation to connect, or the feed. */
+    val subs: StateFlow<YtSubsState> = _subs
+
     private val refreshing = Mutex()
     @Volatile private var refreshedAt = 0L
 
@@ -123,6 +127,76 @@ class YouTubeRepository(
             Log.w(TAG, "ytChannels for one channel failed", e)
             null
         }
+    }
+
+    /** Search: from the server's six-hour cache where anybody asked the same, from YouTube otherwise. */
+    suspend fun search(query: String, kind: YtSearchKind): Result<YtSearchResult> = runCall {
+        YtParse.search(call("ytSearch", mapOf("q" to query, "kind" to kind.wire)))
+    }
+
+    /**
+     * Brings the subscriptions rail up to date. With no Shidur account signed in, or no television
+     * route set up on the server, there is nothing to offer and the rail stays hidden; a connection
+     * that existed and is gone (revoked at Google, or expired) invites connecting again.
+     */
+    suspend fun refreshSubscriptions(signedIn: Boolean) {
+        if (!signedIn) {
+            _subs.value = YtSubsState.Hidden
+            return
+        }
+        try {
+            val status = YtParse.linkStatus(call("ytLinkStatus"))
+            if (!status.linked) {
+                _subs.value = if (status.tvReady) YtSubsState.Invite(revoked = prefs.getBoolean(K_WAS_LINKED, false)) else YtSubsState.Hidden
+                return
+            }
+            val subs = YtParse.subscriptions(call("ytSubscriptions"))
+            if (!subs.linked) {
+                _subs.value = YtSubsState.Invite(revoked = true)
+                return
+            }
+            prefs.edit().putBoolean(K_WAS_LINKED, true).apply()
+            if (subs.stale) _stale.value = true
+            _subs.value = YtSubsState.Feed(subs.feed)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: YtException) {
+            if (e.problem == YtProblem.QUOTA) _stale.value = true
+            if (e.problem == YtProblem.SIGNED_OUT) _subs.value = YtSubsState.Hidden
+        }
+    }
+
+    /** The television asks Google for a code to show (the flow for TVs and limited-input devices). */
+    suspend fun linkStart(): Result<YtLinkCode> = runCall {
+        YtParse.linkCode(call("ytLinkStart")) ?: throw YtException(YtProblem.OTHER)
+    }
+
+    /** One poll: has the code been approved yet? */
+    suspend fun linkPoll(): Result<YtLinkPoll> = runCall {
+        YtParse.linkPoll(call("ytLinkPoll")).also { if (it == YtLinkPoll.LINKED) prefs.edit().putBoolean(K_WAS_LINKED, true).apply() }
+    }
+
+    /** A callable's answer, or a [YtException] carrying what to show. */
+    private suspend fun call(name: String, data: Map<String, Any?> = emptyMap()): Any? {
+        val f = functions() ?: throw YtException(YtProblem.UNAVAILABLE)
+        return try {
+            f.getHttpsCallable(name).call(data).await().getData()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "$name failed", e)
+            throw YtException(problemOf(e))
+        }
+    }
+
+    private inline fun <T> runCall(block: () -> T): Result<T> = try {
+        Result.success(block())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: YtException) {
+        Result.failure(e)
+    } catch (e: Exception) {
+        Result.failure(YtException(YtProblem.OTHER))
     }
 
     fun isSaved(id: String): Boolean = id in _saved.value
@@ -215,6 +289,9 @@ class YouTubeRepository(
             reason == "quota" -> YtProblem.QUOTA
             reason == "search-quota" -> YtProblem.SEARCH_QUOTA
             reason == "not-found" || reason == "not-a-channel" -> YtProblem.NOT_FOUND
+            reason == "not-configured" -> YtProblem.NOT_CONFIGURED
+            f.code == FirebaseFunctionsException.Code.UNAUTHENTICATED -> YtProblem.SIGNED_OUT
+            f.code == FirebaseFunctionsException.Code.RESOURCE_EXHAUSTED -> YtProblem.OTHER
             f.code == FirebaseFunctionsException.Code.NOT_FOUND || f.code == FirebaseFunctionsException.Code.INVALID_ARGUMENT -> YtProblem.NOT_FOUND
             f.code == FirebaseFunctionsException.Code.UNAVAILABLE && reason == null -> YtProblem.OFFLINE
             f.code == FirebaseFunctionsException.Code.INTERNAL || f.code == FirebaseFunctionsException.Code.DEADLINE_EXCEEDED -> YtProblem.OFFLINE
@@ -231,6 +308,7 @@ class YouTubeRepository(
         private const val K_SAVED = "saved"
         private const val K_SEEDED = "seeded"
         private const val K_HISTORY = "history"
+        private const val K_WAS_LINKED = "was_linked"
 
         /** The server takes at most 50 ids a call. */
         const val MAX_SAVED = 50

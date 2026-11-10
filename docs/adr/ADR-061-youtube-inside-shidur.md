@@ -1,6 +1,6 @@
 # ADR-061 — YouTube inside Shidur
 
-**Status:** accepted 2026-11-09. Stage 1 (the server) and stage 2 (the television's screen, 0.25.0) built; stages 3–4 follow.
+**Status:** accepted 2026-11-09. Stage 1 (the server), stage 2 (the television's screen, 0.25.0) and the first part of stage 3 (search, the subscriptions rail, connecting an account, the states; 0.26.0) built; YouTube channels in the channel list and guide, and the phone (stage 4), follow.
 
 ## Decision
 
@@ -83,6 +83,22 @@ Callables in `me-west1`, beside the account Functions (ADR-059):
   ▲▼ and Menu open the live list, CH+/CH− go to the next live channel, Back returns to the screen.
   The list closes after four seconds without a key.
 - A video whose owner forbids embedding (errors 101/150) gets "Open in YouTube" instead.
+
+### The television, stage 3, first part (0.26.0)
+
+- Search is a page of YouTube's screen (`TvYouTubeSearch.kt`): Shidur's own keyboard (Hebrew and
+  English, space, delete, voice through Android's speech service), the four kinds as chips, and
+  the server asked only once typing has paused for 1.2 seconds and at least two letters stand.
+  The remote's search key opens it while YouTube's screen is up. Pages (search, a channel) stack,
+  and Back steps down them.
+- The subscriptions rail is shown only to a device signed in to a Shidur account whose server has
+  the television's OAuth client: `ytLinkStatus` decides between hiding it, inviting to connect,
+  and the feed (`ytSubscriptions`). A connection that existed and is gone invites connecting again.
+- Connecting is a dialog with the code Google gives, the address it gives and a QR code of that
+  address, polling every interval until approved, denied or expired. The player waits, paused and
+  hidden, behind it.
+- A live stream that ends while it plays empties the frame and offers the next live stream on the
+  saved channels.
 
 ## Rejected
 
