@@ -34,3 +34,8 @@ button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); ou
 #message.error { color: var(--error); }
 #message.ok { color: var(--ok); }
 a { color: var(--accent); }
+/* The privacy page (privacy.html): running text, wider than the forms. */
+main.doc { max-width: 42rem; }
+main.doc h2 { font-size: 1.15rem; margin: 1.75rem 0 .25rem; }
+main.doc ul { color: var(--ink2); padding-inline-start: 1.25rem; margin: .5rem 0 1rem; }
+main.doc li { margin: .25rem 0; }

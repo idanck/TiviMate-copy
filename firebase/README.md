@@ -1,7 +1,7 @@
 # Shidur — Firebase
 
 The server side of Shidur's accounts (ADR-059): Firestore rules, the Cloud Functions that pair a
-television and delete an account, and the two pages on Firebase Hosting (`/pair`, `/delete`).
+television and delete an account, and the pages on Firebase Hosting (`/pair`, `/delete`, and `/privacy`, the privacy policy).
 Setting the project up is a manual job: `docs/12-firebase-setup.md`.
 
 | Path | What |
