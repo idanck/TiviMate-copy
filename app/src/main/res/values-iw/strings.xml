@@ -669,4 +669,7 @@
     <string name="yt_add_to_list">להוסיף לרשימת הערוצים</string>
     <string name="yt_remove_from_list">ברשימת הערוצים</string>
     <string name="yt_subs_failed">לא הצלחנו לטעון את המנויים כרגע</string>
+    <string name="yt_connect_phone_action">המשך עם חשבון Google</string>
+    <string name="yt_connect_phone_body">Google תבקש גישת קריאה בלבד למנויים שלך ב־YouTube. Shidur לא יכול לפרסם, להגיב, להירשם או לשנות דבר בחשבון.</string>
+    <string name="yt_connect_failed">החיבור לא הושלם. אפשר לנסות שוב.</string>
 </resources>

@@ -295,6 +295,8 @@ dependencies {
     implementation(libs.androidx.credentials)
     implementation(libs.androidx.credentials.play.services)
     implementation(libs.googleid)
+    // ADR-061: the phone asks Google for read-only YouTube access (AuthorizationClient).
+    implementation(libs.play.services.auth)
     // The QR code a television shows for signing in from a phone: the encoder only, drawn in
     // Compose (ui/account/QrCode.kt).
     implementation(libs.zxing.core)

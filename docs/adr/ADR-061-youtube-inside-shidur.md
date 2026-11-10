@@ -1,6 +1,6 @@
 # ADR-061 — YouTube inside Shidur
 
-**Status:** accepted 2026-11-09. Stage 1 (the server), stage 2 (the television's screen, 0.25.0) and stage 3 (search, the subscriptions rail, connecting an account, the states, 0.26.0; YouTube channels in the channel list and guide, 0.27.0) built; the phone (stage 4) follows.
+**Status:** accepted 2026-11-09. Stage 1 (the server), stage 2 (the television's screen, 0.25.0) and stage 3 (search, the subscriptions rail, connecting an account, the states, 0.26.0; YouTube channels in the channel list and guide, 0.27.0) and stage 4 (the phone, 0.28.0) built.
 
 ## Decision
 
@@ -114,11 +114,25 @@ Callables in `me-west1`, beside the account Functions (ADR-059):
   the radio.
 - Playing one goes through `AppViewModel.play`, which hands the channel to the shell instead of
   ExoPlayer (`youtubeRequest`): the television opens YouTube's player on the whole screen with
-  its live stream, or says it is off air; the phone, which has no YouTube player of its own until
-  stage 4, opens the YouTube app on the channel's live page. What was playing stays the current
+  its live stream, or says it is off air; the phone (from 0.28.0) opens its YouTube player screen
+  on it. What was playing stays the current
   channel, so leaving YouTube returns to it.
 - Connected, but the subscriptions feed could not be loaded: the rail says so, rather than inviting
   to connect an account that already is.
+
+### The phone (stage 4, 0.28.0)
+
+- A YouTube tab between Radio and Recordings (`ui/mobile/PhoneYouTube.kt`): the same shelves as the
+  television, a channel's page with the same two actions, and search on the system keyboard,
+  opened from the top bar's search button and asked once typing has paused.
+- A tap opens the player screen: YouTube's player across the top with its own controls, what is on
+  it and the other live streams under it; on its side, the player alone. It is never a mini player
+  over the tabs, since nothing may cover it, and closing it stops the video. The full-screen player
+  stands down while it is open, and comes back afterwards only if it had been playing.
+- Connecting: Google's AuthorizationClient (`play-services-auth`) asks for `youtube.readonly` with
+  offline access for the project's web client, and the one-time code goes to `ytLinkCode`; the
+  token stays on the server. The phone's rail invites only where `ytLinkStatus` says the phone's
+  route is set up (`phoneReady`), as the television's does with `tvReady`.
 
 ## Rejected
 

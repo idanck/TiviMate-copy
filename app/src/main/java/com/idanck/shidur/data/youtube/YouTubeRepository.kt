@@ -143,7 +143,7 @@ class YouTubeRepository(
      * route set up on the server, there is nothing to offer and the rail stays hidden; a connection
      * that existed and is gone (revoked at Google, or expired) invites connecting again.
      */
-    suspend fun refreshSubscriptions(signedIn: Boolean) {
+    suspend fun refreshSubscriptions(signedIn: Boolean, phone: Boolean = false) {
         if (!signedIn) {
             _subs.value = YtSubsState.Hidden
             return
@@ -153,7 +153,10 @@ class YouTubeRepository(
             val status = YtParse.linkStatus(call("ytLinkStatus"))
             linkedNow = status.linked
             if (!status.linked) {
-                _subs.value = if (status.tvReady) YtSubsState.Invite(revoked = prefs.getBoolean(K_WAS_LINKED, false)) else YtSubsState.Hidden
+                // Each shell connects its own way: the television by a code, the phone by Google's
+                // account picker. The rail invites only where that way is set up on the server.
+                val ready = if (phone) status.phoneReady else status.tvReady
+                _subs.value = if (ready) YtSubsState.Invite(revoked = prefs.getBoolean(K_WAS_LINKED, false)) else YtSubsState.Hidden
                 return
             }
             val subs = YtParse.subscriptions(call("ytSubscriptions"))
@@ -186,6 +189,13 @@ class YouTubeRepository(
     /** One poll: has the code been approved yet? */
     suspend fun linkPoll(): Result<YtLinkPoll> = runCall {
         YtParse.linkPoll(call("ytLinkPoll")).also { if (it == YtLinkPoll.LINKED) prefs.edit().putBoolean(K_WAS_LINKED, true).apply() }
+    }
+
+    /** The phone hands over the one-time code Google's authorization returned for the web client. */
+    suspend fun linkWithCode(code: String): Result<Unit> = runCall {
+        call("ytLinkCode", mapOf("code" to code))
+        prefs.edit().putBoolean(K_WAS_LINKED, true).apply()
+        Unit
     }
 
     /** A callable's answer, or a [YtException] carrying what to show. */

@@ -12,6 +12,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -22,10 +23,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
+import com.idanck.shidur.ui.tv.YouTubeSession
+import com.idanck.shidur.ui.tv.YtPage
 import com.idanck.shidur.data.builtin.IsraelRadioStations
 import com.idanck.shidur.data.model.Channel
 import com.idanck.shidur.data.model.Programme
@@ -54,7 +58,7 @@ import com.idanck.shidur.ui.common.StudioIcons
  * The phone's destinations. Five have a tab (ADR-032); [VOD] has none and is reached only from
  * search, on an installation that has on-demand at all (ADR-016).
  */
-enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS }
+enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS, YOUTUBE }
 
 /**
  * The touch shell.
@@ -181,6 +185,42 @@ fun MobileRoot(
         return
     }
 
+    // YouTube (ADR-061, stage 4): one player for the tab and its player screen, made while either
+    // is up and let go after. The full-screen player stands down while YouTube's plays.
+    var ytPlayerOpen by remember { mutableStateOf(false) }
+    val ytActive = tab == MobileTab.YOUTUBE || ytPlayerOpen
+    val ytContext = LocalContext.current
+    val ytSession = remember(ytActive) { if (ytActive) YouTubeSession(ytContext, ServiceLocator.youtube) else null }
+    DisposableEffect(ytSession) { onDispose { ytSession?.release() } }
+    LaunchedEffect(ytPlayerOpen) {
+        if (ytPlayerOpen) vm.enterYouTube() else vm.leaveYouTube(restart = false)
+    }
+    // The other players take over from it.
+    LaunchedEffect(playerOpen, panelsOpen) {
+        if (playerOpen || panelsOpen != null) ytPlayerOpen = false
+    }
+    // A YouTube channel picked in the channel list or the guide plays on YouTube's player screen.
+    val ytRequest by vm.youtubeRequest.collectAsState()
+    LaunchedEffect(ytRequest) {
+        if (ytRequest != null) {
+            onPlayerOpenChange(false)
+            ytPlayerOpen = true
+        }
+    }
+    LaunchedEffect(ytSession, ytRequest) {
+        val id = ytRequest ?: return@LaunchedEffect
+        val session = ytSession ?: return@LaunchedEffect
+        vm.consumeYoutubeRequest()
+        session.playChannel(id)
+    }
+    val closeYouTubePlayer: () -> Unit = {
+        ytSession?.let { session ->
+            session.noteCurrent()
+            session.player.stop()
+        }
+        ytPlayerOpen = false
+    }
+
     // The add screen doubles as the first-run setup, and then it *is* the root: with no
     // playlist yet there is nothing behind it to go back to.
     val showAddSource = addingSource || (state.playlists.isEmpty() && !state.loading)
@@ -193,6 +233,8 @@ fun MobileRoot(
 
     val goBack: () -> Unit = {
         when {
+            // A channel's page or search over YouTube's shelves steps back to them first.
+            tab == MobileTab.YOUTUBE && ytSession?.back() == true -> Unit
             addingSource -> addingSource = false
             searching -> searching = false
             inSettingsSubSection -> onSettingsSection(SettingsSection.ROOT)
@@ -228,8 +270,9 @@ fun MobileRoot(
     }
 
     // Every play path is "play and show it": starting something opens the player screen, so a
-    // chosen channel is never left audible behind a full-screen list (ADR-011).
-    val openPlayer: () -> Unit = { onPlayerOpenChange(true) }
+    // chosen channel is never left audible behind a full-screen list (ADR-011). A YouTube channel
+    // goes to YouTube's player screen instead (the request above).
+    val openPlayer: () -> Unit = { if (vm.youtubeRequest.value == null) onPlayerOpenChange(true) }
 
     // Leaving Sport or News mode plays the channel being heard, and so shows it, as the television
     // carries it on full screen. With nothing chosen, whatever played before comes back as it was:
@@ -270,8 +313,12 @@ fun MobileRoot(
                     tab == MobileTab.LIVE -> stringResource(R.string.nav_live)
                     tab == MobileTab.GUIDE -> stringResource(R.string.nav_guide)
                     tab == MobileTab.RADIO -> stringResource(R.string.nav_radio)
+                    tab == MobileTab.YOUTUBE -> stringResource(R.string.nav_youtube)
                     else -> null
                 }
+                // YouTube's tab searches YouTube, on a page of its own (`PYouTubeSearch`).
+                val youtubeSearch = !showAddSource && !searching && tab == MobileTab.YOUTUBE &&
+                    ytSession?.page != YtPage.Search
                 // Sport and News modes are offered where the television's channels are browsed, not
                 // over radio.
                 val sportable = !showAddSource && !searching && tab in setOf(MobileTab.LIVE, MobileTab.GUIDE)
@@ -279,7 +326,11 @@ fun MobileRoot(
                     PhoneTopBar(
                         title = title,
                         onBack = if (canGoBack) goBack else null,
-                        onSearch = if (searchable) ({ searching = true }) else null,
+                        onSearch = when {
+                            searchable -> ({ searching = true })
+                            youtubeSearch -> ({ ytSession?.open(YtPage.Search) })
+                            else -> null
+                        },
                         onSport = if (sportable) ({ openPanels(SportSession.Mode.SPORT) }) else null,
                         onNews = if (sportable) ({ openPanels(SportSession.Mode.NEWS) }) else null,
                     )
@@ -311,6 +362,8 @@ fun MobileRoot(
                             PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
                             PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio)
                                 .takeIf { vm.isRadioShown(state.playlists) },
+                            // Between Radio and Recordings (`PNavBar`, ADR-061).
+                            PhoneTab(MobileTab.YOUTUBE, stringResource(R.string.nav_youtube), StudioIcons.Stream),
                             PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
                             PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),
@@ -391,6 +444,16 @@ fun MobileRoot(
                             onPlayRecording = { recording -> if (vm.playRecording(recording)) openPlayer() },
                             modifier = Modifier.fillMaxSize(),
                         )
+                        MobileTab.YOUTUBE -> ytSession?.let { session ->
+                            PhoneYouTube(
+                                session = session,
+                                onOpenPlayer = {
+                                    onPlayerOpenChange(false)
+                                    ytPlayerOpen = true
+                                },
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                         MobileTab.SETTINGS -> Column(modifier = Modifier.fillMaxSize()) {
                             SettingsScreen(
                                 vm = vm,
@@ -427,6 +490,22 @@ fun MobileRoot(
                         .padding(16.dp)
                         .background(MaterialTheme.colorScheme.surface.copy(alpha = prefs.overlayOpacity))
                         .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+        }
+
+        // YouTube's player screen, over everything like the other player: nothing may cover it.
+        if (ytPlayerOpen) {
+            ytSession?.let { session ->
+                PhoneYouTubePlayer(
+                    session = session,
+                    onClose = closeYouTubePlayer,
+                    onOpenChannel = { id ->
+                        closeYouTubePlayer()
+                        selectTab(MobileTab.YOUTUBE)
+                        session.open(YtPage.Channel(id))
+                    },
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

@@ -701,4 +701,7 @@
     <string name="yt_add_to_list">Add to the channel list</string>
     <string name="yt_remove_from_list">In the channel list</string>
     <string name="yt_subs_failed">The subscriptions could not be loaded right now</string>
+    <string name="yt_connect_phone_action">Continue with Google</string>
+    <string name="yt_connect_phone_body">Google asks for read-only access to your YouTube subscriptions. Shidur cannot post, comment, subscribe or change anything in the account.</string>
+    <string name="yt_connect_failed">The connection was not completed. You can try again.</string>
 </resources>
