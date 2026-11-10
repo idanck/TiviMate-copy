@@ -272,3 +272,4 @@ Tier: `Free` / `Paid` · Platform: `TV`, `Mobile`, `Both`.
 | FR-UPD-06 | Automatic checking and Wi-Fi-only downloading are settings, both on by default; a skipped version is remembered until a newer one appears. | MUST | Free | Both |
 | FR-UPD-07 | An update is refused while a recording is in progress, and the reason is stated. | MUST | Free | Both |
 | FR-UPD-08 | Scheduled recordings survive the app being replaced by an update. | MUST | Free | Both |
+| FR-UPD-09 | After an in-app update the app announces it with a notification that opens the app, since Android does not let it reopen by itself; the notification permission is asked for the first time an update is started. Temporary until Google Play distribution (ADR-062). | SHOULD | Free | Both |
