@@ -1,6 +1,6 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
-import { QuotaError, quotaLeft, ytGet } from './api';
+import { QuotaError, quotaLeft, YtApiError, ytGet } from './api';
 import { channelFrom, chunks, RECENT_PER_CHANNEL, sortChannel, videoFrom, type YtChannel, type YtChannelState, type YtVideo } from './model';
 
 /**
@@ -66,10 +66,18 @@ async function fetchChannels(ids: string[], key: string, previous: Map<string, C
     const prev = previous.get(ch.id);
     const set = new Set<string>(prev?.liveIds ?? []);
     if (ch.uploads) {
-      const res = await ytGet('playlistItems', { part: 'contentDetails', playlistId: ch.uploads, maxResults: String(RECENT_PER_CHANNEL) }, key);
-      for (const item of res.items ?? []) {
-        const v = item?.contentDetails?.videoId;
-        if (typeof v === 'string') set.add(v);
+      // A channel that has never uploaded has an uploads playlist YouTube does not find (404
+      // playlistNotFound), and one may hide it: that channel simply has no recent videos. One such
+      // channel among fifty subscriptions must not fail the whole list.
+      try {
+        const res = await ytGet('playlistItems', { part: 'contentDetails', playlistId: ch.uploads, maxResults: String(RECENT_PER_CHANNEL) }, key);
+        for (const item of res.items ?? []) {
+          const v = item?.contentDetails?.videoId;
+          if (typeof v === 'string') set.add(v);
+        }
+      } catch (e) {
+        if (!(e instanceof YtApiError)) throw e;
+        logger.info('uploads not readable; skipped', { channel: ch.id, status: e.status, reason: e.reason });
       }
     }
     let searchedAt = prev?.liveSearchedAt ?? 0;

@@ -1,5 +1,6 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { defineSecret } from 'firebase-functions/params';
+import { logger } from 'firebase-functions/v2';
 import { HttpsError, onCall, type CallableRequest } from 'firebase-functions/v2/https';
 import { MAX_INSTANCES, REGION, YT_LIMITS } from '../config';
 import { clientIp, enforce } from '../limits';
@@ -44,6 +45,7 @@ function signedIn(request: CallableRequest): string {
 
 /** What the app is told when YouTube refuses, so it can show the right message (TvYouTubeStates). */
 function translate(e: unknown): never {
+  if (e instanceof YtApiError) logger.warn('youtube refused', { status: e.status, reason: e.reason });
   if (e instanceof QuotaError) throw new HttpsError('resource-exhausted', 'YouTube quota exhausted.', { reason: e.bucket === 'search' ? 'search-quota' : 'quota' });
   if (e instanceof YtApiError) throw new HttpsError('unavailable', 'YouTube refused the request.', { reason: e.reason });
   throw e;
