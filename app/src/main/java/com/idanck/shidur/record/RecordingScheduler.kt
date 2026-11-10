@@ -4,8 +4,11 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.StatFs
+import android.provider.DocumentsContract
+import android.system.Os
 import com.idanck.shidur.R
 import com.idanck.shidur.core.TextNormalizer
 import com.idanck.shidur.data.db.Dao
@@ -338,10 +341,28 @@ class RecordingScheduler(
         return PendingIntent.getBroadcast(context, recordingId.toInt(), intent, flags)
     }
 
+    /**
+     * Free bytes where the recording will be written, or -1 when that cannot be told — and -1
+     * neither refuses nor warns. A SAF tree (the only thing the picker gives on Android 10 and
+     * later) sits on whatever volume its provider chose, a USB stick or an SD card, so internal
+     * storage says nothing about it: the tree's own directory is opened read-only and its file
+     * system asked. A provider that will not open a directory answers unknown, not a guess.
+     */
     private fun freeSpaceBytes(folderUri: String): Long = try {
-        val path = if (folderUri.startsWith("/")) folderUri else context.filesDir.absolutePath
-        StatFs(File(path).absolutePath).availableBytes
+        if (folderUri.startsWith("content://")) {
+            treeFreeSpaceBytes(Uri.parse(folderUri))
+        } else {
+            StatFs(File(folderUri).absolutePath).availableBytes
+        }
     } catch (_: Exception) {
         -1L
+    }
+
+    private fun treeFreeSpaceBytes(tree: Uri): Long {
+        val dir = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
+        return context.contentResolver.openFileDescriptor(dir, "r")?.use { pfd ->
+            val vfs = Os.fstatvfs(pfd.fileDescriptor)
+            vfs.f_bavail * vfs.f_frsize
+        } ?: -1L
     }
 }
