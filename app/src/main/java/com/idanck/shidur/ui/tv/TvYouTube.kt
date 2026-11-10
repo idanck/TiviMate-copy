@@ -242,7 +242,7 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
 }
 
 /** Every live stream on the saved channels, in the order the channels were saved. */
-private fun liveOf(saved: List<String>, channels: Map<String, YtChannelState>): List<YtVideo> =
+internal fun liveOf(saved: List<String>, channels: Map<String, YtChannelState>): List<YtVideo> =
     saved.flatMap { channels[it]?.live.orEmpty() }
 
 internal fun openInYouTube(context: Context, video: YtVideo) {
@@ -778,7 +778,7 @@ internal fun problemText(problem: YtProblem): String = stringResource(
 
 /** "1,234 watching now · started at 18:00", "scheduled for 21:00", or "3 hours ago". */
 @Composable
-private fun videoMeta(video: YtVideo): String? {
+internal fun videoMeta(video: YtVideo): String? {
     val parts = mutableListOf<String>()
     when {
         video.live -> {
@@ -982,7 +982,7 @@ private fun CardTag(text: String, modifier: Modifier) {
 
 /** A channel's round picture, or its first letter where it has none. */
 @Composable
-private fun ChannelThumb(thumb: String?, label: String, size: Dp) {
+internal fun ChannelThumb(thumb: String?, label: String, size: Dp) {
     val studio = StudioTheme.colors
     Box(
         modifier = Modifier
@@ -1140,7 +1140,7 @@ private fun YouTubeChannelPage(
 
 /** Adding a channel by its address, @handle or ID, typed on the television's keyboard. */
 @Composable
-private fun AddChannelDialog(
+internal fun AddChannelDialog(
     repo: YouTubeRepository,
     onDismiss: () -> Unit,
     onAdded: (YtChannelState) -> Unit,

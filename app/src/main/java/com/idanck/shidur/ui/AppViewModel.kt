@@ -1030,6 +1030,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Whether YouTube's screen has the full-screen player standing down (ADR-061). */
     private var inYouTube = false
 
+    /** Whether the full-screen player was playing, rather than paused, as YouTube took over. */
+    private var playingBeforeYouTube = false
+
     /**
      * YouTube's screen opens (ADR-061): its own player plays, and only one player may play on a
      * screen, so the full-screen one stands down, as it does for Sport mode, after writing down
@@ -1038,6 +1041,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun enterYouTube() {
         if (inYouTube) return
         inYouTube = true
+        playingBeforeYouTube = playbackStatus.value.playWhenReady
         saveVodProgress()
         player.silence()
         player.setPlayWhenReady(false)
@@ -1045,12 +1049,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * YouTube's screen is left: what played before it starts again, unless the way out leads to
-     * Sport or News mode, whose panels take the screen instead ([restart] false).
+     * Sport or News mode, whose panels take the screen instead ([restart] false). The phone passes
+     * false too: there what was playing comes back only if it was playing, under the mini player.
      */
     fun leaveYouTube(restart: Boolean) {
         if (!inYouTube) return
         inYouTube = false
-        if (restart) retryPlayback()
+        if (restart || playingBeforeYouTube) retryPlayback()
     }
 
     /** Back from the background: the panels start again, any the parental lock now covers aside. */
