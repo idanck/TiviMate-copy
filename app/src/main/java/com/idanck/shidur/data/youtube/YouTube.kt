@@ -197,5 +197,6 @@ data class YtSubscriptions(val linked: Boolean, val feed: List<YtVideo>, val sta
 sealed interface YtSubsState {
     data object Hidden : YtSubsState
     data class Invite(val revoked: Boolean) : YtSubsState
-    data class Feed(val videos: List<YtVideo>) : YtSubsState
+    /** [failed]: connected, but the feed could not be loaded this time. */
+    data class Feed(val videos: List<YtVideo>, val failed: Boolean = false) : YtSubsState
 }

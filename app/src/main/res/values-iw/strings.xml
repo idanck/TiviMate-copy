@@ -665,4 +665,8 @@
     <string name="yt_connect_retry">קוד חדש</string>
     <string name="yt_connect_later">לא עכשיו</string>
     <string name="yt_connect_qr">פותח את הדף של Google; מקלידים בו את הקוד</string>
+    <string name="yt_off_air">%1$s לא משדר כרגע בשידור חי</string>
+    <string name="yt_add_to_list">להוסיף לרשימת הערוצים</string>
+    <string name="yt_remove_from_list">ברשימת הערוצים</string>
+    <string name="yt_subs_failed">לא הצלחנו לטעון את המנויים כרגע</string>
 </resources>
