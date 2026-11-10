@@ -72,6 +72,12 @@ enum class YtProblem {
     /** What was typed is not a channel, or no such channel exists. */
     NOT_FOUND,
 
+    /** Connecting a YouTube account needs a Shidur account signed in on this device. */
+    SIGNED_OUT,
+
+    /** The server has no OAuth client for this route yet (the owner has not created it). */
+    NOT_CONFIGURED,
+
     OTHER,
 }
 
@@ -127,4 +133,69 @@ internal object YtParse {
     }
 
     fun states(raw: Any?): List<YtChannelState> = (raw as? List<*>).orEmpty().mapNotNull(::state)
+
+    fun hit(raw: Any?): YtChannelHit? {
+        val m = raw as? Map<*, *> ?: return null
+        val id = m.str("id") ?: return null
+        return YtChannelHit(id, m.str("title").orEmpty(), m.str("thumb"))
+    }
+
+    fun search(raw: Any?): YtSearchResult {
+        val m = raw as? Map<*, *>
+        return YtSearchResult((m?.get("channels") as? List<*>).orEmpty().mapNotNull(::hit), videos(m?.get("videos")))
+    }
+
+    fun linkStatus(raw: Any?): YtLinkStatus {
+        val m = raw as? Map<*, *>
+        return YtLinkStatus(m?.bool("linked") ?: false, m?.bool("tvReady") ?: false, m?.bool("phoneReady") ?: false)
+    }
+
+    fun linkCode(raw: Any?): YtLinkCode? {
+        val m = raw as? Map<*, *> ?: return null
+        val code = m.str("userCode") ?: return null
+        return YtLinkCode(code, m.str("verificationUrl").orEmpty(), (m.long("interval") ?: 5L).toInt(), (m.long("expiresIn") ?: 1800L).toInt())
+    }
+
+    fun linkPoll(raw: Any?): YtLinkPoll = when ((raw as? Map<*, *>)?.str("status")) {
+        "linked" -> YtLinkPoll.LINKED
+        "denied" -> YtLinkPoll.DENIED
+        "expired" -> YtLinkPoll.EXPIRED
+        else -> YtLinkPoll.PENDING
+    }
+
+    fun subscriptions(raw: Any?): YtSubscriptions {
+        val m = raw as? Map<*, *>
+        return YtSubscriptions(m?.bool("linked") ?: false, videos(m?.get("feed")), m?.bool("stale") ?: false)
+    }
+}
+
+/** A channel among search results: just enough to draw its disc and open its page. */
+data class YtChannelHit(val id: String, val title: String, val thumb: String?)
+
+data class YtSearchResult(val channels: List<YtChannelHit>, val videos: List<YtVideo>)
+
+/** What `ytSearch` is asked for: everything, or one kind. */
+enum class YtSearchKind(val wire: String) { ALL("all"), CHANNEL("channel"), LIVE("live"), VIDEO("video") }
+
+/** Whether this account has YouTube connected, and whether the television's route exists at all. */
+data class YtLinkStatus(val linked: Boolean, val tvReady: Boolean, val phoneReady: Boolean)
+
+/** The code the television shows while a phone or a computer approves it at Google's address. */
+data class YtLinkCode(val userCode: String, val verificationUrl: String, val intervalSeconds: Int, val expiresInSeconds: Int)
+
+enum class YtLinkPoll { PENDING, LINKED, DENIED, EXPIRED }
+
+/** The account's subscriptions rail: the newest videos of the channels it subscribes to. */
+data class YtSubscriptions(val linked: Boolean, val feed: List<YtVideo>, val stale: Boolean)
+
+/**
+ * Where the subscriptions rail stands on this device.
+ * - [Hidden]: nothing to offer (no Shidur account signed in, or the television's route not set up).
+ * - [Invite]: offer to connect; [revoked] when a connection that existed was taken back.
+ * - [Feed]: connected.
+ */
+sealed interface YtSubsState {
+    data object Hidden : YtSubsState
+    data class Invite(val revoked: Boolean) : YtSubsState
+    data class Feed(val videos: List<YtVideo>) : YtSubsState
 }

@@ -85,7 +85,11 @@ import coil.compose.AsyncImage
 import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.core.TimeModel
+import com.idanck.shidur.data.account.AccountState
 import com.idanck.shidur.data.youtube.YouTubeRepository
+import com.idanck.shidur.data.youtube.YtSearchKind
+import com.idanck.shidur.data.youtube.YtSearchResult
+import com.idanck.shidur.data.youtube.YtSubsState
 import com.idanck.shidur.data.youtube.YtChannelState
 import com.idanck.shidur.data.youtube.YtProblem
 import com.idanck.shidur.data.youtube.YtVideo
@@ -127,6 +131,12 @@ import kotlin.math.roundToInt
  * never re-created between the screen and full screen, so the stream does not start again.
  */
 
+/** A page of YouTube's screen shown in place of its home view, over which Back steps. */
+internal sealed interface YtPage {
+    data class Channel(val id: String) : YtPage
+    data object Search : YtPage
+}
+
 /** What YouTube's two overlays share while either is up. */
 @Stable
 internal class YouTubeSession(context: Context, private val repo: YouTubeRepository) {
@@ -135,8 +145,33 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
     /** The home view's player frame, in root pixels, while it is laid out. */
     var frame by mutableStateOf<Rect?>(null)
 
-    /** The channel page shown in place of the home view, by channel id. */
-    var page by mutableStateOf<String?>(null)
+    /** The pages opened over the home view, the last on top; empty on the home view itself. */
+    var pages by mutableStateOf<List<YtPage>>(emptyList())
+        private set
+
+    /** The page on top, or null on the home view. */
+    val page: YtPage? get() = pages.lastOrNull()
+
+    fun open(page: YtPage) {
+        pages = pages + page
+    }
+
+    /** One page back; false on the home view, where Back is the activity's. */
+    fun back(): Boolean {
+        if (pages.isEmpty()) return false
+        pages = pages.dropLast(1)
+        return true
+    }
+
+    fun home() {
+        pages = emptyList()
+    }
+
+    /** Search keeps what was typed and found while a channel opened from it is looked at. */
+    var searchQuery by mutableStateOf("")
+    var searchKind by mutableStateOf(YtSearchKind.ALL)
+    var searchResult by mutableStateOf<YtSearchResult?>(null)
+    var searchedFor: Pair<String, YtSearchKind>? = null
 
     /** A dialog is open: the frame empties and the player waits, paused. */
     var dialog by mutableStateOf(false)
@@ -192,7 +227,7 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
 private fun liveOf(saved: List<String>, channels: Map<String, YtChannelState>): List<YtVideo> =
     saved.flatMap { channels[it]?.live.orEmpty() }
 
-private fun openInYouTube(context: Context, video: YtVideo) {
+internal fun openInYouTube(context: Context, video: YtVideo) {
     runCatching {
         context.startActivity(
             Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/watch?v=${video.id}"))
@@ -234,7 +269,7 @@ internal fun YouTubePlayerLayer(session: YouTubeSession, full: Boolean, modifier
         val goal = target ?: last[0] ?: Rect(0f, 0f, w, h)
         last[0] = goal
         val rect by animateRectAsState(targetValue = goal, label = "ytPlayer")
-        val shown = target != null && !session.dialog && state.video != null && !state.notEmbeddable && !state.unavailable
+        val shown = target != null && !session.dialog && state.video != null && !state.notEmbeddable && !state.unavailable && !state.liveEnded
         YouTubePlayerView(
             controller = session.player,
             visible = shown,
@@ -267,8 +302,22 @@ internal fun TvYouTubeScreen(
     val problem by repo.problem.collectAsState()
     val stale by repo.stale.collectAsState()
     val playerState by session.player.state.collectAsState()
+    val subs by repo.subs.collectAsState()
+    val account by ServiceLocator.account.state.collectAsState()
+    val signedIn = account is AccountState.SignedIn
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var adding by remember { mutableStateOf(false) }
+    var connecting by remember { mutableStateOf(false) }
+
+    // The subscriptions rail: whether there is one, and its feed. The server keeps the list of
+    // subscriptions for six hours and their videos for an hour, so asking often costs YouTube little.
+    LaunchedEffect(signedIn) {
+        while (true) {
+            repo.refreshSubscriptions(signedIn)
+            delay(SUBS_REFRESH_MS)
+        }
+    }
 
     // Asked again every few minutes while the screen is up; the server's shared cache decides
     // what that costs YouTube (ten minutes old at most for a saved channel).
@@ -297,11 +346,11 @@ internal fun TvYouTubeScreen(
     }
     // A dialog may not sit in front of a YouTube player, and a channel page has no frame for it:
     // either way it waits, paused, and carries on after.
-    LaunchedEffect(adding) { session.dialog = adding }
-    val covered = adding || session.page != null
+    LaunchedEffect(adding, connecting) { session.dialog = adding || connecting }
+    val covered = adding || connecting || session.page != null
     LaunchedEffect(covered) { if (covered) session.hold() else session.resumeHeld() }
     DisposableEffect(Unit) { onDispose { session.dialog = false } }
-    BackHandler(enabled = session.page != null) { session.page = null }
+    BackHandler(enabled = session.page != null) { session.back() }
 
     val studio = StudioTheme.colors
     Box(
@@ -312,39 +361,67 @@ internal fun TvYouTubeScreen(
                 if (e.type == KeyEventType.KeyDown) session.keys++
                 // Play/pause on the remote works the player wherever focus is on this screen.
                 val media = e.key == Key.MediaPlayPause || e.key == Key.MediaPlay || e.key == Key.MediaPause
-                if (media && e.type == KeyEventType.KeyDown) session.player.toggle()
-                media
+                // Not behind a page or a dialog, where the player waits paused and out of sight.
+                if (media && e.type == KeyEventType.KeyDown && session.page == null && !session.dialog) session.player.toggle()
+                // The remote's search key searches YouTube while its screen is up.
+                val search = e.key == Key.Search
+                if (search && e.type == KeyEventType.KeyDown && session.page != YtPage.Search) session.open(YtPage.Search)
+                media || search
             },
     ) {
-        val page = session.page
-        if (page != null) {
-            YouTubeChannelPage(
-                id = page,
-                state = channels[page],
-                saved = page in saved,
+        when (val page = session.page) {
+            is YtPage.Channel -> YouTubeChannelPage(
+                id = page.id,
+                state = channels[page.id],
+                saved = page.id in saved,
                 playingId = playerState.video?.id,
-                onToggleSave = { repo.toggleSaved(page) },
+                onToggleSave = { repo.toggleSaved(page.id) },
                 onPlay = { video ->
-                    session.page = null
+                    session.home()
                     session.play(video)
                 },
             )
-        } else {
-            YouTubeHome(
+
+            YtPage.Search -> YouTubeSearchPage(
                 session = session,
-                playerState = playerState,
-                saved = saved,
-                channels = channels,
-                live = live,
-                history = history,
-                problem = problem,
-                stale = stale,
-                onFullscreen = onFullscreen,
-                onOpenChannel = { session.page = it },
-                onAdd = { adding = true },
-                onOpenInApp = { video -> openInYouTube(context, video) },
+                onOpenChannel = { session.open(YtPage.Channel(it)) },
+                onPlay = { video ->
+                    session.home()
+                    session.play(video)
+                },
             )
+
+            null -> {
+                YouTubeHome(
+                    session = session,
+                    playerState = playerState,
+                    saved = saved,
+                    channels = channels,
+                    live = live,
+                    history = history,
+                    problem = problem,
+                    stale = stale,
+                    subs = subs,
+                    onFullscreen = onFullscreen,
+                    onOpenChannel = { session.open(YtPage.Channel(it)) },
+                    onSearch = { session.open(YtPage.Search) },
+                    onAdd = { adding = true },
+                    onConnect = { connecting = true },
+                    onOpenInApp = { video -> openInYouTube(context, video) },
+                )
+            }
         }
+    }
+
+    if (connecting) {
+        ConnectYouTubeDialog(
+            repo = repo,
+            onDismiss = { connecting = false },
+            onLinked = {
+                connecting = false
+                scope.launch { repo.refreshSubscriptions(signedIn = true) }
+            },
+        )
     }
 
     if (adding) {
@@ -378,6 +455,13 @@ private sealed interface YtRail {
         val caption: String?,
         val channels: List<YtChannelState>,
     ) : YtRail
+
+    /** The subscriptions rail before an account is connected, or after the connection was lost. */
+    data class Connect(
+        override val key: String,
+        override val title: String,
+        val revoked: Boolean,
+    ) : YtRail
 }
 
 @Composable
@@ -390,9 +474,12 @@ private fun YouTubeHome(
     history: List<YtWatched>,
     problem: YtProblem?,
     stale: Boolean,
+    subs: YtSubsState,
     onFullscreen: () -> Unit,
     onOpenChannel: (String) -> Unit,
+    onSearch: () -> Unit,
     onAdd: () -> Unit,
+    onConnect: () -> Unit,
     onOpenInApp: (YtVideo) -> Unit,
 ) {
     val studio = StudioTheme.colors
@@ -409,9 +496,17 @@ private fun YouTubeHome(
     val channelsTitle = stringResource(R.string.yt_rail_channels)
     val channelsCaption = stringResource(R.string.yt_rail_channels_caption)
     val continueTitle = stringResource(R.string.yt_rail_continue)
-    val rails = remember(saved, channels, live, history, liveTitle) {
+    val subsTitle = stringResource(R.string.yt_rail_subs)
+    val subsCaption = stringResource(R.string.yt_rail_subs_caption)
+    val subsEmpty = stringResource(R.string.yt_channel_empty)
+    val rails = remember(saved, channels, live, history, subs, liveTitle) {
         buildList<YtRail> {
             add(YtRail.Videos("live", liveTitle, liveCaption, live, empty = if (channels.isEmpty()) null else noLive))
+            when (subs) {
+                is YtSubsState.Feed -> add(YtRail.Videos("subs", subsTitle, subsCaption, subs.videos, empty = subsEmpty))
+                is YtSubsState.Invite -> add(YtRail.Connect("subs", subsTitle, subs.revoked))
+                YtSubsState.Hidden -> Unit
+            }
             val recent = saved.flatMap { channels[it]?.recent.orEmpty() }
                 .sortedByDescending { it.publishedAt ?: 0L }
                 .take(RECENT_RAIL_SIZE)
@@ -450,6 +545,10 @@ private fun YouTubeHome(
                 onOpenChannel = { playerState.video?.channelId?.takeIf { it.isNotEmpty() }?.let(onOpenChannel) },
                 onToggleSave = { playerState.video?.channelId?.takeIf { it.isNotEmpty() }?.let { repo.toggleSaved(it) } },
                 onOpenInApp = { playerState.video?.let(onOpenInApp) },
+                onSearch = onSearch,
+                // A live stream that has ended offers the next one on the saved channels.
+                nextLive = live.firstOrNull { it.id != playerState.video?.id },
+                onPlay = { session.play(it) },
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
             YouTubeFrame(
@@ -475,6 +574,7 @@ private fun YouTubeHome(
                     },
                     onChannel = onOpenChannel,
                     onAdd = onAdd,
+                    onConnect = onConnect,
                     modifier = Modifier.fillParentMaxHeight(),
                 )
             }
@@ -508,6 +608,7 @@ private fun YouTubeFrame(session: YouTubeSession, state: YouTubePlayerController
         contentAlignment = Alignment.Center,
     ) {
         val message = when {
+            state.liveEnded -> stringResource(R.string.yt_live_ended)
             state.notEmbeddable -> stringResource(R.string.yt_not_embeddable)
             state.unavailable || state.error != null -> stringResource(R.string.yt_video_gone)
             state.video == null -> stringResource(R.string.yt_nothing_playing)
@@ -534,6 +635,9 @@ private fun YouTubeNowPlaying(
     onOpenChannel: () -> Unit,
     onToggleSave: () -> Unit,
     onOpenInApp: () -> Unit,
+    onSearch: () -> Unit,
+    nextLive: YtVideo?,
+    onPlay: (YtVideo) -> Unit,
     modifier: Modifier,
 ) {
     val studio = StudioTheme.colors
@@ -568,7 +672,17 @@ private fun YouTubeNowPlaying(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (state.notEmbeddable) {
+                if (state.liveEnded) {
+                    StudioButton(
+                        label = stringResource(R.string.yt_next_live),
+                        onClick = { nextLive?.let(onPlay) },
+                        icon = StudioIcons.Forward,
+                        variant = StudioButtonVariant.PRIMARY,
+                        size = StudioButtonSize.MEDIUM,
+                        enabled = nextLive != null,
+                        focusRequester = fullscreenFocus,
+                    )
+                } else if (state.notEmbeddable) {
                     StudioButton(
                         label = stringResource(R.string.yt_open_in_app),
                         onClick = onOpenInApp,
@@ -601,9 +715,22 @@ private fun YouTubeNowPlaying(
                     size = StudioButtonSize.MEDIUM,
                     active = saved,
                 )
+                StudioButton(
+                    label = stringResource(R.string.yt_search),
+                    onClick = onSearch,
+                    icon = StudioIcons.Search,
+                    iconOnly = true,
+                    size = StudioButtonSize.MEDIUM,
+                )
             }
         } else {
             Text(stringResource(R.string.yt_nothing_playing), style = type.title, color = studio.ink)
+            StudioButton(
+                label = stringResource(R.string.yt_search),
+                onClick = onSearch,
+                icon = StudioIcons.Search,
+                size = StudioButtonSize.MEDIUM,
+            )
         }
         val note = when {
             problem != null -> problemText(problem)
@@ -618,12 +745,14 @@ private fun YouTubeNowPlaying(
 }
 
 @Composable
-private fun problemText(problem: YtProblem): String = stringResource(
+internal fun problemText(problem: YtProblem): String = stringResource(
     when (problem) {
         YtProblem.UNAVAILABLE -> R.string.yt_problem_unavailable
         YtProblem.OFFLINE -> R.string.yt_problem_offline
         YtProblem.QUOTA, YtProblem.SEARCH_QUOTA -> R.string.yt_problem_quota
         YtProblem.NOT_FOUND -> R.string.yt_add_not_found
+        YtProblem.SIGNED_OUT -> R.string.yt_problem_signed_out
+        YtProblem.NOT_CONFIGURED -> R.string.yt_problem_not_configured
         YtProblem.OTHER -> R.string.yt_problem_other
     },
 )
@@ -663,6 +792,7 @@ private fun YouTubeRailRow(
     onVideo: (YtVideo) -> Unit,
     onChannel: (String) -> Unit,
     onAdd: () -> Unit,
+    onConnect: () -> Unit,
     modifier: Modifier,
 ) {
     val studio = StudioTheme.colors
@@ -677,6 +807,7 @@ private fun YouTubeRailRow(
             val caption = when (rail) {
                 is YtRail.Videos -> rail.caption
                 is YtRail.Channels -> rail.caption
+                is YtRail.Connect -> null
             }
             caption?.let { Text(it, style = type.caption, color = studio.ink3) }
         }
@@ -711,6 +842,12 @@ private fun YouTubeRailRow(
                 }
             }
 
+            is YtRail.Connect -> YouTubeConnectCard(
+                revoked = rail.revoked,
+                onConnect = onConnect,
+                modifier = Modifier.padding(start = gutter, end = YT_SAFE_X, top = 10.dp),
+            )
+
             is YtRail.Channels -> LazyRow(
                 modifier = Modifier.fillMaxWidth().focusGroup(),
                 contentPadding = padding,
@@ -740,7 +877,7 @@ private fun YouTubeRailRow(
 
 /** A video's card (`YtCard`): its thumbnail, live or its length on it, and its title and line under. */
 @Composable
-private fun YtVideoCard(
+internal fun YtVideoCard(
     video: YtVideo,
     onScreen: Boolean,
     progress: Float?,
@@ -846,7 +983,7 @@ private fun ChannelThumb(thumb: String?, label: String, size: Dp) {
 
 /** A saved channel on "your channels" (`StationDisc`), or the disc that adds one. */
 @Composable
-private fun YtChannelDisc(
+internal fun YtChannelDisc(
     label: String,
     thumb: String?,
     live: Boolean,
@@ -1132,6 +1269,25 @@ internal fun TvYouTubeFull(session: YouTubeSession, modifier: Modifier = Modifie
             .focusable(),
     ) {
         // The player could not play this here: say so where it would have been, and offer YouTube.
+        if (state.liveEnded) {
+            val next = live.firstOrNull { it.id != state.video?.id }
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(stringResource(R.string.yt_live_ended), style = StudioTheme.type.title, color = StudioTheme.colors.ink)
+                if (next != null) {
+                    StudioButton(
+                        label = stringResource(R.string.yt_next_live),
+                        onClick = { session.play(next) },
+                        icon = StudioIcons.Forward,
+                        variant = StudioButtonVariant.PRIMARY,
+                        size = StudioButtonSize.MEDIUM,
+                    )
+                }
+            }
+        }
         if (state.notEmbeddable || state.unavailable) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
@@ -1251,6 +1407,9 @@ private fun YouTubeLiveRow(video: YtVideo, thumb: String?, playing: Boolean, onC
 /** How often the screen asks for the saved channels again while it is up. */
 private const val REFRESH_MS = 5 * 60 * 1000L
 
+/** How often the subscriptions rail is asked for again while the screen is up. */
+private const val SUBS_REFRESH_MS = 10 * 60 * 1000L
+
 /** How often the position reached is written down for "continue watching". */
 private const val NOTE_EVERY_MS = 30_000L
 
@@ -1264,7 +1423,7 @@ private const val SIDE_PLAYER_TOP = 0.15f
 private const val SIDE_PLAYER_GAP = 0.025f
 
 /** `--st-safe-x`: 96px at 1080p. */
-private val YT_SAFE_X = 48.dp
+internal val YT_SAFE_X = 48.dp
 private val YT_CARD_WIDTH = 160.dp
 private val YT_DISC_SIZE = 72.dp
 private val YT_DISC_WIDTH = 92.dp

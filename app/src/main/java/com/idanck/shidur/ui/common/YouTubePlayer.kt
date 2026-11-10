@@ -53,6 +53,9 @@ class YouTubePlayerController(context: Context) {
 
         /** Removed, private, or a live stream that has ended and gone. */
         val unavailable: Boolean get() = error == 100
+
+        /** A live stream that has come to its end while it played. */
+        val liveEnded: Boolean get() = phase == Phase.ENDED && video?.live == true
     }
 
     private val main = Handler(Looper.getMainLooper())
