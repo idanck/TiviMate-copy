@@ -26,8 +26,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -36,7 +37,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -44,10 +47,12 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
 import com.idanck.shidur.R
 import com.idanck.shidur.data.model.Programme
 import com.idanck.shidur.ui.NowPlayingInfo
 import com.idanck.shidur.ui.common.ChannelLogo
+import com.idanck.shidur.ui.common.Equalizer
 import com.idanck.shidur.ui.common.GlassMaterial
 import com.idanck.shidur.ui.common.LiveDot
 import com.idanck.shidur.ui.common.StudioIcons
@@ -203,10 +208,15 @@ internal fun PhoneNavBar(
 
 /**
  * `PMiniPlayer`: what is playing, docked above the tabs while the player screen is collapsed — the
- * music-app pattern, so browsing never silences or hides the stream (ADR-011). A capsule of thick
- * glass 64dp high: the channel's plate (a disc for a station), the channel after a live dot, the
- * title, play/pause on the cue, and while a live programme is known a 2dp line of its progress in
- * the tally along the foot.
+ * music-app pattern, so browsing never silences or hides the stream (ADR-011). A capsule 64dp
+ * high: the channel's plate (a disc for a station), an amber equaliser before "now playing" and
+ * the channel, the title, play/pause on the cue, and while a live programme is known a 2dp line of
+ * its progress in the tally along the foot.
+ *
+ * Opaque, with an amber edge and a shadow (`canvas/PMiniPlayer.dc.html`, ADR-063): in thick glass
+ * like the tabs under it and the rows behind it, it read as one more row and was easy to miss on
+ * any screen but the player's. The equaliser is the one thing on the bar that moves, and it moves
+ * only with the sound; while the app is not in view it is not composed, so nothing is measured.
  *
  * The canvas shows a frame of the video where the plate is. The video track is not decoded while
  * the player is collapsed (battery and bandwidth, see `MobileRoot`), so the plate is the channel's
@@ -226,12 +236,21 @@ internal fun PhoneMiniPlayer(
     val shape = CircleShape
     val label = stringResource(R.string.now_playing)
     val toggleLabel = stringResource(if (wantsPlay) R.string.action_pause else R.string.action_play)
-    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+    // The equaliser measures the player's output (`AudioSpectrum`) for as long as it is composed:
+    // only while the app is in view, not under a locked screen with the radio on.
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsState()
+    val inView = lifecycleState.isAtLeast(Lifecycle.State.STARTED)
+    // Amber glass over the drawer's dark, made opaque: the plate is the same over any screen.
+    val plate = studio.currentGlass.compositeOver(studio.drawer)
+    Box(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(MINI_HEIGHT)
-                .glass(GlassMaterial.THICK, shape)
+                .shadow(elevation = MINI_ELEVATION, shape = shape)
+                .clip(shape)
+                .background(plate)
+                .border(MINI_EDGE_WIDTH, studio.current.copy(alpha = MINI_EDGE_ALPHA), shape)
                 .clickable(onClick = onExpand)
                 .semantics { contentDescription = label },
         ) {
@@ -249,16 +268,24 @@ internal fun PhoneMiniPlayer(
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (channelLine.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            // The tally only where something is live: a recording or a film is
-                            // playing, but it is not on air. It says so in words to TalkBack.
-                            if (nowPlaying is NowPlayingInfo.Live) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // TalkBack hears "live" where something is on air: a recording or a
+                            // film is playing, but it is not on air.
+                            val live = nowPlaying is NowPlayingInfo.Live
+                            if (inView) {
+                                Equalizer(
+                                    playing = wantsPlay,
+                                    description = stringResource(if (live) R.string.playback_live_badge else R.string.now_playing),
+                                    colour = studio.current,
+                                    modifier = Modifier.size(width = MINI_EQ_WIDTH, height = MINI_EQ_HEIGHT),
+                                )
+                            } else if (live) {
                                 LiveDot(description = stringResource(R.string.playback_live_badge))
                             }
                             Text(
-                                text = channelLine,
+                                text = stringResource(R.string.radio_now_playing_on, channelLine),
                                 style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
-                                color = studio.ink2,
+                                color = studio.current,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -364,6 +391,13 @@ private val NAV_BAR_HEIGHT = 68.dp
 
 /** `--st-h-mini`. */
 private val MINI_HEIGHT = 64.dp
+
+/** The mini player's amber edge, its shadow and its equaliser (ADR-063). */
+private val MINI_EDGE_WIDTH = 1.5.dp
+private const val MINI_EDGE_ALPHA = 0.7f
+private val MINI_ELEVATION = 10.dp
+private val MINI_EQ_WIDTH = 16.dp
+private val MINI_EQ_HEIGHT = 14.dp
 
 /** `--st-touch`: the least a finger should be offered. */
 private val TOUCH = 44.dp

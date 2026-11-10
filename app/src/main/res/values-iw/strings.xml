@@ -106,6 +106,7 @@
     <string name="no_guide_data">אין נתוני לוח שידורים</string>
     <string name="now_next">עכשיו / הבא</string>
     <string name="guide_jump_now">עכשיו</string>
+    <string name="guide_still_playing">ממשיך להתנגן</string>
     <string name="guide_day_yesterday">אתמול</string>
     <string name="guide_day_today">היום</string>
     <string name="guide_day_tomorrow">מחר</string>

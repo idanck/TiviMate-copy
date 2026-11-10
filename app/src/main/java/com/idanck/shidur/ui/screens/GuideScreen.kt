@@ -29,9 +29,11 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
@@ -53,6 +55,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -76,6 +79,7 @@ import com.idanck.shidur.ui.common.AheadPrefetch
 import com.idanck.shidur.ui.common.ChannelLogo
 import com.idanck.shidur.ui.common.ClockText
 import com.idanck.shidur.ui.common.EmptyState
+import com.idanck.shidur.ui.common.Equalizer
 import com.idanck.shidur.ui.common.FocusFill
 import com.idanck.shidur.ui.common.LocalTvMetrics
 import com.idanck.shidur.ui.common.claim
@@ -90,6 +94,8 @@ import com.idanck.shidur.ui.common.focusSurface
 import com.idanck.shidur.ui.common.litEdge
 import com.idanck.shidur.ui.theme.StudioTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import com.idanck.shidur.ui.common.StudioIcons
 
 // The three dimensions this grid is laid out from now come from `LocalTvMetrics`, which the
@@ -170,27 +176,44 @@ fun GuideScreen(
     landOn: Long? = null,
 ) {
     val window = rememberGuideWindow()
-    Column(modifier = modifier.fillMaxSize()) {
-        // FR-UI-05's jump-to-date, as the strip of days the benchmark puts above its grid rather
-        // than the dialog this used to open (ADR-020): reaching next Tuesday is now one press
-        // sideways and one press of OK, from a row that also says what today is.
-        GuideToolbar(
-            windowStart = window.start,
-            showClock = showClock,
-            onJumpNow = window::jumpNow,
-            onShift = window::shift,
+    // The strip of days, folded into the day's chip until it is asked for (ADR-063): the toolbar,
+    // the strip and the grid's own ruler took a third of the screen before the first row.
+    var pickingDay by remember { mutableStateOf(false) }
+    // The phone's grid (ADR-063): a narrow channel column, lower rows and
+    // a shorter hour, so the screen shows about two hours of a dozen channels rather than an hour
+    // and a half of seven. Overridden here and not in `TvMetrics.Phone`, which the television's
+    // metrics are scaled from.
+    val base = LocalTvMetrics.current
+    val compact = remember(base) {
+        base.copy(
+            guideHourWidth = PHONE_GUIDE_HOUR_WIDTH,
+            guideRowHeight = PHONE_GUIDE_ROW_HEIGHT,
+            guideChannelColumnWidth = PHONE_GUIDE_CHANNEL_COLUMN,
         )
-        GuideDayStrip(window = window)
-        HorizontalDivider()
-        GuideGrid(
-            vm = vm,
-            window = window,
-            onPlay = onPlay,
-            onOpenProgramme = onOpenProgramme,
-            onFocusProgramme = onFocusProgramme,
-            landOn = landOn,
-            modifier = Modifier.weight(1f),
-        )
+    }
+    CompositionLocalProvider(LocalTvMetrics provides compact) {
+        Column(modifier = modifier.fillMaxSize()) {
+            // FR-UI-05's jump-to-date: the chosen day's chip opens the strip of days under it
+            // (ADR-020's strip, ADR-063's fold), and the window's moves inside a day share its row.
+            GuideToolbar(
+                window = window,
+                showClock = showClock,
+                pickingDay = pickingDay,
+                onPickDay = { pickingDay = !pickingDay },
+            )
+            if (pickingDay) {
+                GuideDayStrip(window = window, onPicked = { pickingDay = false })
+            }
+            GuideGrid(
+                vm = vm,
+                window = window,
+                onPlay = onPlay,
+                onOpenProgramme = onOpenProgramme,
+                onFocusProgramme = onFocusProgramme,
+                landOn = landOn,
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 
@@ -259,6 +282,11 @@ internal fun GuideGrid(
     val state by vm.state.collectAsState()
     val channels = state.list.channels
     val metrics = LocalTvMetrics.current
+    // Whether the channel on screen is meant to be sounding, for its row's equaliser (ADR-063).
+    // Narrowed to the one flag, so a buffering or a position update recomposes nothing here.
+    val sounding by remember(vm) {
+        vm.playbackStatus.map { it.playWhenReady }.distinctUntilChanged()
+    }.collectAsState(initial = true)
     // What every cell shares, worked out here once rather than in each of a few hundred cells.
     val look = rememberCellLook(metrics.cellCorner)
     // Lets the rows' programmes in a row a frame as the guide opens and as its window moves. On a
@@ -427,6 +455,7 @@ internal fun GuideGrid(
                         windowEnd = windowEnd,
                         scrollState = timeScroll,
                         onScreen = channel.id == state.currentChannel?.id,
+                        sounding = sounding && channel.id == state.currentChannel?.id,
                         gate = gate,
                         order = index,
                         look = look,
@@ -485,25 +514,44 @@ private const val NOW_MARKER_TICK_MS = 60_000L
 /** The current-time line's width. */
 private val NOW_LINE_WIDTH = 1.5.dp
 
+/**
+ * The phone's one row over the grid (ADR-063): the chosen day as an amber chip that opens the
+ * strip of days, then the window's moves inside a day. It used to be two rows — the date with the
+ * moves and the clock, then the strip — over the ruler.
+ */
 @Composable
 private fun GuideToolbar(
-    windowStart: Long,
+    window: GuideWindow,
     showClock: Boolean,
-    onJumpNow: () -> Unit,
-    onShift: (Int) -> Unit,
+    pickingDay: Boolean,
+    onPickDay: () -> Unit,
 ) {
+    // One reading of the clock, as the strip takes one: which day "today" is for the chip's name.
+    val reference = remember { System.currentTimeMillis() }
+    val selectedDay = TimeModel.startOfLocalDay(window.start)
+    // Rounded rather than divided: across the night the clocks change a day is 23 or 25 hours.
+    val offset = Math.round((selectedDay - TimeModel.startOfLocalDay(reference)) / DAY_MILLIS.toDouble()).toInt()
+    val label = when (offset) {
+        -1 -> stringResource(R.string.guide_day_yesterday)
+        0 -> stringResource(R.string.guide_day_today)
+        1 -> stringResource(R.string.guide_day_tomorrow)
+        else -> TimeModel.formatWeekday(selectedDay)
+    }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = TimeModel.formatDay(windowStart),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+        DayChip(
+            label = label,
+            date = TimeModel.formatDay(selectedDay),
+            selected = true,
+            prominent = false,
+            onClick = onPickDay,
+            trailing = if (pickingDay) StudioIcons.ChevronUp else StudioIcons.ChevronDown,
         )
         Box(modifier = Modifier.weight(1f))
-        WindowButtons(onJumpNow = onJumpNow, onShift = onShift)
+        WindowButtons(onJumpNow = window::jumpNow, onShift = window::shift)
         // The day buttons that used to sit here are the strip below; what is left is the pair
         // that moves inside a day. The clock is here because a full-screen overlay takes the
         // device's own away with it, and a guide is read against the current time.
@@ -568,6 +616,8 @@ private fun GuideDayStrip(
     modifier: Modifier = Modifier,
     prefetch: QuietPrefetchScheduler? = null,
     prominent: Boolean = false,
+    /** Told after a day is picked: the phone folds the strip back into its chip (ADR-063). */
+    onPicked: (() -> Unit)? = null,
 ) {
     // One reading of the clock for the whole strip: taken again per chip, a day boundary crossed
     // mid-composition would put two different "today"s on the same row.
@@ -610,7 +660,10 @@ private fun GuideDayStrip(
                 date = TimeModel.formatDay(day),
                 selected = day == selectedDay,
                 prominent = prominent,
-                onClick = { window.pick(day) },
+                onClick = {
+                    window.pick(day)
+                    onPicked?.invoke()
+                },
             )
         }
     }
@@ -624,6 +677,8 @@ private fun DayChip(
     /** The television's day switcher: the large control height, and the label at the action step. */
     prominent: Boolean,
     onClick: () -> Unit,
+    /** A glyph after the date: the phone's day chip, which opens the strip, says so (ADR-063). */
+    trailing: ImageVector? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val studio = StudioTheme.colors
@@ -676,6 +731,14 @@ private fun DayChip(
             color = { dateColour.value },
             maxLines = 1,
         )
+        if (trailing != null) {
+            Icon(
+                imageVector = trailing,
+                contentDescription = null,
+                tint = labelColour.value,
+                modifier = Modifier.size(16.dp),
+            )
+        }
     }
 }
 
@@ -727,6 +790,8 @@ private fun GuideRow(
     scrollState: ScrollState,
     /** Whether this is the channel on screen, which the tally marks. */
     onScreen: Boolean,
+    /** Whether that channel is meant to be sounding now: the television's equaliser moves. */
+    sounding: Boolean,
     gate: RowGate,
     /** The row's place in the list, which is its place in the gate's queue: top first. */
     order: Int,
@@ -754,42 +819,94 @@ private fun GuideRow(
     }
     Row(modifier = Modifier.fillMaxWidth().height(metrics.guideRowHeight)) {
         // Studio's channel cell: a `surface` card with the number, the name, and the tally when
-        // this is the channel on screen.
-        Row(
-            modifier = Modifier
-                .width(metrics.guideChannelColumnWidth)
-                .fillMaxHeight()
-                .padding(2.dp)
-                .clip(look.shape)
-                .background(studio.surface)
-                // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
-                // so the pair produced two focus targets and cost a remote an invisible extra
-                // press to cross each row.
-                .clickable(onClick = onChannelClick)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (channel.number > 0) {
-                Text(
-                    text = channel.number.toString(),
-                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
-                    color = studio.ink3,
-                    modifier = Modifier.widthIn(min = GUIDE_NUMBER_WIDTH),
-                )
-            } else {
-                ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
-            }
-            Text(
-                text = channel.displayName,
-                style = StudioTheme.type.rowLabel,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                color = studio.ink,
-                modifier = Modifier.weight(1f, fill = false),
+        // this is the channel on screen. On a television, whose guide hides the picture (ADR-063),
+        // the channel on screen is the one still heard: its cell is lit amber, Merhav's
+        // "current", with an equaliser in place of the tally.
+        val heard = onScreen && StudioTheme.television
+        val cell = Modifier
+            .width(metrics.guideChannelColumnWidth)
+            .fillMaxHeight()
+            .padding(2.dp)
+            .clip(look.shape)
+            .background(studio.surface)
+            .then(
+                if (heard) {
+                    Modifier
+                        .background(studio.currentGlass)
+                        .border(HEARD_EDGE_WIDTH, studio.currentEdge, look.shape)
+                } else {
+                    Modifier
+                },
             )
-            if (onScreen) {
-                Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(studio.tally))
+            // No `focusable()` beside `clickable()`: clickable is focusable in its own right,
+            // so the pair produced two focus targets and cost a remote an invisible extra
+            // press to cross each row.
+            .clickable(onClick = onChannelClick)
+        if (metrics.guideChannelColumnWidth < COMPACT_CHANNEL_COLUMN) {
+            // The phone's narrow column (ADR-063): the number over the name, which wraps to two
+            // lines rather than taking the width the programmes need.
+            Column(
+                modifier = cell.padding(horizontal = 6.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    if (channel.number > 0) {
+                        Text(
+                            text = channel.number.toString(),
+                            style = StudioTheme.type.caption,
+                            color = studio.ink3,
+                            maxLines = 1,
+                        )
+                    }
+                    if (onScreen) {
+                        Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(studio.tally))
+                    }
+                }
+                Text(
+                    text = channel.displayName,
+                    style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = studio.ink,
+                )
+            }
+        } else {
+            Row(
+                modifier = cell.padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (channel.number > 0) {
+                    Text(
+                        text = channel.number.toString(),
+                        style = StudioTheme.type.caption.copy(fontWeight = FontWeight.SemiBold),
+                        color = studio.ink3,
+                        modifier = Modifier.widthIn(min = GUIDE_NUMBER_WIDTH),
+                    )
+                } else {
+                    ChannelLogo(channel = channel, sizeDp = metrics.rowLogoSize)
+                }
+                Text(
+                    text = channel.displayName,
+                    style = StudioTheme.type.rowLabel,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = studio.ink,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (heard) {
+                    Equalizer(
+                        playing = sounding,
+                        description = stringResource(R.string.now_playing),
+                        colour = studio.current,
+                        modifier = Modifier.size(width = HEARD_EQ_WIDTH, height = HEARD_EQ_HEIGHT),
+                    )
+                } else if (onScreen) {
+                    Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(studio.tally))
+                }
             }
         }
 
@@ -1189,6 +1306,23 @@ private data class Coverage(val start: Long, val ids: Set<Long>)
 
 /** The television's day chip: `--st-h-control-l`, 80px at 1080p, the height of a large button. */
 private val DAY_CHIP_HEIGHT = 40.dp
+
+/*
+ * The phone's grid (ADR-063): an hour, a row and the channel column, overriding `TvMetrics.Phone`
+ * for this screen alone. The row holds the cell's two lines and its padding and no more; the
+ * column holds a number over a two-line name.
+ */
+private val PHONE_GUIDE_HOUR_WIDTH = 176.dp
+private val PHONE_GUIDE_ROW_HEIGHT = 56.dp
+private val PHONE_GUIDE_CHANNEL_COLUMN = 64.dp
+
+/** Under this the channel cell stacks the number over the name instead of setting them in a row. */
+private val COMPACT_CHANNEL_COLUMN = 96.dp
+
+/** The television's cell for the channel still heard under the guide (ADR-063). */
+private val HEARD_EDGE_WIDTH = 2.dp
+private val HEARD_EQ_WIDTH = 22.dp
+private val HEARD_EQ_HEIGHT = 18.dp
 
 private fun millisToDp(millis: Long, hourWidth: Dp) = hourWidth * (millis.toFloat() / HOUR_MILLIS.toFloat())
 

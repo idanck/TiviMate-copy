@@ -1,6 +1,6 @@
 # ADR-051 — The guide is drawn over the picture
 
-**Status:** accepted, 0.21.0; amended 0.21.1 (below). Decided by the owner on 2026-10-30: *no small preview window; the channel
+**Status:** accepted, 0.21.0; amended 0.21.1 (below); the band over the picture superseded by ADR-063 (0.29.0): the guide is opaque and the picture is heard, not seen. Decided by the owner on 2026-10-30: *no small preview window; the channel
 being watched plays full screen behind the guide, showing through a lightly dimmed band at the top;
 the grid on a dark backdrop; the focused programme on one thin line; the room freed spent on more
 rows and a more prominent day switcher; and the guide has to move smoothly.* Supersedes ADR-013's

@@ -6,6 +6,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -27,13 +28,18 @@ import com.idanck.shidur.ui.theme.StudioTheme
  * bars redraws this node and recomposes nothing.
  */
 @Composable
-fun Equalizer(playing: Boolean, description: String, modifier: Modifier = Modifier) {
+fun Equalizer(
+    playing: Boolean,
+    description: String,
+    modifier: Modifier = Modifier,
+    /** The bars' colour: Studio's light bars by default, amber where they mark what is heard (ADR-063). */
+    colour: Color = StudioTheme.colors.equalizerBar,
+) {
     DisposableEffect(Unit) {
         AudioSpectrum.startListening()
         onDispose { AudioSpectrum.stopListening() }
     }
     val bands by AudioSpectrum.bands.collectAsState()
-    val colour = StudioTheme.colors.equalizerBar
     Canvas(modifier = modifier.semantics { contentDescription = description }) {
         val values = bands
         val count = values.size

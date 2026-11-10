@@ -697,7 +697,6 @@ fun TvRoot(
                             onOverlayChange(TvOverlay.GUIDE)
                         },
                         onOpenProgramme = { channel, programme -> details = channel to programme },
-                        opacity = prefs.overlayOpacity,
                         modifier = Modifier.fillMaxSize(),
                         // From the video, the guide opens where the viewer already is: on the
                         // programme on air on the channel playing (`canvas/GuideFromVideo.dc.html`).
