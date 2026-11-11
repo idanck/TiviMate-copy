@@ -7,6 +7,10 @@ import com.idanck.shidur.data.model.ChannelGroup
 import com.idanck.shidur.data.model.OutputFormat
 import com.idanck.shidur.data.model.Playlist
 import com.idanck.shidur.data.model.SourceType
+import com.idanck.shidur.data.podcast.EpisodeKey
+import com.idanck.shidur.data.podcast.EpisodeMark
+import com.idanck.shidur.data.podcast.PodcastDao
+import com.idanck.shidur.data.podcast.PodcastPrefs
 import com.idanck.shidur.data.prefs.SecureStore
 import com.idanck.shidur.data.prefs.Settings
 import org.json.JSONArray
@@ -24,6 +28,8 @@ import java.io.OutputStream
 class BackupManager(
     private val dao: Dao,
     private val settings: Settings,
+    /** The podcasts (ADR-067): the shows and the viewer's marks and queue, never the episodes. */
+    private val podcasts: PodcastDao? = null,
 ) {
 
     fun export(out: OutputStream, includeCredentials: Boolean): Outcome<Int> = try {
@@ -115,6 +121,8 @@ class BackupManager(
         val prefs = JSONObject()
         settings.exportAll().forEach { (k, v) -> prefs.put(k, v) }
         root.put("settings", prefs)
+
+        podcasts?.let { exportPodcasts(root, it) }
 
         val bytes = root.toString(2).toByteArray(Charsets.UTF_8)
         out.use { it.write(bytes) }
@@ -208,7 +216,9 @@ class BackupManager(
                 settings.importAll(values)
             }
 
-            Outcome.Ok(ImportReport(playlists, groups, channels))
+            val shows = podcasts?.let { importPodcasts(root, it) } ?: 0
+
+            Outcome.Ok(ImportReport(playlists, groups, channels, shows))
         }
     } catch (t: Throwable) {
         Outcome.Err(AppError.of(t))
@@ -261,7 +271,103 @@ class BackupManager(
         val json: JSONObject,
     )
 
-    data class ImportReport(val playlists: Int, val groups: Int, val channels: Int)
+    /**
+     * Podcasts travel as what the viewer chose — the address, the name, in the library or not, the
+     * show's own settings — and the marks and queue, keyed by address and guid. The episodes are
+     * the feed's and are read again on the next refresh.
+     */
+    private fun exportPodcasts(root: JSONObject, pd: PodcastDao) {
+        val shows = JSONArray()
+        pd.podcasts(libraryOnly = false).forEach { p ->
+            shows.put(
+                JSONObject().apply {
+                    put("feedUrl", p.feedUrl)
+                    put("title", p.title)
+                    put("inLibrary", p.inLibrary)
+                    put("speed", p.prefs.speed.toDouble())
+                    put("skipIntroSeconds", p.prefs.skipIntroSeconds)
+                    put("skipOutroSeconds", p.prefs.skipOutroSeconds)
+                    put("notifyNew", p.prefs.notifyNew)
+                    put("oldestFirst", p.prefs.oldestFirst)
+                },
+            )
+        }
+        root.put("podcasts", shows)
+        val marks = JSONArray()
+        pd.allMarks().forEach { (key, m) ->
+            marks.put(
+                JSONObject().apply {
+                    put("feedUrl", key.feedUrl)
+                    put("guid", key.guid)
+                    put("positionMs", m.positionMs)
+                    put("durationMs", m.durationMs)
+                    put("played", m.played)
+                    put("favourite", m.favourite)
+                    put("favouriteUtc", m.favouriteUtc)
+                    put("historyUtc", m.historyUtc)
+                    put("lastPlayedUtc", m.lastPlayedUtc)
+                    put("device", m.device)
+                    put("updatedUtc", m.updatedUtc)
+                },
+            )
+        }
+        root.put("podcastMarks", marks)
+        val queue = JSONArray()
+        pd.queueKeys().forEach { key -> queue.put(JSONObject().put("feedUrl", key.feedUrl).put("guid", key.guid)) }
+        root.put("podcastQueue", queue)
+    }
+
+    private fun importPodcasts(root: JSONObject, pd: PodcastDao): Int {
+        val now = System.currentTimeMillis()
+        var shows = 0
+        root.optJSONArray("podcasts")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                val url = o.optString("feedUrl").trim()
+                if (url.isEmpty()) continue
+                val prefs = PodcastPrefs(
+                    speed = o.optDouble("speed", 0.0).toFloat(),
+                    skipIntroSeconds = o.optInt("skipIntroSeconds", 0),
+                    skipOutroSeconds = o.optInt("skipOutroSeconds", 0),
+                    notifyNew = o.optBoolean("notifyNew", false),
+                    oldestFirst = o.optBoolean("oldestFirst", false),
+                )
+                pd.ensurePodcast(url, o.optString("title"), o.optBoolean("inLibrary", true), prefs, now, now)
+                shows++
+            }
+        }
+        root.optJSONArray("podcastMarks")?.let { arr ->
+            for (i in 0 until arr.length()) {
+                val o = arr.optJSONObject(i) ?: continue
+                val key = EpisodeKey(o.optString("feedUrl"), o.optString("guid"))
+                if (key.feedUrl.isEmpty() || key.guid.isEmpty()) continue
+                val restored = EpisodeMark(
+                    positionMs = o.optLong("positionMs"),
+                    durationMs = o.optLong("durationMs"),
+                    played = o.optBoolean("played"),
+                    favourite = o.optBoolean("favourite"),
+                    favouriteUtc = o.optLong("favouriteUtc"),
+                    historyUtc = o.optLong("historyUtc"),
+                    lastPlayedUtc = o.optLong("lastPlayedUtc"),
+                    device = o.optStringOrNull("device"),
+                    updatedUtc = o.optLong("updatedUtc"),
+                )
+                // A mark the viewer changed since the backup was written is kept.
+                val local = pd.mark(key)
+                if (local == null || restored.updatedUtc > local.updatedUtc) pd.putMark(key, restored)
+            }
+        }
+        root.optJSONArray("podcastQueue")?.let { arr ->
+            val keys = (0 until arr.length()).mapNotNull { i ->
+                arr.optJSONObject(i)?.let { EpisodeKey(it.optString("feedUrl"), it.optString("guid")) }
+                    ?.takeIf { it.feedUrl.isNotEmpty() && it.guid.isNotEmpty() }
+            }
+            if (keys.isNotEmpty()) pd.setQueue(keys)
+        }
+        return shows
+    }
+
+    data class ImportReport(val playlists: Int, val groups: Int, val channels: Int, val podcasts: Int = 0)
 
     companion object {
         const val FORMAT_VERSION = 1
