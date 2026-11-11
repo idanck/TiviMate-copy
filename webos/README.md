@@ -63,7 +63,8 @@ the screen shows the version and the commit, so a new build is known to be the o
 The remote: ▲▼ walk the channel list, ◀▶ move between the groups, the list and the buttons, OK plays
 a channel and, on the one already playing, opens it full screen (or tries again after an error). In
 full screen ▲▼ change channel, OK shows what is on, Back leaves it. Numbers pick a channel; red is
-the channel before; **green opens the guide**, **yellow the radio**; ▶/⏸ pause. Back on the list
+the channel before; **green opens the guide**, **yellow the radio** (also "רדיו" in the groups list on
+the right, under the smart lists); ▶/⏸ pause. Back on the list
 leaves the app.
 
 The radio is the channel list's layout repointed at the radio playlist, as on Android: the menu on
