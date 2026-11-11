@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,6 +57,7 @@ import com.idanck.shidur.ui.common.Equalizer
 import com.idanck.shidur.ui.common.GlassMaterial
 import com.idanck.shidur.ui.common.LiveDot
 import com.idanck.shidur.ui.common.StudioIcons
+import com.idanck.shidur.ui.common.StudioSheet
 import com.idanck.shidur.ui.common.animatedColour
 import com.idanck.shidur.ui.common.glass
 import com.idanck.shidur.ui.theme.StudioTheme
@@ -143,13 +145,96 @@ private fun GlassIconButton(icon: ImageVector, description: String, onClick: () 
 }
 
 /**
- * `PNavBar`: five tabs in a capsule of thick glass that floats just above the foot of the screen.
+ * `PNavBar`: the tabs in a capsule of thick glass that floats just above the foot of the screen.
  * The current tab is amber — its glyph and label, on a wash of amber glass inside an amber edge;
  * the others are the second ink. [selected] may be none of them — the on-demand screen, reached
  * only from search, has no tab of its own.
+ *
+ * [more] are the destinations without a tab of their own (ADR-066: the guide, YouTube and the
+ * recordings). They sit behind a last tab, "עוד", which opens a sheet of them; while one of them is
+ * the screen on show, "עוד" is the tab that is lit.
  */
 @Composable
 internal fun PhoneNavBar(
+    tabs: List<PhoneTab>,
+    selected: MobileTab?,
+    onSelect: (MobileTab) -> Unit,
+    modifier: Modifier = Modifier,
+    more: List<PhoneTab> = emptyList(),
+) {
+    var moreOpen by remember { mutableStateOf(false) }
+    val moreLabel = stringResource(R.string.nav_more)
+    val shown = if (more.isEmpty()) tabs else tabs + PhoneTab(MobileTab.MORE, moreLabel, StudioIcons.Grid)
+    val lit = if (selected != null && more.any { it.tab == selected }) MobileTab.MORE else selected
+    if (moreOpen) {
+        PhoneMoreSheet(
+            items = more,
+            selected = selected,
+            onSelect = { moreOpen = false; onSelect(it) },
+            onDismiss = { moreOpen = false },
+        )
+    }
+    PhoneNavCapsule(
+        tabs = shown,
+        selected = lit,
+        onSelect = { if (it == MobileTab.MORE) moreOpen = true else onSelect(it) },
+        modifier = modifier,
+    )
+}
+
+/**
+ * `PNavOptMoreSheet`: what "עוד" holds, as large tiles in a row — a glyph over its label — on the
+ * phone's sheet of thick glass. The one on show is amber, as its tab would be.
+ */
+@Composable
+private fun PhoneMoreSheet(
+    items: List<PhoneTab>,
+    selected: MobileTab?,
+    onSelect: (MobileTab) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val studio = StudioTheme.colors
+    StudioSheet(onDismissRequest = onDismiss, title = stringResource(R.string.nav_more)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items.forEach { item ->
+                val active = item.tab == selected
+                val shape = RoundedCornerShape(18.dp)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(84.dp)
+                        .clip(shape)
+                        .then(
+                            if (active) {
+                                Modifier.background(studio.currentGlass).border(1.dp, studio.currentEdge, shape)
+                            } else {
+                                Modifier.glass(GlassMaterial.THIN, shape)
+                            },
+                        )
+                        .selectable(selected = active, role = Role.Tab, onClick = { onSelect(item.tab) }),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                ) {
+                    val tint = if (active) studio.cue else studio.ink
+                    Icon(imageVector = item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+                    Text(
+                        text = item.label,
+                        style = StudioTheme.type.nav.copy(fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold),
+                        color = tint,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhoneNavCapsule(
     tabs: List<PhoneTab>,
     selected: MobileTab?,
     onSelect: (MobileTab) -> Unit,

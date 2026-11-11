@@ -596,6 +596,7 @@
 
     <!-- YouTube (ADR-061) -->
     <string name="nav_youtube">YouTube</string>
+    <string name="nav_more">עוד</string>
     <string name="yt_rail_live">בשידור חי עכשיו</string>
     <string name="yt_rail_live_caption">מהערוצים ששמרת</string>
     <string name="yt_rail_recent">חדש מהערוצים שלך</string>
