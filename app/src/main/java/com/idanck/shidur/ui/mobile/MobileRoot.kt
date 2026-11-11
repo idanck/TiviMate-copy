@@ -55,10 +55,12 @@ import kotlinx.coroutines.delay
 import com.idanck.shidur.ui.common.StudioIcons
 
 /**
- * The phone's destinations. Five have a tab (ADR-032); [VOD] has none and is reached only from
- * search, on an installation that has on-demand at all (ADR-016).
+ * The phone's destinations. Live, Radio and Settings have a tab; the guide, YouTube and the
+ * recordings sit behind the last tab, "עוד" ([MORE], ADR-066), which is a sheet rather than a
+ * screen. [VOD] has none and is reached only from search, on an installation that has on-demand at
+ * all (ADR-016).
  */
-enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS, YOUTUBE }
+enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS, YOUTUBE, MORE }
 
 /**
  * The touch shell.
@@ -353,19 +355,21 @@ fun MobileRoot(
                             onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                         )
                     }
-                    // Studio's five tabs, in the canvas's order (ADR-032): recordings has the
-                    // place on-demand held, since this installation carries no on-demand (ADR-016).
+                    // The bar the owner chose on 2026-11-11 (ADR-066): Live, Radio and Settings, and
+                    // "עוד" with the guide, YouTube and the recordings, so a new destination no
+                    // longer squeezes seven labels into 390dp.
                     PhoneNavBar(
                         // The Radio tab leaves with the radio playlist, removed or turned off in Settings.
                         tabs = listOfNotNull(
                             PhoneTab(MobileTab.LIVE, stringResource(R.string.nav_live), StudioIcons.Tv),
-                            PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
                             PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio)
                                 .takeIf { vm.isRadioShown(state.playlists) },
-                            // Between Radio and Recordings (`PNavBar`, ADR-061).
+                            PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
+                        ),
+                        more = listOf(
+                            PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
                             PhoneTab(MobileTab.YOUTUBE, stringResource(R.string.nav_youtube), StudioIcons.Stream),
                             PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
-                            PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),
                         selected = tab.takeIf { !showAddSource && it != MobileTab.VOD },
                         onSelect = selectTab,
@@ -463,6 +467,8 @@ fun MobileRoot(
                                 modifier = Modifier.weight(1f),
                             )
                         }
+                        // "עוד" is a sheet over the current tab, never a screen of its own.
+                        MobileTab.MORE -> Unit
                     }
                 }
             }

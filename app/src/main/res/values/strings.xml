@@ -628,6 +628,7 @@
 
     <!-- YouTube (ADR-061) -->
     <string name="nav_youtube">YouTube</string>
+    <string name="nav_more">More</string>
     <string name="yt_rail_live">Live now</string>
     <string name="yt_rail_live_caption">From your saved channels</string>
     <string name="yt_rail_recent">New from your channels</string>
