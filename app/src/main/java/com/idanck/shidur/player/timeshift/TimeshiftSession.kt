@@ -83,8 +83,9 @@ class TimeshiftSession(
     }
 
     /**
-     * Waits until the playlist has a segment to play, or the session has failed. Throws the failure,
-     * as the player is to see it.
+     * Waits until the playlist has [START_SEGMENTS] segments, or the session has failed. Throws the
+     * failure, as the player is to see it. One segment is not enough: the player would start on its
+     * first frame with nothing after it and stall until the next one is cut.
      */
     fun awaitPlayable(timeoutMs: Long) {
         val deadline = System.currentTimeMillis() + timeoutMs
@@ -92,7 +93,7 @@ class TimeshiftSession(
         while (true) {
             failure?.let { throw it }
             if (stopped) throw IOException("the buffer was stopped")
-            if (!window.isEmpty) return
+            if (window.size >= START_SEGMENTS) return
             val left = deadline - System.currentTimeMillis()
             if (left <= 0) throw TimeshiftUnavailableException("no segment within $timeoutMs ms")
             seen = window.awaitChange(seen, left)
@@ -216,6 +217,9 @@ class TimeshiftSession(
 
     companion object {
         const val SCHEME = "timeshift"
+
+        /** Segments the playlist holds before the player is given it (ADR-065). */
+        const val START_SEGMENTS = 2
         private const val TAG = "Timeshift"
         private const val READ_BUFFER = 64 * 1024
         private const val WRITE_BUFFER = 256 * 1024

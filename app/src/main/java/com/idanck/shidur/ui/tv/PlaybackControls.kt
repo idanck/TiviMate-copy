@@ -258,7 +258,11 @@ fun TransportBar(
                     TransportButton(
                         icon = StudioIcons.Restart,
                         description = stringResource(R.string.timeshift_go_live),
-                        onClick = { ServiceLocator.player.jumpToLive() },
+                        onClick = {
+                            ServiceLocator.player.jumpToLive()
+                            // The button goes with the delay; the focus stays in the bar.
+                            runCatching { focusPlay.requestFocus() }
+                        },
                         labelled = true,
                     )
                 }

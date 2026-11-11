@@ -95,10 +95,11 @@ Both are plain preferences, so the hand-over (ADR-060) and backups carry them as
 
 ## Consequences
 
-- **Zapping to a TS channel waits for the first segment:** the first key frame, then about one
-  more GOP. The player's start position is six seconds behind the newest segment's start, so a
-  buffered channel starts a little later and sits a few seconds further from live than a direct
-  one did.
+- **Zapping to a TS channel waits for the first two segments:** the first key frame, then about
+  four seconds. With one segment the player started on it and stalled until the next was cut
+  (seen on the living room's television, 2026-11-11). The player's start position is six seconds
+  behind the newest segment's start, so a buffered channel starts a little later and sits a few
+  seconds further from live than a direct one did.
 - **Every hour watched with the setting on is written to the device's storage once.**
 - **A reconnect longer than Media3's playlist-stuck limit** (three and a half target durations,
   about seven seconds) ends the session as an error. The engine's retry then starts a new buffer,
