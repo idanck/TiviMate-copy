@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הספרייה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="פודקאסטים" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: 0"><dc-import name="PPodTabs" current="library" hint-size="390px,44px"></dc-import></div>
+
+<div style="position: absolute; top: 146px; right: var(--st-safe-x); left: var(--st-safe-x); height: 44px; display: flex; align-items: center; justify-content: space-between">
+<span class="st-t-meta">18 פודקאסטים</span>
+<dc-import name="PButton" label="פרק אחרון" glyph="move" variant="ghost" size="m" hint-size="120px,44px"></dc-import>
+</div>
+
+<section aria-label="הפודקאסטים שלך" style="position: absolute; top: 202px; right: var(--st-safe-x); left: var(--st-safe-x); display: grid; grid-template-columns: repeat(3, 108px); justify-content: space-between; row-gap: 18px">
+<sc-for list="{{shows}}" as="s" hint-placeholder-count="9">
+<button style="width: 108px; padding: 0; border: 0; background: transparent; display: flex; flex-direction: column; gap: 6px; text-align: right; font-family: var(--st-font-ui); color: var(--st-ink); cursor: pointer">
+<dc-import name="PodArt" size="108" tone="{{s.tone}}" badge="{{s.badge}}" phone="true" hint-size="108px,108px"></dc-import>
+<span style="font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 108px">[שם הפודקאסט]</span>
+<span style="font-size: 11px; color: var(--st-ink-3); white-space: nowrap">{{s.meta}}</span>
+</button>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="podcasts" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The library on the phone: three covers a row, the pill for new episodes, sorted by the newest episode
+    // (or A–Z, or most waiting). A long press: remove from the library, or its settings.
+    const S = (tone, badge, meta) => ({ tone: tone, badge: badge, meta: meta });
+    return {
+      shows: [
+        S('2', '3', '3 חדשים'), S('1', '1', 'חדש אחד'), S('4', '5', '5 חדשים'),
+        S('3', '', 'הכול נשמע'), S('6', '2', '2 חדשים'), S('5', '', 'הכול נשמע'),
+        S('1', '', 'הכול נשמע'), S('3', '1', 'חדש אחד'), S('4', '', 'הכול נשמע')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

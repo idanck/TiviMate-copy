@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — פודקאסטים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="{{title}}" search="true" back="false" settings="{{gear}}" menu="{{menu}}" hint-size="390px,56px"></dc-import></div>
+<sc-if value="{{listen}}" hint-placeholder-val="{{false}}">
+<div role="tablist" aria-label="האזנה" class="st-glass-thin" style="position: absolute; top: 88px; right: var(--st-safe-x); left: var(--st-safe-x); height: 44px; box-sizing: border-box; padding: 4px; border-radius: 22px; display: flex; gap: 4px">
+<button role="tab" aria-selected="false" style="flex: 1 1 0; border: 0; border-radius: 18px; background: transparent; color: var(--st-ink-2); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--st-font-ui); font-size: 14px; font-weight: 600; cursor: pointer"><dc-import name="Icon" glyph="radio" size="18" hint-size="18px,18px"></dc-import>רדיו</button>
+<button role="tab" aria-selected="true" style="flex: 1 1 0; border: 0; border-radius: 18px; background: var(--st-current-glass); box-shadow: inset 0 0 0 1px var(--st-current-edge); color: var(--st-cue); display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--st-font-ui); font-size: 14px; font-weight: 700; cursor: pointer"><dc-import name="Icon" glyph="podcast" size="18" hint-size="18px,18px"></dc-import>פודקאסטים</button>
+</div>
+</sc-if>
+<div style="position: absolute; top: {{tabsTop}}; right: 0"><dc-import name="PPodTabs" current="foryou" hint-size="390px,44px"></dc-import></div>
+
+<section aria-label="המשך האזנה" class="st-card" style="position: absolute; top: {{cardTop}}; right: var(--st-safe-x); left: var(--st-safe-x); box-sizing: border-box; padding: 14px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; gap: 12px">
+<dc-import name="PodArt" size="84" tone="2" phone="true" hint-size="84px,84px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span class="st-t-caption" style="font-size: 12px; font-weight: 600">המשך האזנה</span>
+<span style="font-size: 16px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[שם הפרק]</span>
+<span class="st-t-caption">[שם הפודקאסט] · פרק 113</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 10px">
+<span aria-hidden="true" style="flex: 1 1 auto; height: 4px; border-radius: 2px; background: var(--st-track); overflow: hidden"><span style="display: block; height: 4px; width: 58%; background: var(--st-ink)"></span></span>
+<span class="st-num st-t-caption" style="white-space: nowrap">נותרו 26 דק׳</span>
+<dc-import name="PButton" label="המשך" glyph="play" variant="primary" size="m" hint-size="100px,44px"></dc-import>
+</div>
+</section>
+
+<section aria-label="פרקים חדשים" style="position: absolute; top: {{freshTop}}; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 2px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2px"><h2 class="st-t-h1">פרקים חדשים</h2><span class="st-t-caption">5 מהספרייה שלך</span></div>
+<sc-for list="{{fresh}}" as="r" hint-placeholder-count="2">
+<dc-import name="PPodEpisodeRow" item="{{r}}" art="true" width="358" hint-size="358px,104px"></dc-import>
+</sc-for>
+</section>
+
+<sc-if value="{{showLib}}" hint-placeholder-val="{{true}}">
+<section aria-label="הספרייה שלי" style="position: absolute; top: 576px; right: 0; left: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="padding: 0 var(--st-safe-x)"><h2 class="st-t-h1">הספרייה שלי</h2></div>
+<div style="display: flex; gap: 12px; padding: 0 var(--st-safe-x); overflow: hidden">
+<sc-for list="{{shows}}" as="s" hint-placeholder-count="5">
+<dc-import name="PodArt" size="64" tone="{{s.tone}}" badge="{{s.badge}}" phone="true" hint-size="64px,64px"></dc-import>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<div style="position: absolute; bottom: {{miniBottom}}; right: 0"><dc-import name="PPodMini" hint-size="390px,64px"></dc-import></div>
+<sc-if value="{{showNav}}" hint-placeholder-val="{{true}}"><div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="podcasts" set="{{navSet}}" hint-size="390px,72px"></dc-import></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"nav":{"editor":"enum","options":["more","seven","listen","gear","drawer"],"default":"more"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The phone's podcasts tab, between YouTube and recordings. The same "בשבילך" as the television, for a thumb:
+    // the episode you stopped in, new episodes from your library, and your library's covers (the pill: new ones).
+    // While an episode plays, the amber mini player sits over the tabs and the sound carries on in the
+    // background and on the lock screen — unlike YouTube, which may not play hidden.
+    // "nav" (11/11): which bottom bar this screen sits on — the seven tabs, or one of the alternatives on the
+    // "חלופות לפס התחתון" row. "listen": radio and podcasts share a tab, with a switch at the top (the
+    // library row gives way to it). "drawer": no bottom bar; a menu button opens the drawer, and the mini
+    // player drops to the foot of the screen.
+    const nav = this.props.nav || 'more';
+    const listen = nav === 'listen', drawer = nav === 'drawer';
+    return {
+      title: listen ? 'האזנה' : 'פודקאסטים', gear: nav === 'gear', menu: drawer, listen: listen,
+      tabsTop: listen ? '140px' : '88px', cardTop: listen ? '198px' : '146px', freshTop: listen ? '382px' : '330px',
+      showLib: !listen, showNav: !drawer, navSet: drawer ? 'seven' : nav, miniBottom: drawer ? '16px' : '96px',
+      fresh: [
+        { title: '[שם הפרק]', meta: '[שם הפודקאסט] · היום', dur: '48 דק׳', status: 'new', tone: '1' },
+        { title: '[שם הפרק]', meta: '[שם הפודקאסט] · אתמול', dur: '32 דק׳', status: 'new', tone: '4', dl: true }
+      ],
+      shows: [{ tone: '1', badge: '3' }, { tone: '2', badge: '' }, { tone: '4', badge: '5' }, { tone: '3', badge: '' }, { tone: '6', badge: '2' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

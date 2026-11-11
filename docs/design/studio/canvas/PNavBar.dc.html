@@ -10,29 +10,53 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<nav aria-label="ניווט ראשי" style="width: 390px; height: var(--st-h-navbar); box-sizing: border-box; padding: 6px 4px 8px; background: var(--st-surface); box-shadow: inset 0 1px 0 var(--st-hairline-soft); display: flex; font-family: var(--st-font-ui)">
-<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
-<button aria-current="{{it.aria}}" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; color: {{it.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer">
-<span class="st-anim" style="width: 56px; height: 30px; border-radius: 15px; background: {{it.pill}}; color: {{it.ic}}; display: flex; align-items: center; justify-content: center"><dc-import name="Icon" glyph="{{it.glyph}}" size="22" hint-size="22px,22px"></dc-import></span>
+<div style="width: 390px; height: 72px; box-sizing: border-box; padding: 0 12px 4px; font-family: var(--st-font-ui)">
+<nav aria-label="ניווט ראשי" class="st-glass-thick" style="height: var(--st-h-navbar); box-sizing: border-box; padding: 6px; border-radius: 34px; display: flex; gap: 2px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="6">
+<button aria-current="{{it.aria}}" class="st-anim" style="flex: 1 1 0; min-width: 0; height: 56px; border: 0; border-radius: 28px; background: {{it.bg}}; box-shadow: {{it.edge}}; color: {{it.fg}}; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-family: var(--st-font-ui); cursor: pointer">
+<dc-import name="Icon" glyph="{{it.glyph}}" size="22" hint-size="22px,22px"></dc-import>
 <span class="st-t-nav" style="white-space: nowrap; font-weight: {{it.fw}}">{{it.label}}</span>
 </button>
 </sc-for>
 </nav>
+</div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["channels","guide","radio","recordings","settings"],"default":"channels"},"$preview":{"width":390,"height":72}}'>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["channels","guide","radio","youtube","podcasts","recordings","settings","none"],"default":"channels"},"set":{"editor":"enum","options":["more","seven","listen","gear"],"default":"more"},"$preview":{"width":390,"height":72}}'>
 class Component extends DCLogic {
   renderVals() {
+    // קפסולת זכוכית עבה שצפה 20 מעל קצה המסך (הלוח ממקם אותה ב־bottom: 16px). הלשונית הפעילה בענבר: מילוי זכוכית ענברית, קצה ענבר, אייקון ותווית בענבר.
+    // "none": מסך ה־VOD, שמגיעים אליו רק מחיפוש, ואין לו לשונית.
+    // "set" — the phone's bottom bar. Chosen 11/11: "more" (the default, on every phone screen):
+    //   more:   ערוצים, רדיו, פודקאסטים, הגדרות and "עוד"; the guide, YouTube and recordings open from "עוד".
+    // The other alternatives stay drawn on the "חלופות לפס התחתון" row for reference:
+    //   seven:  all seven, "פודקאסט" in the singular (did not fit).
+    //   listen: radio and podcasts share one tab, "האזנה", with a switch at its top — six tabs.
+    //   gear:   settings moves to a gear in the top bar — six tabs, "פודקאסטים" in full.
+    // "current" may name a screen the set has no tab for (in "more": guide, youtube, recordings);
+    // then "עוד" is the lit tab. In "listen", radio and podcasts both light "האזנה".
     const cur = this.props.current || 'channels';
-    const nav = [['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['recordings', 'הקלטות', 'record'], ['settings', 'הגדרות', 'settings']];
+    const S = {
+      seven: [['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['youtube', 'YouTube', 'stream'], ['podcasts', 'פודקאסט', 'podcast'], ['recordings', 'הקלטות', 'record'], ['settings', 'הגדרות', 'settings']],
+      more: [['channels', 'ערוצים', 'tv'], ['radio', 'רדיו', 'radio'], ['podcasts', 'פודקאסטים', 'podcast'], ['settings', 'הגדרות', 'settings'], ['more', 'עוד', 'grid']],
+      listen: [['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['listen', 'האזנה', 'audio'], ['youtube', 'YouTube', 'stream'], ['recordings', 'הקלטות', 'record'], ['settings', 'הגדרות', 'settings']],
+      gear: [['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['youtube', 'YouTube', 'stream'], ['podcasts', 'פודקאסטים', 'podcast'], ['recordings', 'הקלטות', 'record']]
+    };
+    const set = S[this.props.set] ? this.props.set : 'more';
+    const nav = S[set];
+    const keys = nav.map((n) => n[0]);
+    let lit = cur;
+    if (set === 'listen' && (cur === 'radio' || cur === 'podcasts')) lit = 'listen';
+    if (set === 'more' && keys.indexOf(cur) < 0 && cur !== 'none') lit = 'more';
     return {
       items: nav.map((n) => {
-        const a = n[0] === cur;
+        const a = n[0] === lit;
         return { label: n[1], glyph: n[2], aria: a ? 'page' : undefined,
-          pill: a ? 'var(--st-cue)' : 'transparent', ic: a ? 'var(--st-on-cue)' : 'var(--st-ink-2)',
-          fg: a ? 'var(--st-ink)' : 'var(--st-ink-2)', fw: a ? '700' : '600' };
+          bg: a ? 'var(--st-current-glass)' : 'transparent',
+          edge: a ? 'inset 0 0 0 1px var(--st-current-edge)' : 'none',
+          fg: a ? 'var(--st-cue)' : 'var(--st-ink-2)', fw: a ? '700' : '600' };
       })
     };
   }

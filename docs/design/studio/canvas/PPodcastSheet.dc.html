@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — אפשרויות פרק</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PPodcastShow" hint-size="390px,844px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: var(--st-scrim)"></div>
+
+<section aria-label="אפשרויות הפרק" class="st-glass-thick" style="position: absolute; bottom: 0; right: 0; left: 0; box-sizing: border-box; padding: 10px var(--st-safe-x) 28px; border-radius: var(--st-r-sheet) var(--st-r-sheet) 0 0; display: flex; flex-direction: column; gap: 2px">
+<span aria-hidden="true" style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--st-hairline); margin-bottom: 12px"></span>
+<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px">
+<dc-import name="PodArt" size="48" tone="2" phone="true" hint-size="48px,48px"></dc-import>
+<div style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הפרק] · פרק 113</span>
+<span class="st-t-caption">[שם הפודקאסט] · נותרו 26 דק׳</span>
+</div>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<dc-import name="PListRow" label="{{r.label}}" sub="{{r.sub}}" glyph="{{r.glyph}}" trail="none" surface="plain" width="358" hint-size="358px,64px"></dc-import>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // ⋮ on an episode (or a long press): the television's options, plus one the phone alone has —
+    // keeping the file on the phone for listening without a network (and removing it again).
+    const R = (label, glyph, sub) => ({ label: label, glyph: glyph, sub: sub || '' });
+    return {
+      rows: [
+        R('המשך מ־36:30', 'play'),
+        R('נגן מההתחלה', 'restart'),
+        R('הוספה לתור', 'queue'),
+        R('נגן אחרי הפרק הנוכחי', 'skip-fwd'),
+        R('הורדה לטלפון', 'update', 'להאזנה בלי רשת · [גודל הקובץ]'),
+        R('סימון כהושמע', 'played'),
+        R('פרטי הפרק', 'info')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

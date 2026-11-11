@@ -924,6 +924,9 @@ class MainActivity : ComponentActivity() {
             // like any browse screen below.
             overlay == TvOverlay.YOUTUBE_FULL -> overlay = TvOverlay.YOUTUBE
 
+            // A show's page and the player step back inside the podcasts screen (ADR-067).
+            overlay == TvOverlay.PODCASTS && vm.podcastNav.back() -> Unit
+
             overlay == TvOverlay.SETTINGS && settingsSection != SettingsSection.ROOT ->
                 settingsSection = SettingsSection.ROOT
 

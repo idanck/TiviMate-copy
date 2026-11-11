@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>"עוד" פתוח — מדריך, YouTube, הקלטות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PPodcasts" nav="more" hint-size="390px,844px"></dc-import></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: var(--st-scrim)"></div>
+
+<section aria-label="עוד" class="st-glass-thick" style="position: absolute; bottom: 100px; right: 12px; left: 12px; box-sizing: border-box; padding: 10px 14px 18px; border-radius: var(--st-r-sheet); display: flex; flex-direction: column; gap: 14px">
+<span aria-hidden="true" style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--st-hairline)"></span>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px">
+<sc-for list="{{tiles}}" as="t" hint-placeholder-count="3">
+<button style="height: 84px; border: 0; border-radius: 18px; background: var(--st-card); box-shadow: var(--st-edge); color: var(--st-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-family: var(--st-font-ui); font-size: 13px; font-weight: 600; cursor: pointer"><dc-import name="Icon" glyph="{{t.glyph}}" size="24" hint-size="24px,24px"></dc-import>{{t.label}}</button>
+</sc-for>
+</div>
+<button style="height: 44px; border: 0; border-radius: 22px; background: transparent; color: var(--st-ink-2); display: flex; align-items: center; justify-content: center; gap: 8px; font-family: var(--st-font-ui); font-size: 14px; font-weight: 600; cursor: pointer"><dc-import name="Icon" glyph="move" size="18" hint-size="18px,18px"></dc-import>בחירת הלשוניות בפס</button>
+</section>
+
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="more" set="more" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // "עוד" (chosen 11/11) opens a small sheet right above the bar with the guide, YouTube and recordings.
+    // "בחירת הלשוניות בפס" lets each person choose which four stay in the bar (the rest move here).
+    return {
+      tiles: [{ glyph: 'guide', label: 'מדריך' }, { glyph: 'stream', label: 'YouTube' }, { glyph: 'record', label: 'הקלטות' }]
+    };
+  }
+}
+</script>
+</body>
+</html>

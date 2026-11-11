@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — מקטעי הפודקאסטים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div role="tablist" aria-label="פודקאסטים" dir="rtl" style="width: 390px; box-sizing: border-box; padding: 0 var(--st-safe-x); display: flex; gap: 8px; overflow: hidden; font-family: var(--st-font-ui)">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<dc-import name="PChip" label="{{t.label}}" state="{{t.state}}" hint-size="90px,44px"></dc-import>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["foryou","library","favorites","history","discover"],"default":"foryou"},"$preview":{"width":390,"height":44}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The same five parts as on the television, as chips that scroll sideways under the top bar.
+    const cur = this.props.current || 'foryou';
+    const T = [['foryou', 'בשבילך'], ['library', 'ספרייה'], ['favorites', 'מועדפים'], ['history', 'היסטוריה'], ['discover', 'גילוי']];
+    return { tabs: T.map((t) => ({ label: t[1], state: t[0] === cur ? 'selected' : 'rest' })) };
+  }
+}
+</script>
+</body>
+</html>

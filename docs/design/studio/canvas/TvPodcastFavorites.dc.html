@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — מועדפים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="PodTabs" current="favorites" focus="" hint-size="980px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 236px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; gap: 20px">
+<h1 class="st-t-h1">7 פרקים</h1>
+<span class="st-t-caption">פרקים בודדים שסימנת בכוכב, מכל הפודקאסטים — גם אם הפודקאסט עצמו לא בספרייה</span>
+<span style="flex: 1 1 auto"></span>
+<dc-import name="Button" label="נגן הכול" glyph="play" size="m" hint-size="200px,64px"></dc-import>
+</div>
+
+<section aria-label="מועדפים" style="position: absolute; top: 330px; right: var(--st-inset-start); display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="7">
+<dc-import name="PodEpisodeRow" item="{{r}}" focus="{{r.focus}}" art="true" width="1664" hint-size="1664px,88px"></dc-import>
+</sc-for>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Favourites are episodes, not podcasts (a podcast you keep is in the library). Newest-starred first.
+    // The star at the end of each row takes it out again; "נגן הכול" queues them in this order.
+    const R = (meta, dur, status, tone, o) => Object.assign({ title: '[שם הפרק]', meta: meta, dur: dur, status: status, tone: tone, fav: true, focus: false }, o || {});
+    return {
+      rows: [
+        R('[שם הפודקאסט] · 26 באוקטובר', '54:20', 'played', '2', { focus: true }),
+        R('[שם הפודקאסט] · 14 באוקטובר', '1:12:03', 'partial', '4', { pct: 35, left: 'נותרו 47 דק׳' }),
+        R('[שם הפודקאסט] · 3 באוקטובר', '38:50', 'new', '1'),
+        R('[שם הפודקאסט] · 21 בספטמבר', '44:10', 'played', '6'),
+        R('[שם הפודקאסט] · 2 בספטמבר', '29:45', 'played', '3'),
+        R('[שם הפודקאסט] · 17 באוגוסט', '1:01:30', 'played', '5'),
+        R('[שם הפודקאסט] · 5 באוגוסט', '47:00', 'new', '2')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

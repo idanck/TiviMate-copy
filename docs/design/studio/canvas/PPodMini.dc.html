@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — נגן מוקטן לפודקאסט</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.pq-eq{display:flex;align-items:flex-end;gap:2px;height:12px}
+.pq-eq span{width:3px;border-radius:2px;background:var(--st-current);animation:pq-eq 1.1s ease-in-out infinite}
+.pq-eq span:nth-child(2){animation-delay:-.35s}.pq-eq span:nth-child(3){animation-delay:-.7s}
+@keyframes pq-eq{0%,100%{height:3px}50%{height:12px}}
+@media (prefers-reduced-motion: reduce){.pq-eq span{animation:none;height:8px}}
+</style>
+</helmet>
+<div style="width: 390px; box-sizing: border-box; padding: 0 12px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div role="group" aria-label="מתנגן עכשיו" style="position: relative; height: var(--st-h-mini); box-sizing: border-box; padding: 0 10px 0 10px; border-radius: 20px; background: #1E1A12; border: 1.5px solid rgba(255, 181, 71, 0.7); box-shadow: 0 0 0 4px rgba(255, 181, 71, 0.12), 0 10px 28px rgba(0, 0, 0, 0.8); display: flex; align-items: center; gap: 10px; overflow: hidden">
+<dc-import name="PodArt" size="44" tone="2" phone="true" hint-size="44px,44px"></dc-import>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px">
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--st-current); white-space: nowrap; overflow: hidden"><span class="pq-eq" aria-hidden="true"><span></span><span></span><span></span></span>[שם הפודקאסט]</span>
+<span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הפרק]</span>
+</span>
+<button aria-label="30 שניות קדימה" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="skip-fwd" size="22" hint-size="22px,22px"></dc-import></button>
+<button aria-label="השהיה" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: var(--st-current); color: var(--st-on-current); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="pause" size="20" hint-size="20px,20px"></dc-import></button>
+<span aria-hidden="true" style="position: absolute; bottom: 0; right: 0; left: 0; height: 3px; background: rgba(255, 181, 71, 0.18)"><span style="display: block; height: 3px; width: 58%; background: var(--st-current)"></span></span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The mini player while an episode plays, in the amber frame chosen for the radio (10/11, "מסגרת ענבר +
+    // אקולייזר"): the cover in place of the station disc, 30 forward beside pause, and how far along as an
+    // amber line on its foot. A tap opens the full player (PPodcastPlayer).
+    return {};
+  }
+}
+</script>
+</body>
+</html>

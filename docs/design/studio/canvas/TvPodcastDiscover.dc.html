@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — גילוי והוספה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="PodTabs" current="discover" focus="" hint-size="980px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 236px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; gap: 32px">
+<label class="st-anim" style="flex: 1 1 auto; height: 80px; box-sizing: border-box; padding: 0 28px; border-radius: var(--st-r-pill); background: var(--st-cue); box-shadow: var(--st-lift); color: var(--st-on-cue); display: flex; align-items: center; gap: 18px; font-size: 26px; font-weight: 600">
+<dc-import name="Icon" glyph="search" size="30" hint-size="30px,30px"></dc-import>
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">חיפוש פודקאסט</span>
+<input type="text" placeholder="חיפוש פודקאסט לפי שם או מגיש" style="flex: 1 1 auto; min-width: 0; border: 0; background: transparent; font-family: var(--st-font-ui); font-size: 26px; font-weight: 600; color: var(--st-on-cue); outline: none">
+</label>
+<div class="st-card" style="flex: 0 0 640px; box-sizing: border-box; padding: 18px 24px; display: flex; align-items: center; gap: 22px">
+<span aria-hidden="true" style="flex: 0 0 auto; width: 120px; height: 120px; border-radius: 14px; background: var(--st-light); display: flex; align-items: center; justify-content: center; color: var(--st-on-cue); font-size: 16px; font-weight: 700">[קוד QR]</span>
+<span style="display: flex; flex-direction: column; gap: 6px">
+<span style="display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 700"><dc-import name="Icon" glyph="link" size="26" hint-size="26px,26px"></dc-import>הוספה מקישור</span>
+<span class="st-t-meta">יש לך קישור RSS? סורקים בטלפון ומדביקים אותו שם — הפודקאסט נכנס לספרייה כאן</span>
+</span>
+</div>
+</div>
+
+<section aria-label="מומלצים" style="position: absolute; top: 380px; left: 0; right: 0; display: flex; flex-direction: column">
+<div style="padding: 0 var(--st-inset-start) 0 var(--st-safe-x); margin-bottom: 18px; display: flex; align-items: baseline; gap: 16px">
+<h2 class="st-t-h1">פודקאסטים בעברית</h2>
+<span class="st-t-caption">{{sourceCaption}}</span>
+</div>
+<div style="display: flex; align-items: flex-start; gap: var(--st-gap-rail); padding: 20px var(--st-inset-start) 20px var(--st-safe-x); margin-top: -20px; overflow: hidden">
+<sc-for list="{{shows}}" as="s" hint-placeholder-count="8">
+<div style="flex: 0 0 190px; display: flex; flex-direction: column; gap: 12px">
+<dc-import name="PodArt" size="190" tone="{{s.tone}}" hint-size="190px,190px"></dc-import>
+<span style="font-size: 21px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.title}}</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 18px; color: {{s.c}}"><dc-import name="Icon" glyph="{{s.g}}" size="20" hint-size="20px,20px"></dc-import>{{s.meta}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="לפי נושא" style="position: absolute; top: 760px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 22px">
+<h2 class="st-t-h1">לפי נושא</h2>
+<div role="group" aria-label="נושאים" style="display: flex; flex-wrap: wrap; gap: 12px">
+<sc-for list="{{topics}}" as="t" hint-placeholder-count="10">
+<dc-import name="Chip" label="{{t}}" state="rest" hint-size="160px,56px"></dc-import>
+</sc-for>
+</div>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Finding and adding a podcast. Search by name or host, a link from the
+    // phone through a QR code (no RSS address typed on a remote), a rail to start from, and topics.
+    // OPEN: where search and the rail come from — a list kept on the Pi, Apple, or Podcast Index. The screen
+    // stays the same with each; only the rail's caption and its contents change.
+    const S = (tone, saved) => ({ title: '[שם הפודקאסט]', tone: tone,
+      g: saved ? 'check' : 'plus', meta: saved ? 'בספרייה שלך' : 'הוספה לספרייה',
+      c: saved ? 'var(--st-current)' : 'var(--st-ink-3)' });
+    return {
+      sourceCaption: '[מקור הרשימה — טרם הוחלט]',
+      shows: [S('1'), S('3', true), S('4'), S('6'), S('2', true), S('5'), S('1'), S('4')],
+      topics: ['חדשות ואקטואליה', 'היסטוריה', 'מדע וטכנולוגיה', 'כלכלה וכסף', 'ספורט', 'תרבות', 'בריאות', 'ילדים ומשפחה', 'קומדיה', 'סיפורים ותחקירים']
+    };
+  }
+}
+</script>
+</body>
+</html>

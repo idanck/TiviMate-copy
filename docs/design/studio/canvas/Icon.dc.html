@@ -13,7 +13,7 @@
 </helmet>
 <svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: 0 0 auto; color: inherit"><path d="{{d}}" fill="{{fill}}" stroke="{{stroke}}"></path></svg>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"glyph":{"editor":"enum","options":["play","pause","guide","star","bell","record","search","settings","chevron-left","chevron-up","chevron-down","check","lock","trash","rewind","forward","restart","subtitles","audio","aspect","plus","tv","radio","hide","move","info","alert","update","back","home","menu","appearance","network","backup","pulse","star-on","close","history","grid","music","movie","fullscreen","storage"],"default":"play"},"size":{"editor":"int","default":28,"min":12,"max":96},"$preview":{"width":48,"height":48}}'>
+<script type="text/x-dc" data-dc-script data-props='{"glyph":{"editor":"enum","options":["play","pause","guide","star","bell","record","search","settings","chevron-left","chevron-up","chevron-down","check","lock","trash","rewind","forward","restart","subtitles","audio","aspect","plus","tv","radio","hide","move","info","alert","update","back","home","menu","appearance","network","backup","pulse","star-on","close","history","grid","music","movie","fullscreen","storage","sport","news","swap","stream","podcast","skip-back","skip-fwd","speed","moon","queue","library","link","more","played"],"default":"play"},"size":{"editor":"int","default":28,"min":12,"max":96},"$preview":{"width":48,"height":48}}'>
 class Component extends DCLogic {
   renderVals() {
     const P = {
@@ -59,7 +59,22 @@ class Component extends DCLogic {
       'music': 'M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0zM20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0z',
       'movie': 'M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8l1.5-4h13L20 8M9.5 4L8 8M15.5 4L14 8',
       'fullscreen': 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
-      'storage': 'M4 4h16v7H4zM4 13h16v7H4zM8 7.5h3M8 16.5h3'
+      'storage': 'M4 4h16v7H4zM4 13h16v7H4zM8 7.5h3M8 16.5h3',
+      'sport': 'M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM3 12h18M12 3v18M5.6 5.6a9 9 0 0 1 0 12.8M18.4 5.6a9 9 0 0 0 0 12.8',
+      'news': 'M4 5h13v13a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2zM17 9h3v9a2 2 0 0 1-2 2M7 9h3v3H7zM12.5 9H14M12.5 12H14M7 15.5h7',
+      'swap': 'M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4',
+      'stream': 'M11 4a8 8 0 1 0 8 8M9.5 9v6l5-3zM15 3.5a6 6 0 0 1 5.5 5.5',
+      // Podcasts (11/11): the menu entry, the player's transport and the library's actions.
+      'podcast': 'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7',
+      'skip-back': 'M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 3.5v3.7h3.7',
+      'skip-fwd': 'M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 3.5v3.7h-3.7',
+      'speed': 'M4.5 16.5a8 8 0 1 1 15 0M12 16.5l4-5.5',
+      'moon': 'M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z',
+      'queue': 'M4 6h12M4 11h12M4 16h7M17.5 13.5v7M14 17h7',
+      'library': 'M5 4v16M9.5 4v16M14 4.6l5 14.8',
+      'link': 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1',
+      'more': 'M12 5.5v.5M12 12v.5M12 18.5v.5',
+      'played': 'M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM8 12.5l3 3 5-6'
     };
     const FILLED = { 'play': true, 'pause': true, 'record': true, 'star-on': true };
     const g = P[this.props.glyph] ? this.props.glyph : 'play';

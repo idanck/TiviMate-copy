@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — כרטיס פרק או פודקאסט</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; display: flex; flex-direction: column; gap: 12px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<dc-import name="PodArt" size="{{wn}}" tone="{{tone}}" state="{{state}}" badge="{{badge}}" hint-size="190px,190px"></dc-import>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="height: 5px; border-radius: 3px; background: var(--st-track); overflow: hidden; margin-top: -2px"><div style="height: 5px; width: {{pct}}; border-radius: 3px; background: var(--st-ink)"></div></div></sc-if>
+<span style="font-size: 21px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{title}}</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 18px; color: var(--st-ink-3); white-space: nowrap; overflow: hidden">
+<sc-if value="{{isNew}}" hint-placeholder-val="{{false}}"><span aria-label="חדש" role="img" style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: var(--st-ink)"></span></sc-if>
+<span style="overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","focus","onscreen"],"default":"rest"},"width":{"editor":"int","default":190,"min":120,"max":360},"$preview":{"width":190,"height":290}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // A card on a podcasts rail: an episode (cover, its title in two lines, the show and when or how much is
+    // left) or a show (cover with the count of new episodes, its name). A started episode carries a thin
+    // white bar under the cover — how far you got; a new one a white dot before its line.
+    const it = this.props.item || { title: '[שם הפרק]', meta: '[שם הפודקאסט] · היום', tone: '1' };
+    const w = Number(this.props.width) || 190;
+    const hasPct = it.pct !== undefined && it.pct !== null && it.pct !== '';
+    return {
+      w: w + 'px', wn: w, tone: it.tone || '1', state: this.props.state || it.state || 'rest', badge: it.badge || '',
+      title: it.title, meta: it.meta, isNew: !!it.isNew,
+      hasPct: hasPct, pct: hasPct ? Number(it.pct) + '%' : '0%'
+    };
+  }
+}
+</script>
+</body>
+</html>

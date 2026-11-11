@@ -880,6 +880,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Bumped per [playVod] so a slow resume read cannot start an older tap's film last. */
     private var vodPlayGeneration = 0
 
+    /** Where the podcasts screen is, so the television's Back can climb it (ADR-067). */
+    val podcastNav = com.idanck.shidur.ui.podcasts.PodcastNav()
+
     /** The podcast episode playing, if one is (ADR-067). */
     val podcast = PodcastSession(
         player = player,

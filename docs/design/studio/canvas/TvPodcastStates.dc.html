@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — מצבים והודעות</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="padding: 72px 96px; box-sizing: border-box; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 36px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="6">
+<section class="st-panel" style="box-sizing: border-box; padding: 36px 40px; display: flex; flex-direction: column; gap: 16px">
+<span class="st-t-caption">{{c.where}}</span>
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="flex: 0 0 56px; width: 56px; height: 56px; border-radius: 50%; background: var(--st-card); box-shadow: var(--st-edge); display: flex; align-items: center; justify-content: center; color: {{c.tint}}"><dc-import name="Icon" glyph="{{c.glyph}}" size="28" hint-size="28px,28px"></dc-import></span>
+<h2 class="st-t-h1">{{c.title}}</h2>
+</div>
+<p class="st-t-body" style="margin: 0; font-size: 22px; color: var(--st-ink-2)">{{c.body}}</p>
+<div style="display: flex; gap: 14px; margin-top: auto">
+<dc-import name="Button" label="{{c.a}}" glyph="{{c.ag}}" size="m" focused="true" hint-size="240px,64px"></dc-import>
+<sc-if value="{{c.hasB}}" hint-placeholder-val="{{true}}"><dc-import name="Button" label="{{c.b}}" glyph="" variant="ghost" size="m" hint-size="160px,64px"></dc-import></sc-if>
+</div>
+</section>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // What can go wrong or wait, and what Shidur says. Each in the place it happens.
+    const C = (where, glyph, tint, title, body, a, ag, b) => ({ where: where, glyph: glyph, tint: tint, title: title, body: body, a: a, ag: ag, b: b || '', hasB: !!b });
+    return {
+      cards: [
+        C('הספרייה · ריקה', 'podcast', 'var(--st-ink)', 'עדיין אין פודקאסטים בספרייה',
+          'פודקאסט ששומרים מופיע כאן, והפרקים החדשים שלו מגיעים לשורה "פרקים חדשים".', 'לגילוי והוספה', 'search'),
+        C('בפתיחה · ממשיכים ממכשיר אחר', 'swap', 'var(--st-ink)', 'בטלפון הגעת ל־42:10',
+          'הפרק הזה הושמע בטלפון לפני שעה, רחוק יותר ממה שנשמר כאן. מאיפה להמשיך?', 'מ־42:10', 'play', 'מ־18:05'),
+        C('עמוד הפודקאסט · הפיד', 'alert', 'var(--st-error)', 'רשימת הפרקים לא התעדכנה',
+          'הפיד של הפודקאסט לא נטען. הפרקים שכבר נטענו זמינים, וננסה שוב בעוד שעה.', 'ניסיון חוזר', 'update', 'הבנתי'),
+        C('בנגן · הקובץ', 'alert', 'var(--st-error)', 'הפרק הזה לא זמין יותר',
+          'קובץ השמע לא נמצא בכתובת שבפיד. ייתכן שהמפיק הסיר אותו או העביר אותו.', 'לפרק הבא בתור', 'skip-fwd', 'חזרה'),
+        C('הוספה מקישור', 'link', 'var(--st-error)', 'הקישור אינו פיד של פודקאסט',
+          'הכתובת נפתחה, אבל אין בה פרקים עם קובצי שמע. בדקו שהעתקתם את קישור ה־RSS.', 'הבנתי', 'check'),
+        C('טיימר שינה · נגמר', 'moon', 'var(--st-ink)', 'הניגון נעצר',
+          'טיימר השינה הסתיים. המקום נשמר, וממשיכים ממנו בלחיצה על OK.', 'המשך', 'play', 'סגירה')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — היסטוריה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="פודקאסטים" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: 0"><dc-import name="PPodTabs" current="history" hint-size="390px,44px"></dc-import></div>
+
+<div style="position: absolute; top: 146px; right: var(--st-safe-x); left: var(--st-safe-x); height: 44px; display: flex; align-items: center; justify-content: space-between">
+<span class="st-t-meta">כל פרק שהתחלת, בכל מכשיר</span>
+<dc-import name="PButton" label="ניקוי" glyph="trash" variant="ghost" size="m" hint-size="90px,44px"></dc-import>
+</div>
+
+<section aria-label="היסטוריה" style="position: absolute; top: 196px; right: var(--st-safe-x); left: var(--st-safe-x); bottom: 92px; overflow: hidden; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="6">
+<sc-if value="{{it.isHead}}" hint-placeholder-val="{{false}}"><span style="display: block; padding: {{it.pad}}; font-size: 13px; font-weight: 700; color: var(--st-ink-2)">{{it.label}}</span></sc-if>
+<sc-if value="{{it.isRow}}" hint-placeholder-val="{{true}}"><dc-import name="PPodEpisodeRow" item="{{it.r}}" art="true" width="358" hint-size="358px,104px"></dc-import></sc-if>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="podcasts" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // History by day, the device in each row's line ("בטלוויזיה"). Swipe a row to remove it; "ניקוי" asks first.
+    const H = (label, first) => ({ isHead: true, isRow: false, label: label, pad: first ? '0 8px 2px' : '10px 8px 2px' });
+    const R = (o) => ({ isHead: false, isRow: true, r: Object.assign({ title: '[שם הפרק]' }, o) });
+    return {
+      items: [
+        H('היום', true),
+        R({ meta: '[שם הפודקאסט] · כאן, 08:15', status: 'playing', pct: 58, tone: '2' }),
+        R({ meta: '[שם הפודקאסט] · בטלוויזיה, 20:31', status: 'partial', pct: 30, left: 'נותרו 34 דק׳', tone: '1' }),
+        H('אתמול'),
+        R({ meta: '[שם הפודקאסט] · כאן, 18:40', status: 'played', fav: true, tone: '4' }),
+        R({ meta: '[שם הפודקאסט] · בטלוויזיה, 22:05', status: 'played', tone: '5' })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
