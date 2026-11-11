@@ -7,9 +7,10 @@ the same television on 2026-11-07 and the owner confirmed it on the screen (*0.1
 television* below), with one fault (*The vanishing interface*). 0.2.0 adds the guide and the
 diagnostics for that fault, 0.3.0 the radio and the answer to that fault the owner chose on
 2026-11-08 (*0.3.0* below); neither has yet been run on a television. 0.4.0, a shell that updates
-itself, is built (2026-11-11, *0.4.0* and *As built* below) and not yet run on a television either:
-the owner asked for it before 0.2.0 and 0.3.0 had been seen there, so the first run on the
-television now covers all three. Decided by the owner on
+itself, is built (2026-11-11, *0.4.0* and *As built* below) and ran on the owner's father's
+webOS 5 television the same day: it took 0.4.1 from `updates.idanck.com` by itself and ran it
+(*0.4.0 on the television* below). 0.2.0's guide and 0.3.0's radio and takeover ran there as part
+of that build, without a check of their own yet. Decided by the owner on
 2026-11-06: *build the LG version again, with webOS 5 (2020, Chromium 68) as the oldest television
 supported.* Replaces ADR-052, ADR-053 and ADR-055 (withdrawn), whose findings it builds on.
 
@@ -603,6 +604,28 @@ webOS 5's Node 8.12 (`last check`); how long the signature and hash checks take 
 television's processor. The test: install 0.4.0 from the phone, see `last check: failed … 404` or
 `up to date` 20 seconds after the screen is up; publish a 0.4.1 from the Pi; launch twice; the
 corner shows `0.4.1 · <commit> · עדכון`.
+
+## 0.4.0 on the television (2026-11-11)
+
+Installed from the owner's phone (Termux, `ares-install`) on his father's webOS 5 television,
+built from `main` at `6bfb0ab`; then 0.4.1 (`02a9cce`, a bundle-only release) published from the
+Pi with `publish-bundle.sh`. What `shidur.state()` said:
+
+- **First launch of 0.4.0**: the packaged bundle, loaded by address; the check 20 seconds after the
+  first screen got `http 404` (nothing published yet). So webOS 5's Node 8.12 reaches
+  `updates.idanck.com` over HTTPS, and the host serves `/webos/`. localStorage: 1 MB written in
+  27 ms and read back in 21 ms.
+- **The update host answered 206 to a request with no range** (the R2 read was passed the request's
+  headers unconditionally), and the shell takes 200 only. Fixed in the Worker the same day: a 206
+  only when the request asks for a range, as in `nexplorer-updates`. The Android paths were read
+  before and after, unchanged; a ranged APK read still gets 206.
+- **After 0.4.1 was published**: the check found it, verified the signature in 220 ms and the three
+  files' SHA-512 in 338 ms, and stored it as pending. At the next launch it ran:
+  `0.4.1 02a9cce2 (downloaded, loaded as blob)`, no errors, nothing marked bad. **A Blob script
+  runs from a `file://` page on webOS 5**, so the inline fallback was not needed. The owner saw
+  `0.4.1` in the corner.
+- The publish script's first runs against GitHub: `--dry-run`, then the publish, both as designed,
+  with the read-only token `SHIDUR_WEBOS_GITHUB_TOKEN`.
 
 ## Alternatives rejected
 

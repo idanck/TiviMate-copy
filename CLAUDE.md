@@ -140,7 +140,7 @@ box (on the television 2026-11-07), 0.2.0 adds the guide (its grid keeps two off
 `webos/src/ui/grid.ts`, `translateY` for rows and `translateX` for hours), 0.3.0 the radio and full
 screen by itself after 25 minutes without a key (`webos/src/ui/idle.ts`, with LG's
 `screenSaverProperties.preferredType: 2` in `appinfo.json`), 0.4.0 a shell that updates itself
-(`webos/shell/boot.js`; built 2026-11-11, ADR-057 *As built*, not yet run on the television). The
+(`webos/shell/boot.js`; ADR-057 *As built*; on the television since 2026-11-11, where it took 0.4.1 by itself). The
 shell's files are pinned by `webos/test/shell-guard.test.ts`: changing them means raising `SHELL`
 in `webos/scripts/shell-plugin.ts`. Bundles are signed and published only from the Pi
 (`webos/tools/publish-bundle.sh`); nothing in CI holds the key. Its CI is `.github/workflows/webos.yml`; `cd webos && npm ci
