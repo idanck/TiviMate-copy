@@ -8,13 +8,13 @@ playing in its box, full screen on OK — seen working on the television on 2026
 the guide (Green, 0.2.0), the diagnostics for the interface that vanished after some minutes on
 that television, and in 0.3.0 the radio (Yellow) and the answer to that fault the owner chose:
 LG's `preferredType: 2` screen saver, and full screen by itself after 25 minutes without a key
-(ADR-057, *The vanishing interface* and *0.3.0*). 0.2.0, 0.3.0 and 0.4.0 have not yet run on the
-television. The order from here (the owner's, 2026-11-08), each step after the one before has been
+(ADR-057, *The vanishing interface* and *0.3.0*). 0.4.0 ran on the television on 2026-11-11 and
+took 0.4.1 from the update host by itself (ADR-057, *0.4.0 on the television*). The order from here (the owner's, 2026-11-08), each step after the one before has been
 seen working on the television (0.4.0 was asked for before 0.2.0 and 0.3.0 were):
 
 1. **0.3.0** — radio, full screen after 25 idle minutes, the spike removed.
 2. **0.4.0** — the shell that updates itself from `updates.idanck.com` (ADR-057, *0.4.0* and *As
-   built*): built, not yet run on the television.
+   built*): on the television since 2026-11-11; later versions arrive through it.
 3. **Sport and News mode** — two or four videos, with a fallback to one (ADR-057, *Two or four videos*).
 4. Then search, settings and the rest.
 
