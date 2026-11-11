@@ -14,6 +14,7 @@ import { flashInfo } from './PlayerHost';
 import { focus } from './spatial';
 import { remoteUsed } from './remote';
 import { watch } from './watch';
+import { buildLine } from './shell';
 
 interface GroupEntry {
   id: string;
@@ -134,7 +135,7 @@ export function LiveScreen() {
           {!current && <div class="slot-empty">בחר ערוץ ולחץ OK</div>}
         </div>
         {current ? <NowPanel channel={current} /> : <Status />}
-        <div class="build faint ltr">{`Shidur ${__APP_VERSION__} · ${__APP_SHA__}`}</div>
+        <div class="build faint ltr">{buildLine()}</div>
       </section>
     </div>
   );

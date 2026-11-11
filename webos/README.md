@@ -3,18 +3,18 @@
 Shidur as a packaged webOS app, for LG televisions from webOS 5 (2020, Chromium 68). Decisions and
 scope: `docs/adr/ADR-057-lg-televisions-from-webos-5.md`.
 
-**Now: 0.3.0**: the channel list (the two built-in playlists, ADR-013 and ADR-015), one channel
+**Now: 0.4.0**, the shell that updates itself (below), over 0.3.0's app: the channel list (the two built-in playlists, ADR-013 and ADR-015), one channel
 playing in its box, full screen on OK — seen working on the television on 2026-11-07 as 0.1.0 —
 the guide (Green, 0.2.0), the diagnostics for the interface that vanished after some minutes on
 that television, and in 0.3.0 the radio (Yellow) and the answer to that fault the owner chose:
 LG's `preferredType: 2` screen saver, and full screen by itself after 25 minutes without a key
-(ADR-057, *The vanishing interface* and *0.3.0*). 0.2.0 and 0.3.0 have not yet run on the
+(ADR-057, *The vanishing interface* and *0.3.0*). 0.2.0, 0.3.0 and 0.4.0 have not yet run on the
 television. The order from here (the owner's, 2026-11-08), each step after the one before has been
-seen working on the television:
+seen working on the television (0.4.0 was asked for before 0.2.0 and 0.3.0 were):
 
 1. **0.3.0** — radio, full screen after 25 idle minutes, the spike removed.
-2. **0.4.0** — the shell that updates itself from `updates.idanck.com` (ADR-057, *0.4.0*: designed,
-   not yet built).
+2. **0.4.0** — the shell that updates itself from `updates.idanck.com` (ADR-057, *0.4.0* and *As
+   built*): built, not yet run on the television.
 3. **Sport and News mode** — two or four videos, with a fallback to one (ADR-057, *Two or four videos*).
 4. Then search, settings and the rest.
 
@@ -23,17 +23,22 @@ seen working on the television:
 - `src/` — the app (Preact), ported from `web/src`. `src/data/`'s parsers are `web/src/data/`'s
   byte for byte (`test/parity.test.ts`).
 - `service/` — the JS service the app reads providers through, on the Luna bus (Node 8.12, ES2017).
+- `shell/` — the shell (`boot.js`, ES5): the only script `index.html` loads. It decides whether the
+  packaged bundle or a downloaded one runs, and asks for updates; `public-key.txt` is the half of
+  the signing key it checks manifests with. `scripts/shell-plugin.ts` builds it.
 - `public/polyfills.js` — what Chromium 68 lacks, loaded first in the page and in the guide worker.
 - `appinfo/` — the manifest (`resolution: 1920x1080`, version), icons, splash.
 - `scripts/` — `check-es.mjs`, `check-css.mjs` (nothing newer than webOS 5 ships),
-  `package.mjs` (the `.ipk`).
+  `check-shell.mjs` (what the build wrote for the shell), `package.mjs` (the `.ipk`).
+- `tools/publish-bundle.sh` — signs and publishes a bundle, on the Pi only (below).
 - `tools/cdp.mjs` — reads and drives the page on the television over DevTools.
 
 ## Build and check
 
 ```sh
 npm ci              # in Termux: npm ci --force (@webos-tools/cli refuses Android otherwise)
-npm run check       # typecheck, tests, build, check:es, check:css
+npm run check       # typecheck, tests, build, check:es, check:css, check:shell
+SHIDUR_SELF_UPDATE=0 npm run build   # the store's build: no update address, no key, no download
 npm run package < /dev/null   # ipk/com.idanck.shidur_<version>_all.ipk
 ```
 
@@ -44,7 +49,7 @@ npm run package < /dev/null   # ipk/com.idanck.shidur_<version>_all.ipk
 
 ```sh
 npx ares-launch -d <tv> --close com.idanck.shidur   # before installing a new build
-npx ares-install -d <tv> ipk/com.idanck.shidur_0.3.0_all.ipk
+npx ares-install -d <tv> ipk/com.idanck.shidur_0.4.0_all.ipk
 npx ares-launch -d <tv> com.idanck.shidur
 TV=<tv-address> MATCH=shidur node tools/cdp.mjs state   # what the app says about itself
 TV=<tv-address> MATCH=shidur node tools/cdp.mjs key Down 5
@@ -81,6 +86,28 @@ scrolls: it moves its rows with `translateY` and its hours with `translateX` (`s
 whether its tree is whole, whether it is visible, errors and webOS events with their times, the
 heap, and one line a minute for the last minutes (`src/ui/watch.ts`).
 
+## Updates without the phone (0.4.0)
+
+The installed shell asks `https://updates.idanck.com/webos/manifest.json` 20 seconds after the
+first screen is up, through the app's own service. A newer bundle whose manifest is signed with the
+Pi's key, and whose files match it byte for byte, is stored and runs, silently, at the launch after.
+One that throws before its first screen, or draws none in 60 seconds, is marked bad and never runs
+again; the packaged bundle runs instead. The corner shows `· עדכון` while a downloaded bundle runs,
+and `cdp.mjs state` prints the shell's lines: what runs, what is pending or bad, the last check.
+
+To publish one: raise `appinfo.json`'s version (nothing of the shell), merge to `main`, and once
+the `webOS app` run there is green, on the Pi:
+
+```sh
+set -a; source <the Pi's secrets file>; set +a
+webos/tools/publish-bundle.sh --dry-run
+webos/tools/publish-bundle.sh
+```
+
+A change to the shell itself (`index.html`, `shell/`, `service/`, the fonts, icons, `appinfo.json`
+other than its version) fails `test/shell-guard.test.ts` until `SHELL` is raised, and reaches the
+television only by installing from the phone. A reinstall clears what the app downloaded.
+
 ## The spike
 
 Step 1's test page answered how the app draws and scrolls on webOS 5 (ADR-057, *Step 2*). It was
@@ -90,4 +117,5 @@ back if a later round needs it.
 ## Versioning
 
 The webOS version is its own, in `appinfo/appinfo.json`: LG reviews every release by hand, so it
-ships on its own schedule, and nothing is published from CI.
+ships on its own schedule, and nothing is published from CI. CI keeps the bundle
+(`shidur-webos-bundle`) beside the `.ipk`; only the Pi signs and publishes it.

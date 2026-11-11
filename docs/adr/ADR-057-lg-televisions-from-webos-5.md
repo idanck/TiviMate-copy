@@ -7,7 +7,9 @@ the same television on 2026-11-07 and the owner confirmed it on the screen (*0.1
 television* below), with one fault (*The vanishing interface*). 0.2.0 adds the guide and the
 diagnostics for that fault, 0.3.0 the radio and the answer to that fault the owner chose on
 2026-11-08 (*0.3.0* below); neither has yet been run on a television. 0.4.0, a shell that updates
-itself, is designed below and not yet built. Decided by the owner on
+itself, is built (2026-11-11, *0.4.0* and *As built* below) and not yet run on a television either:
+the owner asked for it before 0.2.0 and 0.3.0 had been seen there, so the first run on the
+television now covers all three. Decided by the owner on
 2026-11-06: *build the LG version again, with webOS 5 (2020, Chromium 68) as the oldest television
 supported.* Replaces ADR-052, ADR-053 and ADR-055 (withdrawn), whose findings it builds on.
 
@@ -344,7 +346,8 @@ first): **0.2.0** the guide and the fault's diagnostics → **0.3.0** options A 
 radio, and the spike's removal → **0.4.0** the shell that updates itself (option 2 below, designed
 under *0.4.0*) → **Sport and News mode** (decided: build it, fall back to one video if the
 television refuses a second decoder; the design is under *Two or four videos*) → search, settings
-and the rest. Each is run on the television before the next is built on it.
+and the rest. Each is run on the television before the next is built on it, except that the owner
+asked on 2026-11-11 for 0.4.0 to be built before 0.2.0 and 0.3.0 had run there.
 
 ### Radio stations (0.3.0)
 
@@ -393,7 +396,7 @@ on the television that extends the Developer Mode session. What is known for it:
 form is `ares-launch com.palmdts.devmode -p extend=true -d <tv>` (LG's forum answer above), and
 the same answer puts the session's maximum at 1000 hours. Nothing more is designed or built.
 
-## 0.4.0: the shell that updates itself (designed 2026-11-08, not yet built)
+## 0.4.0: the shell that updates itself (designed 2026-11-08, built 2026-11-11)
 
 Option 2 above, the owner's choice: the packaged app (the **shell**) downloads a newer **bundle**
 of the interface and runs it on the next launch, falling back to the bundle packaged with it. The
@@ -401,8 +404,8 @@ owner's decisions on it (2026-11-08): the bundle and its manifest live on `updat
 apart from the Android files; the manifest is **signed with a private key kept on his Raspberry
 Pi**, never in the repo or CI; an update is **checked only on launch**, downloaded in the
 background, and **runs silently on the next launch** — no prompt, no notice. So a new version
-reaches the screen on the launch after the one that found it. This is the design, to be built
-after the owner has seen 0.3.0 on the television; nothing of it exists yet.
+reaches the screen on the launch after the one that found it. This was the design; what was built
+on 2026-11-11 follows it, with the differences listed under *As built*.
 
 ### What is in a bundle, and what stays in the shell
 
@@ -537,12 +540,69 @@ after the owner has seen 0.3.0 on the television; nothing of it exists yet.
   only loads the packaged bundle, with no manifest, no key and no download, and CI checks that the
   store package holds no `updates.idanck.com`. The store build is that one.
 
+### As built (2026-11-11)
+
+The owner's choices for it, 2026-11-11: the update host changed and deployed (by Claude, from the
+Pi), the signing key made on the Pi (by Claude), and a new read-only GitHub token for the publish
+script (made by the owner). Where the build differs from the design above, or settles what it left
+open:
+
+- **The files**: `webos/shell/boot.js` (the shell, ES5, `check-es --ecma 5`), built by
+  `webos/scripts/shell-plugin.ts` into `dist/boot.js` after `var SHELL_CONFIG = {…}` and tweetnacl
+  1.0.3's `nacl-fast.min.js`; `webos/shell/public-key.txt`; `webos/src/ui/shell.ts` (the bundle's
+  side: `shidurShell.started()` after the first render, the corner line, `shidur.state()`);
+  `webos/tools/publish-bundle.sh`. `SHELL` is 1, in `shell-plugin.ts`; `test/shell-guard.test.ts`
+  holds the hash of the shell's files beside it.
+- **The bundle's files sit at the package's root** — `style.css`, `polyfills.js`, `index.js`, not
+  `assets/index-*.js` — so the stylesheet's `./fonts/…` resolve the same from the packaged
+  bundle's `<link>` and from a downloaded one's `<style>`; `check-shell.mjs` fails a `url()` that
+  is not relative to the page. The packaged bundle is loaded by address, one script after the
+  other; a downloaded one as Blob scripts, and as inline scripts if a Blob script fails to load.
+- **The private key is a line of the Pi's secrets file** (`SHIDUR_WEBOS_SIGNING_KEY_B64`, the PEM in
+  base64), not a file of its own: that file is the one the Pi backs up, encrypted, every day. The
+  script writes it to a temporary file of mode 600 only while it signs.
+- **On trial**: a bundle that has drawn a screen once (`good`) is not marked bad because a later
+  launch was closed before its first screen; only one not yet seen working is. A throw before the
+  first screen, or no screen in 60 seconds, still marks any downloaded bundle bad.
+- **A downgrade** is a version not newer than the packaged one, the running one, or the one already
+  pending.
+- **The update host** (`tivicopy-updates`) serves `/webos/…` since 2026-11-11, and stores `.js` and
+  `.css` with their own types (UTF-8); the Android paths were read before and after the deploy and
+  had not changed. The version before is kept on the Pi.
+- **The store build's check** is narrower than written above: the store package names no
+  `updates.idanck.com/webos` and holds no public key and no `bundle.json` (`check-shell.mjs
+  --store`). The address `updates.idanck.com` itself stays, since the built-in playlists name an
+  older address on it.
+- **What the tests cover** (`test/shell.test.mjs`): manifests signed by `openssl` the way the Pi
+  signs them, verified by the shell's tweetnacl; a bundle downloaded through the real
+  `service/net.js` from a local server, Hebrew and more than one 256 K part included, through
+  localStorage and back, byte for byte; promotion, trial, bad, downgrade, wrong shell, wrong app,
+  files off the host, a file changed in storage, the Blob fallback and the store build; and
+  `publish-bundle.sh` itself (keygen, the artifact, its checks, the upload order, a wrong token)
+  against stand-ins for GitHub and the update host, ending with the shell downloading what it
+  published. None of this has run on a television.
+
+To publish a bundle, on the Pi, after a green `webOS app` run on `main` whose `appinfo.json`
+version is higher than the published one:
+
+```sh
+set -a; source <the Pi's secrets file>; set +a
+webos/tools/publish-bundle.sh --dry-run   # checks everything, uploads nothing
+webos/tools/publish-bundle.sh
+```
+
+A bundle-only release raises `appinfo.json`'s version (0.4.1, 0.4.2…) and nothing of the shell;
+the first 0.4.0 shell still goes in from the phone, as every version before it.
+
 ### Left for 0.4.0's first run on the television
 
-Whether a Blob script runs from a `file://` page on webOS 5; localStorage's real room and speed;
-that the service reaches `updates.idanck.com`; how long the signature and hash checks take on the
-television's processor. For the owner before it is built: whether the update host accepts the
-`webos/` path, and the Pi's two tokens (upload, and read-only GitHub).
+All in `shidur.state()` (`cdp.mjs state`, the `shell` lines), so one visit answers them: whether a
+Blob script runs from a `file://` page on webOS 5 (`loaded as blob` or `inline`); localStorage's
+room and speed (1 MB written and read back); that the service reaches `updates.idanck.com` with
+webOS 5's Node 8.12 (`last check`); how long the signature and hash checks take on the
+television's processor. The test: install 0.4.0 from the phone, see `last check: failed … 404` or
+`up to date` 20 seconds after the screen is up; publish a 0.4.1 from the Pi; launch twice; the
+corner shows `0.4.1 · <commit> · עדכון`.
 
 ## Alternatives rejected
 

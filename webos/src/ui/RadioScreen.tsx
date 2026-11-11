@@ -11,6 +11,7 @@ import { Icon, type IconName } from './icons';
 import { remoteUsed } from './remote';
 import { focus } from './spatial';
 import { watch } from './watch';
+import { buildLine } from './shell';
 
 const REGION_LABEL: Record<RadioRegion, string> = {
   NORTH: 'צפון',
@@ -110,7 +111,7 @@ export function RadioScreen() {
 
       <section class="stage" aria-label="רדיו">
         {current ? <NowPlaying station={current} /> : <RadioStatus />}
-        <div class="build faint ltr">{`Shidur ${__APP_VERSION__} · ${__APP_SHA__}`}</div>
+        <div class="build faint ltr">{buildLine()}</div>
       </section>
     </div>
   );

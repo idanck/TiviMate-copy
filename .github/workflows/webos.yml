@@ -3,8 +3,10 @@ name: webOS app
 # Shidur for LG televisions, from webOS 5 (webos/, ADR-057): typecheck, tests, the build for
 # Chromium 68 (every script ES2019 with nothing newer than Chromium 68, the JS service ES2017 for
 # Node 8.12, the stylesheet with no CSS newer than Chromium 68), and the .ipk, kept as an artifact
-# for installing on a television in developer mode. Nothing is published from here: LG reviews
-# every release by hand.
+# for installing on a television in developer mode. Also the bundle the installed shell downloads
+# (ADR-057 0.4.0): its three files and bundle.json, kept as the artifact shidur-webos-bundle. Nothing
+# is published from here: the Pi signs and publishes a bundle by hand (webos/tools/publish-bundle.sh),
+# with a key that is never in CI, and LG reviews every store release by hand.
 on:
   push:
     branches-ignore: ["apk", "apk-preview", "qa-results"]
@@ -55,8 +57,30 @@ jobs:
       - name: The stylesheet holds nothing newer than Chromium 68
         run: npm run check:css
 
+      - name: The shell, and the bundle.json it is published by
+        run: npm run check:shell
+
+      - name: The publish script parses
+        run: bash -n tools/publish-bundle.sh
+
+      # Before the store build below replaces dist/.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shidur-webos-bundle
+          path: |
+            webos/dist/style.css
+            webos/dist/polyfills.js
+            webos/dist/index.js
+            webos/dist/bundle.json
+          if-no-files-found: error
+
       - name: Package the app
         run: npm run package < /dev/null
+
+      # The build for LG's store (ADR-057 0.4.0): a shell that only loads its packaged bundle, with
+      # no update address, no public key and no download.
+      - name: The store build does not update itself
+        run: SHIDUR_SELF_UPDATE=0 npm run build && npm run check:es && node scripts/check-shell.mjs --store
 
       - name: The DevTools driver parses
         run: node --check tools/cdp.mjs
