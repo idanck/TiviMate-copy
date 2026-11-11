@@ -98,6 +98,10 @@ class MainActivity : ComponentActivity() {
     private var overlay: TvOverlay
         get() = shownOverlay
         set(value) {
+            // DIAGNOSTIC (issue #152, QA-24), debug builds only; removed before merge.
+            if (com.idanck.shidur.BuildConfig.DEBUG) {
+                android.util.Log.d("ShidurNav", "overlay $shownOverlay -> $value", Throwable())
+            }
             shownOverlay = value
             openedFromVideo = null
         }
@@ -679,7 +683,16 @@ class MainActivity : ComponentActivity() {
             return true
         }
         noteInteraction()
-        return super.dispatchKeyEvent(event)
+        // DIAGNOSTIC (issue #152, QA-24), debug builds only; removed before merge.
+        val handled = super.dispatchKeyEvent(event)
+        if (com.idanck.shidur.BuildConfig.DEBUG) {
+            android.util.Log.d(
+                "ShidurNav",
+                "key ${KeyEvent.keyCodeToString(event.keyCode)} action=${event.action} overlay=$overlay " +
+                    "handled=$handled focus=${window?.decorView?.findFocus()}",
+            )
+        }
+        return handled
     }
 
     /**
@@ -851,6 +864,13 @@ class MainActivity : ComponentActivity() {
      * press already consumed it.
      */
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        // DIAGNOSTIC (issue #152, QA-24), debug builds only; removed before merge.
+        if (com.idanck.shidur.BuildConfig.DEBUG) {
+            android.util.Log.d(
+                "ShidurNav",
+                "onKeyUp ${KeyEvent.keyCodeToString(keyCode)} overlay=$overlay canceled=${event.isCanceled}",
+            )
+        }
         val isOk = keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER
         if (isTelevision && isOk && overlay.leavesDpadToShell && !signInFirst) {
             // A short OK opens the transport bar. It used to open the info card, which said what
