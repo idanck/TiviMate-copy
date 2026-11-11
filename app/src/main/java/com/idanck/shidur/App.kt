@@ -129,14 +129,16 @@ object ServiceLocator {
         account = AccountRepository(appContext, appScope)
         youtube = YouTubeRepository(appContext) { account.functions() }
         podcastDirectory = PodcastDirectory { account.functions() }
-        // The library, marks and queue follow the account between devices (ADR-067).
-        podcastSync = PodcastSync(podcasts, account.state, { account.firestore() }, appScope).also { it.start() }
         // The history says where an episode was heard (ADR-067); the television is the one with
         // the leanback feature.
         podcasts = PodcastRepository(PodcastDao(database), device = {
             val ui = appContext.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
             if (ui?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) "tv" else "phone"
         })
+        // After `podcasts`: PodcastSync reads it here, and reading a lateinit before it is set
+        // throws in Application.onCreate, so every launch crashed (0.32.5).
+        // The library, marks and queue follow the account between devices (ADR-067).
+        podcastSync = PodcastSync(podcasts, account.state, { account.firestore() }, appScope).also { it.start() }
         handoverImporter = HandoverImporter(appContext, database, settings)
         if (Handover.isBridge) {
             handover = UpdateManager(
