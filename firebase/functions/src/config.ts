@@ -42,5 +42,16 @@ export const YT_LIMITS = {
   subscriptions: { max: 60, windowMs: 10 * 60 * 1000 },
 } as const;
 
+/**
+ * Podcast Index's callables (ADR-067), per account or per address. Podcast Index asks for no quota,
+ * but a key that floods it is a key it may revoke; most answers come from the shared cache anyway.
+ */
+export const PC_LIMITS = {
+  /** Searches: a person types a phrase, looks, types another. */
+  search: { max: 60, windowMs: 60 * 60 * 1000 },
+  /** The popular rail and its topics, read when "גילוי והוספה" opens. */
+  trending: { max: 120, windowMs: 60 * 60 * 1000 },
+} as const;
+
 /** Cost guard: no function scales past this many instances. */
 export const MAX_INSTANCES = 10;
