@@ -87,6 +87,8 @@ fun nowPlayingLabels(playing: NowPlayingInfo?, nowTitle: String?): Pair<String, 
                 TimeModel.formatDayTime(playing.recording.startUtc)
             )
 
+        is NowPlayingInfo.Podcast -> playing.episode.title to playing.episode.podcastTitle
+
         null -> null
     }
 
@@ -100,6 +102,6 @@ fun NowPlayingInfo?.isLive(): Boolean = this is NowPlayingInfo.Live
  * catch-up, on-demand and a finished recording all can.
  */
 fun NowPlayingInfo?.isSeekable(): Boolean = when (this) {
-    is NowPlayingInfo.Catchup, is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile -> true
+    is NowPlayingInfo.Catchup, is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile, is NowPlayingInfo.Podcast -> true
     is NowPlayingInfo.Live, null -> false
 }
