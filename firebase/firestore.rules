@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// Shidur's Firestore (ADR-059). Clients read; only Cloud Functions and the console write.
+// Shidur's Firestore (ADR-059). Clients read; only Cloud Functions and the console write — except an
+// account's own podcast library, marks and queue (ADR-067), below.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -17,6 +18,40 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
+    }
+
+    // Podcasts (ADR-067): the one place a client writes. An account's own library, marks and
+    // queue, each of a bounded size and of the fields the app writes, so the documents can be
+    // nothing but what they are for.
+    function owner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+    function feedOk(d) {
+      return d.feedUrl is string && d.feedUrl.size() > 0 && d.feedUrl.size() <= 2048 && d.updatedUtc is int;
+    }
+    match /users/{uid}/podcasts/{id} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && feedOk(request.resource.data)
+        && request.resource.data.keys().hasOnly(['feedUrl', 'title', 'inLibrary', 'speed', 'skipIntroSeconds',
+             'skipOutroSeconds', 'notifyNew', 'oldestFirst', 'updatedUtc'])
+        && request.resource.data.title is string && request.resource.data.title.size() <= 300
+        && request.resource.data.inLibrary is bool;
+    }
+    match /users/{uid}/podcastMarks/{id} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && feedOk(request.resource.data)
+        && request.resource.data.keys().hasOnly(['feedUrl', 'guid', 'positionMs', 'durationMs', 'played', 'favourite',
+             'favouriteUtc', 'historyUtc', 'lastPlayedUtc', 'device', 'updatedUtc'])
+        && request.resource.data.guid is string && request.resource.data.guid.size() <= 2048
+        && request.resource.data.positionMs is int && request.resource.data.played is bool
+        && request.resource.data.favourite is bool;
+    }
+    match /users/{uid}/podcastState/{doc} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && doc == 'queue'
+        && request.resource.data.keys().hasOnly(['keys', 'updatedUtc'])
+        && request.resource.data['keys'] is list && request.resource.data['keys'].size() <= 200
+        && request.resource.data.updatedUtc is int;
     }
 
     // Television pairing codes and rate-limit counters belong to the Functions alone.

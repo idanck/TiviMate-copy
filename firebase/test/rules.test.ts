@@ -106,3 +106,36 @@ describe('YouTube (ADR-061)', () => {
     }
   });
 });
+
+describe('podcasts (ADR-067)', () => {
+  const show = { feedUrl: 'https://example.com/feed.xml', title: 'Show', inLibrary: true, speed: 1.25, skipIntroSeconds: 30, skipOutroSeconds: 0, notifyNew: false, oldestFirst: false, updatedUtc: 1 };
+  const mark = { feedUrl: 'https://example.com/feed.xml', guid: 'g1', positionMs: 1000, durationMs: 60000, played: false, favourite: true, favouriteUtc: 1, historyUtc: 1, lastPlayedUtc: 1, device: 'tv', updatedUtc: 2 };
+
+  it('an account reads and writes its own library, marks and queue', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/podcasts/p1'), show));
+    await assertSucceeds(getDoc(doc(db, 'users/alice/podcasts/p1')));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/podcastMarks/m1'), mark));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/podcastState/queue'), { keys: [{ feedUrl: mark.feedUrl, guid: 'g1' }], updatedUtc: 3 }));
+    await assertSucceeds(deleteDoc(doc(db, 'users/alice/podcastMarks/m1')));
+  });
+
+  it("nobody else reads or writes them", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/alice/podcasts/p1'), show);
+    });
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'users/alice/podcasts/p1')));
+    await assertFails(setDoc(doc(bob, 'users/alice/podcastMarks/m1'), mark));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'users/alice/podcasts/p1')));
+  });
+
+  it('only the fields the app writes, of a bounded size', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'users/alice/podcasts/p1'), { ...show, extra: 'x' }));
+    await assertFails(setDoc(doc(db, 'users/alice/podcasts/p1'), { ...show, feedUrl: 'x'.repeat(3000) }));
+    await assertFails(setDoc(doc(db, 'users/alice/podcastMarks/m1'), { ...mark, played: 'yes' }));
+    await assertFails(setDoc(doc(db, 'users/alice/podcastState/other'), { keys: [], updatedUtc: 1 }));
+    await assertFails(setDoc(doc(db, 'users/alice/podcastState/queue'), { keys: Array.from({ length: 201 }, () => ({ feedUrl: 'a', guid: 'b' })), updatedUtc: 1 }));
+  });
+});
