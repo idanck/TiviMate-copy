@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /**
- * Storage for playlists, channels, guide data, VOD and recordings.
+ * Storage for playlists, channels, guide data, VOD, recordings and podcasts.
  *
  * The guide table is the hot one: a 7-day guide for a thousand channels is on the order of
  * 10^5-10^6 rows (docs/07 section 7.8), so `programmes` is indexed on
@@ -39,6 +39,7 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
 
     override fun onCreate(db: SQLiteDatabase) {
         SCHEMA.forEach(db::execSQL)
+        PODCAST_SCHEMA.forEach(db::execSQL)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -51,6 +52,7 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
         // Indices and tables introduced later are created with IF NOT EXISTS, so replaying
         // the base schema fills any gap an interrupted upgrade left behind.
         SCHEMA.forEach { runCatching { db.execSQL(it) } }
+        PODCAST_SCHEMA.forEach { runCatching { db.execSQL(it) } }
     }
 
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -59,7 +61,7 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
 
     companion object {
         const val NAME = "tivicopy.db"
-        const val VERSION = 2
+        const val VERSION = 3
 
         val SCHEMA: List<String> = listOf(
             """
@@ -220,11 +222,100 @@ class Database(context: Context) : SQLiteOpenHelper(context, NAME, null, VERSION
             """.trimIndent(),
         )
 
+        /**
+         * Podcasts (ADR-067). The feed's data lives in `podcasts` and `podcast_episodes` and is
+         * rewritten by every refresh; the viewer's own state lives in `podcast_marks` and
+         * `podcast_queue`, keyed by the feed's address and the episode's guid rather than by a row
+         * id, so a podcast removed and added again, a restored backup and another device's sync
+         * all land on the same marks.
+         */
+        val PODCAST_SCHEMA: List<String> = listOf(
+            """
+            CREATE TABLE IF NOT EXISTS podcasts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                feed_url TEXT NOT NULL,
+                title TEXT NOT NULL,
+                author TEXT,
+                description TEXT,
+                image_url TEXT,
+                link TEXT,
+                language TEXT,
+                categories TEXT NOT NULL DEFAULT '[]',
+                index_id INTEGER,
+                in_library INTEGER NOT NULL DEFAULT 1,
+                added_utc INTEGER NOT NULL DEFAULT 0,
+                last_refresh_utc INTEGER NOT NULL DEFAULT 0,
+                last_refresh_ok INTEGER NOT NULL DEFAULT 1,
+                last_refresh_message TEXT,
+                etag TEXT,
+                last_modified TEXT,
+                speed REAL NOT NULL DEFAULT 0,
+                skip_intro_seconds INTEGER NOT NULL DEFAULT 0,
+                skip_outro_seconds INTEGER NOT NULL DEFAULT 0,
+                notify_new INTEGER NOT NULL DEFAULT 0,
+                oldest_first INTEGER NOT NULL DEFAULT 0,
+                prefs_updated_utc INTEGER NOT NULL DEFAULT 0
+            )
+            """.trimIndent(),
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_podcasts_feed ON podcasts(feed_url)",
+            """
+            CREATE TABLE IF NOT EXISTS podcast_episodes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                podcast_id INTEGER NOT NULL,
+                guid TEXT NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                audio_url TEXT NOT NULL,
+                mime_type TEXT,
+                length_bytes INTEGER NOT NULL DEFAULT 0,
+                duration_seconds INTEGER NOT NULL DEFAULT 0,
+                published_utc INTEGER,
+                image_url TEXT,
+                season INTEGER,
+                episode INTEGER,
+                explicit INTEGER NOT NULL DEFAULT 0,
+                link TEXT,
+                chapters_url TEXT,
+                transcript_url TEXT,
+                feed_order INTEGER NOT NULL DEFAULT 0,
+                FOREIGN KEY(podcast_id) REFERENCES podcasts(id) ON DELETE CASCADE
+            )
+            """.trimIndent(),
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_episodes_guid ON podcast_episodes(podcast_id, guid)",
+            "CREATE INDEX IF NOT EXISTS idx_episodes_published ON podcast_episodes(published_utc)",
+            """
+            CREATE TABLE IF NOT EXISTS podcast_marks (
+                feed_url TEXT NOT NULL,
+                guid TEXT NOT NULL,
+                position_ms INTEGER NOT NULL DEFAULT 0,
+                duration_ms INTEGER NOT NULL DEFAULT 0,
+                played INTEGER NOT NULL DEFAULT 0,
+                favourite INTEGER NOT NULL DEFAULT 0,
+                favourite_utc INTEGER NOT NULL DEFAULT 0,
+                history_utc INTEGER NOT NULL DEFAULT 0,
+                last_played_utc INTEGER NOT NULL DEFAULT 0,
+                device TEXT,
+                updated_utc INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY(feed_url, guid)
+            )
+            """.trimIndent(),
+            "CREATE INDEX IF NOT EXISTS idx_marks_history ON podcast_marks(history_utc)",
+            """
+            CREATE TABLE IF NOT EXISTS podcast_queue (
+                feed_url TEXT NOT NULL,
+                guid TEXT NOT NULL,
+                sort_index INTEGER NOT NULL,
+                PRIMARY KEY(feed_url, guid)
+            )
+            """.trimIndent(),
+        )
+
         /** One list per target version; see [onUpgrade]. Idempotent, additive only. */
         val MIGRATIONS: Map<Int, List<String>> = mapOf(
             2 to listOf(
                 "CREATE INDEX IF NOT EXISTS idx_vod_series ON vod(playlist_id, series_id)",
             ),
+            3 to PODCAST_SCHEMA,
         )
     }
 }

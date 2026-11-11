@@ -87,6 +87,10 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         // else's business here — a promotional rail cannot fail a playlist refresh.
         ServiceLocator.featured.refresh(force = false)
 
+        // The library's feeds (ADR-067), every six hours inside the repository. A podcast host
+        // that is down is not a reason to retry the playlists.
+        ServiceLocator.podcasts.refreshAll(force = false)
+
         // FR-TVI-02: the hourly sweep is what catches the cases a channel change cannot — a
         // channel a playlist refresh deleted, or one that has simply gone stale — so this one
         // is forced past the throttle that exists for zapping.

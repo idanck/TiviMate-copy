@@ -25,6 +25,8 @@ import com.idanck.shidur.data.repo.SourceRepository
 import com.idanck.shidur.data.tasks.TaskRepository
 import com.idanck.shidur.data.update.UpdateManager
 import com.idanck.shidur.data.youtube.YouTubeRepository
+import com.idanck.shidur.data.podcast.PodcastDao
+import com.idanck.shidur.data.podcast.PodcastRepository
 import com.idanck.shidur.player.PlayerEngine
 import com.idanck.shidur.record.RecordingScheduler
 import com.idanck.shidur.tv.HomeRow
@@ -61,6 +63,7 @@ object ServiceLocator {
     lateinit var news: NewsRepository private set
     lateinit var account: AccountRepository private set
     lateinit var youtube: YouTubeRepository private set
+    lateinit var podcasts: PodcastRepository private set
     lateinit var handoverImporter: HandoverImporter private set
 
     /**
@@ -113,7 +116,7 @@ object ServiceLocator {
         sources = SourceRepository(appContext, dao, settings)
         epg = EpgRepository(dao, settings, sources)
         cache = CacheBudget(appContext)
-        backup = BackupManager(dao, settings)
+        backup = BackupManager(dao, settings, PodcastDao(database))
         recordings = RecordingScheduler(appContext, dao, settings)
         updates = UpdateManager(appContext, settings, dao)
         featured = FeaturedRepository(settings)
@@ -121,6 +124,12 @@ object ServiceLocator {
         news = NewsRepository(settings)
         account = AccountRepository(appContext, appScope)
         youtube = YouTubeRepository(appContext) { account.functions() }
+        // The history says where an episode was heard (ADR-067); the television is the one with
+        // the leanback feature.
+        podcasts = PodcastRepository(PodcastDao(database), device = {
+            val ui = appContext.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+            if (ui?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) "tv" else "phone"
+        })
         handoverImporter = HandoverImporter(appContext, database, settings)
         if (Handover.isBridge) {
             handover = UpdateManager(
