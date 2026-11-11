@@ -1,6 +1,7 @@
 package com.idanck.shidur.ui.tv
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -32,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -811,6 +814,7 @@ fun TvRoot(
  * that layer was a second full-screen pass every frame of the fade.
  */
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun BrowsePresence(
     visible: Boolean,
     keep: Boolean,
@@ -845,8 +849,24 @@ private fun BrowsePresence(
         modifier = Modifier
             .fillMaxSize()
             .onFocusChanged { holdsFocus = it.hasFocus }
-            // While leaving, as `SurfacePresence` does; once unplaced, the search passes it by.
-            .then(if (visible) Modifier else Modifier.focusProperties { canFocus = false })
+            // While leaving and while kept, nothing inside may take the remote: the group turns
+            // every way in away (`enter`), a request on a control inside included. `canFocus` alone
+            // reached no control, there being no focus target of its own here for it to apply to.
+            // With home kept under the video, the remote let go of on the way to the video was
+            // taken back by the platform into the first control it found, the side menu's lit Home
+            // entry, so OK on the video brought home back instead of the transport bar, and the
+            // arrows moved inside a menu nobody could see (issue #152, QA-24).
+            .then(
+                if (visible) {
+                    Modifier
+                } else {
+                    Modifier.focusProperties {
+                        canFocus = false
+                        enter = { FocusRequester.Cancel }
+                    }
+                },
+            )
+            .focusGroup()
             .then(if (onScreen) Modifier else Modifier.clearAndSetSemantics { })
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
@@ -875,6 +895,7 @@ private fun BrowsePresence(
  * @param composed kept true while home is composed, so [TvRoot] knows there is a home to keep
  */
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 private fun HomeLayer(
     shown: Boolean,
     composed: BooleanArray,
@@ -894,7 +915,18 @@ private fun HomeLayer(
         modifier = Modifier
             .fillMaxSize()
             .onFocusChanged { holdsFocus = it.hasFocus }
-            .then(if (shown) Modifier else Modifier.focusProperties { canFocus = false })
+            // Unplaced under the guide: nothing inside may take the remote (see `BrowsePresence`).
+            .then(
+                if (shown) {
+                    Modifier
+                } else {
+                    Modifier.focusProperties {
+                        canFocus = false
+                        enter = { FocusRequester.Cancel }
+                    }
+                },
+            )
+            .focusGroup()
             .then(if (shown) Modifier else Modifier.clearAndSetSemantics { })
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
