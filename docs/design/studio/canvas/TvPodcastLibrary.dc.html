@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — הספרייה שלי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="PodTabs" current="library" focus="" hint-size="980px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 236px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; gap: 20px">
+<h1 class="st-t-h1">18 פודקאסטים</h1>
+<span class="st-t-caption">שמורים בחשבון שלך, ומסונכרנים בין המכשירים</span>
+<span style="flex: 1 1 auto"></span>
+<span class="st-t-caption">מיון:</span>
+<dc-import name="Chip" label="פרק אחרון" state="selected" hint-size="150px,56px"></dc-import>
+<dc-import name="Chip" label="א–ת" state="rest" hint-size="90px,56px"></dc-import>
+<dc-import name="Chip" label="הכי הרבה חדשים" state="rest" hint-size="200px,56px"></dc-import>
+</div>
+
+<section aria-label="הפודקאסטים שלך" style="position: absolute; top: 334px; right: var(--st-inset-start); left: var(--st-safe-x); display: grid; grid-template-columns: repeat(6, 220px); justify-content: space-between; row-gap: 40px">
+<sc-for list="{{shows}}" as="s" hint-placeholder-count="12">
+<div style="width: 220px; display: flex; flex-direction: column; gap: 12px">
+<dc-import name="PodArt" size="220" tone="{{s.tone}}" state="{{s.state}}" badge="{{s.badge}}" hint-size="220px,220px"></dc-import>
+<span style="font-size: 22px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.title}}</span>
+<span class="st-t-caption" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.meta}}</span>
+</div>
+</sc-for>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // "הספרייה שלי": every podcast you keep, as covers. The pill on a cover is how many new episodes wait.
+    // Sorted by the newest episode first (or A–Z, or most waiting). OK opens the podcast; a long OK offers
+    // "הסרה מהספרייה" and its settings. The library lives in the account, so the phone sees the same one.
+    const S = (tone, badge, meta, state) => ({ title: '[שם הפודקאסט]', tone: tone, badge: badge, meta: meta, state: state || 'rest' });
+    return {
+      shows: [
+        S('2', '3', '3 חדשים · היום', 'focus'), S('1', '1', 'חדש אחד · היום'), S('4', '5', '5 חדשים · אתמול'),
+        S('3', '', 'הכול נשמע · יום ב׳'), S('6', '2', '2 חדשים · יום א׳'), S('5', '', 'הכול נשמע · 6 בנוב׳'),
+        S('1', '', 'הכול נשמע · 4 בנוב׳'), S('3', '1', 'חדש אחד · 2 בנוב׳'), S('4', '', 'הכול נשמע · 30 באוק׳'),
+        S('6', '', 'הכול נשמע · 28 באוק׳'), S('2', '', 'הכול נשמע · 20 באוק׳'), S('5', '', 'לא התעדכן חודשיים')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

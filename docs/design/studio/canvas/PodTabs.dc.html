@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — מקטעי הפודקאסטים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div role="tablist" aria-label="פודקאסטים" dir="rtl" style="display: flex; align-items: center; gap: 12px; font-family: var(--st-font-ui)">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="5">
+<dc-import name="Chip" label="{{t.label}}" state="{{t.state}}" hint-size="160px,56px"></dc-import>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["foryou","library","favorites","history","discover"],"default":"foryou"},"focus":{"editor":"enum","options":["","foryou","library","favorites","history","discover"],"default":""},"$preview":{"width":980,"height":56}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The five parts of the podcasts screen, at its top. ▲ from the first row reaches them; ◀▶ walk them and
+    // the screen below follows the chip under the remote (no OK), as the radio's categories do.
+    // The part you are in is amber ("current"); the remote is the lit surface.
+    const cur = this.props.current || 'foryou';
+    const foc = this.props.focus || '';
+    const T = [['foryou', 'בשבילך'], ['library', 'הספרייה שלי'], ['favorites', 'מועדפים'], ['history', 'היסטוריה'], ['discover', 'גילוי והוספה']];
+    return {
+      tabs: T.map((t) => ({ label: t[1], state: t[0] === foc ? 'focus' : (t[0] === cur ? 'selected' : 'rest') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

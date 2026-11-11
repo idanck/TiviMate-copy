@@ -84,6 +84,18 @@ object StudioIcons {
     val Close: ImageVector by lazy { glyph("close", "M6 6l12 12M18 6L6 18") }
     val History: ImageVector by lazy { glyph("history", "M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4M12 8v4l3 2") }
     val Grid: ImageVector by lazy { glyph("grid", "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z") }
+
+    // Podcasts (ADR-067), as `canvas/Icon.dc.html` draws them: the menu entry, the player's
+    // transport and the library's actions.
+    val Podcast: ImageVector by lazy { glyph("podcast", "M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7") }
+    val SkipBack: ImageVector by lazy { glyph("skip-back", "M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 3.5v3.7h3.7") }
+    val SkipForward: ImageVector by lazy { glyph("skip-fwd", "M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 3.5v3.7h-3.7") }
+    val Speed: ImageVector by lazy { glyph("speed", "M4.5 16.5a8 8 0 1 1 15 0M12 16.5l4-5.5") }
+    val Moon: ImageVector by lazy { glyph("moon", "M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z") }
+    val Queue: ImageVector by lazy { glyph("queue", "M4 6h12M4 11h12M4 16h7M17.5 13.5v7M14 17h7") }
+    val Link: ImageVector by lazy { glyph("link", "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1") }
+    val More: ImageVector by lazy { glyph("more", "M12 5.5v.5M12 12v.5M12 18.5v.5") }
+    val Played: ImageVector by lazy { glyph("played", "M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18zM8 12.5l3 3 5-6") }
     val Music: ImageVector by lazy { glyph("music", "M9 18V5l11-2v13M9 18a3 3 0 1 1-6 0a3 3 0 1 1 6 0zM20 16a3 3 0 1 1-6 0a3 3 0 1 1 6 0z") }
     val Movie: ImageVector by lazy { glyph("movie", "M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1zM4 8l1.5-4h13L20 8M9.5 4L8 8M15.5 4L14 8") }
     val Fullscreen: ImageVector by lazy { glyph("fullscreen", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5") }

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — בשבילך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="PodTabs" current="foryou" focus="" hint-size="980px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 240px; right: var(--st-inset-start)"><dc-import name="PodArt" size="420" tone="2" state="rest" hint-size="420px,420px"></dc-import></div>
+
+<section aria-label="המשך האזנה" style="position: absolute; top: 246px; right: calc(var(--st-inset-start) + 476px); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 14px">
+<span style="font-size: 24px; font-weight: 600; color: var(--st-ink-2)">המשך האזנה · [שם הפודקאסט]</span>
+<h1 class="st-t-title" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[שם הפרק]</h1>
+<span class="st-t-meta">פרק 112 · 3 בנובמבר · 54 דק׳</span>
+<div style="display: flex; align-items: center; gap: 18px; margin-top: 6px">
+<span dir="ltr" class="st-num" style="font-size: 22px; font-weight: 600">31:40</span>
+<dc-import name="Progress" pct="58" width="760" size="m" hint-size="760px,8px"></dc-import>
+<span class="st-num st-t-meta">נותרו 22:40</span>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; margin-top: 18px">
+<dc-import name="Button" label="המשך מ־31:40" glyph="play" size="m" focused="{{heroFocus}}" hint-size="260px,64px"></dc-import>
+<dc-import name="Button" label="מההתחלה" glyph="restart" size="m" hint-size="200px,64px"></dc-import>
+<dc-import name="Button" label="לעמוד הפודקאסט" glyph="podcast" size="m" hint-size="260px,64px"></dc-import>
+<dc-import name="Button" label="הפרק במועדפים" glyph="star" size="m" icon-only="true" active="true" hint-size="64px,64px"></dc-import>
+</div>
+</section>
+
+<section aria-label="מדפים" style="position: absolute; top: 720px; left: 0; right: 0; bottom: 0; background: var(--st-ground); overflow: hidden">
+<div style="padding-top: 10px; transform: translateY({{railShift}}); display: flex; flex-direction: column">
+<sc-for list="{{rails}}" as="rail" hint-placeholder-count="4">
+<div style="height: 350px; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="padding: 0 var(--st-inset-start) 0 var(--st-safe-x); margin-bottom: 18px; display: flex; align-items: baseline; gap: 16px">
+<h2 class="st-t-h1">{{rail.title}}</h2>
+<span class="st-t-caption">{{rail.caption}}</span>
+</div>
+<div style="display: flex; align-items: flex-start; gap: var(--st-gap-rail); padding: 20px var(--st-inset-start) 20px var(--st-safe-x); margin-top: -20px; overflow: hidden">
+<sc-for list="{{rail.cards}}" as="c" hint-placeholder-count="7">
+<div style="flex: 0 0 190px"><dc-import name="PodCard" item="{{c}}" state="{{c.state}}" width="190" hint-size="190px,290px"></dc-import></div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="{{menu}}" focus="podcasts" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scroll":{"editor":"enum","options":["top","second"],"default":"top"},"menu":{"editor":"enum","options":["closed","open"],"default":"closed"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Podcasts' own screen, in the side menu right after YouTube. Its first part, "בשבילך": the top is the
+    // episode you stopped in — cover, where you are, and "המשך" in focus, so OK on entry carries on from the
+    // saved point. The bottom third is the same opaque panel as home and YouTube: only it scrolls, rail by rail.
+    // Unlike YouTube nothing here is a player frame, so the panel may sit right under the cover.
+    // "menu: open" — the side menu with "פודקאסטים" under the remote.
+    const p = this.props;
+    const second = p.scroll === 'second';
+    const E = (title, meta, tone, o) => Object.assign({ title: title, meta: meta, tone: tone, state: 'rest' }, o || {});
+    const fresh = { title: 'פרקים חדשים', caption: 'מהפודקאסטים בספרייה שלך', cards: [
+      E('[שם הפרק]', '[שם הפודקאסט] · היום', '1', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · היום', '3', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · אתמול', '4', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · אתמול', '5', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · יום ב׳', '6', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · יום א׳', '1', { isNew: true }),
+      E('[שם הפרק]', '[שם הפודקאסט] · יום א׳', '3', { isNew: true })
+    ] };
+    const cont = { title: 'המשך האזנה', caption: 'פרקים שהתחלת, גם בטלפון', cards: [
+      E('[שם הפרק]', 'נותרו 22 דק׳', '2', { pct: 58 }),
+      E('[שם הפרק]', 'נותרו 41 דק׳', '4', { pct: 20 }),
+      E('[שם הפרק]', 'נותרו 8 דק׳', '6', { pct: 86 }),
+      E('[שם הפרק]', 'נותרו 1:05 ש׳', '5', { pct: 12 })
+    ] };
+    const shows = { title: 'הספרייה שלי', caption: '18 פודקאסטים', cards: [
+      E('[שם הפודקאסט]', '[מגיש או רשת]', '1', { badge: '3' }), E('[שם הפודקאסט]', '[מגיש או רשת]', '2', { badge: '1' }),
+      E('[שם הפודקאסט]', '[מגיש או רשת]', '3'), E('[שם הפודקאסט]', '[מגיש או רשת]', '4', { badge: '5' }),
+      E('[שם הפודקאסט]', '[מגיש או רשת]', '5'), E('[שם הפודקאסט]', '[מגיש או רשת]', '6', { badge: '2' }),
+      E('[שם הפודקאסט]', '[מגיש או רשת]', '1')
+    ] };
+    const favs = { title: 'מועדפים', caption: 'פרקים שסימנת בכוכב', cards: [
+      E('[שם הפרק]', '[שם הפודקאסט]', '3'), E('[שם הפרק]', '[שם הפודקאסט]', '5'), E('[שם הפרק]', '[שם הפודקאסט]', '2')
+    ] };
+    const rails = [fresh, cont, shows, favs];
+    if (second) {
+      const r = rails[1];
+      rails[1] = Object.assign({}, r, { cards: r.cards.map((c, i) => (i === 0 ? Object.assign({}, c, { state: 'focus' }) : c)) });
+    }
+    return {
+      heroFocus: !second && p.menu !== 'open',
+      railShift: second ? '-350px' : '0px',
+      menu: p.menu === 'open' ? 'open' : 'closed',
+      rails: rails
+    };
+  }
+}
+</script>
+</body>
+</html>

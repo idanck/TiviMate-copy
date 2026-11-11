@@ -9,61 +9,98 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<sc-if value="{{isOpen}}" hint-placeholder-val="{{true}}">
-<nav aria-label="ניווט ראשי" style="width: var(--st-w-drawer); height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) var(--st-safe-x) var(--st-safe-y) 40px; background: var(--st-drawer); box-shadow: -1px 0 0 var(--st-hairline), -40px 0 90px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
-<div style="height: 74px; display: flex; align-items: center; gap: 14px; margin-bottom: 30px">
-<span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-tally)"></span>
-<span style="font-family: var(--st-font-display); font-weight: 700; font-size: 64px; line-height: 1">שידור</span>
+<sc-if value="{{closed}}" hint-placeholder-val="{{false}}">
+<nav aria-label="ניווט ראשי" dir="rtl" style="width: var(--st-w-rail); height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) 0; background: var(--st-rail); -webkit-backdrop-filter: var(--st-blur-thick); backdrop-filter: var(--st-blur-thick); box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.10), -24px 0 60px rgba(0, 0, 0, 0.30); display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div aria-hidden="true" style="height: 74px; display: flex; align-items: center; margin-bottom: 30px"><span style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-tally); box-shadow: 0 0 0 6px rgba(255, 90, 95, 0.18), 0 0 18px rgba(255, 90, 95, 0.8)"></span></div>
+<sc-for list="{{items}}" as="it" hint-placeholder-count="7">
+<div style="position: relative; width: var(--st-w-rail); height: 64px; display: flex; justify-content: center">
+<sc-if value="{{it.cur}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; right: 0; top: 16px; width: 4px; height: 32px; border-radius: 4px 0 0 4px; background: var(--st-current)"></span></sc-if>
+<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="width: 64px; height: 64px; border-radius: 22px; display: flex; align-items: center; justify-content: center; text-decoration: none; background: {{it.cbg}}; color: {{it.cfg}}; box-shadow: {{it.csh}}"><dc-import name="Icon" glyph="{{it.glyph}}" size="32" hint-size="32px,32px"></dc-import></a>
 </div>
-<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
-<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</a>
 </sc-for>
-<span aria-hidden="true" style="height: 1px; margin: 14px 0; background: var(--st-hairline)"></span>
+<span aria-hidden="true" style="width: 40px; height: 1px; margin: 8px 0; background: rgba(255, 255, 255, 0.14)"></span>
 <sc-for list="{{tools}}" as="it" hint-placeholder-count="2">
-<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; height: var(--st-h-row); box-sizing: border-box; padding: 0 20px; border: 0; border-radius: var(--st-r-control); background: {{it.bg}}; color: {{it.fg}}; box-shadow: {{it.shadow}}; transform: {{it.tf}}; display: flex; align-items: center; gap: 18px; text-align: right; font-family: var(--st-font-ui); font-size: 28px; font-weight: {{it.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import>{{it.label}}</a>
+<div style="position: relative; width: var(--st-w-rail); height: 64px; display: flex; justify-content: center">
+<sc-if value="{{it.cur}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; right: 0; top: 16px; width: 4px; height: 32px; border-radius: 4px 0 0 4px; background: var(--st-current)"></span></sc-if>
+<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="width: 64px; height: 64px; border-radius: 22px; display: flex; align-items: center; justify-content: center; text-decoration: none; background: {{it.cbg}}; color: {{it.cfg}}; box-shadow: {{it.csh}}"><dc-import name="Icon" glyph="{{it.glyph}}" size="32" hint-size="32px,32px"></dc-import></a>
+</div>
 </sc-for>
 </nav>
 </sc-if>
-<sc-if value="{{closed}}" hint-placeholder-val="{{false}}">
-<nav aria-label="ניווט ראשי" style="width: var(--st-w-rail); height: 1080px; box-sizing: border-box; padding: var(--st-safe-y) 0; background: var(--st-rail); box-shadow: -1px 0 0 var(--st-hairline); display: flex; flex-direction: column; align-items: center; gap: 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
-<div style="height: 74px; display: flex; align-items: center; margin-bottom: 30px"><span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-tally)"></span></div>
-<sc-for list="{{items}}" as="it" hint-placeholder-count="5">
-<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></a>
+<sc-if value="{{isOpen}}" hint-placeholder-val="{{true}}">
+<nav aria-label="ניווט ראשי" dir="rtl" style="width: var(--st-w-drawer); height: 1080px; box-sizing: border-box; position: relative; padding: var(--st-safe-y) 24px var(--st-safe-y) 32px; background: var(--st-drawer-start); box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.12), -40px 0 100px rgba(0, 0, 0, 0.55); display: flex; flex-direction: column; gap: 2px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div style="height: 74px; display: flex; align-items: center; gap: 16px; padding: 0 22px; margin-bottom: 24px">
+<span aria-hidden="true" style="width: 16px; height: 16px; border-radius: 50%; background: var(--st-tally); box-shadow: 0 0 0 6px rgba(255, 90, 95, 0.18), 0 0 18px rgba(255, 90, 95, 0.8)"></span>
+<span style="font-family: var(--st-font-display); font-size: 44px; font-weight: 800; letter-spacing: -0.015em; line-height: 1">שידור</span>
+</div>
+<sc-if value="{{hasPlate}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; right: 24px; left: 32px; top: {{plateTop}}; height: {{plateHeight}}; border-radius: 22px; background: var(--st-light); box-shadow: var(--st-lift); transform: scale(var(--st-focus-scale-row))"></span></sc-if>
+<sc-for list="{{items}}" as="it" hint-placeholder-count="7">
+<div style="position: relative">
+<sc-if value="{{it.cur}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; right: -24px; top: 16px; width: 4px; height: 32px; border-radius: 4px 0 0 4px; background: var(--st-current)"></span></sc-if>
+<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="height: 64px; box-sizing: border-box; padding: 0 22px; border-radius: 22px; display: flex; align-items: center; gap: 18px; text-decoration: none; font-size: 28px; font-weight: {{it.fw}}; background: {{it.bg}}; color: {{it.fg}}; transform: {{it.tf}}; box-shadow: {{it.sh}}"><dc-import name="Icon" glyph="{{it.glyph}}" size="32" hint-size="32px,32px"></dc-import>{{it.label}}</a>
+</div>
 </sc-for>
-<span aria-hidden="true" style="width: 40px; height: 1px; margin: 14px 0; background: var(--st-hairline)"></span>
+<span aria-hidden="true" style="height: 1px; margin: 10px 22px; background: rgba(255, 255, 255, 0.12)"></span>
 <sc-for list="{{tools}}" as="it" hint-placeholder-count="2">
-<a href="{{it.href}}" aria-label="{{it.label}}" aria-current="{{it.aria}}" class="st-anim" style="text-decoration: none; width: 64px; height: var(--st-h-row); box-sizing: border-box; padding: 0; border: 0; border-radius: var(--st-r-control); background: {{it.cbg}}; color: {{it.cfg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{it.glyph}}" size="30" hint-size="30px,30px"></dc-import></a>
+<div style="position: relative">
+<sc-if value="{{it.cur}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; right: -24px; top: 16px; width: 4px; height: 32px; border-radius: 4px 0 0 4px; background: var(--st-current)"></span></sc-if>
+<a href="{{it.href}}" aria-current="{{it.aria}}" class="st-anim" style="height: 64px; box-sizing: border-box; padding: 0 22px; border-radius: 22px; display: flex; align-items: center; gap: 18px; text-decoration: none; font-size: 28px; font-weight: {{it.fw}}; background: {{it.bg}}; color: {{it.fg}}; transform: {{it.tf}}; box-shadow: {{it.sh}}"><dc-import name="Icon" glyph="{{it.glyph}}" size="32" hint-size="32px,32px"></dc-import>{{it.label}}</a>
+</div>
 </sc-for>
 </nav>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"home"},"focus":{"editor":"enum","options":["","home","channels","guide","radio","recordings","search","settings"],"default":"channels"},"open":{"editor":"boolean","default":true},"$preview":{"width":480,"height":1080}}'>
+<script type="text/x-dc" data-dc-script data-props='{"current":{"editor":"enum","options":["","home","channels","guide","radio","sport","news","youtube","podcasts","recordings","search","settings"],"default":"home"},"focus":{"editor":"enum","options":["","home","channels","guide","radio","sport","news","youtube","podcasts","recordings","search","settings"],"default":"channels"},"open":{"editor":"boolean","default":true},"plate":{"editor":null,"default":null},"trail":{"editor":null,"default":0},"lit":{"editor":null,"default":1},"from":{"editor":null,"default":""},"$preview":{"width":380,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() {
+    // A full-height rail on the start edge that opens into a drawer. The current screen is amber; focus is the lit surface.
     const cur = this.props.current ?? 'home';
-    const HREF = { home: 'Main.dc.html', channels: 'Channels.dc.html', guide: 'Guide.dc.html', radio: 'RadioList.dc.html', recordings: 'Recordings.dc.html', search: 'TvSearch.dc.html', settings: 'Settings.dc.html' };
-    const foc = this.props.focus ?? 'channels';
-    const make = (n) => {
-      const f = n[0] === foc, c = n[0] === cur;
-      return {
-        label: n[1], glyph: n[2], href: HREF[n[0]], aria: c ? 'page' : undefined,
-        bg: f ? 'var(--st-cue)' : (c ? 'var(--st-card)' : 'transparent'),
-        fg: f ? 'var(--st-on-cue)' : (c ? 'var(--st-ink)' : 'var(--st-ink-2)'),
-        shadow: f ? 'var(--st-lift)' : 'none',
-        tf: f ? 'scale(var(--st-focus-scale-row))' : 'none',
-        fw: f ? '700' : (c ? '600' : '500'),
-        cbg: c ? 'var(--st-card)' : 'transparent',
-        cfg: c ? 'var(--st-ink)' : 'var(--st-ink-2)'
-      };
-    };
     const o = this.props.open;
     const isOpen = !(o === false || o === 'false');
+    const foc = isOpen ? (this.props.focus ?? 'channels') : '';
+    // The lit plate is the menu's (0.20.1): one plate that glides from entry to entry on a spring. `plate` is
+    // where it is, in entries from the top (fractional while it travels); `trail` how far it stretches behind
+    // itself (px, positive while it moves down). Without `plate` it sits under the focused entry. The focused
+    // entry's content crosses to dark ink as it is lit (`lit`, 0–1) and the entry it left (`from`) crosses back.
+    const plateAt = this.props.plate;
+    const hasPlate = isOpen && foc !== '';
+    // Entries from the top of the drawer: the safe area, the 74px header and its 24px, and the 2px gap; then 66px
+    // an entry. The two tools sit under the hairline, 617px and 683px below the first entry (nine entries since
+    // Podcasts, 11/11, which sits right after YouTube).
+    const ROW0 = 54 + 74 + 24 + 2, PITCH = 66, ROW = 64;
+    const SLOT = { home: 0, channels: 1, guide: 2, radio: 3, sport: 4, news: 5, youtube: 6, podcasts: 7, recordings: 8, search: 617 / 66, settings: 683 / 66 };
+    const at = (plateAt === null || plateAt === undefined || plateAt === '') ? (SLOT[foc] ?? -1) : Number(plateAt);
+    const trail = Number(this.props.trail) || 0;
+    const lit = this.props.lit === undefined || this.props.lit === null ? 1 : Number(this.props.lit);
+    const from = this.props.from || '';
+    const mix = (amount, rest) => amount >= 1 ? 'var(--st-on-cue)' : (amount <= 0 ? rest : 'color-mix(in srgb, var(--st-on-cue) ' + Math.round(amount * 100) + '%, ' + rest + ')');
+    const HREF = { home: 'Main.dc.html', channels: 'Channels.dc.html', guide: 'Guide.dc.html', radio: 'RadioList.dc.html', sport: 'TvSport.dc.html', news: 'TvNews.dc.html', youtube: 'TvYouTube.dc.html', podcasts: 'TvPodcasts.dc.html', recordings: 'Recordings.dc.html', search: 'TvSearch.dc.html', settings: 'Settings.dc.html' };
+    const make = (n) => {
+      const f = n[0] === foc, c = n[0] === cur, left = n[0] === from;
+      const rest = c ? 'var(--st-current)' : 'var(--st-ink-2)';
+      return {
+        label: n[1], glyph: n[2], href: HREF[n[0]], aria: c ? 'page' : undefined, cur: c,
+        // The plate is drawn under the entries; an entry draws only the amber of the screen you are on, and
+        // gives it up while the plate is on it.
+        bg: c && !f ? 'var(--st-current-glass)' : 'transparent',
+        fg: f ? mix(lit, rest) : (left ? mix(1 - lit, rest) : rest),
+        sh: c && !f ? 'inset 0 0 0 1px var(--st-current-edge)' : 'none',
+        tf: 'none',
+        fw: f || c ? '700' : '500',
+        cbg: c ? 'var(--st-current-glass)' : 'transparent',
+        cfg: c ? 'var(--st-current)' : 'var(--st-ink-2)',
+        csh: c ? 'inset 0 0 0 1px var(--st-current-edge)' : 'none'
+      };
+    };
     return {
       isOpen: isOpen, closed: !isOpen,
-      items: [['home', 'בית', 'home'], ['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['recordings', 'הקלטות', 'record']].map(make),
+      hasPlate: hasPlate && at >= 0,
+      plateTop: (ROW0 + at * PITCH - Math.max(trail, 0)) + 'px',
+      plateHeight: (ROW + Math.abs(trail)) + 'px',
+      items: [['home', 'בית', 'home'], ['channels', 'ערוצים', 'tv'], ['guide', 'מדריך', 'guide'], ['radio', 'רדיו', 'radio'], ['sport', 'ספורט', 'sport'], ['news', 'חדשות', 'news'], ['youtube', 'YouTube', 'stream'], ['podcasts', 'פודקאסטים', 'podcast'], ['recordings', 'הקלטות', 'record']].map(make),
       tools: [['search', 'חיפוש', 'search'], ['settings', 'הגדרות', 'settings']].map(make)
     };
   }

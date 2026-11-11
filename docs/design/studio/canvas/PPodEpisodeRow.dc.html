@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — שורת פרק</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; box-sizing: border-box; padding: 10px 8px; border-radius: 18px; background: {{bg}}; box-shadow: {{edge}}; display: flex; align-items: flex-start; gap: 12px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<sc-if value="{{art}}" hint-placeholder-val="{{true}}"><dc-import name="PodArt" size="56" tone="{{tone}}" phone="true" hint-size="56px,56px"></dc-import></sc-if>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--st-ink-3); white-space: nowrap; overflow: hidden">
+<sc-if value="{{isNew}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="פרק חדש" style="flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--st-ink)"></span></sc-if>
+<span style="overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+</span>
+<span style="font-size: 15px; font-weight: 600; line-height: 1.3; color: {{titleC}}; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{title}}</span>
+<div style="display: flex; align-items: center; gap: 4px; margin-top: 4px">
+<button aria-label="{{playAria}}" style="height: 32px; box-sizing: border-box; padding: 0 12px 0 10px; border: 0; border-radius: 16px; background: {{pillBg}}; box-shadow: {{pillEdge}}; color: {{pillFg}}; display: inline-flex; align-items: center; gap: 7px; font-family: var(--st-font-ui); font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer">
+<dc-import name="Icon" glyph="{{pillGlyph}}" size="14" hint-size="14px,14px"></dc-import>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 34px; height: 3px; border-radius: 2px; background: {{pillTrack}}; overflow: hidden"><span style="display: block; height: 3px; width: {{pct}}; background: currentColor"></span></span></sc-if>
+<span class="st-num">{{pillText}}</span>
+</button>
+<sc-if value="{{dl}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="הורד לטלפון" style="display: flex; color: var(--st-ink-3); margin-right: 4px"><dc-import name="Icon" glyph="update" size="16" hint-size="16px,16px"></dc-import></span></sc-if>
+<span style="flex: 1 1 auto"></span>
+<button aria-label="{{starLabel}}" aria-pressed="{{starPressed}}" style="width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: {{starC}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{star}}" size="20" hint-size="20px,20px"></dc-import></button>
+<button aria-label="אפשרויות הפרק" style="width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--st-ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="more" size="22" hint-size="22px,22px"></dc-import></button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"art":{"editor":"boolean","default":true},"width":{"editor":"int","default":358,"min":240,"max":720},"$preview":{"width":358,"height":110}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // A phone episode row: optional cover; a line with the show and date (a white dot when new); the title in two
+    // lines; then one pill that both plays and tells where you are — "54 דק׳" (never played), a little bar and
+    // "נותרו 23 דק׳" (started), "הושמע" (played), or amber "מתנגן" while it plays; a down arrow when the file
+    // is kept on the phone; the star; and ⋮ for the options sheet (PPodcastSheet).
+    const it = this.props.item || { title: '[שם הפרק]', meta: '[שם הפודקאסט] · היום', dur: '54 דק׳', status: 'new', tone: '1' };
+    const art = this.props.art === undefined ? true : (this.props.art === true || this.props.art === 'true');
+    const s = it.status || 'rest';
+    const playing = s === 'playing', played = s === 'played', partial = s === 'partial';
+    const fav = !!it.fav;
+    return {
+      w: (Number(this.props.width) || 358) + 'px', art: art, tone: it.tone || '1',
+      meta: it.meta, title: it.title, isNew: s === 'new', dl: !!it.dl,
+      titleC: played ? 'var(--st-ink-3)' : 'var(--st-ink)',
+      bg: playing ? 'var(--st-onscreen)' : 'transparent',
+      edge: playing ? 'inset 0 0 0 1px rgba(255, 90, 95, 0.45)' : 'none',
+      pillBg: playing ? 'var(--st-cue)' : 'var(--st-card)',
+      pillFg: playing ? 'var(--st-on-cue)' : (played ? 'var(--st-ink-3)' : 'var(--st-ink)'),
+      pillEdge: playing ? 'none' : 'var(--st-edge)',
+      pillTrack: playing ? 'rgba(20, 14, 0, 0.25)' : 'var(--st-track)',
+      pillGlyph: playing ? 'pause' : (played ? 'check' : 'play'),
+      pillText: playing ? 'מתנגן' : (played ? 'הושמע' : (partial ? (it.left || '') : (it.dur || ''))),
+      playAria: playing ? 'השהיה' : (partial ? 'המשך' : 'ניגון'),
+      hasPct: partial || playing, pct: (Number(it.pct) || 0) + '%',
+      star: fav ? 'star-on' : 'star', starC: fav ? 'var(--st-cue)' : 'var(--st-ink-3)',
+      starLabel: fav ? 'הסרה מהמועדפים' : 'הוספה למועדפים', starPressed: fav ? 'true' : 'false'
+    };
+  }
+}
+</script>
+</body>
+</html>

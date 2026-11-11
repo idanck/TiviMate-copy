@@ -10,20 +10,37 @@
 <body>
 <x-dc>
 <helmet>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&amp;family=Karantina:wght@700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>body{margin:0}</style>
 </helmet>
-<header style="width: 390px; height: var(--st-h-topbar); box-sizing: border-box; padding: 0 6px; display: flex; align-items: center; gap: 2px; font-family: var(--st-font-ui); color: var(--st-ink)">
-<sc-if value="{{back}}" hint-placeholder-val="{{false}}"><button aria-label="חזרה" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="back" size="24" hint-size="24px,24px"></dc-import></button></sc-if>
-<h1 class="st-t-title-s" style="flex: 1 1 auto; min-width: 0; padding: 0 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</h1>
-<sc-if value="{{search}}" hint-placeholder-val="{{true}}"><button aria-label="חיפוש" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="search" size="24" hint-size="24px,24px"></dc-import></button></sc-if>
+<header style="width: 390px; height: var(--st-h-topbar); box-sizing: border-box; padding: 0 var(--st-safe-x); display: flex; align-items: center; gap: 8px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<sc-if value="{{menu}}" hint-placeholder-val="{{false}}"><button aria-label="תפריט" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="menu" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
+<sc-if value="{{back}}" hint-placeholder-val="{{false}}"><button aria-label="חזרה" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="back" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
+<h1 style="flex: 1 1 auto; min-width: 0; margin: 0; font-family: var(--st-font-display); font-size: {{tfs}}; font-weight: 800; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</h1>
+<sc-if value="{{panels}}" hint-placeholder-val="{{false}}">
+<button aria-label="חדשות" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="news" size="22" hint-size="22px,22px"></dc-import></button>
+<button aria-label="ספורט" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="sport" size="22" hint-size="22px,22px"></dc-import></button>
+</sc-if>
+<sc-if value="{{search}}" hint-placeholder-val="{{true}}"><button aria-label="חיפוש" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="search" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
+<sc-if value="{{settings}}" hint-placeholder-val="{{false}}"><button aria-label="הגדרות" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="settings" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
 </header>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"ערוצים"},"back":{"editor":"boolean","default":false},"search":{"editor":"boolean","default":true},"$preview":{"width":390,"height":56}}'>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"ערוצים"},"back":{"editor":"boolean","default":false},"search":{"editor":"boolean","default":true},"panels":{"editor":"boolean","default":false},"settings":{"editor":"boolean","default":false},"menu":{"editor":"boolean","default":false},"$preview":{"width":390,"height":56}}'>
 class Component extends DCLogic {
   renderVals() {
+    // כותרת גדולה (32) במסכי הלשוניות, 26 כשיש חזרה. כפתורי אייקון בזכוכית דקה, 44 לפחות.
+    // panels: חדשות וספורט — רק בלשוניות ערוצים ומדריך (PhoneTopBar: onNews, onSport). הסדר מקצה ההתחלה: חזרה, כותרת, חדשות, ספורט, חיפוש.
     const yes = (v) => v === true || v === 'true';
-    return { title: this.props.title ?? 'ערוצים', back: yes(this.props.back), search: this.props.search === undefined ? true : yes(this.props.search) };
+    const back = yes(this.props.back);
+    return {
+      title: this.props.title ?? 'ערוצים', back: back,
+      search: this.props.search === undefined ? true : yes(this.props.search),
+      panels: yes(this.props.panels),
+      // settings, menu (11/11): only in the alternatives to the seven-tab bar — a gear after search
+      // ("הגדרות למעלה"), or a menu button before the title that opens the drawer ("מגירה").
+      settings: yes(this.props.settings), menu: yes(this.props.menu),
+      tfs: back ? '26px' : '32px'
+    };
   }
 }
 </script>

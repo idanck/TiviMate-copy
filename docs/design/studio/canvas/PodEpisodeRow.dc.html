@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — שורת פרק</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-anim" style="width: {{w}}; height: {{h}}; box-sizing: border-box; padding: 0 16px 0 20px; border-radius: var(--st-r-control); background: {{bg}}; -webkit-backdrop-filter: {{blur}}; backdrop-filter: {{blur}}; box-shadow: {{sh}}; transform: {{tf}}; color: {{fg}}; display: flex; align-items: center; gap: 20px; font-family: var(--st-font-ui)">
+<span style="flex: 0 0 36px; width: 36px; display: flex; align-items: center; justify-content: center; color: {{markC}}">
+<sc-if value="{{isNew}}" hint-placeholder-val="{{true}}"><span role="img" aria-label="פרק חדש" style="width: 12px; height: 12px; border-radius: 50%; background: currentColor"></span></sc-if>
+<sc-if value="{{isPlayed}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="הושמע" style="display: flex"><dc-import name="Icon" glyph="played" size="28" hint-size="28px,28px"></dc-import></span></sc-if>
+<sc-if value="{{isPlaying}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="מתנגן עכשיו" style="display: flex; align-items: flex-end; gap: 3px; height: 22px"><span style="width: 4px; height: 12px; border-radius: 2px; background: var(--st-tally)"></span><span style="width: 4px; height: 22px; border-radius: 2px; background: var(--st-tally)"></span><span style="width: 4px; height: 16px; border-radius: 2px; background: var(--st-tally)"></span></span></sc-if>
+</span>
+<sc-if value="{{art}}" hint-placeholder-val="{{false}}"><dc-import name="PodArt" size="60" tone="{{tone}}" hint-size="60px,60px"></dc-import></sc-if>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 24px; font-weight: {{fw}}; color: {{titleC}}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{title}}</span>
+<span style="display: flex; align-items: center; gap: 14px; font-size: 20px; color: {{sub}}; white-space: nowrap">
+<span style="overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="flex: 0 0 180px; height: 5px; border-radius: 3px; background: {{track}}; overflow: hidden"><span style="display: block; height: 5px; width: {{pct}}; background: currentColor"></span></span></sc-if>
+<sc-if value="{{hasLeft}}" hint-placeholder-val="{{false}}"><span class="st-num">{{left}}</span></sc-if>
+</span>
+</span>
+<span dir="ltr" class="st-num" style="flex: 0 0 auto; font-size: 20px; font-weight: 600; color: {{sub}}">{{dur}}</span>
+<button aria-label="{{starLabel}}" aria-pressed="{{starPressed}}" style="flex: 0 0 auto; width: 48px; height: 48px; border: 0; border-radius: 50%; background: transparent; color: {{starC}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{star}}" size="26" hint-size="26px,26px"></dc-import></button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"focus":{"editor":"boolean","default":false},"art":{"editor":"boolean","default":false},"width":{"editor":"int","default":1400,"min":600,"max":1728},"$preview":{"width":1400,"height":84}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // One episode in a list — a show's page, favourites, history, the queue. At the start a mark of where you
+    // are with it: a white dot (new, never played), nothing (started — the bar and "נותרו" say how far), a
+    // ring with a check (played, its title dimmed), or three red bars (playing now; the row washed in the
+    // tally like a channel on screen). Then, optionally, the cover (lists that mix shows); the title; the date
+    // and show; the length as an LTR run; and the star — a favourite is a single episode you keep.
+    // The row is a control: lit in focus, as VOD episodes are.
+    const it = this.props.item || { title: '[שם הפרק]', meta: '3 בנובמבר', dur: '54:20', status: 'new' };
+    const focus = this.props.focus === true || this.props.focus === 'true';
+    const art = this.props.art === true || this.props.art === 'true';
+    const s = it.status || 'rest';
+    const playing = s === 'playing';
+    const played = s === 'played';
+    const hasPct = s === 'partial' || playing;
+    const fav = !!it.fav;
+    return {
+      w: (Number(this.props.width) || 1400) + 'px', h: art ? '88px' : '84px', art: art, tone: it.tone || '1',
+      title: it.title, meta: it.meta, dur: it.dur || '', left: it.left || '', hasLeft: !!it.left,
+      isNew: s === 'new', isPlayed: played, isPlaying: playing,
+      hasPct: hasPct, pct: (Number(it.pct) || 0) + '%',
+      bg: focus ? 'var(--st-cue)' : (playing ? 'var(--st-onscreen)' : 'var(--st-card)'),
+      blur: focus ? 'none' : 'var(--st-blur)',
+      sh: focus ? 'var(--st-lift)' : (playing ? 'inset 0 0 0 1px rgba(255, 90, 95, 0.45)' : 'var(--st-edge)'),
+      tf: focus ? 'scale(var(--st-focus-scale-row))' : 'none',
+      fg: focus ? 'var(--st-on-cue)' : 'var(--st-ink)',
+      titleC: focus ? 'var(--st-on-cue)' : (played ? 'var(--st-ink-3)' : 'var(--st-ink)'),
+      sub: focus ? 'rgba(10, 15, 28, 0.66)' : 'var(--st-ink-2)',
+      track: focus ? 'rgba(10, 15, 28, 0.18)' : 'var(--st-track)',
+      markC: focus ? 'var(--st-on-cue)' : (played ? 'var(--st-ink-3)' : 'var(--st-ink)'),
+      fw: focus ? '700' : '500',
+      star: fav ? 'star-on' : 'star',
+      starC: focus ? 'var(--st-on-cue)' : (fav ? 'var(--st-current)' : 'var(--st-ink-3)'),
+      starLabel: fav ? 'הסרה מהמועדפים' : 'הוספה למועדפים', starPressed: fav ? 'true' : 'false'
+    };
+  }
+}
+</script>
+</body>
+</html>

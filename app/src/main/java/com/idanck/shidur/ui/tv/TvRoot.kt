@@ -121,6 +121,9 @@ enum class TvOverlay {
      */
     YOUTUBE,
 
+    /** Podcasts (ADR-067): a browse screen, its parts, a show's page and the player inside it. */
+    PODCASTS,
+
     /**
      * YouTube's player on the whole screen (ADR-061), with nothing of Shidur's over it. Neither
      * passthrough nor a browse screen: [TvRoot] draws it in place of both, as it does Sport mode.
@@ -752,6 +755,11 @@ fun TvRoot(
                     TvOverlay.ADD_SOURCE -> AddSourceScreen(
                         vm = vm,
                         onDone = { onOverlayChange(TvOverlay.NONE) },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    TvOverlay.PODCASTS -> com.idanck.shidur.ui.podcasts.PodcastsScreen(
+                        vm = vm,
                         modifier = Modifier.fillMaxSize(),
                     )
 

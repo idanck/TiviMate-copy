@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — עמוד פודקאסט</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<header style="position: absolute; top: 140px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: flex-start; gap: 40px">
+<dc-import name="PodArt" size="290" tone="2" hint-size="290px,290px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<span style="font-size: 22px; font-weight: 600; color: var(--st-ink-2)">[מגיש או רשת] · תרבות וחברה</span>
+<h1 class="st-t-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הפודקאסט]</h1>
+<span class="st-t-meta">142 פרקים · פרק חדש בכל יום ראשון · עברית</span>
+<p style="margin: 0; max-width: 1180px; font-size: 22px; line-height: 1.45; color: var(--st-ink-2); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[תיאור הפודקאסט מהפיד, עד שתי שורות]</p>
+<div style="display: flex; align-items: center; gap: 16px; margin-top: 8px">
+<dc-import name="Button" label="בספרייה שלך" glyph="check" size="m" active="true" focused="{{saveFocus}}" hint-size="240px,64px"></dc-import>
+<dc-import name="Button" label="נגן את החדש" glyph="play" size="m" hint-size="230px,64px"></dc-import>
+<dc-import name="Button" label="התראה על פרק חדש" glyph="bell" size="m" icon-only="true" active="true" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="הגדרות הפודקאסט" glyph="settings" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+</div>
+</div>
+</header>
+
+<div style="position: absolute; top: 474px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; justify-content: space-between">
+<div role="group" aria-label="סינון פרקים" style="display: flex; gap: 12px">
+<sc-for list="{{filters}}" as="c" hint-placeholder-count="4">
+<dc-import name="Chip" label="{{c.label}}" state="{{c.state}}" hint-size="160px,56px"></dc-import>
+</sc-for>
+</div>
+<dc-import name="Button" label="מהחדש לישן" glyph="move" variant="ghost" size="m" hint-size="230px,64px"></dc-import>
+</div>
+
+<section aria-label="פרקים" style="position: absolute; top: 566px; right: var(--st-inset-start); display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<dc-import name="PodEpisodeRow" item="{{r}}" focus="{{r.focus}}" width="1664" hint-size="1664px,84px"></dc-import>
+</sc-for>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"focus":{"editor":"enum","options":["episode","save"],"default":"episode"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // One podcast: cover, name, who makes it and how often, the feed's description. The actions: keep it in
+    // your library (a toggle — amber while it is kept), play the newest episode, a new-episode notice (on
+    // the phone and on the TV's home row), and this podcast's own settings (TvPodcastShowSettings).
+    // The episodes below, newest first, filtered by the chips. OK on a started episode carries on from the
+    // saved point; a long OK opens its options (TvPodcastMenu).
+    const fe = this.props.focus !== 'save';
+    const R = (title, meta, dur, status, o) => Object.assign({ title: title, meta: meta, dur: dur, status: status, focus: false }, o || {});
+    return {
+      saveFocus: !fe,
+      filters: [['כל הפרקים', 'selected'], ['לא הושמעו', 'rest'], ['בהתקדמות', 'rest'], ['מועדפים', 'rest']].map((c) => ({ label: c[0], state: c[1] })),
+      rows: [
+        R('[שם הפרק] · פרק 114', '9 בנובמבר', '48:12', 'new'),
+        R('[שם הפרק] · פרק 113', '2 בנובמבר', '1:02:40', 'partial', { pct: 58, left: 'נותרו 26 דק׳', focus: fe }),
+        R('[שם הפרק] · פרק 112', '26 באוקטובר', '54:20', 'played', { fav: true }),
+        R('[שם הפרק] · פרק 111', '19 באוקטובר', '51:05', 'played'),
+        R('[שם הפרק] · פרק 110', '12 באוקטובר', '58:47', 'new')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

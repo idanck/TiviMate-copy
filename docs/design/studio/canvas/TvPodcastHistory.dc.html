@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>פודקאסטים — היסטוריה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="PodTabs" current="history" focus="" hint-size="980px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 236px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; gap: 20px">
+<h1 class="st-t-h1">היסטוריה</h1>
+<span class="st-t-caption">כל פרק שהתחלת, בכל מכשיר, לפי היום שבו שמעת אותו</span>
+<span style="flex: 1 1 auto"></span>
+<dc-import name="Button" label="ניקוי ההיסטוריה" glyph="trash" variant="ghost" size="m" hint-size="260px,64px"></dc-import>
+</div>
+
+<section aria-label="היסטוריה" style="position: absolute; top: 322px; right: var(--st-inset-start); display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="8">
+<sc-if value="{{it.isHead}}" hint-placeholder-val="{{false}}"><span style="display: block; padding: {{it.pad}}; font-size: 22px; font-weight: 600; color: var(--st-ink-2)">{{it.label}}</span></sc-if>
+<sc-if value="{{it.isRow}}" hint-placeholder-val="{{true}}"><dc-import name="PodEpisodeRow" item="{{it.r}}" focus="{{it.focus}}" art="true" width="1664" hint-size="1664px,88px"></dc-import></sc-if>
+</sc-for>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="podcasts" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // History: every episode you started, newest first, grouped by day. Each row says where you left it and
+    // on which device ("בטלפון"), so a row started elsewhere carries on from there. A long OK on a row removes
+    // it from the history; "ניקוי ההיסטוריה" asks first, and never touches the saved points of the library.
+    const H = (label, first) => ({ isHead: true, isRow: false, label: label, pad: first ? '0 24px 2px' : '14px 24px 2px' });
+    const R = (meta, dur, status, tone, o) => ({ isHead: false, isRow: true, focus: !!(o && o.focus),
+      r: Object.assign({ title: '[שם הפרק]', meta: meta, dur: dur, status: status, tone: tone }, o || {}) });
+    return {
+      items: [
+        H('היום', true),
+        R('[שם הפודקאסט] · כאן, 20:31', '1:02:40', 'playing', '2', { pct: 58, left: 'נותרו 26 דק׳' }),
+        R('[שם הפודקאסט] · בטלפון, 08:15', '48:12', 'partial', '1', { pct: 30, left: 'נותרו 34 דק׳', focus: true }),
+        H('אתמול'),
+        R('[שם הפודקאסט] · בטלפון, 18:40', '54:20', 'played', '4', { fav: true }),
+        R('[שם הפודקאסט] · כאן, 22:05', '32:05', 'played', '5'),
+        H('מוקדם יותר השבוע'),
+        R('[שם הפודקאסט] · כאן, יום ב׳', '1:10:00', 'partial', '6', { pct: 12, left: 'נותרו 1:02 ש׳' }),
+        R('[שם הפודקאסט] · בטלפון, יום א׳', '44:10', 'played', '3')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

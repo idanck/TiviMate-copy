@@ -161,6 +161,8 @@ internal fun SideMenu(
         MenuDestination(stringResource(R.string.nav_news), StudioIcons.News, TvOverlay.NEWS),
         // YouTube's own screen (ADR-061) follows News: its player in a frame of its own.
         MenuDestination(stringResource(R.string.nav_youtube), StudioIcons.Stream, TvOverlay.YOUTUBE),
+        // Podcasts (ADR-067) right after YouTube, as `SideMenu.dc.html` places it.
+        MenuDestination(stringResource(R.string.nav_podcasts), StudioIcons.Podcast, TvOverlay.PODCASTS),
         MenuDestination(stringResource(R.string.nav_recordings), StudioIcons.Record, TvOverlay.RECORDINGS),
     ).filter { showRadio || it.overlay != TvOverlay.RADIO }
     val tools = listOf(

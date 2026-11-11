@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — מועדפים</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="פודקאסטים" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: 0"><dc-import name="PPodTabs" current="favorites" hint-size="390px,44px"></dc-import></div>
+
+<div style="position: absolute; top: 146px; right: var(--st-safe-x); left: var(--st-safe-x); height: 44px; display: flex; align-items: center; justify-content: space-between">
+<span class="st-t-meta">7 פרקים שסימנת בכוכב</span>
+<dc-import name="PButton" label="נגן הכול" glyph="play" size="m" hint-size="110px,44px"></dc-import>
+</div>
+
+<section aria-label="מועדפים" style="position: absolute; top: 200px; right: var(--st-safe-x); left: var(--st-safe-x); bottom: 92px; overflow: hidden; display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<dc-import name="PPodEpisodeRow" item="{{r}}" art="true" width="358" hint-size="358px,104px"></dc-import>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="podcasts" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Favourite episodes, newest-starred first; the same list as on the television.
+    const R = (meta, o) => Object.assign({ title: '[שם הפרק]', meta: meta, fav: true }, o);
+    return {
+      rows: [
+        R('[שם הפודקאסט] · 26 באוקטובר', { status: 'played', tone: '2' }),
+        R('[שם הפודקאסט] · 14 באוקטובר', { status: 'partial', pct: 35, left: 'נותרו 47 דק׳', tone: '4', dl: true }),
+        R('[שם הפודקאסט] · 3 באוקטובר', { status: 'new', dur: '39 דק׳', tone: '1' }),
+        R('[שם הפודקאסט] · 21 בספטמבר', { status: 'played', tone: '6' }),
+        R('[שם הפודקאסט] · 2 בספטמבר', { status: 'played', tone: '3' })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

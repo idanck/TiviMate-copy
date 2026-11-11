@@ -264,6 +264,25 @@ clip at the moment they are pressed) and resting it on `Color.Transparent` (whic
 goes through one `Modifier.focusSurface`, and every menu through one `AppDialog` on the shell's
 own plate. `FocusVocabularyTest` holds the three invariants that were broken.
 
+## POD — Podcasts (ADR-067)
+
+Not in the original requirements; added 2026-11-11. Android only (television and phone); the web and
+webOS versions have no podcasts.
+
+| Area | Status | Notes |
+|---|---|---|
+| Entry | Done | Television: the side menu, after YouTube. Phone: a tab between Radio and Settings (ADR-066). |
+| Adding | Done | By an RSS address (`feed://`, `itpc://` and a bare host accepted), from search, or from the popular rail. |
+| Search and popular | Partial | Podcast Index through `pcSearch` and `pcTrending` (Hebrew feeds), cached on the server. Off until the owner sets `PODCASTINDEX_API_KEY`/`SECRET` (docs/14); until then only adding by link. |
+| Library | Done | Covers with new-episode counts, sorted by latest episode, A–Z or most new; refreshed every six hours by `RefreshWorker` and on opening a show. |
+| Episodes | Done | Per show, filtered (all, unplayed, in progress, favourites), newest or oldest first per show. |
+| Marks | Done | Position every 10 s, on pause and on leaving; played within 30 s of the end (or the show's outro skip); favourites; history by day and device, cleared without losing positions. |
+| Player | Done | 15 back, 30 forward, speed per show (0.8×–2×), sleep timer (minutes or end of episode), chapters from `podcast:chapters`, queue and "play next". Plays on in the background like radio. |
+| Per-show settings | Done | Speed, intro and outro skip, episode order, remove from library. |
+| Sync | Done | Library, show settings, marks and queue in `users/{uid}/…` while signed in; the newer mark wins. |
+| Backup | Done | Shows, marks and queue in the backup file (format 1, additive). |
+| Not built | — | New-episode notifications, downloads for listening offline, transcripts, Android Auto's podcast folder, the "send a link from the phone" QR on the television, a star button on each row (the star is in the row's options and on the player). |
+
 ## WEB — Shidur for the computer (ADR-044)
 
 An installable web app in `web/`, with the server that proxies providers. Measured against the

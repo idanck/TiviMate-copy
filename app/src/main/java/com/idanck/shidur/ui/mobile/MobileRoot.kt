@@ -60,7 +60,7 @@ import com.idanck.shidur.ui.common.StudioIcons
  * screen. [VOD] has none and is reached only from search, on an installation that has on-demand at
  * all (ADR-016).
  */
-enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS, YOUTUBE, MORE }
+enum class MobileTab { LIVE, RADIO, GUIDE, VOD, RECORDINGS, SETTINGS, YOUTUBE, MORE, PODCASTS }
 
 /**
  * The touch shell.
@@ -227,11 +227,14 @@ fun MobileRoot(
     // playlist yet there is nothing behind it to go back to.
     val showAddSource = addingSource || (state.playlists.isEmpty() && !state.loading)
     val inSettingsSubSection = tab == MobileTab.SETTINGS && settingsSection != SettingsSection.ROOT
+    // A show's page and the player step back inside the podcasts tab (ADR-067).
+    val podcastPage by vm.podcastNav.page.collectAsState()
+    val inPodcastPage = tab == MobileTab.PODCASTS && podcastPage !is com.idanck.shidur.ui.podcasts.PodcastPage.Home
     // Live is the phone's home tab, the same way the channel list is TV's — Back from any other
     // tab returns to it first, rather than falling straight through to the activity's exit
     // confirmation the moment there is nothing else on this composable's own stack to unwind.
     val canGoBack = (addingSource && state.playlists.isNotEmpty()) ||
-        (!showAddSource && (searching || inSettingsSubSection || tab != MobileTab.LIVE))
+        (!showAddSource && (searching || inSettingsSubSection || inPodcastPage || tab != MobileTab.LIVE))
 
     val goBack: () -> Unit = {
         when {
@@ -240,6 +243,7 @@ fun MobileRoot(
             addingSource -> addingSource = false
             searching -> searching = false
             inSettingsSubSection -> onSettingsSection(SettingsSection.ROOT)
+            inPodcastPage -> vm.podcastNav.back()
             tab != MobileTab.LIVE -> tab = MobileTab.LIVE
         }
     }
@@ -316,6 +320,7 @@ fun MobileRoot(
                     tab == MobileTab.GUIDE -> stringResource(R.string.nav_guide)
                     tab == MobileTab.RADIO -> stringResource(R.string.nav_radio)
                     tab == MobileTab.YOUTUBE -> stringResource(R.string.nav_youtube)
+                    tab == MobileTab.PODCASTS && !inPodcastPage -> stringResource(R.string.nav_podcasts)
                     else -> null
                 }
                 // YouTube's tab searches YouTube, on a page of its own (`PYouTubeSearch`).
@@ -351,11 +356,20 @@ fun MobileRoot(
                             radio = radioPlaylistId != null &&
                                 (nowPlaying as? NowPlayingInfo.Live)?.channel?.playlistId == radioPlaylistId,
                             wantsPlay = playback.playWhenReady,
-                            onExpand = openPlayer,
+                            // A podcast opens its own player, in its tab (ADR-067); anything else
+                            // the full-screen one.
+                            onExpand = {
+                                if (nowPlaying is NowPlayingInfo.Podcast) {
+                                    selectTab(MobileTab.PODCASTS)
+                                    vm.podcastNav.open(com.idanck.shidur.ui.podcasts.PodcastPage.Player)
+                                } else {
+                                    openPlayer()
+                                }
+                            },
                             onTogglePlay = { ServiceLocator.player.togglePlayPause() },
                         )
                     }
-                    // The bar the owner chose on 2026-11-11 (ADR-066): Live, Radio and Settings, and
+                    // The bar the owner chose on 2026-11-11 (ADR-066): Live, Radio, Podcasts and Settings, and
                     // "עוד" with the guide, YouTube and the recordings, so a new destination no
                     // longer squeezes seven labels into 390dp.
                     PhoneNavBar(
@@ -364,6 +378,7 @@ fun MobileRoot(
                             PhoneTab(MobileTab.LIVE, stringResource(R.string.nav_live), StudioIcons.Tv),
                             PhoneTab(MobileTab.RADIO, stringResource(R.string.nav_radio), StudioIcons.Radio)
                                 .takeIf { vm.isRadioShown(state.playlists) },
+                            PhoneTab(MobileTab.PODCASTS, stringResource(R.string.nav_podcasts), StudioIcons.Podcast),
                             PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),
                         more = listOf(
@@ -467,6 +482,10 @@ fun MobileRoot(
                                 modifier = Modifier.weight(1f),
                             )
                         }
+                        MobileTab.PODCASTS -> com.idanck.shidur.ui.podcasts.PodcastsScreen(
+                            vm = vm,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                         // "עוד" is a sheet over the current tab, never a screen of its own.
                         MobileTab.MORE -> Unit
                     }
