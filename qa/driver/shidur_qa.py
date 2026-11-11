@@ -518,7 +518,7 @@ class Runner:
         for fn in [self.s01_install, self.s02_cold_start, self.s03_bootstrap, self.s04_navigation,
                    self.s26_home_menu_return, self.s05_add_m3u_errors, self.s07_add_xtream, self.s06_add_m3u, self.s08_playback,
                    self.s09_zap, self.s10_failover_and_errors, self.s11_dpad_focus, self.s12_guide_search,
-                   self.s24_back_to_video, self.s25_guide_lands_on_now, self.s27_settings_by_remote, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
+                   self.s24_back_to_video, self.s25_guide_lands_on_now, self.s27_settings_by_remote, self.s29_timeshift, self.s13_lifecycle, self.s14_network_loss, self.s15_deep_link_fuzz,
                    self.s23_scheduled_recording, self.s21_suspended_refresh,
                    self.s16_locale, self.s17_scale, self.s22_parental, self.s18_monkey, self.s19_resources]:
             fn()
@@ -1400,6 +1400,107 @@ class Runner:
             if not opened:
                 wrong.append("OK on the field did not bring the keyboard up")
             done()
+
+    def s29_timeshift(self):
+        @self.scenario("QA-29", "Live TV pauses, rewinds and returns to live from the timeshift buffer (ADR-065)",
+                       "playback")
+        def _(sid, title, area):
+            if self.form != "tv":
+                self.record(sid, title, "SKIP", "television only for now: the phone's player has the same buffer",
+                            [], area)
+                return
+            cid = self.channel_id("qa.ts")
+            if not cid:
+                self.record(sid, title, "SKIP", "mock MPEG-TS channel missing", [], area)
+                return
+            notes, wrong, shots = [], [], []
+            before = len(self.mock_requests("/ts/b.ts"))
+
+            def behind():
+                """Seconds behind live the bar says, or None when it says nothing about it."""
+                for t in self.ui.texts():
+                    m = re.search(r"(\d+(?::\d\d)+)\u2069?\s*behind live", t)
+                    if m:
+                        parts = [int(x) for x in m.group(1).split(":")]
+                        secs = 0
+                        for x in parts:
+                            secs = secs * 60 + x
+                        return secs
+                return None
+
+            def bar():
+                """The transport bar up, OK on the bare video; it may have gone by itself meanwhile."""
+                if not self.ui.find("Back 30 seconds", exact=True):
+                    key("KEYCODE_DPAD_CENTER")
+                    time.sleep(2)
+
+            # Off by default (ADR-065): switched on here, and off again at the end.
+            self.edit_prefs({"timeshift_enabled": True})
+            remote_mode()
+            deep_link(f"shidur://channel/{cid}")
+            time.sleep(8)
+            bar()
+            buffered = self.ui.find("Back 30 seconds", exact=True) is not None
+            notes.append(f"buffered={buffered}")
+            if not buffered:
+                wrong.append("the bar has no rewind: the channel is not playing from the buffer")
+            key("KEYCODE_BACK")
+            time.sleep(1)
+
+            # Paused for fifteen seconds, then playing again: behind live by about that much.
+            key("KEYCODE_MEDIA_PLAY_PAUSE")
+            time.sleep(15)
+            key("KEYCODE_MEDIA_PLAY_PAUSE")
+            time.sleep(2)
+            bar()
+            after_pause = behind()
+            notes.append(f"after pause: {after_pause}s behind")
+            shots.append(self.ev.shot(f"{sid}_paused"))
+            if after_pause is None or not 8 <= after_pause <= 40:
+                wrong.append(f"after a 15 s pause the bar says {after_pause} s behind live")
+
+            # Half a minute back.
+            key("KEYCODE_MEDIA_REWIND")
+            time.sleep(4)
+            bar()
+            after_rewind = behind()
+            notes.append(f"after rewind: {after_rewind}s behind")
+            if after_rewind is None or after_pause is None or after_rewind < after_pause + 15:
+                wrong.append(f"rewind moved from {after_pause} s to {after_rewind} s behind")
+
+            # Back to live: nothing behind any more.
+            button = self.ui.find("Back to live", exact=True)
+            if button:
+                tap(*button.center)
+                remote_mode()
+            else:
+                wrong.append("no Back to live button while behind")
+            time.sleep(4)
+            bar()
+            at_live = behind()
+            notes.append(f"after back to live: {at_live}")
+            if at_live is not None:
+                wrong.append(f"still {at_live} s behind after Back to live")
+            key("KEYCODE_BACK")
+            frac, audio, s = self.check_playing(f"{sid}_live", wait=2)
+            shots += s
+            notes.append(f"motion={frac if frac is None else round(frac, 3)} audio={audio}")
+            if not audio and not (frac and frac > 0.01):
+                wrong.append("not playing after Back to live")
+
+            # One connection to the provider for all of it: the buffer's (logged once it closes).
+            other = self.channel_id("qa.ch01")
+            if other:
+                deep_link(f"shidur://channel/{other}")
+            time.sleep(4)
+            connections = len(self.mock_requests("/ts/b.ts")) - before
+            notes.append(f"connections={connections}")
+            if connections != 1:
+                wrong.append(f"{connections} connections to the stream, not one")
+            self.edit_prefs({"timeshift_enabled": False})
+
+            self.record(sid, title, "PASS" if not wrong else "FAIL",
+                        ("; ".join(wrong) + " || " if wrong else "") + " · ".join(notes), shots, area)
 
     def s13_lifecycle(self):
         @self.scenario("QA-13", "Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP",

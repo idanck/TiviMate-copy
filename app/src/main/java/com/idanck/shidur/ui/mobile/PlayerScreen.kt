@@ -61,6 +61,10 @@ import com.idanck.shidur.player.PlaybackStatus
 import com.idanck.shidur.ui.AppViewModel
 import com.idanck.shidur.ui.NowPlayingInfo
 import com.idanck.shidur.ui.UiMessage
+import com.idanck.shidur.ui.common.TIMESHIFT_STEP_MS
+import com.idanck.shidur.ui.common.TimeshiftTrack
+import com.idanck.shidur.ui.common.behindLiveText
+import com.idanck.shidur.ui.common.rememberLiveWindow
 import com.idanck.shidur.ui.common.PhoneButtonVariant
 import com.idanck.shidur.ui.common.PhoneButtonSize
 import com.idanck.shidur.ui.common.PhoneButton
@@ -370,6 +374,9 @@ private fun NowPlayingDetails(
     val liveChannel = live?.let { l ->
         state.list.channels.firstOrNull { it.id == l.channel.id } ?: l.channel
     }
+    // Buffered live playback (ADR-065): where in the buffer the picture is.
+    val window = rememberLiveWindow(playback.timeshift)
+    val behind = window != null && !window.atLive
     // The progress and the minutes left are read at composition; nothing else here changes once
     // a minute, so a slow tick keeps them honest without recomposing more often.
     var minute by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -395,7 +402,7 @@ private fun NowPlayingDetails(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    LiveBadge()
+                    if (!behind) LiveBadge()
                     Text(
                         text = channel.displayName,
                         style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
@@ -433,6 +440,18 @@ private fun NowPlayingDetails(
                             style = StudioTheme.type.caption,
                             color = studio.ink2,
                         )
+                    }
+                }
+                // The buffer, and how far behind live the picture is in it.
+                if (window != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        TimeshiftTrack(window, modifier = Modifier.weight(1f))
+                        if (behind) {
+                            Text(text = behindLiveText(window), style = StudioTheme.type.caption, color = studio.current)
+                        }
                     }
                 }
             }
@@ -488,6 +507,38 @@ private fun NowPlayingDetails(
                 onZapPrevious = { vm.zap(-1) },
                 onZapNext = { vm.zap(1) },
             )
+            // Through the buffer (ADR-065): half a minute back or forward, and back to live.
+            if (playback.timeshift) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    PhoneButton(
+                        label = stringResource(R.string.timeshift_rewind),
+                        icon = StudioIcons.Rewind,
+                        size = PhoneButtonSize.M,
+                        onClick = { ServiceLocator.player.seekBy(-TIMESHIFT_STEP_MS) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    PhoneButton(
+                        label = stringResource(R.string.timeshift_forward),
+                        icon = StudioIcons.Forward,
+                        size = PhoneButtonSize.M,
+                        onClick = { ServiceLocator.player.seekBy(TIMESHIFT_STEP_MS) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (behind) {
+                        PhoneButton(
+                            label = stringResource(R.string.timeshift_go_live),
+                            icon = StudioIcons.Restart,
+                            size = PhoneButtonSize.M,
+                            onClick = { ServiceLocator.player.jumpToLive() },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

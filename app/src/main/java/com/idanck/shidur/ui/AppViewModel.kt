@@ -613,7 +613,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val playlist = _state.value.playlists.firstOrNull { it.id == channel.playlistId }
         val profile = playlist?.let { sources.profileFor(it) }
             ?: com.idanck.shidur.data.net.RequestProfile(userAgent = settings.state.value.userAgent)
-        player.play(channel, profile)
+        // The timeshift buffer is for television (ADR-065): a radio station is listened to live,
+        // and its stream is not MPEG-TS anyway.
+        val radio = playlist?.url == IsraelRadioStations.M3U_URL
+        player.play(channel, profile, timeshift = settings.state.value.timeshiftEnabled && !radio)
         settings.rememberChannel(channel.id)
         _state.value = _state.value.copy(
             currentChannel = channel,

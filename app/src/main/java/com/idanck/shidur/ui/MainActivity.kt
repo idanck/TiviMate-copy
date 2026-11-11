@@ -747,6 +747,14 @@ class MainActivity : ComponentActivity() {
                     ServiceLocator.player.togglePlayPause()
                     return true
                 }
+                // Through the timeshift buffer (ADR-065), where the channel plays from one.
+                KeyEvent.KEYCODE_MEDIA_REWIND, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    if (vm.playbackStatus.value.timeshift) {
+                        val step = com.idanck.shidur.ui.common.TIMESHIFT_STEP_MS
+                        ServiceLocator.player.seekBy(if (keyCode == KeyEvent.KEYCODE_MEDIA_REWIND) -step else step)
+                        return true
+                    }
+                }
             }
         }
 

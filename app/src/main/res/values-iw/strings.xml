@@ -679,4 +679,13 @@
     <string name="yt_connect_phone_action">המשך עם חשבון Google</string>
     <string name="yt_connect_phone_body">Google תבקש גישת קריאה בלבד למנויים שלך ב־YouTube. Shidur לא יכול לפרסם, להגיב, להירשם או לשנות דבר בחשבון.</string>
     <string name="yt_connect_failed">החיבור לא הושלם. אפשר לנסות שוב.</string>
+    <!-- Timeshift: עצירה וחזרה אחורה בשידור חי (ADR-065) -->
+    <string name="settings_timeshift">עצירת שידור חי</string>
+    <string name="settings_timeshift_sub">שומר במכשיר עד %1$d דקות מהערוץ, כדי שאפשר יהיה לעצור ולחזור אחורה</string>
+    <string name="settings_timeshift_minutes">כמה זמן לשמור</string>
+    <string name="minutes_short">%1$d דק׳</string>
+    <string name="timeshift_rewind">30 שניות אחורה</string>
+    <string name="timeshift_forward">30 שניות קדימה</string>
+    <string name="timeshift_go_live">לשידור החי</string>
+    <string name="timeshift_behind">%1$s מאחורי השידור החי</string>
 </resources>
