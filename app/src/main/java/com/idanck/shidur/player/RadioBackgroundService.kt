@@ -80,6 +80,9 @@ class RadioBackgroundService : Service() {
                 ServiceLocator.player.setPlayWhenReady(false)
                 stopSelf()
             }
+            // The app is in front again ([stop]): the service goes, the station plays on in the
+            // activity. By id, so a start that arrived after this release keeps the service.
+            ACTION_RELEASE -> stopSelf(startId)
         }
         return START_NOT_STICKY
     }
@@ -137,6 +140,7 @@ class RadioBackgroundService : Service() {
     )
 
     override fun onDestroy() {
+        started = false
         scope.cancel()
         PlayerMediaSession.release(PlayerMediaSession.HOLDER_RADIO_SERVICE)
         super.onDestroy()
@@ -149,6 +153,11 @@ class RadioBackgroundService : Service() {
         private const val REQUEST_STOP = 2
         private const val ACTION_TOGGLE_PLAY_PAUSE = "com.idanck.shidur.player.RADIO_TOGGLE_PLAY_PAUSE"
         private const val ACTION_STOP = "com.idanck.shidur.player.RADIO_STOP"
+        private const val ACTION_RELEASE = "com.idanck.shidur.player.RADIO_RELEASE"
+
+        /** Whether [start] was asked since the service last went, so [stop] has something to release. */
+        @Volatile
+        private var started = false
 
         fun start(context: Context) {
             val intent = Intent(context, RadioBackgroundService::class.java)
@@ -157,10 +166,26 @@ class RadioBackgroundService : Service() {
             } else {
                 context.startService(intent)
             }
+            // After the call: a start the platform refused (it throws) left nothing to release.
+            started = true
         }
 
+        /**
+         * Not `stopService`: a service started with `startForegroundService` and stopped before its
+         * `onStartCommand` has promoted it kills the app (ForegroundServiceDidNotStartInTime). Going
+         * to the background and straight back — the activity's onStop starting this, its onStart
+         * stopping it — did exactly that (QA-18, run 42973570517). The release goes through
+         * [onStartCommand] instead, which promotes before anything else, and only when [start] was
+         * asked, so a stop with nothing running starts nothing.
+         */
         fun stop(context: Context) {
-            context.stopService(Intent(context, RadioBackgroundService::class.java))
+            if (!started) return
+            started = false
+            val release = Intent(context, RadioBackgroundService::class.java).setAction(ACTION_RELEASE)
+            // From the background a plain start can be refused; the service has then at least had
+            // the time its own start took, and stopping it is the old behaviour.
+            runCatching { context.startService(release) }
+                .onFailure { context.stopService(Intent(context, RadioBackgroundService::class.java)) }
         }
     }
 }
