@@ -1506,6 +1506,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (result) {
             is Outcome.Ok -> if (_state.value.activePlaylist?.id == playlist.id) {
                 _state.value = _state.value.copy(guideStats = result.value)
+                // The match just written each channel's `resolvedEpgId` to the database, and the
+                // list in state still holds the rows read before it. The grid reads its programmes
+                // by that id, so a playlist just added drew "No guide data" on every row — while
+                // the player, which reads its channel afresh, showed what was on — until something
+                // else happened to read the list again (QA-25, issue #152).
+                loadChannels()
             }
             is Outcome.Err -> post(UiMessage(error = result.error))
         }

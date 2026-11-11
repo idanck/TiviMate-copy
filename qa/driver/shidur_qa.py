@@ -1025,7 +1025,9 @@ class Runner:
                         [g_shot, s_shot], area)
 
     # The side menu's entries (English labels) and the one each TV surface lights; "video" is no menu.
-    TV_MENU = ("Home", "Live", "Guide", "Radio", "DVR", "Search", "Settings")
+    # Sport, News and YouTube included (SideMenu.kt): without them a press up the menu read those
+    # three as content (QA-26, run 42872614825).
+    TV_MENU = ("Home", "Live", "Guide", "Radio", "Sport", "News", "YouTube", "DVR", "Search", "Settings")
 
     def tv_menu_entries(self, nodes):
         """The side menu's entries: named like one, in the strip along the start edge (left, in
@@ -1113,10 +1115,19 @@ class Runner:
             video()
             key("KEYCODE_DPAD_CENTER")
             time.sleep(2)
-            button = self.ui.find("Guide", exact=True)
+            # Run 42872614825: Back from this guide rose to home, while from yellow's it returned
+            # to the video. What was tapped, and the screen before and after, are kept so the
+            # next run says which (issue #152).
+            bar = self.ui.dump(f"{sid}_{len(steps):02d}_bar")
+            button = self.ui.find("Guide", nodes=bar, exact=True)
             if button:
+                steps.append(f"tapped Guide at {button.x1},{button.y1}-{button.x2},{button.y2}")
                 tap(*button.center)
+                time.sleep(1)
+                self.ui.dump(f"{sid}_{len(steps):02d}_tapped")
                 remote_mode()
+            else:
+                steps.append("no Guide button on the bar")
             expect("transport bar's guide", "Guide")
             press("KEYCODE_BACK", "back", "video")
             # 5. A side-menu choice forgets the arrow, the lit entry's included.
@@ -1189,10 +1200,18 @@ class Runner:
                 on_screen = 0 <= n.x1 < n.x2 <= w and 0 <= n.y1 < n.y2 <= h
                 return label, in_menu, on_screen
 
+            # The card the remote was on last before the menu took it. The arrow towards the menu
+            # walks back along the rail first (run 42872614825: one card along, the first press
+            # went back to the card before it and only the second reached the menu), so the card
+            # it left from is that one, not the card it started on.
+            left_from = [""]
+
             def press(k, tag):
                 key(k, pause=0.8)
                 got = where(tag)
                 steps.append(f"{tag}:{got[0][:24] or '∅'}{' (menu)' if got[1] else ''}")
+                if got[0] and not got[1]:
+                    left_from[0] = got[0]
                 return got
 
             def into_menu(tag):
@@ -1235,8 +1254,10 @@ class Runner:
                 wrong.append(f"no card one step along the rail: {start or 'nothing'}")
                 return done()
             # 3. Into the menu, a step inside it, and back: the same card.
+            left_from[0] = start
             if not into_menu("to_menu"):
                 return done()
+            start = left_from[0]
             press("KEYCODE_DPAD_DOWN", "in_menu")
             label, in_menu, visible = press(to_content, "back")
             if label != start or in_menu or not visible:
@@ -1244,9 +1265,16 @@ class Runner:
             # 4. The lit entry chosen with OK: the menu closes onto the same card.
             if not into_menu("to_menu_again"):
                 return done()
-            for _ in range(8):
+            start = left_from[0]
+            # Up to Home from wherever the menu took the remote: from Settings that is nine steps
+            # since Sport, News and YouTube joined the menu, and eight stopped on Live, where OK
+            # opened the channel list (run 42872614825).
+            for _ in range(14):
                 if press("KEYCODE_DPAD_UP", "up")[0] == "Home":
                     break
+            else:
+                wrong.append("Home was never reached in the menu")
+                return done()
             label, in_menu, visible = press("KEYCODE_DPAD_CENTER", "ok_on_home")
             if label != start or in_menu or not visible:
                 wrong.append(f"OK on the lit Home: wanted {start[:30]}, got {label[:30] or 'nothing'}")
