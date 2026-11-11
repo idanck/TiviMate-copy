@@ -6,7 +6,8 @@ import { engine, playback } from '../player/engine';
 import { groupKey, liveFilter, play, playerSlot, setFilter, showScreen, toggleFullscreen, visibleChannels } from '../state/actions';
 import { settings } from '../state/settings';
 import {
-  favourites, guideProgress, isFavourite, now, programmesOf, recents, refreshing, sources, storageOk, toggleFavourite, tvChannels,
+  favourites, guideProgress, isFavourite, now, programmesOf, radioStations, recents, refreshing, sources, storageOk, toggleFavourite,
+  tvChannels,
 } from '../state/store';
 import { Logo, Progress, VirtualList } from './common';
 import { Icon, type IconName } from './icons';
@@ -65,8 +66,8 @@ function smartCount(id: string): number | undefined {
 const ROW = 68;
 
 /**
- * The channel list: groups on the right, the channels, and on the left the picture in its box with
- * what is on. OK on a channel plays it; OK on the one already playing opens it full screen.
+ * The channel list: groups on the right (the radio's entry under the smart lists), the channels, and
+ * on the left the picture in its box with what is on. OK on a channel plays it; OK on the one already playing opens it full screen.
  */
 export function LiveScreen() {
   watch.renders++;
@@ -104,6 +105,12 @@ export function LiveScreen() {
             <span class="count">{smartCount(s.id)}</span>
           </button>
         ))}
+        {/* The radio, as an entry of this list (the owner, 2026-11-11), not a button beside the picture. */}
+        <button class="group-btn" onClick={() => showScreen('radio')}>
+          <Icon name="radio" size={18} />
+          <span class="name">רדיו</span>
+          <span class="count">{radioStations.value.length || undefined}</span>
+        </button>
         {groupsBySource.value.map((s) => (
           <div key={s.source} class="group-section">
             <h3>{many ? s.source : 'קבוצות'}</h3>
@@ -159,7 +166,6 @@ function Status() {
       ))}
       <div class="actions">
         <GuideButton />
-        <RadioButton />
       </div>
     </div>
   );
@@ -281,18 +287,8 @@ function NowPanel({ channel }: { channel: Channel }) {
           <Icon name={fav ? 'starOn' : 'star'} size={18} /> <span>{fav ? 'במועדפים' : 'הוסף למועדפים'}</span>
         </button>
         <GuideButton />
-        <RadioButton />
       </div>
     </div>
-  );
-}
-
-/** Opens the radio (ui/RadioScreen.tsx); the remote's Yellow key does the same from anywhere. */
-function RadioButton() {
-  return (
-    <button class="btn" onClick={() => showScreen('radio')}>
-      <Icon name="radio" size={18} /> <span>רדיו</span>
-    </button>
   );
 }
 
