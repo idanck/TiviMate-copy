@@ -140,6 +140,10 @@ class Settings(context: Context) {
         val externalPlayerScope: ExternalPlayerScope,
         val externalPlayerPackage: String,
         val cacheBudgetMb: Int,
+        /** Live television plays from a buffer on the disk, to pause and rewind (ADR-065). */
+        val timeshiftEnabled: Boolean,
+        /** How much programme that buffer keeps, at most; the free space may allow less. */
+        val timeshiftMinutes: Int,
         val epgRefreshIntervalMinutes: Int,
         val epgRetentionPastDays: Int,
         val showNewGroups: Boolean,
@@ -278,6 +282,8 @@ class Settings(context: Context) {
         externalPlayerScope = prefs.enum(K_EXT_SCOPE, ExternalPlayerScope.NEVER),
         externalPlayerPackage = prefs.getString(K_EXT_PACKAGE, "") ?: "",
         cacheBudgetMb = prefs.getInt(K_CACHE_BUDGET, 500),
+        timeshiftEnabled = prefs.getBoolean(K_TIMESHIFT, TIMESHIFT_DEFAULT_ON),
+        timeshiftMinutes = prefs.getInt(K_TIMESHIFT_MINUTES, TIMESHIFT_DEFAULT_MINUTES),
         epgRefreshIntervalMinutes = prefs.getInt(K_EPG_REFRESH, 12 * 60),
         epgRetentionPastDays = prefs.getInt(K_EPG_RETENTION, 8),
         showNewGroups = prefs.getBoolean(K_SHOW_NEW_GROUPS, true),
@@ -376,6 +382,8 @@ class Settings(context: Context) {
         putString(K_EXT_SCOPE, scope.name); putString(K_EXT_PACKAGE, pkg.trim())
     }
     fun setCacheBudgetMb(v: Int) = commit { putInt(K_CACHE_BUDGET, v.coerceIn(50, 8_000)) }
+    fun setTimeshiftEnabled(v: Boolean) = commit { putBoolean(K_TIMESHIFT, v) }
+    fun setTimeshiftMinutes(v: Int) = commit { putInt(K_TIMESHIFT_MINUTES, v.coerceIn(TIMESHIFT_MINUTES.first(), TIMESHIFT_MINUTES.last())) }
     fun setEpgRefreshInterval(minutes: Int) = commit { putInt(K_EPG_REFRESH, minutes.coerceIn(0, 7 * 24 * 60)) }
     fun setEpgRetentionPastDays(days: Int) = commit { putInt(K_EPG_RETENTION, days.coerceIn(1, 60)) }
     fun setShowNewGroups(v: Boolean) = commit { putBoolean(K_SHOW_NEW_GROUPS, v) }
@@ -707,6 +715,12 @@ class Settings(context: Context) {
         const val K_EXT_SCOPE = "external_player_scope"
         const val K_EXT_PACKAGE = "external_player_package"
         const val K_CACHE_BUDGET = "cache_budget_mb"
+        const val K_TIMESHIFT = "timeshift_enabled"
+        const val K_TIMESHIFT_MINUTES = "timeshift_minutes"
+        /** The choices Settings offers for the buffer's length, in minutes. */
+        val TIMESHIFT_MINUTES = listOf(15, 30, 60, 120)
+        const val TIMESHIFT_DEFAULT_ON = true
+        const val TIMESHIFT_DEFAULT_MINUTES = 30
         const val K_EPG_REFRESH = "epg_refresh_minutes"
         const val K_EPG_RETENTION = "epg_retention_days"
         const val K_SHOW_NEW_GROUPS = "show_new_groups"

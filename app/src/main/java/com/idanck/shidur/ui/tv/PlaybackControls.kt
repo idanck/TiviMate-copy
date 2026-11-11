@@ -54,6 +54,10 @@ import com.idanck.shidur.ui.common.FocusFill
 import com.idanck.shidur.ui.common.LiveBadge
 import com.idanck.shidur.ui.common.LocalTvMetrics
 import com.idanck.shidur.ui.common.ProgrammeProgress
+import com.idanck.shidur.ui.common.TIMESHIFT_STEP_MS
+import com.idanck.shidur.ui.common.TimeshiftTrack
+import com.idanck.shidur.ui.common.behindLiveText
+import com.idanck.shidur.ui.common.rememberLiveWindow
 import com.idanck.shidur.ui.common.filledContentColour
 import com.idanck.shidur.ui.common.focusLift
 import com.idanck.shidur.ui.common.focusSurface
@@ -99,6 +103,9 @@ fun TransportBar(
     val prefs by vm.settingsState.collectAsState()
     val cycleAspect = rememberAspectCycler(vm, prefs.aspectMode)
     val focusPlay = remember { FocusRequester() }
+    // Buffered live playback (ADR-065): where in the buffer the picture is, read while the bar is up.
+    val window = rememberLiveWindow(playback.timeshift)
+    val behind = window != null && !window.atLive
 
     // Focus lands on play/pause, the one control every kind of playback needs (device report),
     // so OK-then-OK is pause and nothing has to be aimed at first.
@@ -156,7 +163,8 @@ fun TransportBar(
             // measured at any font scale; the semantics go with the pixels, so a screen reader is not
             // told about a badge nobody can see.
             if (live != null) {
-                val onAir = playback.playWhenReady
+                // Behind live in the buffer is not live either, paused or not.
+                val onAir = playback.playWhenReady && !behind
                 LiveBadge(
                     modifier = Modifier
                         .alpha(if (onAir) 1f else 0f)
@@ -196,6 +204,15 @@ fun TransportBar(
                     }
                 }
             }
+            // The buffer and where the picture is in it, and how far behind live that is.
+            if (window != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TimeshiftTrack(window, modifier = Modifier.width(480.dp))
+                    if (behind) {
+                        Text(text = behindLiveText(window), style = type.meta, color = studio.current)
+                    }
+                }
+            }
         }
 
         Row(
@@ -224,6 +241,27 @@ fun TransportBar(
                     description = stringResource(R.string.channel_next),
                     onClick = { vm.zap(1) },
                 )
+            }
+            // Through the buffer (ADR-065): back and forward by half a minute, and back to live.
+            if (playback.timeshift) {
+                TransportButton(
+                    icon = StudioIcons.Rewind,
+                    description = stringResource(R.string.timeshift_rewind),
+                    onClick = { ServiceLocator.player.seekBy(-TIMESHIFT_STEP_MS) },
+                )
+                TransportButton(
+                    icon = StudioIcons.Forward,
+                    description = stringResource(R.string.timeshift_forward),
+                    onClick = { ServiceLocator.player.seekBy(TIMESHIFT_STEP_MS) },
+                )
+                if (behind) {
+                    TransportButton(
+                        icon = StudioIcons.Restart,
+                        description = stringResource(R.string.timeshift_go_live),
+                        onClick = { ServiceLocator.player.jumpToLive() },
+                        labelled = true,
+                    )
+                }
             }
             // The canvas's rule between moving through the stream and everything else.
             Box(

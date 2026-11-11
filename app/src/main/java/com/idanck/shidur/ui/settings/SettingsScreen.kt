@@ -180,6 +180,21 @@ fun SettingsScreen(
                         keyStep = 1_000f,
                     ) { settings.setCustomBuffer(s.customBufferMinMs, it.toInt()); vm.onSettingsChanged() }
                 }
+                // ADR-065: live television kept on the disk, to pause and rewind it.
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_timeshift),
+                    subtitle = stringResource(R.string.settings_timeshift_sub, s.timeshiftMinutes),
+                    checked = s.timeshiftEnabled,
+                    onChange = settings::setTimeshiftEnabled,
+                )
+                if (s.timeshiftEnabled) {
+                    SettingsChoice(
+                        title = stringResource(R.string.settings_timeshift_minutes),
+                        options = Settings.TIMESHIFT_MINUTES.map { it to stringResource(R.string.minutes_short, it) },
+                        selected = s.timeshiftMinutes,
+                        onSelect = settings::setTimeshiftMinutes,
+                    )
+                }
                 SettingsChoice(
                     title = stringResource(R.string.aspect_ratio),
                     options = AspectMode.entries.map { it to stringResource(it.labelRes()) },

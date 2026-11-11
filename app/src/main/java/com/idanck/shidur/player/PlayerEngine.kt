@@ -1,16 +1,20 @@
 package com.idanck.shidur.player
 
 import android.content.Context
+import android.os.StatFs
 import android.os.SystemClock
 import android.util.Log
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Metadata
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
+import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -25,6 +29,10 @@ import com.idanck.shidur.data.net.HttpFactory
 import com.idanck.shidur.data.net.RequestProfile
 import com.idanck.shidur.data.prefs.BufferPreset
 import com.idanck.shidur.data.prefs.Settings
+import com.idanck.shidur.player.timeshift.TimeshiftRoutingDataSourceFactory
+import com.idanck.shidur.player.timeshift.TimeshiftSession
+import com.idanck.shidur.player.timeshift.TimeshiftUnavailableException
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -70,6 +78,11 @@ data class PlaybackStatus(
      * so; the full-screen player does not look for it.
      */
     val closed: Boolean = false,
+    /**
+     * The live channel plays from the timeshift buffer (ADR-065): it can be paused, rewound and
+     * fast-forwarded, and [PlayerEngine.liveWindow] says where in the buffer it is.
+     */
+    val timeshift: Boolean = false,
 ) {
     /** No retry is coming: the stream failed for good, or its server closed it ([closed]). */
     val failed: Boolean get() = closed || errorDetail != null
@@ -99,6 +112,22 @@ data class BufferDurations(
             val min = minMs.coerceAtLeast(maxOf(playback, rebuffer))
             return BufferDurations(min, maxMs.coerceAtLeast(min), playback, rebuffer)
         }
+    }
+}
+
+/**
+ * Where buffered live playback stands (ADR-065): how much programme the buffer holds, where in it
+ * the picture is, and so how far behind live.
+ */
+data class LiveWindow(val durationMs: Long, val positionMs: Long) {
+    /** Behind the live edge by this much; under [LIVE_SLACK_MS] counts as live. */
+    val behindMs: Long get() = (durationMs - positionMs).coerceAtLeast(0)
+
+    val atLive: Boolean get() = behindMs <= LIVE_SLACK_MS
+
+    companion object {
+        /** The player's own distance from the edge, and a segment's worth more. */
+        const val LIVE_SLACK_MS = 12_000L
     }
 }
 
@@ -180,6 +209,21 @@ class PlayerEngine(
     private var builtBuffer: BufferDurations? = null
     private var profile = RequestProfile()
 
+    /** What the player's own sources read the provider with; a timeshift session opens it too. */
+    private var upstreamFactory: DataSource.Factory? = null
+
+    /** Whether the channel now playing asked for the timeshift buffer ([play]). */
+    private var timeshiftWanted = false
+
+    /** The buffer the current source plays from, if it does (ADR-065). */
+    private var timeshift: TimeshiftSession? = null
+
+    /** Addresses of this channel that turned out not to be buffered (not MPEG-TS, and so on). */
+    private val directOnly = HashSet<String>()
+
+    /** Set while the buffer was let go of for the background; resuming starts live again. */
+    private var timeshiftSuspended = false
+
     private companion object {
         /** Smallest custom minimum buffer offered, matching the slider in Settings. */
         const val MIN_CUSTOM_BUFFER_MS = 200
@@ -242,6 +286,12 @@ class PlayerEngine(
     fun togglePlayPause() {
         val exo = player ?: return
         val resuming = !exo.playWhenReady
+        // The buffer was let go of for the background (see [setPlayWhenReady]): live again.
+        if (resuming && timeshiftSuspended) {
+            timeshiftSuspended = false
+            startCurrentSource(_status.value.title)
+            return
+        }
         // Resuming from a terminal failure: retries exhausted leave the player sitting in
         // IDLE, where the flag alone starts nothing — every play button would flip its icon
         // and do nothing. Preparing again retries the current source.
@@ -256,6 +306,21 @@ class PlayerEngine(
      */
     fun setPlayWhenReady(wanted: Boolean) {
         val exo = player ?: return
+        // The buffer goes with the screen: an app in the background must not go on taking the
+        // provider's one connection and the disk (ADR-065). Back in front, the channel starts
+        // again, live, as it did before the buffer existed.
+        if (!wanted && timeshift != null) {
+            stopTimeshift()
+            timeshiftSuspended = true
+            exo.stop()
+            exo.playWhenReady = false
+            return
+        }
+        if (wanted && timeshiftSuspended) {
+            timeshiftSuspended = false
+            startCurrentSource(_status.value.title)
+            return
+        }
         // Back from the background onto a stream that failed meanwhile: the flag alone starts
         // nothing in IDLE (see [togglePlayPause]), so the viewer came back to a dead channel.
         if (wanted && exo.playbackState == Player.STATE_IDLE && exo.mediaItemCount > 0) exo.prepare()
@@ -361,6 +426,7 @@ class PlayerEngine(
         val httpFactory = OkHttpDataSource.Factory(HttpFactory.client(profile))
             .setUserAgent(profile.userAgent)
             .setDefaultRequestProperties(profile.headers)
+        upstreamFactory = httpFactory
 
         val exo = ExoPlayer.Builder(context)
             .setRenderersFactory(
@@ -374,7 +440,11 @@ class PlayerEngine(
             .setTrackSelector(selector)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(
-                DefaultMediaSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
+                // The timeshift playlist has a scheme of its own; everything else, its segment
+                // files included, goes where it always went.
+                DefaultMediaSourceFactory(
+                    TimeshiftRoutingDataSourceFactory(DefaultDataSource.Factory(context, httpFactory)),
+                ),
             )
             // Without these the player never asked the system for audio focus, so it never
             // heard that another app had started making sound either: a channel kept playing
@@ -482,9 +552,21 @@ class PlayerEngine(
 
     // ------------------------------------------------------------------- play
 
-    fun play(channel: Channel, profileForChannel: RequestProfile, urlOverride: String? = null) {
+    /**
+     * @param timeshift play from the timeshift buffer where the stream allows it (ADR-065): the
+     *   host says so for a television channel when the setting is on, never for radio
+     */
+    fun play(
+        channel: Channel,
+        profileForChannel: RequestProfile,
+        urlOverride: String? = null,
+        timeshift: Boolean = false,
+    ) {
         playbackGeneration++
         currentChannel = channel
+        timeshiftWanted = timeshift && role == Role.MAIN && channel.licenseKey.isNullOrBlank()
+        directOnly.clear()
+        timeshiftSuspended = false
         profile = profileForChannel
         currentUrls = urlOverride?.let(::listOf) ?: channel.urls
         currentSourceIndex = 0
@@ -504,6 +586,8 @@ class PlayerEngine(
     fun playUrl(title: String, url: String, profileForItem: RequestProfile, startPositionMs: Long = 0) {
         playbackGeneration++
         currentChannel = null
+        timeshiftWanted = false
+        timeshiftSuspended = false
         profile = profileForItem
         currentUrls = listOf(url)
         currentSourceIndex = 0
@@ -534,7 +618,9 @@ class PlayerEngine(
             return
         }
         val exo = exoPlayer()
-        val item = MediaItem.Builder()
+        stopTimeshift()
+        val buffered = if (timeshiftWanted && url !in directOnly) startTimeshift(url) else null
+        val item = if (buffered != null) bufferedItem(buffered) else MediaItem.Builder()
             .setUri(url)
             .apply {
                 currentChannel?.licenseKey?.takeIf { it.isNotBlank() }?.let { key ->
@@ -569,6 +655,7 @@ class PlayerEngine(
             softwareFallbackApplied = softwareFallbackApplied,
             currentUrlRedacted = TextNormalizer.redactUrl(url),
             droppedFrames = 0,
+            timeshift = buffered != null,
             // The previous source's song, or the previous station's, is not this one's.
             streamTitle = null,
         )
@@ -581,6 +668,7 @@ class PlayerEngine(
     }
 
     fun stop() {
+        stopTimeshift()
         player?.stop()
     }
 
@@ -592,12 +680,15 @@ class PlayerEngine(
      */
     fun silence() {
         playbackGeneration++
+        stopTimeshift()
         player?.stop()
     }
 
     fun release() {
         // Anything already queued belongs to a player that is about to stop existing.
         playbackGeneration++
+        stopTimeshift()
+        timeshiftSuspended = false
         releasePlayer()
         trackSelector = null
         // The source is forgotten along with the player. The engine outlives the activity on
@@ -819,6 +910,26 @@ class PlayerEngine(
         val mapped = mapError(error)
         val title = _status.value.title
 
+        if (timeshift != null) {
+            // Not a failure of the stream: this one cannot be buffered, so it plays directly, at
+            // once and without spending a retry (ADR-065).
+            if (error.hasCause<TimeshiftUnavailableException>()) {
+                currentUrls.getOrNull(currentSourceIndex)?.let(directOnly::add)
+                Log.w(TAG, "$title: no timeshift buffer (${error.cause?.message}); playing directly")
+                schedule(0) { startCurrentSource(title) }
+                return
+            }
+            // Paused past the oldest of the buffer: playback carries on from what is left, the
+            // oldest it holds, rather than calling the channel broken.
+            if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+                player?.let {
+                    it.seekTo(0)
+                    it.prepare()
+                }
+                return
+            }
+        }
+
         // A hardware decoder that will not initialise gets exactly one software retry, and the
         // user is told what changed rather than seeing the picture silently differ (FR-PLB-05).
         val decoderInit = error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED ||
@@ -973,7 +1084,121 @@ class PlayerEngine(
     }
 
     private fun mapError(error: PlaybackException): AppError = playbackErrorOf(error)
+
+    // -------------------------------------------------------------- timeshift
+
+    /**
+     * Where buffered playback stands, or null when the channel is not playing from the buffer or
+     * the buffer has nothing yet. For the UI to read while it is showing (it polls).
+     */
+    fun liveWindow(): LiveWindow? {
+        val exo = player ?: return null
+        if (timeshift == null) return null
+        val timeline = exo.currentTimeline
+        if (timeline.isEmpty) return null
+        val window = timeline.getWindow(exo.currentMediaItemIndex, Timeline.Window())
+        val duration = window.durationMs
+        if (duration == C.TIME_UNSET || duration <= 0) return null
+        return LiveWindow(durationMs = duration, positionMs = exo.currentPosition.coerceIn(0, duration))
+    }
+
+    /** Moves through the buffer by [deltaMs], back when negative; no further than live. */
+    fun seekBy(deltaMs: Long) {
+        val exo = player ?: return
+        val window = liveWindow() ?: return
+        val target = (window.positionMs + deltaMs).coerceIn(0, window.durationMs)
+        if (target >= window.durationMs - LiveWindow.LIVE_SLACK_MS / 2) {
+            exo.seekToDefaultPosition()
+        } else {
+            exo.seekTo(target)
+        }
+        if (!exo.playWhenReady) exo.playWhenReady = true
+    }
+
+    /** Back to the live edge, playing. */
+    fun jumpToLive() {
+        val exo = player ?: return
+        exo.seekToDefaultPosition()
+        exo.playWhenReady = true
+    }
+
+    private fun bufferedItem(session: TimeshiftSession): MediaItem = MediaItem.Builder()
+        .setUri(session.playlistUri)
+        .setMimeType(MimeTypes.APPLICATION_M3U8)
+        // Close to the edge, and at the stream's own speed: the player must not creep towards
+        // live after a pause by playing faster, which a viewer behind live hears as a squeak.
+        .setLiveConfiguration(
+            MediaItem.LiveConfiguration.Builder()
+                .setTargetOffsetMs(TIMESHIFT_TARGET_OFFSET_MS)
+                .setMinPlaybackSpeed(1f)
+                .setMaxPlaybackSpeed(1f)
+                .build(),
+        )
+        .build()
+
+    /**
+     * A buffer for [url], or null when there is no room for one: what the free space allows,
+     * keeping [TIMESHIFT_RESERVE_BYTES] for everything else, up to the minutes asked for.
+     */
+    private fun startTimeshift(url: String): TimeshiftSession? {
+        val factory = upstreamFactory ?: return null
+        val root = File(context.noBackupFilesDir, TIMESHIFT_DIR)
+        val s = settings.state.value
+        val free = runCatching { root.mkdirs(); StatFs(root.path).availableBytes }.getOrDefault(0L)
+        val room = free - TIMESHIFT_RESERVE_BYTES
+        if (room < TIMESHIFT_MIN_BYTES) {
+            Log.w(TAG, "no room for a timeshift buffer (${free / 1_048_576} MB free)")
+            return null
+        }
+        // A directory of its own per session, named by the clock so one from a process before
+        // this one (a crash, a kill) is never taken for it, and swept away below.
+        val dir = File(root, "live-${System.currentTimeMillis()}")
+        clearTimeshiftLeftovers(root, keep = dir.name)
+        val session = TimeshiftSession(
+            dir = dir,
+            uri = android.net.Uri.parse(url),
+            upstreamFactory = factory,
+            maxDurationUs = s.timeshiftMinutes * 60_000_000L,
+            maxBytes = room,
+        )
+        session.start()
+        timeshift = session
+        return session
+    }
+
+    private fun stopTimeshift() {
+        timeshift?.stop()
+        timeshift = null
+    }
+
+    /** Files a session that never stopped cleanly left behind (a crash, a kill), off this thread. */
+    private fun clearTimeshiftLeftovers(root: File, keep: String) {
+        if (leftoversCleared) return
+        leftoversCleared = true
+        val stale = root.listFiles()?.filter { it.name != keep }.orEmpty()
+        if (stale.isEmpty()) return
+        Thread({ stale.forEach { it.deleteRecursively() } }, "timeshift-clean").start()
+    }
+
+    private var leftoversCleared = false
 }
+
+/** Whether [T] is anywhere in this failure's chain of causes. */
+private inline fun <reified T : Throwable> Throwable.hasCause(): Boolean {
+    var c: Throwable? = this
+    while (c != null) {
+        if (c is T) return true
+        c = c.cause
+    }
+    return false
+}
+
+private const val TIMESHIFT_DIR = "timeshift"
+private const val TIMESHIFT_TARGET_OFFSET_MS = 6_000L
+/** Left free for the rest of the app and the system, whatever the buffer would like. */
+private const val TIMESHIFT_RESERVE_BYTES = 500L * 1024 * 1024
+/** Below this there is no point: about two minutes of a television channel. */
+private const val TIMESHIFT_MIN_BYTES = 64L * 1024 * 1024
 
 /** How every [PlayerEngine] plays its sound: as a film's, for the media volume. */
 private val AUDIO_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()

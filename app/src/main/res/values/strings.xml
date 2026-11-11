@@ -711,4 +711,13 @@
     <string name="yt_connect_phone_action">Continue with Google</string>
     <string name="yt_connect_phone_body">Google asks for read-only access to your YouTube subscriptions. Shidur cannot post, comment, subscribe or change anything in the account.</string>
     <string name="yt_connect_failed">The connection was not completed. You can try again.</string>
+    <!-- Timeshift: pausing and rewinding live television (ADR-065) -->
+    <string name="settings_timeshift">Pause live TV</string>
+    <string name="settings_timeshift_sub">Keeps up to %1$d minutes of the channel on this device, so it can be paused and rewound</string>
+    <string name="settings_timeshift_minutes">How much to keep</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="timeshift_rewind">Back 30 seconds</string>
+    <string name="timeshift_forward">Forward 30 seconds</string>
+    <string name="timeshift_go_live">Back to live</string>
+    <string name="timeshift_behind">%1$s behind live</string>
 </resources>
