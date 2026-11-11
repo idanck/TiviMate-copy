@@ -1434,6 +1434,8 @@ class Runner:
                     key("KEYCODE_DPAD_CENTER")
                     time.sleep(2)
 
+            # Off by default (ADR-065): switched on here, and off again at the end.
+            self.edit_prefs({"timeshift_enabled": True})
             remote_mode()
             deep_link(f"shidur://channel/{cid}")
             time.sleep(8)
@@ -1495,6 +1497,7 @@ class Runner:
             notes.append(f"connections={connections}")
             if connections != 1:
                 wrong.append(f"{connections} connections to the stream, not one")
+            self.edit_prefs({"timeshift_enabled": False})
 
             self.record(sid, title, "PASS" if not wrong else "FAIL",
                         ("; ".join(wrong) + " || " if wrong else "") + " · ".join(notes), shots, area)

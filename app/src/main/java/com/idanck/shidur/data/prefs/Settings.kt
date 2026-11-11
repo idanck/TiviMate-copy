@@ -718,9 +718,9 @@ class Settings(context: Context) {
         const val K_TIMESHIFT = "timeshift_enabled"
         const val K_TIMESHIFT_MINUTES = "timeshift_minutes"
         /** The choices Settings offers for the buffer's length, in minutes. */
-        val TIMESHIFT_MINUTES = listOf(15, 30, 60, 120)
-        const val TIMESHIFT_DEFAULT_ON = true
-        const val TIMESHIFT_DEFAULT_MINUTES = 30
+        val TIMESHIFT_MINUTES = listOf(5, 10, 15, 30, 60, 120)
+        const val TIMESHIFT_DEFAULT_ON = false
+        const val TIMESHIFT_DEFAULT_MINUTES = 15
         const val K_EPG_REFRESH = "epg_refresh_minutes"
         const val K_EPG_RETENTION = "epg_retention_days"
         const val K_SHOW_NEW_GROUPS = "show_new_groups"

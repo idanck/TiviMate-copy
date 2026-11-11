@@ -74,7 +74,7 @@ cache budget's LRU (FR-SET-15) would otherwise delete segments while they play. 
 its own directory named by the clock. A directory left by an earlier process is deleted off the
 main thread when the first session starts. The cap is the smaller of:
 
-- the minutes in Settings (15, 30, 60 or 120);
+- the minutes in Settings (5, 10, 15, 30, 60 or 120; 15 by default);
 - the free space less 500 MB.
 
 Below 64 MB of room there is no buffer, and the channel plays directly. Three segments always
@@ -91,6 +91,8 @@ stay, whatever the caps.
   item is seekable.
 
 **Settings:** "Pause live TV" (`timeshift_enabled`) and how much to keep (`timeshift_minutes`).
+The owner decided on 2026-11-11 that the switch is off by default, on new and existing devices
+alike, and that the buffer keeps 15 minutes by default, with less and more to choose from.
 Both are plain preferences, so the hand-over (ADR-060) and backups carry them as they are.
 
 ## Consequences
