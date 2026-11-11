@@ -147,6 +147,9 @@ class AccountRepository(context: Context, private val scope: CoroutineScope) {
     /** The project's callables in their region, or null in a build without a Firebase project. */
     internal fun functions(): FirebaseFunctions? = app?.let { FirebaseFunctions.getInstance(it, FirebaseSetup.FUNCTIONS_REGION) }
 
+    /** The project's database, or null in a build without one: the podcasts' sync (ADR-067). */
+    internal fun firestore(): FirebaseFirestore? = app?.let { FirebaseFirestore.getInstance(it) }
+
     /** Whether this device can offer "Sign in with Google" at all. */
     val canSignInWithGoogle: Boolean
         get() = isConfigured && FirebaseSetup.hasGoogleClient

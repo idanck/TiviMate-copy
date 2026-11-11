@@ -248,6 +248,20 @@ class PodcastRepository(
         }
     }
 
+    /**
+     * A show as another device last left it: known here by address and name until its feed is read,
+     * which this starts. Its choices are taken only when they are newer than this device's.
+     */
+    suspend fun applyRemotePodcast(feedUrl: String, title: String, inLibrary: Boolean, prefs: PodcastPrefs, choicesUtc: Long) = io {
+        val local = dao.podcastByFeed(feedUrl)
+        if (local != null && local.choicesUtc >= choicesUtc) return@io
+        val id = dao.ensurePodcast(feedUrl, title, inLibrary, prefs, choicesUtc, clock())
+        if (!inLibrary) dao.pruneOrphan(id)
+        changed()
+        if (local == null && inLibrary) dao.podcast(id)?.let { refreshOne(it) }
+        changed()
+    }
+
     suspend fun applyRemoteQueue(keys: List<EpisodeKey>) = io {
         dao.setQueue(keys)
         changed()

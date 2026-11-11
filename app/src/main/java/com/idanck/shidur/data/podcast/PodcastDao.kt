@@ -68,6 +68,7 @@ class PodcastDao(private val helper: Database) {
                 values.put("in_library", if (inLibrary) 1 else 0)
                 // Added again: what came out while it was away is new from now.
                 if (inLibrary) values.put("added_utc", nowUtc)
+                values.put("prefs_updated_utc", nowUtc)
             }
             db.update("podcasts", values, "id = ?", arrayOf(existing.first.toString()))
             return existing.first
@@ -75,6 +76,7 @@ class PodcastDao(private val helper: Database) {
         values.put("feed_url", feedUrl)
         values.put("in_library", if (inLibrary != false) 1 else 0)
         values.put("added_utc", nowUtc)
+        values.put("prefs_updated_utc", nowUtc)
         return db.insertOrThrow("podcasts", null, values)
     }
 
@@ -105,6 +107,7 @@ class PodcastDao(private val helper: Database) {
             ContentValues().apply {
                 put("in_library", if (inLibrary) 1 else 0)
                 if (inLibrary) put("added_utc", nowUtc)
+                put("prefs_updated_utc", nowUtc)
             },
             "id = ?",
             arrayOf(id.toString()),
@@ -424,6 +427,7 @@ class PodcastDao(private val helper: Database) {
             notifyNew = c.bool("notify_new"),
             oldestFirst = c.bool("oldest_first"),
         ),
+        choicesUtc = c.long("prefs_updated_utc"),
         newCount = c.getColumnIndex("new_count").let { if (it < 0) 0 else c.getInt(it) },
         latestUtc = c.getColumnIndex("latest_utc").let { if (it < 0 || c.isNull(it)) 0 else c.getLong(it) },
     )

@@ -24,6 +24,8 @@ data class Podcast(
     val lastRefreshOk: Boolean = true,
     val lastRefreshMessage: String? = null,
     val prefs: PodcastPrefs = PodcastPrefs(),
+    /** When the viewer last changed this show's choices — in the library or not, its settings — for the sync. */
+    val choicesUtc: Long = 0,
     /** Episodes neither started nor played, published since the show was added. */
     val newCount: Int = 0,
     /** The newest episode's date, for "פרק אחרון" sorting. */
