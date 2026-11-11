@@ -11,15 +11,17 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check:es": "node scripts/check-es.mjs --polyfills public/polyfills.js dist/polyfills.js dist/assets/*.js .build/epg.worker.js && node scripts/check-es.mjs --ecma 2017 service/index.js service/net.js",
-    "check:css": "node scripts/check-css.mjs dist/assets/*.css",
-    "check": "npm run typecheck && npm run test && npm run build && npm run check:es && npm run check:css",
+    "check:es": "node scripts/check-es.mjs --polyfills public/polyfills.js dist/polyfills.js dist/index.js .build/epg.worker.js && node scripts/check-es.mjs --ecma 5 dist/boot.js && node scripts/check-es.mjs --ecma 2017 service/index.js service/net.js",
+    "check:css": "node scripts/check-css.mjs dist/style.css",
+    "check": "npm run typecheck && npm run test && npm run build && npm run check:es && npm run check:css && npm run check:shell",
     "package": "node scripts/package.mjs",
-    "tv": "node tools/cdp.mjs"
+    "tv": "node tools/cdp.mjs",
+    "check:shell": "node scripts/check-shell.mjs"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",
-    "preact": "10.29.8"
+    "preact": "10.29.8",
+    "tweetnacl": "1.0.3"
   },
   "devDependencies": {
     "@preact/preset-vite": "2.10.6",

@@ -5,6 +5,7 @@ import { build as esbuild } from 'esbuild';
 import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { shell } from './scripts/shell-plugin';
 
 /**
  * Shidur for LG televisions from webOS 5, which runs Chromium 68 (ADR-057). Everything shipped is
@@ -26,25 +27,6 @@ function gitSha(): string {
   } catch {
     return 'local';
   }
-}
-
-/**
- * A packaged app is opened from file://, where webOS refuses module scripts. The bundle is one
- * classic script instead, deferred so it still runs after the page is parsed (and after
- * polyfills.js, which is not deferred), and nothing asks for CORS.
- */
-function classicScript(): Plugin {
-  return {
-    name: 'shidur-classic-script',
-    apply: 'build',
-    enforce: 'post',
-    transformIndexHtml(html) {
-      return html
-        .replace(/<script type="module" crossorigin /g, '<script defer ')
-        .replace(/<script type="module" /g, '<script defer ')
-        .replace(/ crossorigin(="[^"]*")?/g, '');
-    },
-  };
 }
 
 /**
@@ -93,7 +75,11 @@ function epgWorker(): Plugin {
 export default defineConfig({
   // Relative addresses: the page is opened from wherever the television installed the package.
   base: './',
-  plugins: [preact(), classicScript(), epgWorker()],
+  plugins: [
+    preact(),
+    shell({ root: __dirname, version: versionName, commit: gitSha, selfUpdate: process.env.SHIDUR_SELF_UPDATE !== '0' }),
+    epgWorker(),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(versionName()),
     __APP_SHA__: JSON.stringify(gitSha()),
@@ -117,6 +103,10 @@ export default defineConfig({
       output: {
         format: 'iife',
         inlineDynamicImports: true,
+        // Fixed names at the root (the shell loads them by name, and the update host keeps each
+        // release under its own version and commit).
+        entryFileNames: 'index.js',
+        assetFileNames: (asset) => (asset.names?.[0]?.endsWith('.css') ? 'style.css' : 'assets/[name]-[hash][extname]'),
       },
     },
   },

@@ -5,6 +5,7 @@ import { listDebug, remPx } from './common';
 import { guideDebug } from './GuideScreen';
 import { idle, IDLE_MINUTES, idleLine } from './idle';
 import { playerBox } from './PlayerHost';
+import { shellInfo, shellLine } from './shell';
 import { memory, pageLine, watch } from './watch';
 
 /**
@@ -82,6 +83,8 @@ export function state() {
       slot: playerBox.slot,
       log: playerLog.slice(-8),
     },
+    // The shell (shell/boot.js, ADR-057 0.4.0): which bundle runs, the last update check, storage.
+    shell: shellInfo(),
     storageOk: storageOk.value,
     sources: sources.value.map((s) => ({
       name: s.name,
@@ -109,6 +112,7 @@ export function state() {
     `player box: element ${JSON.stringify(p.element)} · slot ${JSON.stringify(p.slot)}`,
     `player log: ${p.log.join(' | ') || '-'}`,
     `storage: ${data.storageOk ? 'ok' : 'FAILING'}`,
+    ...shellLine().split('\n'),
     ...data.sources.map((s) => `source "${s.name}"${s.enabled ? '' : ' (off)'}: ${s.refreshing ?? s.result ?? 'not loaded'}${s.guide ? ` · ${s.guide}` : ''}`),
     `now: ${pageLine()}`,
     `the last minutes (one line a minute):`,
