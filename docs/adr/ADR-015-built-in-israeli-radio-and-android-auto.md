@@ -182,7 +182,8 @@ Three things are presentation rather than structure, and all three live in `Radi
   instead of pausing. Unlike Android Auto's player above, this service is **not** a second
   isolated player — it plays through the very same `ServiceLocator.player` the UI already had
   running, and exists only to hold foreground-service priority and an ongoing notification while
-  the activity is not visible; `onStart` stops it the moment the UI is back.
+  the activity is not visible; `onStart` stops it the moment the UI is back. Since 0.33.0 that
+  notification is the system's media card, from a Media3 session of the service's own (ADR-068).
 - The car's artwork shipped in 0.6.2 painting the logo edge to edge on that square, on the
   assumption — taken from how Android Auto is documented to draw artwork, not from a car, which
   this environment cannot reach — that it never enlarges the bitmap it is given. The first real

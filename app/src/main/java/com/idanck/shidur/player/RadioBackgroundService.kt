@@ -2,14 +2,19 @@ package com.idanck.shidur.player
 
 import android.app.Notification
 import android.app.PendingIntent
-import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
-import android.os.IBinder
+import androidx.annotation.OptIn
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.MediaSession
+import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaStyleNotificationHelper
 import com.idanck.shidur.App
 import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
@@ -19,11 +24,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 /**
- * Keeps a radio station audible once [com.idanck.shidur.ui.MainActivity] is no longer visible.
+ * Keeps a radio station (or a podcast episode) audible once [com.idanck.shidur.ui.MainActivity]
+ * is no longer visible, under the system's own media card (ADR-068).
  *
  * A locked or turned-off screen stops the activity exactly the way leaving the app does, and
  * `MainActivity.onStop` responds by pausing playback — right, for a live TV channel that has a
@@ -32,17 +41,24 @@ import kotlinx.coroutines.flow.onEach
  * `AppViewModel.isRadioPlaying`).
  *
  * This does nothing to the stream itself: it plays through the very same [ServiceLocator.player]
- * instance the UI was already using, at whatever position it had already reached. Its only job is
- * to hold a foreground-service priority (so the process backing that player survives a locked
- * screen) and to show an ongoing notification with a way to pause and to get back into the app —
- * a backgrounded stream with no indication it is still running and no way to stop it would be a
- * defect, not a feature, exactly as the pause it replaces was written to avoid for video.
+ * the UI was already using, at whatever position it had already reached. It is a Media3
+ * [MediaSessionService]: its session, over a [BackgroundSessionPlayer], is what the notification
+ * shade and the lock screen draw as a media card — the station's logo and name, the song it
+ * announces, play/pause and previous/next station — and what a headset, a watch or the car's
+ * Bluetooth controls reach. Media3 builds and updates that notification and holds the service in
+ * the foreground while something plays; [onStartCommand] only makes sure the promotion the
+ * platform is owed comes first.
  */
-class RadioBackgroundService : Service() {
+@OptIn(UnstableApi::class)
+class RadioBackgroundService : MediaSessionService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
-    override fun onBind(intent: Intent?): IBinder? = null
+    private var session: MediaSession? = null
+    private var sessionPlayer: BackgroundSessionPlayer? = null
+
+    /** What [BackgroundSessionPlayer.show] was last told, for a player swapped in after it. */
+    private var display: BackgroundSessionPlayer.Display? = null
 
     /** FR-UI-23: a service is handed a fresh context, not the one `Application` speaks. */
     override fun attachBaseContext(base: Context) {
@@ -52,43 +68,96 @@ class RadioBackgroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         ServiceLocator.init(this)
-        // The headset's buttons follow the station into the background (PlayerMediaSession).
-        PlayerMediaSession.hold(PlayerMediaSession.HOLDER_RADIO_SERVICE, this, ServiceLocator.player)
-        ServiceLocator.player.status
-            // [PlaybackStatus.playWhenReady], not `playing`: a station that is rebuffering has
-            // not been paused, and a button drawn from `playing` would offer Play mid-stall and
-            // then pause the stream when it was pressed — the same distinction the picture-in-
-            // picture controls in MainActivity are built on.
-            .onEach { updateNotification(it.title, it.streamTitle, it.playWhenReady) }
+        setMediaNotificationProvider(
+            DefaultMediaNotificationProvider.Builder(this)
+                .setChannelId(App.CHANNEL_RADIO)
+                .setChannelName(R.string.channel_radio)
+                .setNotificationId(FOREGROUND_ID)
+                .build()
+                .apply { setSmallIcon(R.drawable.ic_notification_shidur) },
+        )
+        // Dispatched, not immediate: changing station releases the engine's player and builds the
+        // next one in a single call, and only once it returns does the new one have its stream.
+        // Swapped in before that, the session would see an empty player and take the card down,
+        // only to put it back a moment later.
+        ServiceLocator.player.currentPlayer
+            .onEach { player -> player?.let(::attach) }
+            .launchIn(scope)
+        combine(
+            BackgroundPlayback.card,
+            ServiceLocator.player.status.map { it.title to it.streamTitle }.distinctUntilChanged(),
+        ) { card, (title, song) -> displayOf(card, title, song) }
+            .distinctUntilChanged()
+            .onEach { next ->
+                display = next
+                sessionPlayer?.show(next)
+            }
             .launchIn(scope)
     }
 
+    /**
+     * The card for [card] as the view model describes it, with the song the stream announces. The
+     * engine's own title stands in while the view model has not published one — the service can
+     * outlive it, and a card that says nothing is worse than one that says the stream's name.
+     */
+    private fun displayOf(card: BackgroundPlayback.Card?, title: String, song: String?) =
+        BackgroundSessionPlayer.Display(
+            title = card?.title ?: title.ifBlank { getString(R.string.app_name) },
+            line = song ?: card?.subtitle ?: getString(R.string.radio_notif_playing),
+            artworkUrl = card?.artworkUrl,
+            stations = card?.stations == true,
+        )
+
+    /** Puts the engine's current [player] under the session, building the session the first time. */
+    private fun attach(player: ExoPlayer) {
+        if (sessionPlayer?.wrappedPlayer === player) return
+        val wrapped = BackgroundSessionPlayer(
+            player,
+            onSkip = { delta -> BackgroundPlayback.skip(delta) },
+            onStop = ::stopFromCard,
+        )
+        display?.let(wrapped::show)
+        sessionPlayer = wrapped
+        val current = session
+        if (current == null) {
+            val created = MediaSession.Builder(this, wrapped)
+                .setId(SESSION_ID)
+                .setSessionActivity(openAppIntent())
+                .build()
+            session = created
+            // Added at once rather than when a controller first asks for it: no controller
+            // binds to this service — the activity starts it — and Media3 only draws the card
+            // for a session it has been given.
+            addSession(created)
+        } else {
+            current.player = wrapped
+        }
+    }
+
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = session
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // The card's buttons and a headset's keys arrive as media-button intents; Media3 hands
+        // them to the session.
+        super.onStartCommand(intent, flags, startId)
         // Promoted first, whatever the action asks for. A service started with
         // `startForegroundService` owes the platform a `startForeground` within a few seconds or
-        // the process is killed — and the notification's own buttons arrive back through here, so
-        // an action delivered to a service the system had since recreated would otherwise leave
-        // it running with that debt unpaid.
-        val status = ServiceLocator.player.status.value
-        promoteToForeground(status.title, status.streamTitle, status.playWhenReady)
+        // the process is killed, and Media3 only promotes once its own controller has connected
+        // to the session — after this returns. Under the id Media3 posts its card with, so its
+        // first card simply replaces this one.
+        if (!isPlaybackOngoing()) promoteToForeground()
         when (intent?.action) {
-            ACTION_TOGGLE_PLAY_PAUSE -> ServiceLocator.player.togglePlayPause()
-            // Swiping a paused notification away means "done with this", not "hide it". Without
-            // somewhere for that swipe to go, the service stayed in the foreground holding the
-            // process up with nothing left on screen to stop it.
-            ACTION_STOP -> {
-                ServiceLocator.player.setPlayWhenReady(false)
-                stopSelf()
-            }
             // The app is in front again ([stop]): the service goes, the station plays on in the
             // activity. By id, so a start that arrived after this release keeps the service.
             ACTION_RELEASE -> stopSelf(startId)
         }
+        // Not Media3's START_STICKY: recreated by the system after the process died, this would
+        // be a card over a player nothing has started.
         return START_NOT_STICKY
     }
 
-    private fun promoteToForeground(title: String, song: String?, wantsPlay: Boolean) {
-        val notification = buildNotification(title, song, wantsPlay)
+    private fun promoteToForeground() {
+        val notification = placeholderNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(FOREGROUND_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
@@ -96,64 +165,65 @@ class RadioBackgroundService : Service() {
         }
     }
 
-    private fun updateNotification(title: String, song: String?, wantsPlay: Boolean) {
-        try {
-            NotificationManagerCompat.from(this).notify(FOREGROUND_ID, buildNotification(title, song, wantsPlay))
-        } catch (_: SecurityException) {
-            // POST_NOTIFICATIONS was refused; the stream keeps playing regardless.
-        }
-    }
-
-    /** @param song what the station says is on ([PlaybackStatus.streamTitle]), when it says. */
-    private fun buildNotification(title: String, song: String?, wantsPlay: Boolean): Notification {
-        val openApp = PendingIntent.getActivity(
-            this,
-            REQUEST_OPEN_APP,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
+    /** What stands for Media3's card in the moment before it draws its own. */
+    private fun placeholderNotification(): Notification {
+        val status = ServiceLocator.player.status.value
+        val shown = display ?: displayOf(BackgroundPlayback.card.value, status.title, status.streamTitle)
         return NotificationCompat.Builder(this, App.CHANNEL_RADIO)
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle(title.ifBlank { getString(R.string.app_name) })
-            .setContentText(song ?: getString(R.string.radio_notif_playing))
-            .setContentIntent(openApp)
-            // Dismissible once paused, exactly like the recorder's own notification when it is
-            // not actively writing (RecordingService.buildNotification) — an ongoing notification
-            // for a stream that is not making sound would be a lie the user cannot swipe away.
-            .setOngoing(wantsPlay)
+            .setSmallIcon(R.drawable.ic_notification_shidur)
+            .setContentTitle(shown.title)
+            .setContentText(shown.line)
+            .setContentIntent(openAppIntent())
             .setOnlyAlertOnce(true)
-            // ...and that swipe now ends the service rather than only hiding it.
-            .setDeleteIntent(serviceIntent(REQUEST_STOP, ACTION_STOP))
-            .addAction(
-                if (wantsPlay) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play,
-                getString(if (wantsPlay) R.string.action_pause else R.string.action_play),
-                serviceIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE),
-            )
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .apply { session?.let { setStyle(MediaStyleNotificationHelper.MediaStyle(it)) } }
             .build()
     }
 
-    private fun serviceIntent(requestCode: Int, action: String): PendingIntent = PendingIntent.getService(
+    /**
+     * The paused card swiped away, or a stop key: "done with this", not "hide it". The stream is
+     * paused rather than stopped, so the app opened later finds it where it was; the service goes,
+     * rather than staying started with nothing left on screen to stop it.
+     */
+    private fun stopFromCard() {
+        ServiceLocator.player.setPlayWhenReady(false)
+        stopSelf()
+    }
+
+    private fun openAppIntent(): PendingIntent = PendingIntent.getActivity(
         this,
-        requestCode,
-        Intent(this, RadioBackgroundService::class.java).setAction(action),
+        REQUEST_OPEN_APP,
+        Intent(this, MainActivity::class.java),
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
 
     override fun onDestroy() {
         started = false
         scope.cancel()
-        PlayerMediaSession.release(PlayerMediaSession.HOLDER_RADIO_SERVICE)
+        session?.let { current ->
+            removeSession(current)
+            // The session only: the player is the engine's, and the app plays on with it.
+            current.release()
+        }
+        session = null
+        sessionPlayer = null
+        // A paused card is left detached from the service; with the service gone it would be a
+        // card for a session that no longer exists.
+        NotificationManagerCompat.from(this).cancel(FOREGROUND_ID)
         super.onDestroy()
     }
 
     companion object {
         private const val FOREGROUND_ID = 3001
         private const val REQUEST_OPEN_APP = 0
-        private const val REQUEST_TOGGLE = 1
-        private const val REQUEST_STOP = 2
-        private const val ACTION_TOGGLE_PLAY_PAUSE = "com.idanck.shidur.player.RADIO_TOGGLE_PLAY_PAUSE"
-        private const val ACTION_STOP = "com.idanck.shidur.player.RADIO_STOP"
         private const val ACTION_RELEASE = "com.idanck.shidur.player.RADIO_RELEASE"
+
+        /**
+         * Distinct from the activity's ([PlayerMediaSession]) and Android Auto's
+         * ([com.idanck.shidur.auto.RadioMediaLibraryService]): two sessions with one ID in a
+         * process is a crash, and coming back to the app holds the activity's before this one goes.
+         */
+        private const val SESSION_ID = "shidur.background"
 
         /** Whether [start] was asked since the service last went, so [stop] has something to release. */
         @Volatile
