@@ -141,8 +141,10 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
-        <!-- Keeps a radio station playing behind a locked screen (see RadioBackgroundService);
-             started/stopped by MainActivity, never bound to from outside the app. -->
+        <!-- Keeps a radio station playing behind a locked screen, under the system's media card
+             (RadioBackgroundService, ADR-068); started/stopped by MainActivity. A Media3
+             MediaSessionService with no intent filter: nothing outside the app binds to it — the
+             card, a headset and the lock screen reach its session through the platform. -->
         <service
             android:name=".player.RadioBackgroundService"
             android:exported="false"

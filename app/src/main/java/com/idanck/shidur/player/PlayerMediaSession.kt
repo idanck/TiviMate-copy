@@ -20,11 +20,11 @@ import kotlinx.coroutines.launch
  * the buttons paused and resumed nothing of this app's.
  *
  * Held, not permanent. Someone has to be listening for the session to be right: the activity while
- * it is on screen or in its floating window, and [RadioBackgroundService] while it carries a
- * station in the background. With neither, the app has deliberately paused (`MainActivity.
- * pauseInBackground`), and a session left behind would let a headset start a TV channel's sound
- * from a backgrounded app with nothing on screen to stop it. So the session lives exactly as long
- * as someone holds it.
+ * it is on screen or in its floating window. A station carried on in the background is under
+ * [RadioBackgroundService]'s own session instead, the one its media card is drawn from (ADR-068).
+ * Otherwise the app has deliberately paused (`MainActivity.pauseInBackground`), and a session left
+ * behind would let a headset start a TV channel's sound from a backgrounded app with nothing on
+ * screen to stop it. So the session lives exactly as long as someone holds it.
  *
  * The player itself is rebuilt by [PlayerEngine] whenever a decoder or a buffer setting changes,
  * so the session follows [PlayerEngine.currentPlayer] and is handed each new instance in turn.
@@ -37,12 +37,12 @@ object PlayerMediaSession {
 
     /**
      * Distinct from Android Auto's session ([com.idanck.shidur.auto.RadioMediaLibraryService]),
-     * which keeps the default: two sessions with one ID in a process is a crash.
+     * which keeps the default, and from [RadioBackgroundService]'s: two sessions with one ID in a
+     * process is a crash.
      */
     private const val SESSION_ID = "shidur.player"
 
     const val HOLDER_ACTIVITY = "activity"
-    const val HOLDER_RADIO_SERVICE = "radio-service"
 
     private val holders = mutableSetOf<String>()
     private var session: MediaSession? = null

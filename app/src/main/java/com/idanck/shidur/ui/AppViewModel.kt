@@ -42,12 +42,15 @@ import com.idanck.shidur.data.sport.IsraeliSportChannels
 import com.idanck.shidur.ui.tv.SportLayout
 import com.idanck.shidur.data.xtream.isEpisode
 import com.idanck.shidur.data.xtream.isSeriesContainer
+import com.idanck.shidur.player.BackgroundPlayback
 import com.idanck.shidur.player.PlaybackStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -218,6 +221,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Sport mode's and News mode's panels (ADR-041, ADR-042), beside the full-screen player they stand in for. */
     val sport = SportSession(app, settings, ::profileFor, viewModelScope)
 
+    /**
+     * Held, so [BackgroundPlayback.returnSkip] is handed back the very function it was lent; and
+     * written above `init`, which lends it, as properties are set in the order they are written.
+     */
+    private val skipStation: (Int) -> Unit = { delta -> zap(delta) }
+
     init {
         player.onScheduleRetry = { delay, action -> main.postDelayed(action, delay) }
         player.onNotice = { error, what ->
@@ -228,6 +237,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             ServiceLocator.youtube.listed.drop(1).collect { loadChannels() }
         }
+        // The background player's media card (ADR-068): what is playing, named and pictured as
+        // the shells show it, and the station list its previous/next buttons move along.
+        BackgroundPlayback.lendSkip(skipStation)
+        viewModelScope.launch {
+            _state.map(::backgroundCardOf).distinctUntilChanged().collect(BackgroundPlayback::publish)
+        }
+    }
+
+    private fun backgroundCardOf(state: AppUiState): BackgroundPlayback.Card? =
+        when (val playing = state.nowPlaying) {
+            is NowPlayingInfo.Live -> BackgroundPlayback.Card(
+                title = playing.channel.displayName,
+                subtitle = null,
+                artworkUrl = playing.channel.displayLogo,
+                stations = isRadioChannel(playing.channel, state),
+            )
+            is NowPlayingInfo.Podcast -> BackgroundPlayback.Card(
+                title = playing.episode.title,
+                subtitle = playing.episode.podcastTitle,
+                artworkUrl = playing.episode.imageUrl ?: playing.episode.podcastImageUrl,
+                stations = false,
+            )
+            else -> null
+        }
+
+    private fun isRadioChannel(channel: Channel, state: AppUiState): Boolean {
+        val radioPlaylistId = state.playlists.firstOrNull { it.url == IsraelRadioStations.M3U_URL }?.id
+        return radioPlaylistId != null && channel.playlistId == radioPlaylistId
     }
 
     // `ServiceLocator.locale`, not the application context: `Application` is attached once and
@@ -595,10 +632,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // and the app left, under the same notification (ADR-067).
             if (_state.value.nowPlaying is NowPlayingInfo.Podcast) return true
             val live = (_state.value.nowPlaying as? NowPlayingInfo.Live)?.channel ?: return false
-            val radioPlaylistId = _state.value.playlists
-                .firstOrNull { it.url == IsraelRadioStations.M3U_URL }
-                ?.id
-            return radioPlaylistId != null && live.playlistId == radioPlaylistId
+            return isRadioChannel(live, _state.value)
         }
 
     fun play(channel: Channel) {
@@ -1702,6 +1736,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() {
+        BackgroundPlayback.returnSkip(skipStation)
+        BackgroundPlayback.publish(null)
         player.onScheduleRetry = null
         player.onNotice = null
         sport.close()
