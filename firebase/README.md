@@ -36,9 +36,10 @@ The region, `me-west1` (Tel Aviv, where Firestore is), is in `functions/src/conf
 use `firebase-functions/v1`: that rules out Auth triggers, and is why `ensureProfile` exists.
 
 Secrets, in Secret Manager (`docs/13-youtube-setup.md`): `YOUTUBE_API_KEY`, `YOUTUBE_TV_CLIENT_ID`,
-`YOUTUBE_TV_CLIENT_SECRET`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_WEB_CLIENT_SECRET`. A deploy fails while one
-of them does not exist; an OAuth one set to `unset` only switches that route off. The emulators need
-none of them.
+`YOUTUBE_TV_CLIENT_SECRET`, `GOOGLE_WEB_CLIENT_ID`, `GOOGLE_WEB_CLIENT_SECRET`, and for podcast search
+(`docs/14-podcast-index-setup.md`) `PODCASTINDEX_API_KEY` and `PODCASTINDEX_API_SECRET`. A deploy fails
+while one of them does not exist; an OAuth one, or a Podcast Index one, set to `unset` only switches
+that route off. The emulators need none of them.
 
 Environment, read by the Functions at deploy time from `functions/.env` (not in git):
 
