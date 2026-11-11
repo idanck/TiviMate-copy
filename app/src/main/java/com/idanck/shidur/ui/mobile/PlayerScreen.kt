@@ -494,6 +494,16 @@ private fun NowPlayingDetails(
                 )
             }
 
+            is NowPlayingInfo.Podcast -> {
+                Text(
+                    text = playing.episode.podcastTitle,
+                    style = StudioTheme.type.meta.copy(fontWeight = FontWeight.SemiBold),
+                    color = studio.ink,
+                )
+                PlayerTitle(playing.episode.title)
+                playing.episode.description?.let { PlayerDescription(it) }
+            }
+
             // Still tuning: the playback overlay on the surface above already says so.
             null -> Unit
         }

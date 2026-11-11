@@ -308,6 +308,7 @@ internal fun saverPlaying(nowPlaying: NowPlayingInfo?, programme: String?, statu
             SaverPlaying.Video(nowPlaying.channel.displayName, nowPlaying.programme.title, paused, live = false)
         is NowPlayingInfo.OnDemand -> SaverPlaying.Video(null, nowPlaying.item.name, paused, live = false)
         is NowPlayingInfo.RecordingFile -> SaverPlaying.Video(null, nowPlaying.recording.title, paused, live = false)
+        is NowPlayingInfo.Podcast -> SaverPlaying.Video(nowPlaying.episode.podcastTitle, nowPlaying.episode.title, paused, live = false)
     }
 }
 

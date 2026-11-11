@@ -350,6 +350,7 @@ internal fun PhoneMiniPlayer(
                     is NowPlayingInfo.Catchup -> nowPlaying.channel.displayName to nowPlaying.programme.title
                     is NowPlayingInfo.OnDemand -> (nowPlaying.item.year ?: "") to nowPlaying.item.name
                     is NowPlayingInfo.RecordingFile -> nowPlaying.recording.channelName to nowPlaying.recording.title
+                    is NowPlayingInfo.Podcast -> nowPlaying.episode.podcastTitle to nowPlaying.episode.title
                 }
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (channelLine.isNotBlank()) {

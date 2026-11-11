@@ -29,6 +29,7 @@ import com.idanck.shidur.data.model.Programme
 import com.idanck.shidur.data.model.Recording
 import com.idanck.shidur.data.model.RefreshReport
 import com.idanck.shidur.data.model.VodItem
+import com.idanck.shidur.data.podcast.PodcastEpisode
 import com.idanck.shidur.data.prefs.ParentalGate
 import com.idanck.shidur.data.prefs.ParentalPin
 import com.idanck.shidur.data.prefs.PinAttemptLimiter
@@ -145,6 +146,8 @@ sealed interface NowPlayingInfo {
     data class Catchup(val channel: Channel, val programme: Programme) : NowPlayingInfo
     data class OnDemand(val item: VodItem) : NowPlayingInfo
     data class RecordingFile(val recording: Recording) : NowPlayingInfo
+    /** A podcast episode (ADR-067); [PodcastSession] holds what belongs to it. */
+    data class Podcast(val episode: PodcastEpisode) : NowPlayingInfo
 }
 
 data class AppUiState(
@@ -588,6 +591,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val isRadioPlaying: Boolean
         get() {
             if (!player.status.value.playWhenReady) return false
+            // A podcast is sound with no picture, as a station is: it carries on with the screen off
+            // and the app left, under the same notification (ADR-067).
+            if (_state.value.nowPlaying is NowPlayingInfo.Podcast) return true
             val live = (_state.value.nowPlaying as? NowPlayingInfo.Live)?.channel ?: return false
             val radioPlaylistId = _state.value.playlists
                 .firstOrNull { it.url == IsraelRadioStations.M3U_URL }
@@ -650,6 +656,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             is NowPlayingInfo.Catchup -> playCatchup(playing.channel, playing.programme)
             is NowPlayingInfo.OnDemand -> playVod(playing.item)
             is NowPlayingInfo.RecordingFile -> playRecording(playing.recording)
+            is NowPlayingInfo.Podcast -> playPodcast(playing.episode)
             null -> Unit
         }
     }
@@ -873,6 +880,34 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Bumped per [playVod] so a slow resume read cannot start an older tap's film last. */
     private var vodPlayGeneration = 0
 
+    /** The podcast episode playing, if one is (ADR-067). */
+    val podcast = PodcastSession(
+        player = player,
+        repo = ServiceLocator.podcasts,
+        scope = viewModelScope,
+        writeScope = ServiceLocator.appScope,
+        playNext = { playPodcast(it) },
+    )
+
+    /**
+     * Plays a podcast episode from where the viewer stopped in it (or [fromStart]), at the show's
+     * own speed and past its intro skip. The mark is read again from the database: the caller's
+     * row can be minutes old, and another device may have moved it since (ADR-067).
+     */
+    fun playPodcast(episode: PodcastEpisode, fromStart: Boolean = false): Boolean {
+        leaveVod()
+        val generation = ++vodPlayGeneration
+        viewModelScope.launch {
+            val fresh = ServiceLocator.podcasts.episode(episode.key) ?: episode
+            val prefs = ServiceLocator.podcasts.podcast(fresh.podcastId)?.prefs
+            if (generation != vodPlayGeneration) return@launch
+            podcast.start(fresh, fromStart, prefs?.speed ?: 0f, prefs?.skipIntroSeconds ?: 0)
+            _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.Podcast(fresh))
+        }
+        _state.value = _state.value.copy(nowPlaying = NowPlayingInfo.Podcast(episode))
+        return true
+    }
+
     /**
      * What a previous visit already stored for one series. No network, so it answers at once.
      *
@@ -947,6 +982,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Ends the current on-demand session, keeping the place it reached. */
     private fun leaveVod() {
         saveVodProgress()
+        podcast.leave()
         playingVod = null
         // Every source switch passes through here, so a resume read still in flight belongs
         // to a session that just ended — without this, its deferred start could replace the
@@ -1141,6 +1177,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * continue-watching row rather than sitting at 99% for good.
      */
     fun saveVodProgress() {
+        // A podcast episode's place too, from the same moments (ADR-067).
+        podcast.save()
         val item = playingVod ?: return
         if (item.id == 0L) return
         val (position, duration) = player.positionAndDuration() ?: return

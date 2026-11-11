@@ -295,7 +295,7 @@ object StationAccentCache {
 internal fun NowPlayingInfo?.audioOnlyChannel(): Channel? = when (this) {
     is NowPlayingInfo.Live -> channel
     is NowPlayingInfo.Catchup -> channel
-    is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile, null -> null
+    is NowPlayingInfo.OnDemand, is NowPlayingInfo.RecordingFile, is NowPlayingInfo.Podcast, null -> null
 }
 
 internal fun audioOnlyBackdropVisible(status: PlaybackStatus, wasVisible: Boolean): Boolean = when {

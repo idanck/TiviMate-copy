@@ -79,6 +79,13 @@ data class PlaybackStatus(
      */
     val closed: Boolean = false,
     /**
+     * An on-demand item (a podcast episode, a film, a recording) played to its end. Cleared when
+     * anything starts. A live channel never sets it: its end is a failure, handled as one.
+     */
+    val ended: Boolean = false,
+    /** The playback speed, 1 for normal; podcasts change it (ADR-067). */
+    val speed: Float = 1f,
+    /**
      * The live channel plays from the timeshift buffer (ADR-065): it can be paused, rewound and
      * fast-forwarded, and [PlayerEngine.liveWindow] says where in the buffer it is.
      */
@@ -582,8 +589,12 @@ class PlayerEngine(
         startCurrentSource(channel.displayName)
     }
 
-    /** Plays an arbitrary URL (catch-up, VOD, a recording) with the channel's request profile. */
-    fun playUrl(title: String, url: String, profileForItem: RequestProfile, startPositionMs: Long = 0) {
+    /**
+     * Plays an arbitrary URL (catch-up, VOD, a recording, a podcast episode) with the channel's
+     * request profile, at [speed] (1 unless a podcast says otherwise).
+     */
+    fun playUrl(title: String, url: String, profileForItem: RequestProfile, startPositionMs: Long = 0, speed: Float = 1f) {
+        wantedSpeed = speed.coerceIn(0.5f, 3f)
         playbackGeneration++
         currentChannel = null
         timeshiftWanted = false
@@ -633,6 +644,8 @@ class PlayerEngine(
             }
             .build()
 
+        if (currentChannel != null) wantedSpeed = 1f
+        exo.setPlaybackSpeed(wantedSpeed)
         exo.setMediaItem(item, startPositionMs)
         exo.prepare()
         exo.playWhenReady = !heldPaused
@@ -642,6 +655,8 @@ class PlayerEngine(
             error = null,
             errorDetail = null,
             closed = false,
+            ended = false,
+            speed = wantedSpeed,
             // Claimed here rather than waiting for the first STATE_BUFFERING callback, so the
             // UI can say "connecting" from the moment the channel is chosen instead of showing
             // a black frame with nothing on it.
@@ -875,6 +890,7 @@ class PlayerEngine(
             _status.value = _status.value.copy(
                 buffering = state == Player.STATE_BUFFERING,
                 playing = state == Player.STATE_READY && player?.playWhenReady == true,
+                ended = state == Player.STATE_ENDED && currentChannel == null && role != Role.PANEL,
             )
             if (state == Player.STATE_READY) {
                 retriesUsed = 0
@@ -1101,6 +1117,35 @@ class PlayerEngine(
         if (duration == C.TIME_UNSET || duration <= 0) return null
         return LiveWindow(durationMs = duration, positionMs = exo.currentPosition.coerceIn(0, duration))
     }
+
+    /**
+     * Moves an on-demand item by [deltaMs], back when negative, kept inside it: a podcast's 15 back
+     * and 30 forward (ADR-067). Playing again if it had ended.
+     */
+    fun skipBy(deltaMs: Long) {
+        val exo = player ?: return
+        val duration = exo.duration.takeIf { it != C.TIME_UNSET && it > 0 }
+        val target = (exo.currentPosition + deltaMs).coerceAtLeast(0).let { if (duration != null) it.coerceAtMost(duration) else it }
+        exo.seekTo(target)
+    }
+
+    /** Jumps an on-demand item to [positionMs] — a chapter, or the scrubber let go. */
+    fun seekTo(positionMs: Long) {
+        player?.seekTo(positionMs.coerceAtLeast(0))
+    }
+
+    /**
+     * The playback speed for what is playing now and what is built after it, 0.5 to 3. A live
+     * channel is always played at 1: [play] puts it back.
+     */
+    fun setSpeed(speed: Float) {
+        val s = speed.coerceIn(0.5f, 3f)
+        wantedSpeed = s
+        player?.setPlaybackSpeed(s)
+        _status.value = _status.value.copy(speed = s)
+    }
+
+    private var wantedSpeed = 1f
 
     /** Moves through the buffer by [deltaMs], back when negative; no further than live. */
     fun seekBy(deltaMs: Long) {
