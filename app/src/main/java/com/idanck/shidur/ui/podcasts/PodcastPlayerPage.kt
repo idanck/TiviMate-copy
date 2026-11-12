@@ -86,7 +86,13 @@ internal fun PodcastPlayerPage(
     val scope = rememberCoroutineScope()
     val repo = ServiceLocator.podcasts
     val changes by repo.changes.collectAsState()
-    val fresh by produceState(initialValue = episode, changes, episode.key) { value = repo.episode(episode.key) ?: episode }
+    val loaded by produceState(initialValue = episode, changes, episode.key) { value = repo.episode(episode.key) ?: episode }
+    // produceState keeps the last episode's value until the new one is read: never let the star, or
+    // anything else here, act on the episode that just ended.
+    val fresh = if (loaded.key == episode.key) loaded else episode
+    // What the star shows and writes next. Set on a tap, before the repository answers, so a second
+    // quick tap undoes the first rather than writing the same value again.
+    var favourite by remember(fresh.key, fresh.mark.favourite) { mutableStateOf(fresh.mark.favourite) }
     val queue by produceState(initialValue = emptyList<PodcastEpisode>(), changes) { value = repo.queue() }
     val chapterIndex = PodcastChapters.at(session.chapters, position)
 
@@ -168,13 +174,17 @@ internal fun PodcastPlayerPage(
                     size = StudioButtonSize.MEDIUM,
                 )
                 StudioButton(
-                    label = stringResource(if (fresh.mark.favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add),
-                    onClick = { scope.launch { repo.setFavourite(fresh.key, !fresh.mark.favourite) } },
-                    // The glyph states it: a phone's StudioButton draws no `active` (ADR-058), so an
-                    // outline star there looked the same set or not.
-                    icon = if (fresh.mark.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                    label = stringResource(if (favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add),
+                    onClick = {
+                        val key = fresh.key
+                        val next = !favourite
+                        favourite = next
+                        scope.launch { repo.setFavourite(key, next) }
+                    },
+                    // Filled when set, as every other star in the app, and amber (`active`) in both shells.
+                    icon = if (favourite) StudioIcons.StarOn else StudioIcons.Star,
                     iconOnly = true,
-                    active = fresh.mark.favourite,
+                    active = favourite,
                     size = StudioButtonSize.MEDIUM,
                 )
                 StudioButton(label = stringResource(R.string.pod_open_show), onClick = { onOpenShow(episode.podcastId) }, icon = StudioIcons.Podcast, iconOnly = true, size = StudioButtonSize.MEDIUM)
