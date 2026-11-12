@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — כרטיס סרטון YouTube</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; display: flex; flex-direction: column; gap: {{gap}}; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div class="st-anim" style="position: relative; width: {{w}}; height: {{h}}; border-radius: {{r}}; overflow: hidden; box-shadow: {{ring}}; transform: {{tf}}">
+<dc-import name="Picture" scene="{{scene}}" width="{{wn}}" height="{{hn}}" label="" hint-size="320px,180px"></dc-import>
+<sc-if value="{{live}}" hint-placeholder-val="{{false}}"><span style="position: absolute; top: {{pad}}; right: {{pad}}"><dc-import name="LiveBadge" label="חי" size="{{badge}}" hint-size="80px,34px"></dc-import></span></sc-if>
+<sc-if value="{{hasDur}}" hint-placeholder-val="{{true}}"><span class="st-num" style="position: absolute; bottom: {{pad}}; left: {{pad}}; padding: 2px 8px; border-radius: 8px; background: rgba(5, 7, 12, 0.82); font-size: {{durF}}; font-weight: 600">{{dur}}</span></sc-if>
+<sc-if value="{{hasPct}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="position: absolute; bottom: 0; left: 0; right: 0; height: 5px; background: var(--st-track)"><div style="height: 5px; width: {{pct}}; background: var(--st-tally)"></div></div></sc-if>
+</div>
+<span style="font-size: {{tF}}; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">{{title}}</span>
+<span style="font-size: {{mF}}; color: var(--st-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","onscreen","focus"],"default":"rest"},"width":{"editor":"int","default":320,"min":160,"max":480},"phone":{"editor":"boolean","default":false},"$preview":{"width":320,"height":262}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // A YouTube video or live stream as Shidur draws it: the thumbnail the Data API gives (ours to decorate —
+    // it is not the player), its title in two lines, and the channel with when it was published. Live: a
+    // "חי" badge and no duration. Watched part: a red bar along the foot. The player itself is never drawn
+    // here, and nothing of ours is ever drawn over the player (YouTube's terms).
+    const it = this.props.item || { title: '[כותרת הסרטון]', meta: 'כאן חדשות · לפני 3 שעות', dur: '12:40', scene: 'studio' };
+    const s = this.props.state || 'rest';
+    const phone = this.props.phone === true || this.props.phone === 'true';
+    const w = Number(this.props.width) || 320;
+    const h = Math.round(w * 9 / 16);
+    const k = w / 320;
+    const live = !!it.live;
+    const hasPct = it.pct !== undefined && it.pct !== null && it.pct !== '';
+    return {
+      w: w + 'px', h: h + 'px', wn: w, hn: h, r: phone ? '16px' : 'var(--st-r-card)',
+      gap: phone ? '6px' : Math.round(12 * k) + 'px', pad: phone ? '8px' : '10px',
+      scene: it.scene || 'studio', title: it.title, meta: it.meta, dur: it.dur || '',
+      live: live, hasDur: !live && !!it.dur, badge: phone ? 'xs' : 's',
+      hasPct: hasPct, pct: hasPct ? Number(it.pct) + '%' : '0%',
+      tF: phone ? '15px' : Math.max(20, Math.round(22 * k)) + 'px',
+      mF: phone ? '13px' : Math.max(18, Math.round(19 * k)) + 'px',
+      durF: phone ? '12px' : '18px',
+      ring: s === 'focus' ? '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)'
+        : (s === 'onscreen' ? '0 0 0 3px var(--st-tally), 0 18px 44px rgba(255, 90, 95, 0.28)' : 'var(--st-depth-1)'),
+      tf: s === 'focus' && !phone ? 'scale(var(--st-focus-scale))' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

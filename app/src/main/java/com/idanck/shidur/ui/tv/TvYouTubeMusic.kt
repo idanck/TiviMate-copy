@@ -27,7 +27,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -40,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,7 +52,6 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -102,9 +104,10 @@ import java.time.ZoneId
  * YouTube's terms are the video tab's (ADR-061): the player is YouTube's own, always visible in a
  * frame of its own, nothing of ours over it, and nothing plays in the background. A YouTube player
  * must be at least 200×200; the page's CSS pixels are dp, so the frame is never less than 200dp
- * high. On "בשבילך" it is at the top, as on the video tab; on the library and a list's page it is
- * the mini player, a column at the end edge with the song and its buttons under the frame; on the
- * player screen it is large, the queue beside it.
+ * high. On "בשבילך", the library and a list's page it is the mini player, a column at the end edge
+ * with the song and its buttons under the frame — on "בשבילך" only while something is in the player,
+ * the rails taking the whole screen otherwise (the browsing layout of 12/11); on the player screen it
+ * is large, the queue beside it.
  */
 
 /** The switch at the top of YouTube's screen, and the music tab's parts after it. */
@@ -234,8 +237,8 @@ private fun MusicHome(session: YouTubeSession, signedIn: Boolean, onConnect: () 
     val music = ServiceLocator.music
     val youtube = ServiceLocator.youtube
     val studio = StudioTheme.colors
+    val type = StudioTheme.type
     val gutter = sideMenuInset()
-    val panelHeight = (LocalConfiguration.current.screenHeightDp / 3f).dp
     val playerState by session.player.state.collectAsState()
     val history by music.history.collectAsState()
     val likes by music.likes.collectAsState()
@@ -246,8 +249,10 @@ private fun MusicHome(session: YouTubeSession, signedIn: Boolean, onConnect: () 
     val albums by music.albums.collectAsState()
     val artists by youtube.subChannels.collectAsState()
     val subs by youtube.subs.collectAsState()
-    val heroFocus = remember { FocusRequester() }
+    val firstFocus = remember { FocusRequester() }
+    val playingMusic = session.playingMusic
 
+    val continueTitle = stringResource(R.string.ytm_continue)
     val quickTitle = stringResource(R.string.ytm_rail_quick)
     val quickCaption = stringResource(R.string.ytm_rail_quick_caption)
     val listsTitle = stringResource(R.string.ytm_rail_playlists)
@@ -256,8 +261,14 @@ private fun MusicHome(session: YouTubeSession, signedIn: Boolean, onConnect: () 
     val popularTitle = stringResource(R.string.ytm_rail_popular)
     val popularCaption = stringResource(R.string.ytm_rail_popular_caption)
     val albumsTitle = stringResource(R.string.ytm_rail_albums)
-    val rails = remember(history, likes, youtubeLiked, chart, playlists, linked, albums, artists, subs, signedIn) {
+    val rails = remember(history, likes, youtubeLiked, chart, playlists, linked, albums, artists, subs, signedIn, playingMusic) {
         buildList<MusicRail> {
+            // Nothing playing: where you stopped is the first rail, not a hero (12/11, the canvas's
+            // `TvYtMusicBrowseIdle`), on this television or another device of the account.
+            if (!playingMusic) {
+                val recent = history.map { it.song }.distinctBy { it.id }.take(CONTINUE_RAIL_SIZE)
+                if (recent.isNotEmpty()) add(MusicRail.Songs("continue", continueTitle, null, recent, null))
+            }
             val quick = quickPicks(history, mergeLiked(likes, youtubeLiked))
             // With no history yet there is nothing to pick from; the chart leads instead (ADR-069).
             if (quick.isNotEmpty()) add(MusicRail.Songs("quick", quickTitle, quickCaption, quick, null))
@@ -271,35 +282,35 @@ private fun MusicHome(session: YouTubeSession, signedIn: Boolean, onConnect: () 
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(start = gutter, end = YT_SAFE_X, top = 4.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
-        ) {
-            MusicNowPlaying(
-                session = session,
-                state = playerState,
-                last = history.firstOrNull(),
-                focus = heroFocus,
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            )
-            MusicFrame(
-                session = session,
-                state = playerState,
-                modifier = Modifier.fillMaxHeight().aspectRatio(16f / 9f, matchHeightConstraintsFirst = true),
-            )
-        }
+    // Rails on the whole height, and the whole list scrolls (the canvas's `TvYtMusicBrowse`). While
+    // something is in the player its column stands at the end edge: the frame, 356×200, and the
+    // song and its buttons under it. With nothing in it there is no player and no column, and the
+    // rails run to the edge.
+    val showColumn = playerState.video != null
+    val listState = rememberLazyListState()
+    ReportRailsScrolled(session, listState)
+    Row(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().height(panelHeight).background(studio.ground),
+            state = listState,
+            // Beside the column the rails are cut a gap short of it, not against it.
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(end = if (showColumn) BROWSE_COLUMN_GAP else 0.dp),
+            contentPadding = PaddingValues(bottom = 12.dp),
         ) {
-            items(rails, key = { it.key }) { rail ->
+            if (rails.isEmpty()) {
+                item(key = "empty") {
+                    // It still takes the remote, so the switch above is not the end of the way down.
+                    Box(Modifier.padding(start = gutter, top = 12.dp).focusRequester(firstFocus).focusable()) {
+                        Text(stringResource(R.string.ytm_loading), style = type.meta, color = studio.ink3)
+                    }
+                }
+            }
+            itemsIndexed(rails, key = { _, rail -> rail.key }) { index, rail ->
                 MusicRailRow(
                     rail = rail,
                     gutter = gutter,
+                    end = if (showColumn) 0.dp else YT_SAFE_X,
                     playingId = if (session.playingMusic) playerState.video?.id else null,
+                    firstFocus = if (index == 0) firstFocus else null,
                     onSong = { songs, song, context ->
                         if (session.playingMusic && song.id == playerState.video?.id) session.openMusic(MusicPage.Player)
                         else session.playSongs(songs, song, context, null)
@@ -307,85 +318,25 @@ private fun MusicHome(session: YouTubeSession, signedIn: Boolean, onConnect: () 
                     onList = { session.openMusic(MusicPage.Songs(it.id)) },
                     onArtist = { session.open(YtPage.Channel(it)) },
                     onConnect = onConnect,
-                    modifier = Modifier.fillParentMaxHeight(),
                 )
             }
         }
+        if (showColumn) MusicMiniColumn(session, modifier = Modifier.padding(end = YT_SAFE_X, top = 4.dp, bottom = 12.dp))
     }
-    LaunchedEffect(Unit) { heroFocus.claim { false } }
+    // The remote lands on the first card; again when the first rail arrives, unless a key was pressed.
+    val keysAtEntry = remember { session.keys }
+    LaunchedEffect(rails.isEmpty()) {
+        if (session.keys == keysAtEntry) firstFocus.claim { false }
+    }
 }
 
-/** What plays, beside the frame on "בשבילך"; or where the last song was left. */
+/** Tells [session] whether [state] has scrolled past its first rail, so the switch above gives its row to the rails. */
 @Composable
-private fun MusicNowPlaying(
-    session: YouTubeSession,
-    state: YouTubePlayerController.State,
-    last: PlayedSong?,
-    focus: FocusRequester,
-    modifier: Modifier,
-) {
-    val studio = StudioTheme.colors
-    val type = StudioTheme.type
-    val music = ServiceLocator.music
-    val likes by music.likes.collectAsState()
-    val youtubeLiked by music.youtubeLiked.collectAsState()
-    val song = session.currentSong
-    Column(modifier = modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        if (song != null) {
-            val liked = likes.any { it.song.id == song.id } || youtubeLiked.any { it.id == song.id }
-            Text(
-                listOfNotNull(stringResource(R.string.ytm_now_playing), session.queueTitle).joinToString(" · "),
-                style = type.meta,
-                color = studio.ink2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(song.title, style = type.title, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(song.artist, style = type.body.copy(fontWeight = FontWeight.Bold), color = studio.ink2, maxLines = 1)
-            SongProgress(state)
-            Row(
-                modifier = Modifier.padding(top = 5.dp).focusGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MusicTransport(session, state, focus = focus)
-                StudioButton(
-                    label = stringResource(R.string.ytm_queue),
-                    onClick = { session.openMusic(MusicPage.Player) },
-                    icon = StudioIcons.Queue,
-                    size = StudioButtonSize.MEDIUM,
-                )
-                StudioButton(
-                    label = stringResource(if (liked) R.string.ytm_liked else R.string.ytm_like),
-                    onClick = { music.toggleLike(song) },
-                    icon = StudioIcons.star(liked),
-                    iconOnly = true,
-                    size = StudioButtonSize.MEDIUM,
-                    active = liked,
-                )
-            }
-            ReconnectNote(session)
-        } else if (last != null) {
-            Text(stringResource(R.string.ytm_continue), style = type.meta, color = studio.ink2)
-            Text(last.song.title, style = type.title, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(last.song.artist, style = type.body.copy(fontWeight = FontWeight.Bold), color = studio.ink2, maxLines = 1)
-            StudioButton(
-                label = stringResource(R.string.ytm_continue_action),
-                onClick = {
-                    val songs = music.history.value.map { it.song }.distinctBy { it.id }
-                    session.playSongs(songs, last.song, last.context, null)
-                },
-                icon = StudioIcons.Play,
-                variant = StudioButtonVariant.PRIMARY,
-                size = StudioButtonSize.MEDIUM,
-                focusRequester = focus,
-            )
-        } else {
-            Text(stringResource(R.string.ytm_nothing_playing), style = type.title, color = studio.ink)
-            Text(stringResource(R.string.ytm_pick_hint), style = type.meta, color = studio.ink2)
-            Box(Modifier.size(1.dp).focusRequester(focus).focusable())
-        }
+internal fun ReportRailsScrolled(session: YouTubeSession, state: LazyListState) {
+    LaunchedEffect(state) {
+        snapshotFlow { state.firstVisibleItemIndex > 0 }.collect { session.railsScrolled = it }
     }
+    DisposableEffect(session) { onDispose { session.railsScrolled = false } }
 }
 
 /** Previous, play or pause, next. [focus] goes to play/pause. */
@@ -491,12 +442,14 @@ private fun MusicFrame(session: YouTubeSession, state: YouTubePlayerController.S
 private fun MusicRailRow(
     rail: MusicRail,
     gutter: Dp,
+    end: Dp,
     playingId: String?,
+    firstFocus: FocusRequester?,
     onSong: (List<YtSong>, YtSong, String?) -> Unit,
     onList: (YtMusicList) -> Unit,
     onArtist: (String) -> Unit,
     onConnect: () -> Unit,
-    modifier: Modifier,
+    modifier: Modifier = Modifier,
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
@@ -513,27 +466,29 @@ private fun MusicRailRow(
     }
     Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
-            modifier = Modifier.padding(start = gutter, end = YT_SAFE_X),
+            modifier = Modifier.padding(start = gutter, end = end),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             Text(title, style = type.h1, color = studio.ink)
             caption?.let { Text(it, style = type.caption, color = studio.ink3) }
         }
-        val padding = PaddingValues(start = gutter, end = YT_SAFE_X, top = 10.dp, bottom = 10.dp)
+        val padding = PaddingValues(start = gutter, end = end, top = 10.dp, bottom = 10.dp)
         when (rail) {
             is MusicRail.Songs -> LazyRow(
                 modifier = Modifier.fillMaxWidth().focusGroup(),
                 contentPadding = padding,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                items(rail.songs, key = { it.id }) { song ->
+                itemsIndexed(rail.songs, key = { _, song -> song.id }) { index, song ->
                     MusicCard(
                         title = song.title,
                         meta = song.artist,
                         thumb = song.thumb,
                         playing = song.id == playingId,
                         onClick = { onSong(rail.songs, song, rail.context) },
+                        size = MUSIC_BROWSE_CARD,
+                        modifier = firstOf(index, firstFocus),
                     )
                 }
             }
@@ -543,13 +498,15 @@ private fun MusicRailRow(
                 contentPadding = padding,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                items(rail.lists, key = { it.id }) { list ->
+                itemsIndexed(rail.lists, key = { _, list -> list.id }) { index, list ->
                     MusicCard(
                         title = list.title,
                         meta = listMeta(list),
                         thumb = list.thumb,
                         playing = false,
                         onClick = { onList(list) },
+                        size = MUSIC_BROWSE_CARD,
+                        modifier = firstOf(index, firstFocus),
                     )
                 }
             }
@@ -559,19 +516,27 @@ private fun MusicRailRow(
                 contentPadding = padding,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                items(rail.artists, key = { it.id }) { artist ->
-                    YtChannelDisc(label = artist.title, thumb = artist.thumb, live = false, onClick = { onArtist(artist.id) })
+                itemsIndexed(rail.artists, key = { _, artist -> artist.id }) { index, artist ->
+                    Box(modifier = firstOf(index, firstFocus)) {
+                        YtChannelDisc(label = artist.title, thumb = artist.thumb, live = false, onClick = { onArtist(artist.id) })
+                    }
                 }
             }
 
             is MusicRail.Connect -> YouTubeConnectCard(
                 revoked = false,
                 onConnect = onConnect,
-                modifier = Modifier.padding(start = gutter, end = YT_SAFE_X, top = 10.dp),
+                modifier = Modifier
+                    .padding(start = gutter, end = end, top = 10.dp)
+                    .then(if (firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier),
             )
         }
     }
 }
+
+/** The first card of a rail takes [firstFocus], where it is given. */
+private fun firstOf(index: Int, firstFocus: FocusRequester?): Modifier =
+    if (index == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier
 
 /** "Album · 12 songs", "Playlist · Artist". */
 @Composable
@@ -582,15 +547,23 @@ private fun listMeta(list: YtMusicList): String = listOfNotNull(
 
 /** A song, a playlist or an album on a rail or in a grid (`MusicCard`): square art, title, a line under it. */
 @Composable
-private fun MusicCard(title: String, meta: String, thumb: String?, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun MusicCard(
+    title: String,
+    meta: String,
+    thumb: String?,
+    playing: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = MUSIC_CARD,
+) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     var focused by remember { mutableStateOf(false) }
     val shape = tvCardShape()
-    Column(modifier = modifier.width(MUSIC_CARD), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(modifier = Modifier.width(size), verticalArrangement = Arrangement.spacedBy(5.dp)) {
         Box(
-            modifier = Modifier
-                .size(MUSIC_CARD)
+            modifier = modifier
+                .size(size)
                 .focusLift(focused, shape = shape)
                 .tvCard(focused = focused, playing = playing)
                 .onFocusChanged { focused = it.isFocused }
@@ -644,7 +617,7 @@ private fun MusicSongRow(song: YtSong, meta: String, playing: Boolean, onClick: 
 // ---- The mini player: a column at the end edge ----
 
 /**
- * The music tab's mini player beside the library and a list's page: YouTube's player itself in a
+ * The music tab's mini player beside "בשבילך", the library and a list's page: YouTube's player itself in a
  * frame of 356×200dp — at least the 200 YouTube asks for — with the song and its buttons under it.
  * Never over anything, and gone with YouTube's screen, which stops the music.
  */
@@ -670,6 +643,8 @@ private fun MusicMiniColumn(session: YouTubeSession, modifier: Modifier = Modifi
                     size = StudioButtonSize.MEDIUM,
                 )
             }
+            // On "בשבילך" this column is where the song is, so the note to connect again is said here too.
+            ReconnectNote(session)
         }
     }
 }
@@ -1022,6 +997,12 @@ private fun clock(seconds: Int): String {
 }
 
 private val MUSIC_CARD = 96.dp
+
+/** A card on a "בשבילך" rail: smaller than the library's, so the rails beside the player's column hold five and a part. */
+private val MUSIC_BROWSE_CARD = 80.dp
+
+/** "המשך האזנה": the songs last played, newest first. */
+private const val CONTINUE_RAIL_SIZE = 20
 private val YT_DISC_CELL = 104.dp
 
 /** The mini player's frame: 16:9, and at least the 200 YouTube asks for in each direction's shorter side. */

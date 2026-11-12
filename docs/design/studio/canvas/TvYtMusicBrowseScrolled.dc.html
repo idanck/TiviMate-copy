@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — רפרוף: ▼ למדף השלישי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="TvYtMusicBrowse" playing="true" scroll="third" focus="card" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  // ▼▼ from the first rail: the switch row left first, then the list rose one rail. The focused rail is the
+  // second row on screen, so the one above stays in view as context. The mini player keeps playing at the foot.
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

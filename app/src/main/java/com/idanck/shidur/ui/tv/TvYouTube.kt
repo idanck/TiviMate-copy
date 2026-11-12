@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -68,7 +69,6 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
@@ -125,8 +125,10 @@ import kotlin.math.roundToInt
  * `TvYouTubeSide` and `TvYouTubeChannel`).
  *
  * YouTube's terms decide the layout: nothing of ours is ever drawn over its player. So the player
- * has a frame of its own at the top of YouTube's screen, with what is on it beside it, and under
- * both, as on home, an opaque bottom third that alone scrolls from rail to rail. Full screen is the
+ * has a frame of its own, 356×200dp (a YouTube player is at least 200 on its shorter side), at the
+ * top of a column at the end edge, with what is on it under it; the rest of the screen is rails,
+ * and the whole list of them scrolls (the browsing layout of 12/11, the canvas's
+ * `TvYouTubeBrowse`, which replaced the hero and the opaque bottom third of home). Full screen is the
  * player alone; the list of live channels makes room for itself by shrinking the player, never by
  * covering it. A dialog empties the frame and pauses the player.
  *
@@ -196,6 +198,13 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
 
     /** Keys pressed on YouTube's screen this visit: the screen claims the remote only before the first. */
     var keys = 0
+
+    /**
+     * The rails of a browsing view have scrolled past their first row: the switch at the top of the
+     * screen gives its row to them, and comes back when the first rail does (the canvas's
+     * `TvYouTubeBrowseScrolled`).
+     */
+    var railsScrolled by mutableStateOf(false)
 
     /** Whether the player was playing when something came in front of its frame ([hold]). */
     private var heldPlaying = false
@@ -533,15 +542,18 @@ internal fun TvYouTubeScreen(
             )
 
             null -> Column(modifier = Modifier.fillMaxSize()) {
-                // "וידאו | מוזיקה" (ADR-069): the video tab as it was, or the music tab.
-                YtModeSwitch(
-                    session = session,
-                    gutter = sideMenuInset(),
-                    // The YouTube account, at the end of the row (ADR-069): once signed in, and once
-                    // there is a connection or a way to make one.
-                    account = link?.takeIf { signedIn && (it.linked || it.tvReady) },
-                    onAccount = { if (link?.linked == true) accountOpen = true else connecting = true },
-                )
+                // "וידאו | מוזיקה" (ADR-069): the video tab, or the music tab. Its row goes to the
+                // rails while they are scrolled past their first one.
+                if (!session.railsScrolled) {
+                    YtModeSwitch(
+                        session = session,
+                        gutter = sideMenuInset(),
+                        // The YouTube account, at the end of the row (ADR-069): once signed in, and once
+                        // there is a connection or a way to make one.
+                        account = link?.takeIf { signedIn && (it.linked || it.tvReady) },
+                        onAccount = { if (link?.linked == true) accountOpen = true else connecting = true },
+                    )
+                }
                 if (session.music) {
                     TvMusicScreen(
                         session = session,
@@ -656,9 +668,7 @@ private fun YouTubeHome(
     onConnect: () -> Unit,
     onOpenInApp: (YtVideo) -> Unit,
 ) {
-    val studio = StudioTheme.colors
     val gutter = sideMenuInset()
-    val panelHeight = (LocalConfiguration.current.screenHeightDp / 3f).dp
     val fullscreenFocus = remember { FocusRequester() }
     val firstCardFocus = remember { FocusRequester() }
     val repo = ServiceLocator.youtube
@@ -701,14 +711,47 @@ private fun YouTubeHome(
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .padding(start = gutter, end = YT_SAFE_X, top = 4.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(28.dp),
+    // Rails on the whole height, and the whole list scrolls; the player's column at the end edge
+    // (the canvas's `TvYouTubeBrowse`). The video tab keeps its column even with nothing playing:
+    // it is where search and what went wrong are said.
+    val listState = rememberLazyListState()
+    ReportRailsScrolled(session, listState)
+    Row(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            // The rails are cut a gap short of the column, not against it.
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(end = BROWSE_COLUMN_GAP),
+            contentPadding = PaddingValues(bottom = 12.dp),
         ) {
+            itemsIndexed(rails, key = { _, rail -> rail.key }) { index, rail ->
+                YouTubeRailRow(
+                    rail = rail,
+                    gutter = gutter,
+                    end = 0.dp,
+                    playingId = playerState.video?.id,
+                    firstFocus = if (index == 0) firstCardFocus else null,
+                    onVideo = { video ->
+                        if (video.id == playerState.video?.id && playerState.error == null) onFullscreen() else session.play(video)
+                    },
+                    onChannel = onOpenChannel,
+                    onAdd = onAdd,
+                    onConnect = onConnect,
+                    modifier = Modifier,
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .padding(end = YT_SAFE_X, top = 4.dp, bottom = 12.dp)
+                .width(BROWSE_COLUMN_WIDTH)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            YouTubeFrame(
+                session = session,
+                state = playerState,
+                modifier = Modifier.width(BROWSE_COLUMN_WIDTH).height(BROWSE_FRAME_HEIGHT),
+            )
             YouTubeNowPlaying(
                 state = playerState,
                 channel = playerState.video?.let { channels[it.channelId] },
@@ -724,47 +767,18 @@ private fun YouTubeHome(
                 // A live stream that has ended offers the next one on the saved channels.
                 nextLive = live.firstOrNull { it.id != playerState.video?.id },
                 onPlay = { session.play(it) },
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                compact = true,
+                modifier = Modifier.fillMaxWidth().weight(1f),
             )
-            YouTubeFrame(
-                session = session,
-                state = playerState,
-                modifier = Modifier.fillMaxHeight().aspectRatio(16f / 9f, matchHeightConstraintsFirst = true),
-            )
-        }
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(panelHeight)
-                .background(studio.ground),
-        ) {
-            itemsIndexed(rails, key = { _, rail -> rail.key }) { index, rail ->
-                YouTubeRailRow(
-                    rail = rail,
-                    gutter = gutter,
-                    playingId = playerState.video?.id,
-                    firstFocus = if (index == 0) firstCardFocus else null,
-                    onVideo = { video ->
-                        if (video.id == playerState.video?.id && playerState.error == null) onFullscreen() else session.play(video)
-                    },
-                    onChannel = onOpenChannel,
-                    onAdd = onAdd,
-                    onConnect = onConnect,
-                    modifier = Modifier.fillParentMaxHeight(),
-                )
-            }
         }
     }
 
-    // The remote lands on "full screen" when something plays, and on the first rail otherwise —
-    // and moves to "full screen" when a stream starts by itself, unless the viewer has already
-    // pressed a key since coming here.
-    val hasVideo = playerState.video != null
+    // The remote lands on the first rail: browsing is what this screen is for, and the column's
+    // buttons are one press toward the end edge. Again when the first rail fills (its empty line held
+    // the remote until then), and not if the viewer has pressed a key since coming here.
     val keysAtEntry = remember { session.keys }
-    LaunchedEffect(hasVideo) {
-        if (session.keys != keysAtEntry) return@LaunchedEffect
-        val target = if (hasVideo) fullscreenFocus else firstCardFocus
-        target.claim { false }
+    LaunchedEffect(live.isNotEmpty()) {
+        if (session.keys == keysAtEntry) firstCardFocus.claim { false }
     }
 }
 
@@ -814,11 +828,14 @@ private fun YouTubeNowPlaying(
     nextLive: YtVideo?,
     onPlay: (YtVideo) -> Unit,
     modifier: Modifier,
+    compact: Boolean = false,
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     val video = state.video
-    Column(modifier = modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+    // Under the frame in the browsing column: a smaller title, so the buttons stay on the screen.
+    val titleStyle = if (compact) type.titleSmall else type.title
+    Column(modifier = modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 9.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             if (video?.live == true) LiveBadge(label = stringResource(R.string.yt_live_badge), size = LiveBadgeSize.S)
             Text("YouTube", style = type.meta, color = studio.ink2)
@@ -836,9 +853,9 @@ private fun YouTubeNowPlaying(
             }
             Text(
                 text = video.title,
-                style = type.title,
+                style = titleStyle,
                 color = studio.ink,
-                maxLines = 3,
+                maxLines = if (compact) 2 else 3,
                 overflow = TextOverflow.Ellipsis,
             )
             videoMeta(video)?.let { Text(it, style = type.meta, color = studio.ink2, maxLines = 1) }
@@ -899,7 +916,7 @@ private fun YouTubeNowPlaying(
                 )
             }
         } else {
-            Text(stringResource(R.string.yt_nothing_playing), style = type.title, color = studio.ink)
+            Text(stringResource(R.string.yt_nothing_playing), style = titleStyle, color = studio.ink)
             StudioButton(
                 label = stringResource(R.string.yt_search),
                 onClick = onSearch,
@@ -962,6 +979,7 @@ private fun durationText(seconds: Int): String {
 private fun YouTubeRailRow(
     rail: YtRail,
     gutter: Dp,
+    end: Dp,
     playingId: String?,
     firstFocus: FocusRequester?,
     onVideo: (YtVideo) -> Unit,
@@ -974,7 +992,7 @@ private fun YouTubeRailRow(
     val type = StudioTheme.type
     Column(modifier = modifier.fillMaxWidth().padding(top = 8.dp)) {
         Row(
-            modifier = Modifier.padding(start = gutter, end = YT_SAFE_X),
+            modifier = Modifier.padding(start = gutter, end = end),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
@@ -986,7 +1004,7 @@ private fun YouTubeRailRow(
             }
             caption?.let { Text(it, style = type.caption, color = studio.ink3) }
         }
-        val padding = PaddingValues(start = gutter, end = YT_SAFE_X, top = 10.dp, bottom = 10.dp)
+        val padding = PaddingValues(start = gutter, end = end, top = 10.dp, bottom = 10.dp)
         when (rail) {
             is YtRail.Videos -> if (rail.videos.isEmpty()) {
                 // A rail with nothing in it still takes the remote, so the list can be scrolled past it.
@@ -1009,7 +1027,7 @@ private fun YouTubeRailRow(
                             video = video,
                             onScreen = video.id == playingId,
                             progress = rail.progress[video.id],
-                            width = YT_CARD_WIDTH,
+                            width = YT_BROWSE_CARD_WIDTH,
                             onClick = { onVideo(video) },
                             modifier = if (index == 0 && firstFocus != null) Modifier.focusRequester(firstFocus) else Modifier,
                         )
@@ -1020,7 +1038,7 @@ private fun YouTubeRailRow(
             is YtRail.Connect -> YouTubeConnectCard(
                 revoked = rail.revoked,
                 onConnect = onConnect,
-                modifier = Modifier.padding(start = gutter, end = YT_SAFE_X, top = 10.dp),
+                modifier = Modifier.padding(start = gutter, end = end, top = 10.dp),
             )
 
             is YtRail.Channels -> LazyRow(
@@ -1631,7 +1649,15 @@ private const val SIDE_PLAYER_GAP = 0.025f
 
 /** `--st-safe-x`: 96px at 1080p. */
 internal val YT_SAFE_X = 48.dp
-private val YT_CARD_WIDTH = 160.dp
+/** A video card on a browsing rail: smaller than the hero layout's 160, so the rails beside the column hold three and a part. */
+private val YT_BROWSE_CARD_WIDTH = 128.dp
+
+/** The browsing column at the end edge: the player's frame — 16:9, 200 on its shorter side, as YouTube asks — and what is on it under it. */
+internal val BROWSE_COLUMN_WIDTH = 356.dp
+internal val BROWSE_FRAME_HEIGHT = 200.dp
+
+/** Between the rails and the column. */
+internal val BROWSE_COLUMN_GAP = 24.dp
 private val YT_DISC_SIZE = 72.dp
 private val YT_DISC_WIDTH = 92.dp
 private val YT_SIDE_LIST_WIDTH = 240.dp
