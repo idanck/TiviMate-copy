@@ -5,7 +5,10 @@ coreKtx = "1.13.1"
 appcompat = "1.7.0"
 activityCompose = "1.9.3"
 lifecycle = "2.8.7"
-composeBom = "2024.10.01"
+# 2025.06.01 (ui 1.8.3): from 1.8 a full-width dialog that does not fit the system bars is a
+# non-floating, full-screen window. 1.7.5 sized it to screenHeightDp, which on Android 15 counts
+# the bars, inside a window still fitted between them, so a phone sheet ran off the screen (0.33.2).
+composeBom = "2025.06.01"
 media3 = "1.5.0"
 okhttp = "4.12.0"
 coil = "2.7.0"
