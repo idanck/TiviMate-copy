@@ -92,7 +92,7 @@ fun ChannelMenuDialog(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
                 onClick = { onToggleFavourite(); onDismiss() },
-                icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                icon = StudioIcons.star(channel.favourite),
             )
             ListRow(
                 stringResource(R.string.channel_edit),

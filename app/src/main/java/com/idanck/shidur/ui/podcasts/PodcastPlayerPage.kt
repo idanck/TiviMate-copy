@@ -182,7 +182,7 @@ internal fun PodcastPlayerPage(
                         scope.launch { repo.setFavourite(key, next) }
                     },
                     // Filled when set, as every other star in the app, and amber (`active`) in both shells.
-                    icon = if (favourite) StudioIcons.StarOn else StudioIcons.Star,
+                    icon = StudioIcons.star(favourite),
                     iconOnly = true,
                     active = favourite,
                     size = StudioButtonSize.MEDIUM,

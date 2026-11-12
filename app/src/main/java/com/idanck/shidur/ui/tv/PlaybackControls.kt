@@ -301,7 +301,7 @@ fun TransportBar(
                     labelled = true,
                 )
                 TransportButton(
-                    icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                    icon = StudioIcons.star(liveChannel.favourite),
                     description = stringResource(
                         if (liveChannel.favourite) R.string.action_unfavourite
                         else R.string.action_favourite,

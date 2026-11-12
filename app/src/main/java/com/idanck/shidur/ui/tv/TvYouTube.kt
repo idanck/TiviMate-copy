@@ -729,7 +729,7 @@ private fun YouTubeNowPlaying(
                 StudioButton(
                     label = stringResource(if (saved) R.string.yt_saved_channel else R.string.yt_save_channel),
                     onClick = onToggleSave,
-                    icon = if (saved) StudioIcons.StarOn else StudioIcons.Star,
+                    icon = StudioIcons.star(saved),
                     iconOnly = true,
                     size = StudioButtonSize.MEDIUM,
                     active = saved,
@@ -1082,7 +1082,7 @@ private fun YouTubeChannelPage(
             StudioButton(
                 label = stringResource(if (saved) R.string.yt_remove_channel else R.string.yt_save_channel),
                 onClick = onToggleSave,
-                icon = if (saved) StudioIcons.StarOn else StudioIcons.Star,
+                icon = StudioIcons.star(saved),
                 size = StudioButtonSize.MEDIUM,
                 active = saved,
                 focusRequester = saveFocus,

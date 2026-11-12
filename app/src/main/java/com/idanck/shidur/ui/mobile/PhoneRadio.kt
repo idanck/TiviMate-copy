@@ -161,7 +161,7 @@ internal fun PhoneRadio(
             ) {
                 PhoneButton(
                     label = stringResource(if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite),
-                    icon = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                    icon = StudioIcons.star(channel.favourite),
                     iconOnly = true,
                     variant = PhoneButtonVariant.GHOST,
                     onClick = onFavourite,
