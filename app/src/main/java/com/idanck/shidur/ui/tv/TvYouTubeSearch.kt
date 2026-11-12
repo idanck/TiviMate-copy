@@ -184,7 +184,7 @@ internal fun YouTubeSearchPage(
 
 /** The keyboard: letters in rows of eight, Hebrew or English, then space, delete, language and voice. */
 @Composable
-private fun YouTubeKeyboard(text: String, onText: (String) -> Unit, modifier: Modifier) {
+internal fun YouTubeKeyboard(text: String, onText: (String) -> Unit, modifier: Modifier) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     var hebrew by remember { mutableStateOf(true) }
@@ -442,14 +442,14 @@ internal fun ConnectYouTubeDialog(repo: YouTubeRepository, onDismiss: () -> Unit
     }
 }
 
-private const val MIN_QUERY = 2
-private const val MAX_QUERY = 100
+internal const val MIN_QUERY = 2
+internal const val MAX_QUERY = 100
 
 /** How long typing has to pause before the server is asked. */
-private const val SEARCH_PAUSE_MS = 1_200L
+internal const val SEARCH_PAUSE_MS = 1_200L
 
 private const val KEYS_PER_ROW = 8
-private val KEYBOARD_WIDTH = 300.dp
+internal val KEYBOARD_WIDTH = 300.dp
 private val CONNECT_CARD_WIDTH = 450.dp
 
 private val HEBREW_KEYS = listOf(

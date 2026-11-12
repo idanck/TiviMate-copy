@@ -145,6 +145,16 @@ internal fun YtModeSwitch(
                     },
                 )
             }
+            // Search opens on OK alone: its keyboard takes the remote as it opens, so following the
+            // remote here would pull it off the row on its way to the account.
+            StudioChip(
+                label = stringResource(R.string.ytm_section_search),
+                selected = session.musicSection == MusicSection.SEARCH && session.musicPage == null,
+                onClick = {
+                    session.closeMusicPages()
+                    session.musicSection = MusicSection.SEARCH
+                },
+            )
         }
         if (account != null) {
             Spacer(Modifier.weight(1f))
@@ -212,7 +222,8 @@ internal fun TvMusicScreen(session: YouTubeSession, onConnect: () -> Unit, modif
             MusicPage.Player -> MusicPlayerPage(session)
             null -> when (session.musicSection) {
                 MusicSection.HOME -> MusicHome(session, signedIn = signedIn, onConnect = onConnect)
-                else -> MusicLibrary(session, signedIn = signedIn, onConnect = onConnect)
+                MusicSection.LIBRARY -> MusicLibrary(session, signedIn = signedIn, onConnect = onConnect)
+                MusicSection.SEARCH -> MusicSearchPage(session)
             }
         }
     }
@@ -390,7 +401,7 @@ private fun MusicNowPlaying(
 
 /** Previous, play or pause, next. [focus] goes to play/pause. */
 @Composable
-private fun MusicTransport(session: YouTubeSession, state: YouTubePlayerController.State, focus: FocusRequester?) {
+internal fun MusicTransport(session: YouTubeSession, state: YouTubePlayerController.State, focus: FocusRequester?) {
     val playing = state.phase == YouTubePlayerController.Phase.PLAYING ||
         state.phase == YouTubePlayerController.Phase.BUFFERING ||
         state.phase == YouTubePlayerController.Phase.LOADING
@@ -421,7 +432,7 @@ private fun MusicTransport(session: YouTubeSession, state: YouTubePlayerControll
 
 /** Where the song is: a thin bar with the time on either side. */
 @Composable
-private fun SongProgress(state: YouTubePlayerController.State, modifier: Modifier = Modifier) {
+internal fun SongProgress(state: YouTubePlayerController.State, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     val duration = state.duration.takeIf { it > 0 } ?: state.video?.duration ?: 0
@@ -461,7 +472,7 @@ private fun ReconnectNote(session: YouTubeSession) {
 
 /** The frame YouTube's player is drawn in on a music view, and what it says while nothing plays there. */
 @Composable
-private fun MusicFrame(session: YouTubeSession, state: YouTubePlayerController.State, modifier: Modifier) {
+internal fun MusicFrame(session: YouTubeSession, state: YouTubePlayerController.State, modifier: Modifier) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     DisposableEffect(session) { onDispose { session.frame = null } }
@@ -575,14 +586,14 @@ private fun MusicRailRow(
 
 /** "Album · 12 songs", "Playlist · Artist". */
 @Composable
-private fun listMeta(list: YtMusicList): String = listOfNotNull(
+internal fun listMeta(list: YtMusicList): String = listOfNotNull(
     stringResource(if (list.album) R.string.ytm_album else R.string.ytm_playlist),
     list.count?.let { stringResource(R.string.ytm_song_count, it) } ?: list.owner.takeIf { it.isNotEmpty() },
 ).joinToString(" · ")
 
 /** A song, a playlist or an album on a rail or in a grid (`MusicCard`): square art, title, a line under it. */
 @Composable
-private fun MusicCard(title: String, meta: String, thumb: String?, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MusicCard(title: String, meta: String, thumb: String?, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     var focused by remember { mutableStateOf(false) }
@@ -611,7 +622,7 @@ private fun MusicCard(title: String, meta: String, thumb: String?, playing: Bool
 
 /** One song in a list (`SongRow`): art, title, artist and a line, its length; the one playing in the tally. */
 @Composable
-private fun MusicSongRow(song: YtSong, meta: String, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MusicSongRow(song: YtSong, meta: String, playing: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     var focused by remember { mutableStateOf(false) }
@@ -766,7 +777,7 @@ private fun filterLabel(f: LibraryFilter): Int = when (f) {
 }
 
 @Composable
-private fun EmptyNote() {
+internal fun EmptyNote() {
     // It still takes the remote, so the chips above are not the end of the way down.
     Box(Modifier.padding(top = 12.dp).focusable()) {
         Text(stringResource(R.string.ytm_empty_list), style = StudioTheme.type.meta, color = StudioTheme.colors.ink3)
@@ -1013,7 +1024,7 @@ private fun MusicPlayerPage(session: YouTubeSession) {
 }
 
 /** "3:42", "1:02:04". */
-private fun clock(seconds: Int): String {
+internal fun clock(seconds: Int): String {
     val s = seconds.coerceAtLeast(0)
     val h = s / 3600
     val m = (s % 3600) / 60
@@ -1021,12 +1032,12 @@ private fun clock(seconds: Int): String {
     return if (h > 0) "%d:%02d:%02d".format(h, m, r) else "%d:%02d".format(m, r)
 }
 
-private val MUSIC_CARD = 96.dp
+internal val MUSIC_CARD = 96.dp
 private val YT_DISC_CELL = 104.dp
 
 /** The mini player's frame: 16:9, and at least the 200 YouTube asks for in each direction's shorter side. */
-private val MINI_WIDTH = 356.dp
-private val MINI_HEIGHT = 200.dp
+internal val MINI_WIDTH = 356.dp
+internal val MINI_HEIGHT = 200.dp
 
 /** The player screen's frame: a little under the canvas's 576 (`TvYtMusicPlayer`), so the queue beside it keeps room for its buttons. */
 private val PLAYER_WIDTH = 512.dp

@@ -1,8 +1,8 @@
 # ADR-069 — YouTube Music inside Shidur
 
 **Status:** accepted 2026-11-12. Stage 1 (the server and the account's music documents) built;
-stage 2 (the television, 0.34.0) built; the account's button and settings (0.35.0) built; search and
-the phone to come.
+stage 2 (the television, 0.34.0) built; the account's button and settings (0.35.0) built; stage 3
+(search on the television, 0.36.0) built; the phone to come.
 
 ## Context
 
@@ -84,7 +84,7 @@ Callables in `me-west1`, beside the video tab's, with the same key, tokens and q
 2. Television: the switch on YouTube's screen, "בשבילך", the library (playlists, liked, artists,
    albums, history), an album's page, the player screen and the mini player; the likes, albums and
    history synced.
-3. Television: search (songs, artists, albums, playlists).
+3. Television: search (songs, artists, albums, playlists). Built, 0.36.0.
 4. Phone: the same, for touch.
 
 ### Two further choices (2026-11-12)
@@ -153,6 +153,25 @@ on the canvas first (`TvYouTubeAccount`, `TvSettingsAccount`, `YtAccountChip`, `
   revoked at Google and forgotten, with the same caches, for every device of the Shidur account.
   Shidur's own likes, albums and history stay.
 - The music tab's note that a like stayed in Shidur carries a "חיבור מחדש" button.
+
+### Search on the television (stage 3, 0.36.0)
+
+- A third chip, "חיפוש", after "בשבילך" and "הספרייה שלי"; it opens on OK alone, not as the remote
+  passes, since its keyboard takes the remote as it opens. The remote's search key opens it too
+  while the music tab is up (`TvYouTubeMusicSearch.kt`).
+- The video search's keyboard at the start edge; beside it the kind chips (הכול, שירים, אלבומים,
+  אמנים, פלייליסטים) and the results once typing pauses: a top result (`topResult`: an artist whose
+  name is what was typed, else the first song, list or artist), then songs, albums or playlists,
+  and artists. A song plays the search's songs as a queue; a list opens its page; an artist opens
+  the channel's page. `ytmSearch` answers from the server's six-hour cache, out of the same searches
+  a day as the video tab's.
+- Before anything is typed, the device's recent searches (`MusicRepository.recentSearches`, eight
+  at most), with "ניקוי".
+- **The frame above the results, not the canvas's strip.** The canvas drew a mini player strip at the
+  foot of the screen, under 200 high; while anything is loaded in the player its 356×200dp frame
+  sits above the results instead, with the song and its buttons beside it.
+- The canvas's "ערבוב" on an artist's top result is left out: the artist's songs are not read by
+  the search, and reading them would cost a search of its own.
 
 ## Rejected
 
