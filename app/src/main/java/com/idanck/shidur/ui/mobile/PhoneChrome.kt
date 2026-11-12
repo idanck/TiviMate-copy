@@ -1,5 +1,17 @@
 package com.idanck.shidur.ui.mobile
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.paneTitle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,7 +69,6 @@ import com.idanck.shidur.ui.common.Equalizer
 import com.idanck.shidur.ui.common.GlassMaterial
 import com.idanck.shidur.ui.common.LiveDot
 import com.idanck.shidur.ui.common.StudioIcons
-import com.idanck.shidur.ui.common.StudioSheet
 import com.idanck.shidur.ui.common.animatedColour
 import com.idanck.shidur.ui.common.glass
 import com.idanck.shidur.ui.theme.StudioTheme
@@ -151,8 +162,9 @@ private fun GlassIconButton(icon: ImageVector, description: String, onClick: () 
  * only from search, has no tab of its own.
  *
  * [more] are the destinations without a tab of their own (ADR-066: the guide, YouTube and the
- * recordings). They sit behind a last tab, "עוד", which opens a sheet of them; while one of them is
- * the screen on show, "עוד" is the tab that is lit.
+ * recordings). They sit behind a last tab, "עוד", which opens [PhoneMorePanel] right above this
+ * bar ([moreOpen]); while one of them is the screen on show, or the panel is open, "עוד" is the tab
+ * that is lit. Tapping "עוד" again closes the panel, and any other tab closes it on its way.
  */
 @Composable
 internal fun PhoneNavBar(
@@ -161,77 +173,129 @@ internal fun PhoneNavBar(
     onSelect: (MobileTab) -> Unit,
     modifier: Modifier = Modifier,
     more: List<PhoneTab> = emptyList(),
+    moreOpen: Boolean = false,
+    onMoreOpenChange: (Boolean) -> Unit = {},
 ) {
-    var moreOpen by remember { mutableStateOf(false) }
     val moreLabel = stringResource(R.string.nav_more)
     val shown = if (more.isEmpty()) tabs else tabs + PhoneTab(MobileTab.MORE, moreLabel, StudioIcons.Grid)
-    val lit = if (selected != null && more.any { it.tab == selected }) MobileTab.MORE else selected
-    if (moreOpen) {
-        PhoneMoreSheet(
-            items = more,
-            selected = selected,
-            onSelect = { moreOpen = false; onSelect(it) },
-            onDismiss = { moreOpen = false },
-        )
-    }
+    val lit = if (moreOpen || (selected != null && more.any { it.tab == selected })) MobileTab.MORE else selected
     PhoneNavCapsule(
         tabs = shown,
         selected = lit,
-        onSelect = { if (it == MobileTab.MORE) moreOpen = true else onSelect(it) },
+        onSelect = {
+            if (it == MobileTab.MORE) {
+                onMoreOpenChange(!moreOpen)
+            } else {
+                onMoreOpenChange(false)
+                onSelect(it)
+            }
+        },
         modifier = modifier,
     )
 }
 
 /**
- * `PNavOptMoreSheet`: what "עוד" holds, as large tiles in a row — a glyph over its label — on the
- * phone's sheet of thick glass. The one on show is amber, as its tab would be.
+ * `PNavOptMoreSheet`: what "עוד" holds, as large tiles in a row — a glyph over its label — on a
+ * small sheet of thick glass floating [PNAV_MORE_GAP] above the tab bar, over a scrim that covers
+ * the screen down to the bar and no further. The bar stays in view and in reach, with "עוד" lit.
+ * It is drawn in the screen itself rather than in a dialog's window, which would cover the bar
+ * (0.33.3). The one on show is amber, as its tab would be.
+ *
+ * @param barHeight how far up from the foot of the screen the tab bar reaches, its insets and
+ *   margins included, so the scrim stops at it and the sheet sits above it
  */
 @Composable
-private fun PhoneMoreSheet(
+internal fun PhoneMorePanel(
+    open: Boolean,
     items: List<PhoneTab>,
     selected: MobileTab?,
+    barHeight: Dp,
     onSelect: (MobileTab) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val studio = StudioTheme.colors
-    StudioSheet(onDismissRequest = onDismiss, title = stringResource(R.string.nav_more)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+    BackHandler(enabled = open, onBack = onDismiss)
+    Box(modifier = Modifier.fillMaxSize().padding(bottom = barHeight)) {
+        AnimatedVisibility(visible = open, enter = fadeIn(), exit = fadeOut()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(studio.scrim)
+                    // A tap anywhere above the bar but off the sheet closes it.
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+            )
+        }
+        AnimatedVisibility(
+            visible = open,
+            enter = fadeIn() + slideInVertically { it / 4 },
+            exit = fadeOut() + slideOutVertically { it / 4 },
+            modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            items.forEach { item ->
-                val active = item.tab == selected
-                val shape = RoundedCornerShape(18.dp)
-                Column(
+            val title = stringResource(R.string.nav_more)
+            val sheet = MaterialTheme.shapes.extraLarge
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = PNAV_MORE_GAP)
+                    .glass(GlassMaterial.THICK, sheet)
+                    // The sheet keeps its own taps: only the scrim around it closes it.
+                    .pointerInput(Unit) { detectTapGestures { } }
+                    .semantics { paneTitle = title }
+                    .padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(84.dp)
-                        .clip(shape)
-                        .then(
-                            if (active) {
-                                Modifier.background(studio.currentGlass).border(1.dp, studio.currentEdge, shape)
-                            } else {
-                                Modifier.glass(GlassMaterial.THIN, shape)
-                            },
-                        )
-                        .selectable(selected = active, role = Role.Tab, onClick = { onSelect(item.tab) }),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        .align(Alignment.CenterHorizontally)
+                        .size(width = 40.dp, height = 4.dp)
+                        .clip(CircleShape)
+                        .background(studio.hairline),
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth().selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    val tint = if (active) studio.cue else studio.ink
-                    Icon(imageVector = item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
-                    Text(
-                        text = item.label,
-                        style = StudioTheme.type.nav.copy(fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold),
-                        color = tint,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    items.forEach { item ->
+                        val active = item.tab == selected
+                        val shape = RoundedCornerShape(18.dp)
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(84.dp)
+                                .clip(shape)
+                                .then(
+                                    if (active) {
+                                        Modifier.background(studio.currentGlass).border(1.dp, studio.currentEdge, shape)
+                                    } else {
+                                        Modifier.glass(GlassMaterial.THIN, shape)
+                                    },
+                                )
+                                .selectable(selected = active, role = Role.Tab, onClick = { onSelect(item.tab) }),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                        ) {
+                            val tint = if (active) studio.cue else studio.ink
+                            Icon(imageVector = item.icon, contentDescription = null, tint = tint, modifier = Modifier.size(24.dp))
+                            Text(
+                                text = item.label,
+                                style = StudioTheme.type.nav.copy(fontWeight = if (active) FontWeight.Bold else FontWeight.SemiBold),
+                                color = tint,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+/**
+ * The gap between the tab bar's capsule and the "עוד" sheet: `PNavOptMoreSheet`'s 12px, less the
+ * 4dp the bar keeps above its capsule.
+ */
+private val PNAV_MORE_GAP = 8.dp
 
 @Composable
 private fun PhoneNavCapsule(

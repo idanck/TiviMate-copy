@@ -29,6 +29,12 @@ becomes the current tab.
 
 Radio still leaves the bar with the radio playlist (ADR-015), so the bar can be three tabs and More.
 
+**As built, 0.33.3.** Until 0.33.2 the sheet was a `StudioSheet`, a dialog: its window covered the
+bar and, on Android 15, ran off the foot of the screen. It is now drawn in the screen itself
+(`PhoneMorePanel`), as `PNavOptMoreSheet` draws it: a small sheet with no title right above the bar,
+over a scrim that stops at the bar, so the bar stays in view and in reach with "More" lit. Tapping
+"More" again, Back or a tap on the scrim closes it.
+
 ## Rejected
 
 - **Seven tabs** and **Settings in the top bar** — the labels do not fit (above).
