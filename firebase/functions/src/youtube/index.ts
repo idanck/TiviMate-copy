@@ -9,6 +9,8 @@ import { channelIdForHandle, channelStates, SAVED_TTL_MS, SUBSCRIBED_TTL_MS } fr
 import { accessTokenFor, configured, exchangeServerCode, isLinked, pollDeviceLink, startDeviceLink, unlink, type OAuthClient } from './link';
 import { channelIds, mergeFeed, normalizeQuery, parseChannelInput, searchKind, searchParams } from './model';
 import { search } from './search';
+import { chart, library, musicCategory, musicSearch, NotFound, playlist } from './music';
+import { libraryPart, musicSearchKind, musicSearchParams, playlistId } from './musicModel';
 
 /**
  * The YouTube callables (ADR-061). Every one runs in me-west1 like the rest, and none hands the
@@ -167,6 +169,76 @@ export const ytSubscriptions = onCall({ ...base, secrets: [API_KEY, TV_ID, TV_SE
     return { linked: true, channels: list.channels, feed: mergeFeed(states), stale };
   } catch (e) {
     if (e instanceof HttpsError) throw e;
+    translate(e);
+  }
+});
+
+/**
+ * YouTube Music (ADR-069): the music tab inside YouTube's screen. Everything is the official Data
+ * API; what it does not give (saved albums, history, Shidur's own likes) the app keeps in the
+ * account's Firestore documents.
+ */
+
+/** The popular music chart for Israel: `{}` → `{ songs, cached }`. */
+export const ytmChart = onCall({ ...base, secrets: [API_KEY] }, async (request) => {
+  await enforce('ytm_chart', caller(request), YT_LIMITS.musicChart.max, YT_LIMITS.musicChart.windowMs);
+  try {
+    return await chart(API_KEY.value());
+  } catch (e) {
+    translate(e);
+  }
+});
+
+/**
+ * A playlist or an album and its songs: `{ id }` → `{ list, songs, cached }`. A private playlist is
+ * read with the caller's own connected account, and only for that account.
+ */
+export const ytmPlaylist = onCall({ ...base, secrets: [API_KEY, TV_ID, TV_SECRET, WEB_ID, WEB_SECRET] }, async (request) => {
+  const id = playlistId(request.data?.id);
+  if (!id) throw new HttpsError('invalid-argument', 'Not a playlist.', { reason: 'not-a-playlist' });
+  await enforce('ytm_playlist', caller(request), YT_LIMITS.musicPlaylist.max, YT_LIMITS.musicPlaylist.windowMs);
+  const uid = request.auth?.uid ?? null;
+  try {
+    return await playlist(id, API_KEY.value(), uid, () => (uid ? accessTokenFor(uid, { tv: tv(), web: web() }) : Promise.resolve(null)));
+  } catch (e) {
+    if (e instanceof NotFound) throw new HttpsError('not-found', 'No such playlist.', { reason: 'not-found' });
+    translate(e);
+  }
+});
+
+/**
+ * A part of the account's YouTube library: `{ part: 'playlists' | 'liked' }` →
+ * `{ linked, playlists?, songs?, cached }`. Not connected: `{ linked: false }`.
+ */
+export const ytmLibrary = onCall({ ...base, secrets: [API_KEY, TV_ID, TV_SECRET, WEB_ID, WEB_SECRET] }, async (request) => {
+  const uid = signedIn(request);
+  const part = libraryPart(request.data?.part);
+  if (!part) throw new HttpsError('invalid-argument', 'No such part.');
+  await enforce('ytm_library', uid, YT_LIMITS.musicLibrary.max, YT_LIMITS.musicLibrary.windowMs);
+  try {
+    const token = await accessTokenFor(uid, { tv: tv(), web: web() });
+    if (!token) return { linked: false, cached: false };
+    return { linked: true, ...(await library(uid, part, API_KEY.value(), token)) };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    translate(e);
+  }
+});
+
+/**
+ * Music search: `{ q, kind: 'all' | 'songs' | 'artists' | 'playlists' }` → `{ songs, artists, lists,
+ * cached }`. It spends from the same daily searches, and the same per-account share, as the video
+ * tab's search.
+ */
+export const ytmSearch = onCall({ ...base, secrets: [API_KEY] }, async (request) => {
+  const q = normalizeQuery(request.data?.q);
+  if (!q) throw new HttpsError('invalid-argument', 'Type at least two letters.');
+  const kind = musicSearchKind(request.data?.kind);
+  await enforce('yt_search', caller(request), YT_LIMITS.search.max, YT_LIMITS.search.windowMs);
+  try {
+    const category = await musicCategory(API_KEY.value());
+    return await musicSearch(q, kind, musicSearchParams(q, kind, category), category, API_KEY.value());
+  } catch (e) {
     translate(e);
   }
 });

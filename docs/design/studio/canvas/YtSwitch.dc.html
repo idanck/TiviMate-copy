@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — וידאו או מוזיקה, ומקטעי המוזיקה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div dir="rtl" style="display: flex; align-items: center; gap: 28px; font-family: var(--st-font-ui); color: var(--st-ink)">
+<div role="tablist" aria-label="YouTube" class="st-glass-thin" style="height: 64px; box-sizing: border-box; padding: 4px; border-radius: 32px; display: flex; gap: 4px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button role="tab" aria-selected="{{m.sel}}" class="st-anim" style="height: 56px; padding: 0 26px; box-sizing: border-box; border: 0; border-radius: 28px; background: {{m.bg}}; color: {{m.fg}}; box-shadow: {{m.sh}}; transform: {{m.tf}}; display: flex; align-items: center; gap: 10px; font-family: var(--st-font-ui); font-size: 24px; font-weight: {{m.fw}}; white-space: nowrap; cursor: pointer"><dc-import name="Icon" glyph="{{m.glyph}}" size="26" hint-size="26px,26px"></dc-import><span>{{m.label}}</span></button>
+</sc-for>
+</div>
+<sc-if value="{{music}}" hint-placeholder-val="{{true}}">
+<span aria-hidden="true" style="width: 2px; height: 40px; border-radius: 1px; background: var(--st-hairline)"></span>
+</sc-if>
+<sc-if value="{{music}}" hint-placeholder-val="{{true}}">
+<div role="tablist" aria-label="מוזיקה" style="display: flex; align-items: center; gap: 12px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<dc-import name="Chip" label="{{t.label}}" state="{{t.state}}" hint-size="160px,56px"></dc-import>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["video","music"],"default":"music"},"section":{"editor":"enum","options":["home","library","search"],"default":"home"},"focus":{"editor":"enum","options":["","video","music","home","library","search"],"default":""},"$preview":{"width":1000,"height":64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The top of YouTube's screen. First a two-way switch, וידאו | מוזיקה — the video screen as it is today
+    // (TvYouTube) and the new music tab. In music, after a hairline, its three parts as chips. ▲ from the first
+    // row reaches them; ◀▶ walk them and the screen follows the one under the remote, as the podcasts do.
+    // Where you are is amber ("current"); the remote is the lit surface.
+    const mode = this.props.mode === 'video' ? 'video' : 'music';
+    const sec = this.props.section || 'home';
+    const foc = this.props.focus || '';
+    const M = [['video', 'וידאו', 'stream'], ['music', 'מוזיקה', 'music']];
+    const T = [['home', 'בשבילך'], ['library', 'הספרייה שלי'], ['search', 'חיפוש']];
+    return {
+      music: mode === 'music',
+      modes: M.map((m) => {
+        const f = m[0] === foc, cur = m[0] === mode;
+        return { label: m[1], glyph: m[2], sel: cur ? 'true' : 'false',
+          bg: f ? 'var(--st-cue)' : (cur ? 'var(--st-current-glass)' : 'transparent'),
+          fg: f ? 'var(--st-on-cue)' : (cur ? 'var(--st-current)' : 'var(--st-ink-2)'),
+          sh: f ? 'var(--st-lift)' : (cur ? 'inset 0 0 0 1px var(--st-current-edge)' : 'none'),
+          tf: f ? 'scale(var(--st-focus-scale))' : 'none', fw: f || cur ? '700' : '600' };
+      }),
+      tabs: T.map((t) => ({ label: t[1], state: t[0] === foc ? 'focus' : (t[0] === sec ? 'selected' : 'rest') }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — כרטיס מוזיקה במדף</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: {{w}}; display: flex; flex-direction: column; align-items: {{align}}; gap: 12px; font-family: var(--st-font-ui); color: var(--st-ink); text-align: {{ta}}">
+<dc-import name="MusicArt" size="{{wn}}" tone="{{tone}}" kind="{{kind}}" state="{{state}}" hint-size="190px,190px"></dc-import>
+<span style="width: {{w}}; font-size: 21px; font-weight: 600; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: {{lines}}; -webkit-box-orient: vertical; overflow: hidden">{{title}}</span>
+<span style="width: {{w}}; display: flex; align-items: center; justify-content: {{align}}; gap: 8px; font-size: 18px; color: var(--st-ink-3); white-space: nowrap; overflow: hidden">
+<sc-if value="{{on}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="מתנגן" style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: var(--st-tally); box-shadow: 0 0 10px rgba(255, 90, 95, 0.7)"></span></sc-if>
+<span style="overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+</span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","focus","onscreen"],"default":"rest"},"width":{"editor":"int","default":190,"min":120,"max":360},"$preview":{"width":190,"height":290}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // A card on a music rail: a song, a playlist, an album (square art, title in two lines, who or how many)
+    // or an artist (round, name centred, one line). The one playing carries the tally ring and a red dot.
+    const it = this.props.item || { title: '[שם השיר]', meta: '[שם האמן]', tone: '1', kind: 'song' };
+    const w = Number(this.props.width) || 190;
+    const kind = it.kind || 'song';
+    const artist = kind === 'artist';
+    const st = this.props.state || it.state || 'rest';
+    return {
+      w: w + 'px', wn: w, tone: it.tone || '1', kind: kind, state: st,
+      title: it.title, meta: it.meta, on: st === 'onscreen',
+      align: artist ? 'center' : 'flex-start', ta: artist ? 'center' : 'right',
+      lines: artist ? '1' : '2'
+    };
+  }
+}
+</script>
+</body>
+</html>

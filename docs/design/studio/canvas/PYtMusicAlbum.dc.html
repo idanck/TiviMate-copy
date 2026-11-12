@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — YouTube · מוזיקה · אלבום</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="אלבום" back="true" search="false" hint-size="390px,56px"></dc-import></div>
+
+<div style="position: absolute; top: 88px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; gap: 14px; align-items: flex-end">
+<dc-import name="MusicArt" size="132" tone="2" kind="album" phone="true" hint-size="132px,132px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-bottom: 4px">
+<span class="st-t-caption" style="font-size: 12px; font-weight: 600">אלבום · [שנה]</span>
+<h1 class="st-t-title-s" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[שם האלבום]</h1>
+<span class="st-t-meta" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם האמן]</span>
+<span class="st-t-caption">[מספר] שירים · [משך]</span>
+</div>
+</div>
+
+<div style="position: absolute; top: 236px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; align-items: center; gap: 8px">
+<dc-import name="PButton" label="נגן" glyph="play" variant="primary" size="l" hint-size="96px,52px"></dc-import>
+<dc-import name="PButton" label="ערבוב" glyph="swap" variant="secondary" size="l" icon-only="true" hint-size="52px,52px"></dc-import>
+<button aria-pressed="{{pressed}}" style="height: var(--st-h-control-l); padding: 0 16px; box-sizing: border-box; border: 0; border-radius: 999px; background: {{saveBg}}; box-shadow: {{saveSh}}; color: {{saveFg}}; display: inline-flex; align-items: center; gap: 8px; font-family: var(--st-font-ui); font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer"><dc-import name="Icon" glyph="{{saveGlyph}}" size="20" hint-size="20px,20px"></dc-import>{{saveLabel}}</button>
+</div>
+<span class="st-t-caption" style="position: absolute; top: 296px; right: var(--st-safe-x); left: var(--st-safe-x); font-size: 12px">נשמר בחשבון שידור, בכל המכשירים — לא ב־YouTube Music</span>
+
+<section aria-label="שירי האלבום" style="position: absolute; top: 322px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{songs}}" as="s" hint-placeholder-count="3">
+<dc-import name="PSongRow" item="{{s}}" state="{{s.state}}" width="358" hint-size="358px,60px"></dc-import>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 96px; right: 0"><dc-import name="PYtMusicMini" hint-size="390px,212px"></dc-import></div>
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="youtube" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"saved":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The phone's album page. "שמירה בספרייה" keeps the album in the Shidur account (decided 12/11 — the
+    // official API has no saved albums); saved, the button turns amber. The line under the buttons says
+    // where it is kept, so nobody looks for it in the YouTube Music app.
+    const saved = !(this.props.saved === false || this.props.saved === 'false');
+    return {
+      pressed: saved ? 'true' : 'false', saveLabel: saved ? 'שמור בספרייה' : 'שמירה בספרייה', saveGlyph: saved ? 'star-on' : 'star',
+      saveBg: saved ? 'var(--st-current-glass)' : 'var(--st-card)',
+      saveSh: saved ? 'inset 0 0 0 1px var(--st-current-edge)' : 'var(--st-edge)',
+      saveFg: saved ? 'var(--st-cue)' : 'var(--st-ink)',
+      songs: [
+        { title: '1. [שם השיר]', meta: '[שם האמן] · 3:42', tone: '2', kind: 'album', state: 'onscreen' },
+        { title: '2. [שם השיר]', meta: '[שם האמן] · 4:11', tone: '2', kind: 'album', state: 'rest' },
+        { title: '3. [שם השיר]', meta: '[שם האמן] · 2:58', tone: '2', kind: 'album', state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

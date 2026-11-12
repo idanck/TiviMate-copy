@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — וידאו או מוזיקה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; box-sizing: border-box; padding: 0 var(--st-safe-x); font-family: var(--st-font-ui)">
+<div role="tablist" aria-label="YouTube" class="st-glass-thin" style="height: 44px; box-sizing: border-box; padding: 4px; border-radius: 22px; display: flex; gap: 4px">
+<sc-for list="{{modes}}" as="m" hint-placeholder-count="2">
+<button role="tab" aria-selected="{{m.sel}}" style="flex: 1 1 0; border: 0; border-radius: 18px; background: {{m.bg}}; box-shadow: {{m.sh}}; color: {{m.fg}}; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--st-font-ui); font-size: 14px; font-weight: {{m.fw}}; cursor: pointer"><dc-import name="Icon" glyph="{{m.glyph}}" size="18" hint-size="18px,18px"></dc-import>{{m.label}}</button>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["video","music"],"default":"music"},"$preview":{"width":390,"height":44}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The switch at the top of the phone's YouTube screen, drawn like the radio/podcasts switch of "האזנה":
+    // וידאו is the YouTube screen as it is today (PYouTube), מוזיקה the new tab. The side chosen is amber.
+    const mode = this.props.mode === 'video' ? 'video' : 'music';
+    const M = [['video', 'וידאו', 'stream'], ['music', 'מוזיקה', 'music']];
+    return {
+      modes: M.map((m) => {
+        const a = m[0] === mode;
+        return { label: m[1], glyph: m[2], sel: a ? 'true' : 'false',
+          bg: a ? 'var(--st-current-glass)' : 'transparent', sh: a ? 'inset 0 0 0 1px var(--st-current-edge)' : 'none',
+          fg: a ? 'var(--st-cue)' : 'var(--st-ink-2)', fw: a ? '700' : '600' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

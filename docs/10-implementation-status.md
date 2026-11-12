@@ -283,6 +283,19 @@ webOS versions have no podcasts.
 | Backup | Done | Shows, marks and queue in the backup file (format 1, additive). |
 | Not built | — | New-episode notifications, downloads for listening offline, transcripts, Android Auto's podcast folder, the "send a link from the phone" QR on the television, a star button on each row (the star is in the row's options and on the player). |
 
+## YTM — YouTube Music (ADR-069)
+
+Not in the original requirements; added 2026-11-12. A tab inside YouTube's screen on the television
+and the phone, from the official YouTube Data API only.
+
+| Area | Status | Notes |
+|---|---|---|
+| Server | Done | `ytmChart`, `ytmPlaylist`, `ytmLibrary`, `ytmSearch`, cached on the server (stage 1). |
+| Account documents | Done | Likes, saved albums and history in `users/{uid}/music…`, written by the app under `firestore.rules`. |
+| Television | Not built | Stage 2 and 3: the switch, "בשבילך", the library, an album's page, the player and mini player, search. |
+| Phone | Not built | Stage 4. |
+| Liking on YouTube | Open | Needs a scope that writes; the owner decides (ADR-069, *Open*). |
+
 ## WEB — Shidur for the computer (ADR-044)
 
 An installable web app in `web/`, with the server that proxies providers. Measured against the

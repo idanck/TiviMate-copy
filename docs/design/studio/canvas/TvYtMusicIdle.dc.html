@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — כניסה, עוד לא מתנגן</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="TvYtMusic" playing="false" scroll="top" focus="hero" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  // The first time in, or after leaving YouTube (which stops the music): no player is created until OK.
+  // The top holds where you stopped, on this TV or another device in the account; OK on "המשך" starts the
+  // player in the frame and the screen becomes TvYtMusic.
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

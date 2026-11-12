@@ -6,9 +6,9 @@ Setting the project up is a manual job: `docs/12-firebase-setup.md`.
 
 | Path | What |
 |---|---|
-| `firestore.rules` | Who reads and writes what. No client writes anything. |
+| `firestore.rules` | Who reads and writes what. Clients write only an account's own podcast (ADR-067) and music (ADR-069) documents. |
 | `firestore.indexes.json` | TTL on `expiresAt` of `pairings`, `rateLimits` and the YouTube collections. |
-| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`, `signOutEverywhere`; and YouTube (ADR-061): `ytChannels`, `ytResolve`, `ytSearch`, `ytSubscriptions`, `ytLinkStatus`, `ytLinkStart`, `ytLinkPoll`, `ytLinkCode`, `ytUnlink`. All second-generation callables. Node 22, TypeScript. |
+| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`, `signOutEverywhere`; and YouTube (ADR-061): `ytChannels`, `ytResolve`, `ytSearch`, `ytSubscriptions`, `ytLinkStatus`, `ytLinkStart`, `ytLinkPoll`, `ytLinkCode`, `ytUnlink`; YouTube Music (ADR-069): `ytmChart`, `ytmPlaylist`, `ytmLibrary`, `ytmSearch`. All second-generation callables. Node 22, TypeScript. |
 | `hosting/` | The approval and deletion pages, bundled with esbuild into `hosting/dist`. |
 | `test/` | Rules and the whole pairing, against the emulators. |
 

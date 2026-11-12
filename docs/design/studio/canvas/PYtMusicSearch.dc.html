@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — YouTube · מוזיקה · חיפוש</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="חיפוש מוזיקה" back="true" search="false" hint-size="390px,56px"></dc-import></div>
+
+<label style="position: absolute; top: 90px; right: var(--st-safe-x); left: var(--st-safe-x); height: 48px; box-sizing: border-box; padding: 0 14px; border-radius: 24px; display: flex; align-items: center; gap: 10px; color: var(--st-ink)" class="st-glass-thin">
+<dc-import name="Icon" glyph="search" size="20" hint-size="20px,20px"></dc-import>
+<input class="st-input" type="search" value="[מה שהוקלד]" aria-label="חיפוש מוזיקה" style="flex: 1 1 auto; min-width: 0; border: 0; background: transparent; color: var(--st-ink); font-family: var(--st-font-ui); font-size: 16px; font-weight: 600; outline: none">
+</label>
+
+<div role="tablist" aria-label="סוג התוצאה" style="position: absolute; top: 152px; right: 0; left: 0; box-sizing: border-box; padding: 0 var(--st-safe-x); display: flex; gap: 8px; overflow: hidden">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="5">
+<dc-import name="PChip" label="{{k.label}}" state="{{k.state}}" hint-size="80px,44px"></dc-import>
+</sc-for>
+</div>
+
+<section aria-label="התוצאה המובילה" class="st-card" style="position: absolute; top: 210px; right: var(--st-safe-x); left: var(--st-safe-x); box-sizing: border-box; padding: 12px; display: flex; align-items: center; gap: 12px">
+<dc-import name="MusicArt" size="64" tone="2" kind="artist" phone="true" hint-size="64px,64px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span class="st-t-caption" style="font-size: 12px; font-weight: 600">התוצאה המובילה</span>
+<span style="font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם האמן]</span>
+<span class="st-t-caption">אמן · ערוץ YouTube</span>
+</div>
+<dc-import name="PButton" label="ערבוב" glyph="swap" variant="primary" size="m" hint-size="96px,44px"></dc-import>
+</section>
+
+<section aria-label="שירים" style="position: absolute; top: 314px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<h2 class="st-t-h1" style="margin-bottom: 2px">שירים</h2>
+<sc-for list="{{songs}}" as="s" hint-placeholder-count="3">
+<dc-import name="PSongRow" item="{{s}}" state="{{s.state}}" width="358" hint-size="358px,60px"></dc-import>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 96px; right: 0"><dc-import name="PYtMusicMini" hint-size="390px,212px"></dc-import></div>
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="youtube" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Search from the top bar's magnifier while the music tab is open: the results keep to music. The
+    // system keyboard rises over the lower half while typing (not drawn); once it closes, the mini player
+    // is back above the bottom bar.
+    return {
+      kinds: [['הכול', 'selected'], ['שירים', 'rest'], ['אלבומים', 'rest'], ['אמנים', 'rest'], ['פלייליסטים', 'rest']].map((k) => ({ label: k[0], state: k[1] })),
+      songs: [
+        { title: '[שם השיר]', meta: '[שם האמן] · [שם האלבום]', tone: '3', kind: 'song', state: 'onscreen' },
+        { title: '[שם השיר]', meta: '[שם האמן] · [שם האלבום]', tone: '1', kind: 'song', state: 'rest' },
+        { title: '[שם השיר]', meta: '[שם האמן] · סינגל', tone: '6', kind: 'song', state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
