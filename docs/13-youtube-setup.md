@@ -48,7 +48,9 @@ done
 ## 5. מסך ההסכמה (OAuth consent screen)
 
 1. ‏Google Auth Platform → Data access → Add or remove scopes → סמן
-   `https://www.googleapis.com/auth/youtube.readonly` ו-`https://www.googleapis.com/auth/youtube.force-ssl`
+   `https://www.googleapis.com/auth/youtube.readonly`, `https://www.googleapis.com/auth/youtube.force-ssl` (לטלפון)
+   ו-`https://www.googleapis.com/auth/youtube` (לטלוויזיה: תהליך החיבור בקוד של Google מקבל רק את `youtube` ואת
+   `youtube.readonly`)
    (הלייקים מלשונית המוזיקה, ADR-069) → Update → Save.
 2. ‏Audience: כל עוד האפליקציה ב-**Testing**, רק החשבונות שברשימת **Test users** יכולים לחבר
    YouTube. הוסף את החשבונות שלך ושל מי שבודק.

@@ -5,8 +5,8 @@ import { ytGetAsUser } from './api';
 
 /**
  * Connecting a YouTube account (ADR-061): read access (`youtube.readonly`) for the subscriptions,
- * playlists and likes, and, since ADR-069, `youtube.force-ssl` for the one thing Shidur writes —
- * a like given to a song in the music tab (`videos.rate`). The account's refresh token is kept on
+ * playlists and likes, and, since ADR-069, a scope for the one thing Shidur writes — a like given to
+ * a song in the music tab (`videos.rate`): `youtube.force-ssl` on a phone, `youtube` on a television. The account's refresh token is kept on
  * the server alone, in
  * `ytTokens/{uid}`, which no client can read (firestore.rules). The app never holds a YouTube
  * token.
@@ -20,20 +20,29 @@ import { ytGetAsUser } from './api';
  */
 
 export const SCOPE = 'https://www.googleapis.com/auth/youtube.readonly';
-/** The scope `videos.rate` needs (ADR-069): asked for with [SCOPE], and optional — without it likes stay in Shidur. */
+/** A scope `videos.rate` takes (ADR-069), asked for by the phone: optional — without it likes stay in Shidur. */
 export const RATE_SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
-/** What a new connection asks Google for. */
+/**
+ * The other scope `videos.rate` takes, asked for by the television: Google's flow for TVs accepts
+ * only `youtube` and `youtube.readonly` of YouTube's scopes, so `youtube.force-ssl` is refused there
+ * ("OAuth 2.0 for TV and Limited-Input Device Applications", Allowed scopes).
+ */
+export const MANAGE_SCOPE = 'https://www.googleapis.com/auth/youtube';
+/** What the phone asks Google for. */
 export const SCOPES = `${SCOPE} ${RATE_SCOPE}`;
+/** What the television asks Google for. */
+export const TV_SCOPES = `${SCOPE} ${MANAGE_SCOPE}`;
 
 /** Whether a granted scope list lets Shidur give a like on the account's behalf. */
 export function canRate(scope: string): boolean {
-  return scope.split(' ').includes(RATE_SCOPE);
+  const granted = scope.split(' ');
+  return granted.includes(RATE_SCOPE) || granted.includes(MANAGE_SCOPE);
 }
 
-/** Whether a granted scope list lets Shidur read the account (either scope does). */
+/** Whether a granted scope list lets Shidur read the account (any of the three does). */
 export function canRead(scope: string): boolean {
   const granted = scope.split(' ');
-  return granted.includes(SCOPE) || granted.includes(RATE_SCOPE);
+  return granted.includes(SCOPE) || granted.includes(RATE_SCOPE) || granted.includes(MANAGE_SCOPE);
 }
 const DEVICE_URL = 'https://oauth2.googleapis.com/device/code';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -63,10 +72,11 @@ async function post(url: string, form: Record<string, string>): Promise<{ status
 
 /** The television asks for a code to show. */
 export async function startDeviceLink(uid: string, tv: OAuthClient) {
-  const { status, body } = await post(DEVICE_URL, { client_id: tv.id, scope: SCOPES });
+  const { status, body } = await post(DEVICE_URL, { client_id: tv.id, scope: TV_SCOPES });
   if (status !== 200 || typeof body.device_code !== 'string') {
-    logger.error('device code refused', { status, error: body.error });
-    throw new HttpsError('unavailable', 'Google did not give a code. Try again.');
+    logger.error('device code refused', { status, error: body.error, description: body.error_description });
+    // With a reason, so the app does not take Google's refusal for a lost connection.
+    throw new HttpsError('unavailable', 'Google did not give a code. Try again.', { reason: 'code-refused' });
   }
   const expiresIn = Number(body.expires_in ?? 1800);
   const interval = Math.max(5, Number(body.interval ?? 5));
