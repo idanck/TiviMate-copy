@@ -703,7 +703,7 @@ private fun EpisodeOptions(
         }
         ListRow(
             label = stringResource(if (episode.mark.favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add),
-            icon = if (episode.mark.favourite) StudioIcons.StarOn else StudioIcons.Star,
+            icon = StudioIcons.star(episode.mark.favourite),
             onClick = { act { repo.setFavourite(episode.key, !episode.mark.favourite) } },
         )
         ListRow(

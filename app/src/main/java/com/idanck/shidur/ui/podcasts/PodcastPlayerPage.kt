@@ -1,5 +1,14 @@
 package com.idanck.shidur.ui.podcasts
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -86,7 +95,20 @@ internal fun PodcastPlayerPage(
     val scope = rememberCoroutineScope()
     val repo = ServiceLocator.podcasts
     val changes by repo.changes.collectAsState()
-    val fresh by produceState(initialValue = episode, changes, episode.key) { value = repo.episode(episode.key) ?: episode }
+    val loaded by produceState(initialValue = episode, changes, episode.key) { value = repo.episode(episode.key) ?: episode }
+    // produceState keeps the last episode's value until the new one is read: never let the star, or
+    // anything else here, act on the episode that just ended.
+    val fresh = if (loaded.key == episode.key) loaded else episode
+    // What the star shows and writes next. Set on a tap, before the repository answers, so a second
+    // quick tap undoes the first rather than writing the same value again.
+    var favourite by remember(fresh.key, fresh.mark.favourite) { mutableStateOf(fresh.mark.favourite) }
+    val favouriteLabel = stringResource(if (favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add)
+    val toggleFavourite: () -> Unit = {
+        val key = fresh.key
+        val next = !favourite
+        favourite = next
+        scope.launch { repo.setFavourite(key, next) }
+    }
     val queue by produceState(initialValue = emptyList<PodcastEpisode>(), changes) { value = repo.queue() }
     val chapterIndex = PodcastChapters.at(session.chapters, position)
 
@@ -106,7 +128,15 @@ internal fun PodcastPlayerPage(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text(text = episode.title, style = if (tv) type.title else type.h1, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    if (tv) {
+                        Text(text = episode.title, style = type.title, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    } else {
+                        // `PPodcastPlayer`: on a phone the star sits beside the episode's title.
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                            Text(text = episode.title, style = type.h1, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            TitleStar(on = favourite, label = favouriteLabel, onClick = toggleFavourite)
+                        }
+                    }
                     episode.publishedUtc?.let { Text(text = TimeModel.formatDay(it), style = type.meta, color = studio.ink2) }
                     if (chapterIndex >= 0) {
                         Text(
@@ -167,16 +197,17 @@ internal fun PodcastPlayerPage(
                     iconOnly = !tv && sleep == PodcastSession.Sleep.Off,
                     size = StudioButtonSize.MEDIUM,
                 )
-                StudioButton(
-                    label = stringResource(if (fresh.mark.favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add),
-                    onClick = { scope.launch { repo.setFavourite(fresh.key, !fresh.mark.favourite) } },
-                    // The glyph states it: a phone's StudioButton draws no `active` (ADR-058), so an
-                    // outline star there looked the same set or not.
-                    icon = if (fresh.mark.favourite) StudioIcons.StarOn else StudioIcons.Star,
-                    iconOnly = true,
-                    active = fresh.mark.favourite,
-                    size = StudioButtonSize.MEDIUM,
-                )
+                // `TvPodcastPlayer`: on a television the star is in the tools row; a phone has it by the title.
+                if (tv) {
+                    StudioButton(
+                        label = favouriteLabel,
+                        onClick = toggleFavourite,
+                        icon = StudioIcons.star(favourite),
+                        iconOnly = true,
+                        active = favourite,
+                        size = StudioButtonSize.MEDIUM,
+                    )
+                }
                 StudioButton(label = stringResource(R.string.pod_open_show), onClick = { onOpenShow(episode.podcastId) }, icon = StudioIcons.Podcast, iconOnly = true, size = StudioButtonSize.MEDIUM)
             }
         }
@@ -221,5 +252,24 @@ internal fun PodcastPlayerPage(
                 trail = if (session.sleep == PodcastSession.Sleep.EndOfEpisode) RowTrail.CHECK else RowTrail.NONE,
             )
         }
+    }
+}
+
+/**
+ * `PPodcastPlayer`'s star beside the title: nothing behind it, a touch target around a 24dp glyph,
+ * filled and the cue (amber) when set, an outline in the second ink when not.
+ */
+@Composable
+private fun TitleStar(on: Boolean, label: String, onClick: () -> Unit) {
+    val studio = StudioTheme.colors
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(imageVector = StudioIcons.star(on), contentDescription = null, tint = if (on) studio.cue else studio.ink2, modifier = Modifier.size(24.dp))
     }
 }

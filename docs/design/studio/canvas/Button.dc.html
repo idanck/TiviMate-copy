@@ -17,7 +17,7 @@
 <sc-if value="{{showLabel}}" hint-placeholder-val="{{true}}"><span>{{label}}</span></sc-if>
 </button>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה במסך מלא"},"variant":{"editor":"enum","options":["primary","secondary","ghost","danger"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"focused":{"editor":"boolean","default":false},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["l","m"],"default":"l"},"$preview":{"width":420,"height":84}}'>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"צפייה במסך מלא"},"variant":{"editor":"enum","options":["primary","secondary","ghost","danger"],"default":"secondary"},"glyph":{"editor":"text","default":"play"},"focused":{"editor":"boolean","default":false},"active":{"editor":"boolean","default":false},"iconOnly":{"editor":"boolean","default":false},"size":{"editor":"enum","options":["l","m"],"default":"l"},"$preview":{"width":420,"height":84}}'>
 class Component extends DCLogic {
   renderVals() {
     const yes = (v) => v === true || v === 'true';
@@ -25,11 +25,15 @@ class Component extends DCLogic {
     const glyph = this.props.glyph ?? 'play';
     const variant = this.props.variant || 'secondary';
     const focused = yes(this.props.focused);
+    // A toggle that is on (StudioButton's `active`, ADR-058): the "current" amber, at rest and under focus.
+    const active = yes(this.props.active);
     const iconOnly = yes(this.props.iconOnly);
     const L = (this.props.size || 'l') === 'l';
     const h = L ? 84 : 64;
     let bg = 'var(--st-control)', fg = 'var(--st-ink)', shadow = 'inset 0 0 0 1px var(--st-hairline)';
-    if (focused) { bg = 'var(--st-cue)'; fg = 'var(--st-on-cue)'; shadow = 'var(--st-lift)'; }
+    if (active && focused) { bg = 'var(--st-current)'; fg = 'var(--st-on-cue)'; shadow = 'var(--st-lift)'; }
+    else if (active) { bg = 'var(--st-current-glass)'; fg = 'var(--st-current)'; shadow = 'inset 0 0 0 2px var(--st-current-edge)'; }
+    else if (focused) { bg = 'var(--st-cue)'; fg = 'var(--st-on-cue)'; shadow = 'var(--st-lift)'; }
     else if (variant === 'primary') { bg = 'var(--st-ink)'; fg = 'var(--st-ground)'; shadow = 'none'; }
     else if (variant === 'ghost') { bg = 'transparent'; fg = 'var(--st-ink-2)'; shadow = 'none'; }
     else if (variant === 'danger') { fg = 'var(--st-error)'; }

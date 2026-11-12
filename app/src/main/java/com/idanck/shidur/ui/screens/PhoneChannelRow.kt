@@ -184,7 +184,7 @@ internal fun PhoneChannelRow(
         }
         IconButton(onClick = onToggleFavourite) {
             Icon(
-                imageVector = if (channel.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                imageVector = StudioIcons.star(channel.favourite),
                 contentDescription = stringResource(
                     if (channel.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),

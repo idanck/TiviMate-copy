@@ -81,6 +81,10 @@ object StudioIcons {
     val Backup: ImageVector by lazy { glyph("backup", "M12 15V4M8 8l4-4 4 4M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4") }
     val Pulse: ImageVector by lazy { glyph("pulse", "M3 12h4l2-5 4 10 2-5h6") }
     val StarOn: ImageVector by lazy { glyph("star-on", "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z", filled = true) }
+
+    /** A favourite's star: filled when [on], an outline when not — every star in the app is drawn this way. */
+    fun star(on: Boolean): ImageVector = if (on) StarOn else Star
+
     val Close: ImageVector by lazy { glyph("close", "M6 6l12 12M18 6L6 18") }
     val History: ImageVector by lazy { glyph("history", "M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4M12 8v4l3 2") }
     val Grid: ImageVector by lazy { glyph("grid", "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z") }

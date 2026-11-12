@@ -557,7 +557,7 @@ private fun NowPlayingDetails(
                 if (liveChannel != null) {
                     PhoneButton(
                         label = stringResource(R.string.player_favourite),
-                        icon = if (liveChannel.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                        icon = StudioIcons.star(liveChannel.favourite),
                         size = PhoneButtonSize.M,
                         onClick = { vm.setFavourite(liveChannel, !liveChannel.favourite) },
                         modifier = Modifier.weight(1f),

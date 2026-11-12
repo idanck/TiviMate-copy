@@ -399,7 +399,7 @@ private fun EpisodeRow(episode: VodItem, onPlay: () -> Unit, onToggleFavourite: 
         )
         IconButton(onClick = onToggleFavourite) {
             Icon(
-                imageVector = if (episode.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                imageVector = StudioIcons.star(episode.favourite),
                 contentDescription = stringResource(
                     if (episode.favourite) R.string.action_unfavourite else R.string.action_favourite,
                 ),
@@ -474,7 +474,7 @@ private fun VodTile(
                 modifier = Modifier.align(Alignment.TopEnd),
             ) {
                 Icon(
-                    imageVector = if (item.favourite) StudioIcons.StarOn else StudioIcons.Star,
+                    imageVector = StudioIcons.star(item.favourite),
                     contentDescription = stringResource(
                         if (item.favourite) R.string.action_unfavourite else R.string.action_favourite,
                     ),

@@ -426,7 +426,7 @@ internal fun PhoneYouTubePlayer(
                     StudioButton(
                         label = stringResource(if (isSaved) R.string.yt_saved_channel else R.string.yt_save_channel),
                         onClick = { repo.toggleSaved(video.channelId) },
-                        icon = if (isSaved) StudioIcons.StarOn else StudioIcons.Star,
+                        icon = StudioIcons.star(isSaved),
                         iconOnly = true,
                         size = StudioButtonSize.MEDIUM,
                         active = isSaved,
@@ -531,7 +531,7 @@ private fun PhoneYouTubeChannel(id: String, state: YtChannelState?, onPlay: (YtV
         StudioButton(
             label = stringResource(if (isSaved) R.string.yt_remove_channel else R.string.yt_save_channel),
             onClick = { repo.toggleSaved(id) },
-            icon = if (isSaved) StudioIcons.StarOn else StudioIcons.Star,
+            icon = StudioIcons.star(isSaved),
             variant = StudioButtonVariant.PRIMARY,
             active = isSaved,
             modifier = Modifier.fillMaxWidth(),

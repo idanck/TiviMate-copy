@@ -75,7 +75,8 @@ enum class StudioButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
  * @param active a toggle that is on — a favourite that is set (ADR-058). On a television it is the
  *   "current" amber: amber glass, an amber ring and an amber glyph at rest, and under focus an
  *   amber surface with dark content instead of the white one, so on and off never look alike,
- *   focused or not. A phone shows the toggle by its glyph alone, as before.
+ *   focused or not. On a phone ([PhoneButton]) the glyph and label of a non-primary button take the
+ *   cue (amber), as `PButton` draws a toggle that is on.
  */
 @Composable
 fun StudioButton(
@@ -106,6 +107,7 @@ fun StudioButton(
             },
             size = if (size == StudioButtonSize.LARGE) PhoneButtonSize.L else PhoneButtonSize.M,
             enabled = enabled,
+            active = active,
         )
         return
     }
@@ -242,7 +244,8 @@ internal enum class PhoneButtonVariant { PRIMARY, SECONDARY, GHOST, DANGER }
 /**
  * `PButton`: the button at a phone's scale, always a pill. A primary button is the cue (amber) with
  * a lift, a secondary or danger one thin glass with its lit edge, a ghost one only its icon and
- * label. Icon-only buttons are round.
+ * label. Icon-only buttons are round. [active] — a toggle that is on — tints a non-primary button's
+ * glyph and label with the cue (amber); a primary one is amber already.
  *
  * Phone-only screens call this directly for the sizes the television has no counterpart for
  * ([PhoneButtonSize.XL]); shared screens call [StudioButton], which comes here on a phone.
@@ -257,12 +260,14 @@ internal fun PhoneButton(
     variant: PhoneButtonVariant = PhoneButtonVariant.SECONDARY,
     size: PhoneButtonSize = PhoneButtonSize.L,
     enabled: Boolean = true,
+    active: Boolean = false,
 ) {
     val studio = StudioTheme.colors
     val shape = CircleShape
-    val content = when (variant) {
-        PhoneButtonVariant.PRIMARY -> studio.onCue
-        PhoneButtonVariant.DANGER -> studio.error
+    val content = when {
+        variant == PhoneButtonVariant.PRIMARY -> studio.onCue
+        active -> studio.cue
+        variant == PhoneButtonVariant.DANGER -> studio.error
         else -> studio.ink
     }
     val surface = when (variant) {
