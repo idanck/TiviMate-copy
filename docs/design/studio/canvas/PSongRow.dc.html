@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב טלפון — שורת שיר</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ps-eq{display:flex;align-items:flex-end;gap:2px;height:14px}
+.ps-eq span{width:3px;border-radius:2px;background:var(--st-tally);animation:ps-eq 1.1s ease-in-out infinite}
+.ps-eq span:nth-child(2){animation-delay:-.35s}.ps-eq span:nth-child(3){animation-delay:-.7s}
+@keyframes ps-eq{0%,100%{height:4px}50%{height:14px}}
+@media (prefers-reduced-motion: reduce){.ps-eq span{animation:none;height:9px}}
+</style>
+</helmet>
+<div style="width: {{w}}; height: 60px; box-sizing: border-box; padding: 0 0 0 0; border-radius: 16px; background: {{bg}}; box-shadow: {{edge}}; display: flex; align-items: center; font-family: var(--st-font-ui); color: var(--st-ink)">
+<button style="flex: 1 1 auto; min-width: 0; height: 60px; box-sizing: border-box; padding: 0 6px; border: 0; background: transparent; color: var(--st-ink); display: flex; align-items: center; gap: 12px; text-align: right; font-family: var(--st-font-ui); cursor: pointer">
+<dc-import name="MusicArt" size="48" tone="{{tone}}" kind="{{kind}}" phone="true" hint-size="48px,48px"></dc-import>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden"><sc-if value="{{on}}" hint-placeholder-val="{{false}}"><span class="ps-eq" role="img" aria-label="מתנגן"><span></span><span></span><span></span></span></sc-if><span style="overflow: hidden; text-overflow: ellipsis">{{title}}</span></span>
+<span style="font-size: 13px; color: var(--st-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{meta}}</span>
+</span>
+</button>
+<button aria-label="אפשרויות" style="flex: 0 0 var(--st-touch); width: var(--st-touch); height: var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="more" size="20" hint-size="20px,20px"></dc-import></button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"item":{"editor":null},"state":{"editor":"enum","options":["rest","onscreen"],"default":"rest"},"width":{"editor":"int","default":358,"min":240,"max":420},"$preview":{"width":358,"height":60}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // A phone list row: a song, a playlist, an album or an artist (round art). Tap plays or opens; ⋮ opens
+    // its options (add to the queue, play next, go to the artist, save to a playlist).
+    // "onscreen": the song playing — tally wash and a red equaliser before its title.
+    const it = this.props.item || { title: '[שם השיר]', meta: '[שם האמן]', tone: '1', kind: 'song' };
+    const on = (this.props.state || it.state) === 'onscreen';
+    return {
+      w: (Number(this.props.width) || 358) + 'px',
+      tone: it.tone || '1', kind: it.kind || 'song', title: it.title, meta: it.meta, on: on,
+      bg: on ? 'var(--st-onscreen)' : 'transparent',
+      edge: on ? 'inset 0 0 0 1px rgba(255, 90, 95, 0.45)' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

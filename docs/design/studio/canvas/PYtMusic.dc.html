@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — YouTube · מוזיקה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="YouTube" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: 0"><dc-import name="PYtSwitch" mode="music" hint-size="390px,44px"></dc-import></div>
+<div role="tablist" aria-label="מוזיקה" style="position: absolute; top: 144px; right: var(--st-safe-x); display: flex; gap: 8px">
+<dc-import name="PChip" label="בשבילך" state="selected" hint-size="90px,44px"></dc-import>
+<dc-import name="PChip" label="ספרייה" state="rest" hint-size="80px,44px"></dc-import>
+</div>
+
+<sc-if value="{{playing}}" hint-placeholder-val="{{true}}">
+<section aria-label="בחירה מהירה" style="position: absolute; top: 202px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2px"><h2 class="st-t-h1">בחירה מהירה</h2><span class="st-t-caption">מההיסטוריה והלייקים שלך</span></div>
+<sc-for list="{{quick}}" as="r" hint-placeholder-count="3">
+<dc-import name="PSongRow" item="{{r}}" state="{{r.state}}" width="358" hint-size="358px,60px"></dc-import>
+</sc-for>
+</section>
+<section aria-label="הפלייליסטים שלך" style="position: absolute; top: 418px; right: 0; left: 0; display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 var(--st-safe-x)"><h2 class="st-t-h1">הפלייליסטים שלך</h2></div>
+<div style="display: flex; gap: 12px; padding: 0 var(--st-safe-x); overflow: hidden">
+<sc-for list="{{lists}}" as="l" hint-placeholder-count="4">
+<dc-import name="MusicArt" size="96" tone="{{l}}" kind="playlist" phone="true" hint-size="96px,96px"></dc-import>
+</sc-for>
+</div>
+</section>
+<div style="position: absolute; bottom: 96px; right: 0"><dc-import name="PYtMusicMini" hint-size="390px,212px"></dc-import></div>
+</sc-if>
+
+<sc-if value="{{idle}}" hint-placeholder-val="{{false}}">
+<section aria-label="המשך האזנה" class="st-card" style="position: absolute; top: 202px; right: var(--st-safe-x); left: var(--st-safe-x); box-sizing: border-box; padding: 14px; display: flex; gap: 12px; align-items: center">
+<dc-import name="MusicArt" size="84" tone="3" kind="playlist" phone="true" hint-size="84px,84px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span class="st-t-caption" style="font-size: 12px; font-weight: 600">המשך האזנה · עצרת בטלוויזיה</span>
+<span style="font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הפלייליסט]</span>
+<span class="st-t-caption">פלייליסט · [מספר] שירים</span>
+</div>
+<dc-import name="PButton" label="המשך" glyph="play" variant="primary" size="m" hint-size="96px,44px"></dc-import>
+</section>
+<section aria-label="בחירה מהירה" style="position: absolute; top: 336px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 2px"><h2 class="st-t-h1">בחירה מהירה</h2><span class="st-t-caption">מההיסטוריה והלייקים שלך</span></div>
+<sc-for list="{{quickIdle}}" as="r" hint-placeholder-count="3">
+<dc-import name="PSongRow" item="{{r}}" state="rest" width="358" hint-size="358px,60px"></dc-import>
+</sc-for>
+</section>
+<section aria-label="הפלייליסטים שלך" style="position: absolute; top: 560px; right: 0; left: 0; display: flex; flex-direction: column; gap: 8px">
+<div style="padding: 0 var(--st-safe-x)"><h2 class="st-t-h1">הפלייליסטים שלך</h2></div>
+<div style="display: flex; gap: 12px; padding: 0 var(--st-safe-x); overflow: hidden">
+<sc-for list="{{lists}}" as="l" hint-placeholder-count="4">
+<dc-import name="MusicArt" size="96" tone="{{l}}" kind="playlist" phone="true" hint-size="96px,96px"></dc-import>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="youtube" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The phone's YouTube screen (from "עוד") with מוזיקה chosen in the switch, part "בשבילך": quick picks
+    // as a list for the thumb, your playlists as covers. While a song plays, the mini player — the player
+    // itself, 200×200 — docks above the bottom bar and the lists scroll behind it.
+    // "playing: false": no player yet; the top card carries on from where you stopped, on any device.
+    const playing = !(this.props.playing === false || this.props.playing === 'false');
+    const rows = [
+      { title: '[שם השיר]', meta: '[שם האמן]', tone: '3', kind: 'song', state: 'onscreen' },
+      { title: '[שם השיר]', meta: '[שם האמן]', tone: '1', kind: 'song', state: 'rest' },
+      { title: '[שם השיר]', meta: '[שם האמן]', tone: '6', kind: 'song', state: 'rest' }
+    ];
+    return {
+      playing: playing, idle: !playing,
+      quick: rows,
+      quickIdle: rows.map((r) => Object.assign({}, r, { state: 'rest' })),
+      lists: ['6', '3', '1', '4', '2']
+    };
+  }
+}
+</script>
+</body>
+</html>

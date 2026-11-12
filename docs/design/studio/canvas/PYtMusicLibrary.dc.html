@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — YouTube · מוזיקה · ספרייה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="YouTube" search="true" back="false" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: 0"><dc-import name="PYtSwitch" mode="music" hint-size="390px,44px"></dc-import></div>
+<div role="tablist" aria-label="מוזיקה" style="position: absolute; top: 144px; right: var(--st-safe-x); display: flex; gap: 8px">
+<dc-import name="PChip" label="בשבילך" state="rest" hint-size="90px,44px"></dc-import>
+<dc-import name="PChip" label="ספרייה" state="selected" hint-size="80px,44px"></dc-import>
+</div>
+
+<div role="tablist" aria-label="מה בספרייה" style="position: absolute; top: 202px; right: 0; left: 0; box-sizing: border-box; padding: 0 var(--st-safe-x); display: flex; gap: 6px; overflow: hidden">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<button aria-pressed="{{f.pressed}}" style="flex: 0 0 auto; height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: {{f.bg}}; color: {{f.fg}}; box-shadow: {{f.sh}}; font-family: var(--st-font-ui); font-size: 13px; font-weight: {{f.fw}}; white-space: nowrap; cursor: pointer">{{f.label}}</button>
+</sc-for>
+</div>
+<span class="st-t-caption" style="position: absolute; top: 244px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis"><dc-import name="Icon" glyph="{{srcGlyph}}" size="14" hint-size="14px,14px"></dc-import>{{caption}}</span>
+
+<section aria-label="{{label}}" style="position: absolute; top: 270px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+<sc-if value="{{r.isHead}}" hint-placeholder-val="{{false}}"><span style="font-size: 14px; font-weight: 700; color: var(--st-ink-2); margin-top: 4px">{{r.label}}</span></sc-if>
+<sc-if value="{{r.isRow}}" hint-placeholder-val="{{true}}"><dc-import name="PSongRow" item="{{r}}" state="{{r.state}}" width="358" hint-size="358px,60px"></dc-import></sc-if>
+</sc-for>
+</section>
+
+<div style="position: absolute; bottom: 96px; right: 0"><dc-import name="PYtMusicMini" hint-size="390px,212px"></dc-import></div>
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="youtube" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"filter":{"editor":"enum","options":["playlists","liked","artists","albums","history"],"default":"playlists"},"account":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // "ספרייה" on the phone: a lighter second row of filters (they filter, so they are lighter than the part
+    // chips above them), one line on where the list comes from, then the list. Sources as on the television
+    // (TvYtMusicLibrary, decided 12/11): liked = YouTube likes (music) and Shidur's together; albums = saved in
+    // Shidur; history = what played in Shidur on every device. The mini player stays docked while a song plays.
+    const p = this.props;
+    const cur = p.filter || 'playlists';
+    const account = !(p.account === false || p.account === 'false');
+    const F = [['playlists', 'פלייליסטים'], ['liked', 'שירים שאהבתי'], ['artists', 'אמנים'], ['albums', 'אלבומים'], ['history', 'נשמע לאחרונה']];
+    const CAP = {
+      playlists: ['stream', 'מחשבון YouTube שחיברת'],
+      liked: account ? ['star', 'מ־YouTube ומשידור · לייק כאן נשמר בשניהם'] : ['star', 'לייקים ששמרת בשידור'],
+      artists: ['stream', 'ערוצי האמנים שנרשמת אליהם'],
+      albums: ['library', 'אלבומים ששמרת בשידור'],
+      history: ['history', 'מה שהתנגן בשידור, בכל המכשירים']
+    };
+    const kind = cur === 'artists' ? 'artist' : (cur === 'albums' ? 'album' : (cur === 'playlists' ? 'playlist' : 'song'));
+    const row = (t, m, tone, o) => Object.assign({ isRow: true, isHead: false, title: t, meta: m, tone: tone, kind: kind, state: 'rest' }, o || {});
+    const head = (l) => ({ isHead: true, isRow: false, label: l });
+    const R = {
+      playlists: [row('שירים שאהבתי', 'מ־YouTube ומשידור · [מספר] שירים', '6'), row('[שם הפלייליסט]', 'פלייליסט · [מספר] שירים', '3'), row('[שם הפלייליסט]', 'פלייליסט · [מספר] שירים', '1'), row('[שם הפלייליסט]', 'פלייליסט · [מספר] שירים', '4')],
+      liked: [row('[שם השיר]', '[שם האמן]', '3', { state: 'onscreen' }), row('[שם השיר]', '[שם האמן]', '1'), row('[שם השיר]', '[שם האמן]', '6'), row('[שם השיר]', '[שם האמן]', '4')],
+      artists: [row('[שם האמן]', 'אמן', '1'), row('[שם האמן]', 'אמן', '2'), row('[שם האמן]', 'אמן', '3'), row('[שם האמן]', 'אמן', '4')],
+      albums: [row('[שם האלבום]', '[שם האמן] · [שנה]', '2'), row('[שם האלבום]', '[שם האמן] · [שנה]', '5'), row('[שם האלבום]', '[שם האמן] · [שנה]', '1'), row('[שם האלבום]', '[שם האמן] · [שנה]', '6')],
+      history: [head('היום'), row('[שם השיר]', '[שם האמן] · 20:51 · בטלוויזיה', '3', { state: 'onscreen' }), row('[שם השיר]', '[שם האמן] · 20:47 · בטלוויזיה', '1'), head('אתמול'), row('[שם השיר]', '[שם האמן] · 08:12 · בטלפון', '5')]
+    }[cur];
+    return {
+      filters: F.map((f) => {
+        const a = f[0] === cur;
+        return { label: f[1], pressed: a ? 'true' : 'false',
+          bg: a ? 'var(--st-ink)' : 'transparent', fg: a ? 'var(--st-ground)' : 'var(--st-ink-2)',
+          sh: a ? 'none' : 'inset 0 0 0 1px var(--st-hairline)', fw: a ? '700' : '600' };
+      }),
+      caption: CAP[cur][1], srcGlyph: CAP[cur][0], label: F.filter((f) => f[0] === cur)[0][1],
+      rows: R
+    };
+  }
+}
+</script>
+</body>
+</html>

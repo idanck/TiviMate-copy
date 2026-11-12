@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — חיפוש</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="YtSwitch" mode="music" section="search" focus="" hint-size="1000px,64px"></dc-import></div>
+
+<section aria-label="מקלדת" style="position: absolute; top: 236px; right: var(--st-inset-start); width: 600px; display: flex; flex-direction: column; gap: 20px">
+<div class="st-card" style="height: 72px; box-sizing: border-box; padding: 0 24px; border-radius: var(--st-r-control); display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 600">
+<dc-import name="Icon" glyph="search" size="28" hint-size="28px,28px"></dc-import>
+<span>[מה שהוקלד]</span><span aria-hidden="true" style="width: 3px; height: 34px; background: var(--st-cue)"></span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="27">
+<button class="st-anim" style="height: 62px; border: 0; border-radius: 16px; background: {{k.bg}}; color: {{k.fg}}; box-shadow: {{k.sh}}; transform: {{k.tf}}; font-family: var(--st-font-ui); font-size: 26px; font-weight: 600; cursor: pointer">{{k.label}}</button>
+</sc-for>
+</div>
+<div style="display: flex; gap: 10px">
+<dc-import name="Button" label="רווח" glyph="" size="m" hint-size="180px,64px"></dc-import>
+<dc-import name="Button" label="מחיקה" glyph="back" size="m" hint-size="180px,64px"></dc-import>
+<dc-import name="Button" label="חיפוש קולי" glyph="audio" size="m" hint-size="200px,64px"></dc-import>
+</div>
+</section>
+
+<section aria-label="תוצאות" style="position: absolute; top: 236px; right: 856px; left: var(--st-safe-x); display: flex; flex-direction: column; gap: 20px">
+<div role="tablist" aria-label="סוג התוצאה" style="display: flex; gap: 10px">
+<sc-for list="{{kinds}}" as="t" hint-placeholder-count="5">
+<dc-import name="Chip" label="{{t.label}}" state="{{t.state}}" hint-size="130px,56px"></dc-import>
+</sc-for>
+</div>
+<div class="st-card" style="height: 150px; box-sizing: border-box; padding: 0 28px; display: flex; align-items: center; gap: 26px">
+<dc-import name="MusicArt" size="110" tone="2" kind="artist" state="rest" hint-size="110px,110px"></dc-import>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+<span class="st-t-caption">התוצאה המובילה</span>
+<span style="font-size: 34px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם האמן]</span>
+<span class="st-t-meta">אמן · ערוץ YouTube</span>
+</div>
+<dc-import name="Button" label="ערבוב" glyph="swap" size="m" hint-size="160px,64px"></dc-import>
+<dc-import name="Button" label="לעמוד האמן" glyph="chevron-left" size="m" hint-size="220px,64px"></dc-import>
+</div>
+<h2 class="st-t-h1">שירים</h2>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{songs}}" as="s" hint-placeholder-count="3">
+<dc-import name="SongRow" item="{{s}}" state="{{s.state}}" width="968" hint-size="968px,84px"></dc-import>
+</sc-for>
+</div>
+</section>
+
+<div style="position: absolute; bottom: 0; left: 0"><dc-import name="TvMusicMini" focus="none" hint-size="1920px,248px"></dc-import></div>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="youtube" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Search in the music tab: the same keyboard as YouTube's video search (TvYouTubeSearch), the results
+    // filtered to music — a top result (an artist, a song, an album or a playlist), then songs. Results fill
+    // in after a short pause in typing, to keep to the day's search quota. OK on a song plays it in the
+    // mini player's frame below and queues what follows from the results; nothing else starts a player.
+    const letters = 'קראטוןםפשדגכעיחלךףזסבהנמצתץ'.split('');
+    return {
+      keys: letters.map((l, i) => {
+        const f = i === 11;
+        return { label: l,
+          bg: f ? 'var(--st-light)' : 'var(--st-card)', fg: f ? 'var(--st-on-cue)' : 'var(--st-ink)',
+          sh: f ? 'var(--st-lift)' : 'var(--st-edge)', tf: f ? 'scale(var(--st-focus-scale))' : 'none' };
+      }),
+      kinds: [['הכול', 'selected'], ['שירים', 'rest'], ['אלבומים', 'rest'], ['אמנים', 'rest'], ['פלייליסטים', 'rest']].map((k) => ({ label: k[0], state: k[1] })),
+      songs: [
+        { title: '[שם השיר]', meta: '[שם האמן] · [שם האלבום]', dur: '3:42', tone: '3', state: 'onscreen' },
+        { title: '[שם השיר]', meta: '[שם האמן] · [שם האלבום]', dur: '4:11', tone: '1', state: 'rest' },
+        { title: '[שם השיר]', meta: '[שם האמן] · סינגל', dur: '2:58', tone: '6', state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

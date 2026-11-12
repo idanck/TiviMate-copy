@@ -53,6 +53,14 @@
   {
    "id": "phone-foundations",
    "name": "טלפון · יסודות"
+  },
+  {
+   "id": "tv-ytmusic",
+   "name": "טלוויזיה · YouTube Music"
+  },
+  {
+   "id": "phone-ytmusic",
+   "name": "טלפון · YouTube Music"
   }
  ],
  "boards": {
@@ -1161,6 +1169,197 @@
    "h": 1080,
    "title": "אפשרות ד · חמש גרסאות לאייקון העגול",
    "page": "icon"
+  },
+  "TvYtMusic.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — בשבילך, שיר מתנגן",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "TvYtMusicLibrary.dc.html": {
+   "x": 2000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — הספרייה שלי: פלייליסטים, עם הנגן המוקטן",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "TvYtMusicPlayer.dc.html": {
+   "x": 4000,
+   "y": 0,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — מסך הנגן",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "TvYtMusicSearch.dc.html": {
+   "x": 0,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — חיפוש",
+   "page": "tv-ytmusic"
+  },
+  "TvYtMusicIdle.dc.html": {
+   "x": 2000,
+   "y": 1200,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — כניסה, עוד לא מתנגן",
+   "page": "tv-ytmusic"
+  },
+  "MusicArt.dc.html": {
+   "x": 0,
+   "y": 3600,
+   "w": 190,
+   "h": 190,
+   "title": "רכיב — עטיפה · MusicArt",
+   "page": "tv-ytmusic"
+  },
+  "MusicCard.dc.html": {
+   "x": 270,
+   "y": 3600,
+   "w": 190,
+   "h": 290,
+   "title": "רכיב — כרטיס במדף · MusicCard",
+   "page": "tv-ytmusic"
+  },
+  "SongRow.dc.html": {
+   "x": 540,
+   "y": 3600,
+   "w": 1000,
+   "h": 84,
+   "title": "רכיב — שורת שיר · SongRow",
+   "page": "tv-ytmusic"
+  },
+  "YtSwitch.dc.html": {
+   "x": 1620,
+   "y": 3600,
+   "w": 1000,
+   "h": 64,
+   "title": "רכיב — וידאו | מוזיקה ומקטעים · YtSwitch",
+   "page": "tv-ytmusic"
+  },
+  "TvMusicMini.dc.html": {
+   "x": 0,
+   "y": 4010,
+   "w": 1920,
+   "h": 248,
+   "title": "רכיב — נגן מוקטן · TvMusicMini",
+   "page": "tv-ytmusic"
+  },
+  "PYtMusic.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — בשבילך, עם הנגן המוקטן",
+   "page": "phone-ytmusic",
+   "is_interactive": true
+  },
+  "PYtMusicLibrary.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — ספרייה: פלייליסטים",
+   "page": "phone-ytmusic",
+   "is_interactive": true
+  },
+  "PYtMusicPlayer.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — מסך הנגן",
+   "page": "phone-ytmusic"
+  },
+  "PYtMusicSearch.dc.html": {
+   "x": 1410,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — חיפוש",
+   "page": "phone-ytmusic"
+  },
+  "PSongRow.dc.html": {
+   "x": 0,
+   "y": 964,
+   "w": 358,
+   "h": 60,
+   "title": "רכיב — שורת שיר · PSongRow",
+   "page": "phone-ytmusic"
+  },
+  "PYtSwitch.dc.html": {
+   "x": 470,
+   "y": 964,
+   "w": 390,
+   "h": 44,
+   "title": "רכיב — וידאו | מוזיקה · PYtSwitch",
+   "page": "phone-ytmusic"
+  },
+  "PYtMusicMini.dc.html": {
+   "x": 940,
+   "y": 964,
+   "w": 390,
+   "h": 212,
+   "title": "רכיב — נגן מוקטן · PYtMusicMini",
+   "page": "phone-ytmusic"
+  },
+  "TvYtMusicLiked.dc.html": {
+   "x": 0,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — שירים שאהבתי (YouTube + שידור)",
+   "page": "tv-ytmusic"
+  },
+  "TvYtMusicHistory.dc.html": {
+   "x": 2000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — נשמע לאחרונה (היסטוריה של שידור)",
+   "page": "tv-ytmusic"
+  },
+  "TvYtMusicAlbum.dc.html": {
+   "x": 4000,
+   "y": 2400,
+   "w": 1920,
+   "h": 1080,
+   "title": "מוזיקה — עמוד אלבום: שמירה בספרייה של שידור",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "PYtMusicLiked.dc.html": {
+   "x": 1880,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — שירים שאהבתי",
+   "page": "phone-ytmusic"
+  },
+  "PYtMusicHistory.dc.html": {
+   "x": 2350,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — נשמע לאחרונה",
+   "page": "phone-ytmusic"
+  },
+  "PYtMusicAlbum.dc.html": {
+   "x": 2820,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "מוזיקה — עמוד אלבום",
+   "page": "phone-ytmusic",
+   "is_interactive": true
   }
  },
  "order": [
@@ -1297,8 +1496,93 @@
   "IconB.dc.html",
   "IconC.dc.html",
   "IconD.dc.html",
-  "IconDRound.dc.html"
+  "IconDRound.dc.html",
+  "TvYtMusic.dc.html",
+  "TvYtMusicLibrary.dc.html",
+  "TvYtMusicPlayer.dc.html",
+  "TvYtMusicSearch.dc.html",
+  "TvYtMusicIdle.dc.html",
+  "MusicArt.dc.html",
+  "MusicCard.dc.html",
+  "SongRow.dc.html",
+  "YtSwitch.dc.html",
+  "TvMusicMini.dc.html",
+  "PYtMusic.dc.html",
+  "PYtMusicLibrary.dc.html",
+  "PYtMusicPlayer.dc.html",
+  "PYtMusicSearch.dc.html",
+  "PSongRow.dc.html",
+  "PYtSwitch.dc.html",
+  "PYtMusicMini.dc.html",
+  "TvYtMusicLiked.dc.html",
+  "TvYtMusicHistory.dc.html",
+  "TvYtMusicAlbum.dc.html",
+  "PYtMusicLiked.dc.html",
+  "PYtMusicHistory.dc.html",
+  "PYtMusicAlbum.dc.html"
  ],
- "notes": {},
+ "notes": {
+  "ytmTitle": {
+   "x": 0,
+   "y": -300,
+   "text": "YouTube Music בתוך שידור — טלוויזיה",
+   "kind": "title1",
+   "maxW": 5920,
+   "page": "tv-ytmusic"
+  },
+  "ytmRules": {
+   "x": -620,
+   "y": 0,
+   "w": 540,
+   "page": "tv-ytmusic",
+   "fill": "yellow",
+   "size": "m",
+   "text": "לשונית \"מוזיקה\" בתוך מסך YouTube (12/11): מתג וידאו | מוזיקה בראש המסך, ובמוזיקה שלושה חלקים — בשבילך · הספרייה שלי · חיפוש.\n\nאותם כללי YouTube: הנגן תמיד גלוי במסגרת משלו, לפחות 200×200, ושום דבר שלנו לא מצויר מעליו. אין ניגון ברקע — יציאה מ־YouTube עוצרת את המוזיקה.\n\nלכן הנגן המוקטן הוא הנגן עצמו: המסגרת יורדת ל־356×200 ברצועה אטומה בתחתית, והפקדים לצידה (TvMusicMini)."
+  },
+  "ytmData": {
+   "x": -620,
+   "y": 1200,
+   "w": 540,
+   "page": "tv-ytmusic",
+   "fill": "orange",
+   "size": "m",
+   "text": "החלטות מקור הנתונים (12/11) — רק ה־API הרשמי של YouTube:\n• פלייליסטים ואמנים — מחשבון YouTube (פלייליסטים בבעלותך, ערוצים שנרשמת אליהם).\n• שירים שאהבתי — שילוב: לייקים מ־YouTube (מסוננים למוזיקה, עד 1,000) + לייקים ששמורים בשידור. לייק בשידור נשמר בשידור, ועם חשבון מחובר נשלח גם ל־YouTube.\n• אלבומים — שמורים בשידור (\"שמירה בספרייה\" בעמוד אלבום), לא ב־YouTube Music. לבדוק לפני בנייה: קריאת שירי אלבום דרך ה־API הרשמי.\n• נשמע לאחרונה — היסטוריה של שידור בכל המכשירים; ממנה נבנים \"המשך האזנה\" ו\"בחירה מהירה\".\n• ytmusicapi — מחוץ לתחום כרגע."
+  },
+  "ytmRemote": {
+   "x": -620,
+   "y": 2400,
+   "w": 540,
+   "page": "tv-ytmusic",
+   "fill": "blue",
+   "size": "m",
+   "text": "השלט: ▲ מהשורה הראשונה אל המתג והחלקים · ◀▶ ביניהם, המסך מתחלף בלי OK · ▼ מהשורה האחרונה אל כפתורי הנגן המוקטן · OK על ⛶ פותח את מסך הנגן.\nבמסך הנגן: OK השהיה/המשך · ◀▶ שיר קודם/הבא · ▼ אל הבא בתור · Back חזרה, השיר ממשיך בנגן המוקטן."
+  },
+  "ytmPhoneTitle": {
+   "x": 0,
+   "y": -300,
+   "text": "YouTube Music בתוך שידור — טלפון",
+   "kind": "title1",
+   "maxW": 3210,
+   "page": "phone-ytmusic"
+  },
+  "ytmPhoneRules": {
+   "x": -620,
+   "y": 0,
+   "w": 540,
+   "page": "phone-ytmusic",
+   "fill": "yellow",
+   "size": "m",
+   "text": "מתג וידאו | מוזיקה בראש מסך YouTube (שנפתח מ\"עוד\"). במוזיקה: בשבילך · ספרייה, וחיפוש מהזכוכית המגדלת.\n\nהנגן המוקטן לא יכול להיות פס של 64 כמו ברדיו ובפודקאסטים: הוא הנגן עצמו, 200×200 לפחות, בלי כיסוי — לכן הוא כרטיס בגובה 212 מעל הפס התחתון, ורק במסכי המוזיקה. בלי ניגון ברקע ובלי כרטיס במסך הנעילה."
+  },
+  "ytmPhoneData": {
+   "x": -620,
+   "y": 800,
+   "w": 540,
+   "page": "phone-ytmusic",
+   "fill": "orange",
+   "size": "m",
+   "text": "מקורות הספרייה כמו בטלוויזיה (12/11): פלייליסטים ואמנים מ־YouTube · שירים שאהבתי — YouTube + שידור יחד · אלבומים — שמורים בשידור · נשמע לאחרונה — היסטוריה של שידור. שורת הסבר קטנה מתחת לפילטרים אומרת מאיפה כל רשימה."
+  }
+ },
  "designSystems": []
 }

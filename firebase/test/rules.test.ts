@@ -139,3 +139,47 @@ describe('podcasts (ADR-067)', () => {
     await assertFails(setDoc(doc(db, 'users/alice/podcastState/queue'), { keys: Array.from({ length: 201 }, () => ({ feedUrl: 'a', guid: 'b' })), updatedUtc: 1 }));
   });
 });
+
+describe('YouTube Music (ADR-069)', () => {
+  const like = { videoId: 'abcDEF12345', title: 'Song', artist: 'Artist', channelId: 'UCabcdefghijklmnopqrstuv', thumb: 'https://i.ytimg.com/x.jpg', duration: 222, likedUtc: 1, updatedUtc: 1 };
+  const album = { listId: 'OLAK5uyabcdefghij', title: 'Album', artist: 'Artist', thumb: null, count: 12, savedUtc: 1, updatedUtc: 1 };
+  const played = { videoId: 'abcDEF12345', title: 'Song', artist: 'Artist', thumb: null, duration: 222, playedUtc: 5, positionMs: 1000, device: 'tv', context: 'PLabcdefghij', updatedUtc: 5 };
+
+  it('an account reads and writes its own likes, albums and history', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertSucceeds(setDoc(doc(db, 'users/alice/musicLikes/abcDEF12345'), like));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/musicAlbums/OLAK5uyabcdefghij'), album));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/musicHistory/5-abcDEF12345'), played));
+    await assertSucceeds(setDoc(doc(db, 'users/alice/musicHistory/6-abcDEF12345'), { videoId: 'abcDEF12345', title: 'Song', playedUtc: 6, device: 'phone', updatedUtc: 6 }));
+    await assertSucceeds(getDoc(doc(db, 'users/alice/musicLikes/abcDEF12345')));
+    await assertSucceeds(deleteDoc(doc(db, 'users/alice/musicAlbums/OLAK5uyabcdefghij')));
+  });
+
+  it('nobody else reads or writes them', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/alice/musicLikes/abcDEF12345'), like);
+    });
+    const bob = env.authenticatedContext('bob').firestore();
+    await assertFails(getDoc(doc(bob, 'users/alice/musicLikes/abcDEF12345')));
+    await assertFails(setDoc(doc(bob, 'users/alice/musicHistory/1-x'), played));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'users/alice/musicLikes/abcDEF12345')));
+  });
+
+  it('only the fields the app writes, of a bounded size', async () => {
+    const db = env.authenticatedContext('alice').firestore();
+    await assertFails(setDoc(doc(db, 'users/alice/musicLikes/abcDEF12345'), { ...like, extra: 1 }));
+    await assertFails(setDoc(doc(db, 'users/alice/musicLikes/other'), like));
+    await assertFails(setDoc(doc(db, 'users/alice/musicLikes/abcDEF12345'), { ...like, title: 'x'.repeat(301) }));
+    await assertFails(setDoc(doc(db, 'users/alice/musicAlbums/OLAK5uyabcdefghij'), { ...album, listId: 'other' }));
+    await assertFails(setDoc(doc(db, 'users/alice/musicHistory/5-abcDEF12345'), { ...played, device: 'car' }));
+    await assertFails(setDoc(doc(db, 'users/alice/musicHistory/5-abcDEF12345'), { ...played, duration: 'long' }));
+  });
+
+  it('closes its caches to every client', async () => {
+    const alice = env.authenticatedContext('alice').firestore();
+    for (const path of ['ytMusic/chart-IL', 'ytmPlaylists/PLabcdefghij', 'ytmLib/alice']) {
+      await assertFails(getDoc(doc(alice, path)));
+      await assertFails(setDoc(doc(alice, path), { x: 1 }));
+    }
+  });
+});

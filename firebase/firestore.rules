@@ -1,7 +1,8 @@
 rules_version = '2';
 
 // Shidur's Firestore (ADR-059). Clients read; only Cloud Functions and the console write — except an
-// account's own podcast library, marks and queue (ADR-067), below.
+// account's own podcast library, marks and queue (ADR-067), and its music likes, saved albums and
+// listening history (ADR-069), below.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -54,6 +55,48 @@ service cloud.firestore {
         && request.resource.data.updatedUtc is int;
     }
 
+    // YouTube Music (ADR-069): what the official YouTube API does not give, kept by Shidur for the
+    // account — the songs it liked in Shidur, the albums it saved, and what it played. Each of the
+    // fields the app writes, of a bounded size; the app trims the history itself.
+    function shortStr(v, max) {
+      return v is string && v.size() <= max;
+    }
+    function optStr(v, max) {
+      return v == null || shortStr(v, max);
+    }
+    function optInt(v) {
+      return v == null || v is int;
+    }
+    function trackOk(d) {
+      return shortStr(d.videoId, 64) && d.videoId.size() > 0 && shortStr(d.title, 300)
+        && optStr(d.get('artist', null), 200) && optStr(d.get('channelId', null), 64)
+        && optStr(d.get('thumb', null), 2048) && optInt(d.get('duration', null)) && d.updatedUtc is int;
+    }
+    match /users/{uid}/musicLikes/{videoId} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && trackOk(request.resource.data)
+        && request.resource.data.videoId == videoId
+        && request.resource.data.keys().hasOnly(['videoId', 'title', 'artist', 'channelId', 'thumb', 'duration', 'likedUtc', 'updatedUtc'])
+        && request.resource.data.likedUtc is int;
+    }
+    match /users/{uid}/musicAlbums/{listId} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid)
+        && request.resource.data.keys().hasOnly(['listId', 'title', 'artist', 'thumb', 'count', 'savedUtc', 'updatedUtc'])
+        && request.resource.data.listId == listId && shortStr(listId, 64)
+        && shortStr(request.resource.data.title, 300) && optStr(request.resource.data.get('artist', null), 200)
+        && optStr(request.resource.data.get('thumb', null), 2048) && optInt(request.resource.data.get('count', null))
+        && request.resource.data.savedUtc is int && request.resource.data.updatedUtc is int;
+    }
+    match /users/{uid}/musicHistory/{id} {
+      allow read, delete: if owner(uid);
+      allow create, update: if owner(uid) && shortStr(id, 100) && trackOk(request.resource.data)
+        && request.resource.data.keys().hasOnly(['videoId', 'title', 'artist', 'channelId', 'thumb', 'duration', 'playedUtc',
+             'positionMs', 'device', 'context', 'updatedUtc'])
+        && request.resource.data.playedUtc is int && optInt(request.resource.data.get('positionMs', null))
+        && request.resource.data.device in ['tv', 'phone'] && optStr(request.resource.data.get('context', null), 64);
+    }
+
     // Television pairing codes and rate-limit counters belong to the Functions alone.
     match /pairings/{code} {
       allow read, write: if false;
@@ -81,6 +124,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /ytSubs/{uid} {
+      allow read, write: if false;
+    }
+
+    // YouTube Music's caches (ADR-069): the music category and chart, playlists and albums, and an
+    // account's library as read from YouTube. The Functions' alone.
+    match /ytMusic/{id} {
+      allow read, write: if false;
+    }
+    match /ytmPlaylists/{id} {
+      allow read, write: if false;
+    }
+    match /ytmLib/{uid} {
       allow read, write: if false;
     }
 

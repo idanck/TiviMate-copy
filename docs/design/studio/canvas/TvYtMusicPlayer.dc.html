@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — מסך הנגן</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.yp-eq{display:flex;align-items:flex-end;gap:3px;height:20px}
+.yp-eq span{width:4px;border-radius:2px;background:var(--st-tally);animation:yp-eq 1.1s ease-in-out infinite}
+.yp-eq span:nth-child(2){animation-delay:-.35s}.yp-eq span:nth-child(3){animation-delay:-.7s}
+@keyframes yp-eq{0%,100%{height:5px}50%{height:20px}}
+@media (prefers-reduced-motion: reduce){.yp-eq span{animation:none;height:12px}}
+</style>
+</helmet>
+<div class="st-screen" dir="rtl" style="background: #000">
+
+<div style="position: absolute; top: 216px; left: var(--st-safe-x); width: 1152px; height: 648px; border-radius: var(--st-r-card); overflow: hidden">
+<dc-import name="Picture" scene="talk" width="1152" height="648" label="[נגן YouTube — הקליפ או עטיפת השיר, כפי ש־YouTube מציג; לא מכוסה]" hint-size="1152px,648px"></dc-import>
+</div>
+<span class="st-t-caption" style="position: absolute; top: 892px; left: var(--st-safe-x); width: 1152px">OK השהיה/המשך · ◀▶ שיר קודם/הבא · לחיצה ארוכה על ◀▶ גלילה בשיר · ▼ אל הבא בתור · Back חזרה</span>
+
+<header style="position: absolute; top: 54px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; align-items: center; justify-content: space-between">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 26px; font-weight: 700; color: var(--st-ink-2)"><dc-import name="Icon" glyph="music" size="28" hint-size="28px,28px"></dc-import>YouTube · מוזיקה</span>
+<span class="st-num" style="font-size: 36px; font-weight: 600">20:56</span>
+</header>
+
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 216px; right: var(--st-safe-x); width: 528px; display: flex; flex-direction: column; gap: 14px">
+<span style="display: flex; align-items: center; gap: 12px; font-size: 22px; font-weight: 600; color: var(--st-ink-2); white-space: nowrap; overflow: hidden"><span class="yp-eq" aria-hidden="true"><span></span><span></span><span></span></span>מהפלייליסט · [שם הפלייליסט]</span>
+<h1 class="st-t-title-s" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[שם השיר]</h1>
+<span style="font-size: 26px; font-weight: 600; color: var(--st-ink-2)">[שם האמן] · [שם האלבום]</span>
+<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px">
+<dc-import name="Progress" pct="38" width="528" size="m" hint-size="528px,8px"></dc-import>
+<div style="display: flex; justify-content: space-between"><span dir="ltr" class="st-num" style="font-size: 22px; font-weight: 600">1:24</span><span dir="ltr" class="st-num st-t-meta">3:42</span></div>
+</div>
+<div style="display: flex; align-items: center; gap: 14px; margin-top: 10px">
+<dc-import name="Button" label="השיר הקודם" glyph="skip-back" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="השהיה" glyph="pause" size="l" icon-only="true" focused="{{pauseFocus}}" hint-size="80px,80px"></dc-import>
+<dc-import name="Button" label="השיר הבא" glyph="skip-fwd" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+<span aria-hidden="true" style="width: 2px; height: 40px; background: var(--st-hairline); margin: 0 6px"></span>
+<dc-import name="Button" label="השיר באהבתי" glyph="star" size="m" icon-only="true" active="true" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="ערבוב" glyph="swap" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="חזרה על הפלייליסט" glyph="restart" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+</div>
+<div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 30px">
+<h2 class="st-t-h1">הבא בתור</h2>
+<span class="st-t-caption">עוד [מספר] שירים</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{queue}}" as="q" hint-placeholder-count="3">
+<dc-import name="SongRow" item="{{q}}" state="{{q.state}}" width="528" hint-size="528px,84px"></dc-import>
+</sc-for>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"focus":{"editor":"enum","options":["pause","queue"],"default":"pause"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The music player screen, from OK on the mini player or on a playing card. Unlike video, music is not
+    // made full screen: the frame stays large at the end edge (1152×648) and the start edge holds what plays,
+    // its controls and the queue, so the remote never has to cover the player to act. All of it goes through
+    // the player's API; YouTube's own controls inside the frame are left as YouTube draws them.
+    // Back returns to where you came from, the song carrying on in the mini player.
+    const q = this.props.focus === 'queue';
+    return {
+      pauseFocus: !q,
+      queue: [
+        { title: '[שם השיר]', meta: '[שם האמן]', dur: '4:05', tone: '1', state: q ? 'focus' : 'rest' },
+        { title: '[שם השיר]', meta: '[שם האמן]', dur: '3:18', tone: '5', state: 'rest' },
+        { title: '[שם השיר]', meta: '[שם האמן]', dur: '2:57', tone: '2', state: 'rest' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — עטיפת מוזיקה</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-anim" style="position: relative; flex: 0 0 auto; width: {{s}}; height: {{s}}; border-radius: {{r}}; overflow: hidden; background: {{bg}}; box-shadow: {{ring}}; transform: {{tf}}; font-family: var(--st-font-ui); color: var(--st-ink)">
+<span aria-hidden="true" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, 0.22)"><dc-import name="Icon" glyph="{{glyph}}" size="{{isz}}" hint-size="64px,64px"></dc-import></span>
+<span class="st-rim"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"size":{"editor":"int","default":190,"min":32,"max":520},"tone":{"editor":"enum","options":["1","2","3","4","5","6"],"default":"1"},"kind":{"editor":"enum","options":["song","playlist","album","artist"],"default":"song"},"state":{"editor":"enum","options":["rest","focus","onscreen"],"default":"rest"},"phone":{"editor":"boolean","default":false},"$preview":{"width":190,"height":190}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The square art of a song, album or playlist — in the app, the thumbnail the Data API gives for the video
+    // or playlist. An artist (a YouTube channel) is round, as the channel discs are. Here a placeholder: the
+    // same six dark tones as the podcast covers, clear of the meaning colours (focus, current, live, next).
+    // Focus: the lit ring and lift of every card. "onscreen": the tally ring of what is playing.
+    const yes = (v) => v === true || v === 'true';
+    const phone = yes(this.props.phone);
+    const s = Number(this.props.size) || 190;
+    const kind = this.props.kind || 'song';
+    const T = {
+      '1': 'linear-gradient(145deg, #34467A 0%, #141B33 100%)',
+      '2': 'linear-gradient(145deg, #4A2E63 0%, #1A1026 100%)',
+      '3': 'linear-gradient(145deg, #23585A 0%, #0D2122 100%)',
+      '4': 'linear-gradient(145deg, #5C3E26 0%, #21160D 100%)',
+      '5': 'linear-gradient(145deg, #3A3A66 0%, #14142A 100%)',
+      '6': 'linear-gradient(145deg, #5A2C3F 0%, #220F17 100%)'
+    };
+    const st = this.props.state || 'rest';
+    const round = kind === 'artist';
+    const small = s < 90;
+    return {
+      s: s + 'px',
+      r: round ? '50%' : (phone ? (small ? '8px' : '14px') : (s >= 300 ? '32px' : (small ? '12px' : 'var(--st-r-tile)'))),
+      bg: T[String(this.props.tone || '1')] || T['1'],
+      glyph: kind === 'playlist' ? 'queue' : (kind === 'album' ? 'library' : 'music'),
+      isz: Math.round(s * 0.36),
+      ring: st === 'focus' ? '0 0 0 var(--st-ring) var(--st-cue), var(--st-lift)'
+        : (st === 'onscreen' ? '0 0 0 3px var(--st-tally), 0 18px 44px rgba(255, 90, 95, 0.28)' : 'var(--st-depth-1)'),
+      tf: st === 'focus' && !phone ? 'scale(var(--st-focus-scale))' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

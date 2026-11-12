@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — הספרייה שלי</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="YtSwitch" mode="music" section="library" focus="" hint-size="1000px,64px"></dc-import></div>
+
+<div style="position: absolute; top: 226px; right: var(--st-inset-start); left: var(--st-safe-x); display: flex; align-items: center; gap: 12px">
+<div role="tablist" aria-label="מה בספרייה" style="display: flex; align-items: center; gap: 12px">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="5">
+<dc-import name="Chip" label="{{f.label}}" state="{{f.state}}" hint-size="160px,56px"></dc-import>
+</sc-for>
+</div>
+<span class="st-t-caption" style="margin-right: auto; display: flex; align-items: center; gap: 10px; white-space: nowrap"><dc-import name="Icon" glyph="{{srcGlyph}}" size="22" hint-size="22px,22px"></dc-import>{{caption}}</span>
+</div>
+
+<sc-if value="{{isGrid}}" hint-placeholder-val="{{true}}">
+<section aria-label="{{label}}" style="position: absolute; top: 312px; right: var(--st-inset-start); left: var(--st-safe-x); height: 520px; overflow: hidden">
+<div style="display: grid; grid-template-columns: repeat(8, 150px); column-gap: 52px; row-gap: 20px; padding-top: 4px">
+<sc-for list="{{cards}}" as="c" hint-placeholder-count="16">
+<dc-import name="MusicCard" item="{{c}}" state="{{c.state}}" width="150" hint-size="150px,248px"></dc-import>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isHistory}}" hint-placeholder-val="{{false}}">
+<section aria-label="נשמע לאחרונה" style="position: absolute; top: 312px; right: var(--st-inset-start); left: var(--st-safe-x); height: 520px; overflow: hidden; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{history}}" as="h" hint-placeholder-count="6">
+<sc-if value="{{h.isHead}}" hint-placeholder-val="{{false}}"><h2 class="st-t-h1" style="margin: 14px 0 4px">{{h.label}}</h2></sc-if>
+<sc-if value="{{h.isRow}}" hint-placeholder-val="{{true}}"><dc-import name="SongRow" item="{{h}}" state="{{h.state}}" width="1664" hint-size="1664px,84px"></dc-import></sc-if>
+</sc-for>
+</section>
+</sc-if>
+
+<div style="position: absolute; bottom: 0; left: 0"><dc-import name="TvMusicMini" focus="none" hint-size="1920px,248px"></dc-import></div>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="youtube" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"filter":{"editor":"enum","options":["playlists","liked","artists","albums","history"],"default":"playlists"},"account":{"editor":"boolean","default":true},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // "הספרייה שלי" while a song plays: the frame has moved down into the mini player (TvMusicMini) and the
+    // library takes the screen above it. Five filters; ◀▶ on them switch the content at once. The caption
+    // at the end of the row says where each one comes from (decided 12/11):
+    //   playlists, artists — from the connected YouTube account (playlists you own, channels you subscribe to).
+    //   liked — both sources together: your YouTube likes, music only, plus likes kept by Shidur. A like made
+    //           in Shidur is kept by Shidur and, with an account connected, sent to YouTube as well.
+    //   albums — saved by Shidur ("שמירה בספרייה" on an album page), kept in the Shidur account.
+    //   history — what played in Shidur, on every device of the account; it feeds "המשך האזנה" and "בחירה מהירה".
+    // "account: false" — no YouTube account: playlists and artists show the invitation to connect (not drawn),
+    // liked shows Shidur's likes alone.
+    const p = this.props;
+    const cur = p.filter || 'playlists';
+    const account = !(p.account === false || p.account === 'false');
+    const F = [['playlists', 'פלייליסטים'], ['liked', 'שירים שאהבתי'], ['artists', 'אמנים'], ['albums', 'אלבומים'], ['history', 'נשמע לאחרונה']];
+    const CAP = {
+      playlists: ['stream', 'מחשבון YouTube שחיברת'],
+      liked: account ? ['star', 'לייקים מ־YouTube ומשידור, יחד · לייק כאן נשמר בשניהם'] : ['star', 'לייקים ששמרת בשידור · חיבור YouTube יוסיף את הלייקים משם'],
+      artists: ['stream', 'ערוצי האמנים שנרשמת אליהם ב־YouTube'],
+      albums: ['library', 'אלבומים ששמרת בשידור · נשמרים בחשבון שידור'],
+      history: ['history', 'מה שהתנגן בשידור, בכל המכשירים בחשבון']
+    };
+    const kind = cur === 'artists' ? 'artist' : (cur === 'albums' ? 'album' : (cur === 'liked' ? 'song' : 'playlist'));
+    const title = { playlists: '[שם הפלייליסט]', liked: '[שם השיר]', artists: '[שם האמן]', albums: '[שם האלבום]' }[cur];
+    const meta = { playlists: '[מספר] שירים', liked: '[שם האמן]', artists: 'אמן', albums: '[שם האמן] · [שנה]' }[cur];
+    const tones = ['6', '3', '1', '4', '2', '5', '1', '3', '4', '6', '2', '5', '3', '1', '6', '4'];
+    const R = (title, meta, dur, tone, o) => Object.assign({ isRow: true, isHead: false, title: title, meta: meta, dur: dur, tone: tone, state: 'rest' }, o || {});
+    const H = (label) => ({ isHead: true, isRow: false, label: label });
+    return {
+      filters: F.map((f) => ({ label: f[1], state: f[0] === cur ? 'selected' : 'rest' })),
+      caption: CAP[cur][1], srcGlyph: CAP[cur][0], label: F.filter((f) => f[0] === cur)[0][1],
+      isGrid: cur !== 'history', isHistory: cur === 'history',
+      cards: cur === 'history' ? [] : tones.map((t, i) => ({
+        title: cur === 'playlists' && i === 0 ? 'שירים שאהבתי' : title,
+        meta: cur === 'playlists' && i === 0 ? 'מ־YouTube ומשידור' : meta, tone: t, kind: kind,
+        state: i === 2 ? 'focus' : 'rest'
+      })),
+      history: [
+        H('היום'),
+        R('[שם השיר]', '[שם האמן] · 20:51 · בטלוויזיה', '3:42', '3', { state: 'onscreen' }),
+        R('[שם השיר]', '[שם האמן] · 20:47 · בטלוויזיה', '4:05', '1', { state: 'focus' }),
+        H('אתמול'),
+        R('[שם השיר]', '[שם האמן] · 08:12 · בטלפון', '3:18', '5'),
+        R('[שם השיר]', '[שם האמן] · 08:09 · בטלפון', '2:57', '2')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

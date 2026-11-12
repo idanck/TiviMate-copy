@@ -42,6 +42,12 @@ export const YT_LIMITS = {
   poll: { max: 400, windowMs: 30 * 60 * 1000 },
   /** The subscriptions rail. */
   subscriptions: { max: 60, windowMs: 10 * 60 * 1000 },
+  /** The music tab's popular chart (ADR-069): read when the tab opens, answered from the shared cache. */
+  musicChart: { max: 60, windowMs: 10 * 60 * 1000 },
+  /** A playlist or an album opened in the music tab. */
+  musicPlaylist: { max: 120, windowMs: 10 * 60 * 1000 },
+  /** The account's playlists and liked songs, read when the library opens. */
+  musicLibrary: { max: 60, windowMs: 10 * 60 * 1000 },
 } as const;
 
 /**
