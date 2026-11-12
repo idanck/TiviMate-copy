@@ -868,4 +868,5 @@
     <string name="ytm_search_song">שיר</string>
     <string name="ytm_search_to_artist">לעמוד האמן</string>
     <string name="ytm_search_open">פתיחה</string>
+    <string name="ytm_search_field">חיפוש מוזיקה</string>
 </resources>

@@ -65,6 +65,7 @@ import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.data.account.AccountState
 import com.idanck.shidur.data.account.FirebaseSetup
+import com.idanck.shidur.data.youtube.MusicSection
 import com.idanck.shidur.data.youtube.YouTubeRepository
 import com.idanck.shidur.data.youtube.YtChannelHit
 import com.idanck.shidur.data.youtube.YtChannelState
@@ -149,8 +150,14 @@ internal fun PhoneYouTube(session: YouTubeSession, onOpenPlayer: () -> Unit, mod
         when (val page = session.page) {
             is YtPage.Channel -> PhoneYouTubeChannel(id = page.id, state = channels[page.id], onPlay = play)
             YtPage.Search -> PhoneYouTubeSearch(session = session, onOpenChannel = { session.open(YtPage.Channel(it)) }, onPlay = play)
-            null -> LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+            null -> Column(modifier = Modifier.fillMaxSize()) {
+              // "וידאו | מוזיקה" (ADR-069), above the tab's parts; a music page or search has its own top.
+              val musicOver = session.music && (session.musicPage != null || session.musicSection == MusicSection.SEARCH)
+              if (!musicOver) PhoneYtSwitch(session)
+              if (session.music) {
+                PhoneMusicTab(session, Modifier.weight(1f))
+              } else LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 contentPadding = PaddingValues(vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
@@ -214,6 +221,7 @@ internal fun PhoneYouTube(session: YouTubeSession, onOpenPlayer: () -> Unit, mod
                         }
                     }
                 }
+            }
             }
         }
     }
@@ -395,7 +403,7 @@ internal fun PhoneYouTubeAccountButton() {
 }
 
 @Composable
-private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
+internal fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
     val repo = ServiceLocator.youtube
