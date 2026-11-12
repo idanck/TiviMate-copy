@@ -170,7 +170,9 @@ internal fun PodcastPlayerPage(
                 StudioButton(
                     label = stringResource(if (fresh.mark.favourite) R.string.pod_favourite_remove else R.string.pod_favourite_add),
                     onClick = { scope.launch { repo.setFavourite(fresh.key, !fresh.mark.favourite) } },
-                    icon = StudioIcons.Star,
+                    // The glyph states it: a phone's StudioButton draws no `active` (ADR-058), so an
+                    // outline star there looked the same set or not.
+                    icon = if (fresh.mark.favourite) StudioIcons.StarOn else StudioIcons.Star,
                     iconOnly = true,
                     active = fresh.mark.favourite,
                     size = StudioButtonSize.MEDIUM,

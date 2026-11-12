@@ -44,7 +44,7 @@
 <span aria-hidden="true" style="width: 1px; height: 40px; background: var(--st-hairline); margin: 0 6px"></span>
 <dc-import name="Button" label="1.25×" glyph="speed" size="m" hint-size="160px,64px"></dc-import>
 <dc-import name="Button" label="{{sleepLabel}}" glyph="moon" size="m" active="{{sleepOn}}" hint-size="190px,64px"></dc-import>
-<dc-import name="Button" label="הפרק במועדפים" glyph="star" size="m" icon-only="true" active="false" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="{{favLabel}}" glyph="{{favGlyph}}" size="m" icon-only="true" active="{{fav}}" hint-size="64px,64px"></dc-import>
 </div>
 </section>
 
@@ -67,7 +67,7 @@
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"sleep":{"editor":"boolean","default":false},"$preview":{"width":1920,"height":1080}}'>
+<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"sleep":{"editor":"boolean","default":false},"fav":{"editor":"boolean","default":false},"$preview":{"width":1920,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() {
     // The player, full screen, with the radio's drifting backdrop (no picture to burn in, OLED-safe).
@@ -80,6 +80,8 @@ class Component extends DCLogic {
     const off = (v) => v === false || v === 'false';
     const playing = !off(this.props.playing);
     const sleep = this.props.sleep === true || this.props.sleep === 'true';
+    // The star, set: amber (active) and filled, as every other star in the app.
+    const fav = this.props.fav === true || this.props.fav === 'true';
     const R = (title, meta, dur, status, tone) => ({ title: title, meta: meta, dur: dur, status: status, tone: tone });
     const C = (at, label, state) => ({ at: at, label: label,
       bg: state === 'now' ? 'var(--st-current-glass)' : 'transparent',
@@ -90,6 +92,7 @@ class Component extends DCLogic {
       pct: 58,
       playGlyph: playing ? 'pause' : 'play', playLabel: playing ? 'השהיה' : 'המשך', playFocus: true,
       sleepOn: sleep, sleepLabel: sleep ? 'נעצר בעוד 18 דק׳' : 'טיימר שינה',
+      fav: fav, favGlyph: fav ? 'star-on' : 'star', favLabel: fav ? 'הסרה מהמועדפים' : 'הוספה למועדפים',
       queue: [
         R('[שם הפרק]', '[שם הפודקאסט] · היום', '48:12', 'new', '1'),
         R('[שם הפרק]', '[שם הפודקאסט] · אתמול', '32:05', 'new', '4'),
