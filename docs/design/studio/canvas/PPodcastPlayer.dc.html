@@ -29,7 +29,7 @@
 <section aria-label="מתנגן עכשיו" style="position: absolute; top: 424px; right: var(--st-safe-x); left: var(--st-safe-x); display: flex; flex-direction: column; gap: 4px">
 <div style="display: flex; align-items: flex-start; gap: 8px">
 <h1 style="flex: 1 1 auto; min-width: 0; margin: 0; font-size: 20px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[שם הפרק]</h1>
-<button aria-label="הוספה למועדפים" aria-pressed="false" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: var(--st-ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="star" size="24" hint-size="24px,24px"></dc-import></button>
+<button aria-label="{{favLabel}}" aria-pressed="{{favPressed}}" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; background: transparent; color: {{favFg}}; display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="{{favGlyph}}" size="24" hint-size="24px,24px"></dc-import></button>
 </div>
 <span class="st-t-meta">[שם הפודקאסט] · 2 בנובמבר</span>
 <span style="display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; font-weight: 600"><dc-import name="Icon" glyph="menu" size="16" hint-size="16px,16px"></dc-import>קטע 3 מתוך 7 · [שם הקטע]</span>
@@ -66,17 +66,22 @@
 </button>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"sleep":{"editor":"boolean","default":true},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"sleep":{"editor":"boolean","default":true},"fav":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     // The phone player, opened from the mini player or a row. Cover, title with its star, show and date, the
     // current chapter (a tap lists them); a scrubber to drag; 15 back · play · 30 forward. Under them: speed,
     // the sleep timer (amber while it runs), the queue and the chapters. "הבא בתור" pulls up from the foot.
     const sleep = this.props.sleep === undefined ? true : (this.props.sleep === true || this.props.sleep === 'true');
+    // The star says it is set by its glyph — filled, amber — since the phone's buttons have no other
+    // "on" look (ADR-058).
+    const fav = this.props.fav === true || this.props.fav === 'true';
     const T = (glyph, label, on) => ({ glyph: glyph, label: label, pressed: on ? 'true' : 'false',
       bg: on ? 'var(--st-current-glass)' : 'var(--st-card)', edge: on ? 'inset 0 0 0 1px var(--st-current-edge)' : 'var(--st-edge)',
       fg: on ? 'var(--st-cue)' : 'var(--st-ink)' });
     return {
+      favGlyph: fav ? 'star-on' : 'star', favPressed: fav ? 'true' : 'false',
+      favLabel: fav ? 'הסרה מהמועדפים' : 'הוספה למועדפים', favFg: fav ? 'var(--st-cue)' : 'var(--st-ink-2)',
       tools: [T('speed', '1.25×'), T('moon', sleep ? '18 דק׳' : 'טיימר שינה', sleep), T('queue', 'תור'), T('menu', 'קטעים')]
     };
   }
