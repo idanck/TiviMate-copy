@@ -22,6 +22,7 @@ body{margin:0}
 <div class="st-screen st-browse" dir="rtl">
 
 <div style="position: absolute; top: 140px; right: var(--st-inset-start)"><dc-import name="YtSwitch" mode="music" section="home" focus="{{switchFocus}}" hint-size="1000px,64px"></dc-import></div>
+<div style="position: absolute; top: 140px; left: var(--st-safe-x)"><dc-import name="YtAccountChip" state="{{account}}" focused="{{accountFocus}}" hint-size="360px,64px"></dc-import></div>
 
 <sc-if value="{{playing}}" hint-placeholder-val="{{true}}">
 <div style="position: absolute; top: 236px; left: var(--st-safe-x); width: 768px; height: 432px; border-radius: var(--st-r-card); overflow: hidden; box-shadow: var(--st-depth-2)">
@@ -87,7 +88,7 @@ body{margin:0}
 <div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="youtube" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"scroll":{"editor":"enum","options":["top","second"],"default":"top"},"focus":{"editor":"enum","options":["hero","switch"],"default":"hero"},"$preview":{"width":1920,"height":1080}}'>
+<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"scroll":{"editor":"enum","options":["top","second"],"default":"top"},"focus":{"editor":"enum","options":["hero","switch","account","none"],"default":"hero"},"account":{"editor":"enum","options":["connected","reconnect","none"],"default":"connected"},"$preview":{"width":1920,"height":1080}}'>
 class Component extends DCLogic {
   renderVals() {
     // YouTube's screen with "מוזיקה" chosen at its top, part "בשבילך". Built like YouTube's video screen
@@ -131,7 +132,9 @@ class Component extends DCLogic {
     const sw = p.focus === 'switch';
     return {
       playing: playing, idle: !playing,
-      heroFocus: !second && !sw, switchFocus: sw ? 'music' : '',
+      heroFocus: !second && !sw && p.focus !== 'none' && p.focus !== 'account',
+      // The YouTube account (12/11), at the end of the switch's row: YtAccountChip, TvYouTubeAccount.
+      account: p.account || 'connected', accountFocus: p.focus === 'account', switchFocus: sw ? 'music' : '',
       railShift: second ? '-350px' : '0px',
       rails: rails
     };

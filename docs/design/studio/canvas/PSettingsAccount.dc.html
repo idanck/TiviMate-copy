@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — הגדרות, חשבון</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; top: var(--st-safe-top); right: 0"><dc-import name="PTopBar" title="חשבון" search="false" back="true" hint-size="390px,56px"></dc-import></div>
+<div style="position: absolute; top: 88px; right: var(--st-safe-x); display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="8">
+<sc-if value="{{it.isHead}}" hint-placeholder-val="{{false}}"><span style="display: block; padding: {{it.pad}}; font-size: 13px; font-weight: 700; color: var(--st-ink-2)">{{it.label}}</span></sc-if>
+<sc-if value="{{it.isHint}}" hint-placeholder-val="{{false}}"><span style="display: block; width: 358px; box-sizing: border-box; padding: 2px 4px 6px; font-size: 13px; line-height: 1.5; color: var(--st-ink-2)">{{it.label}}</span></sc-if>
+<sc-if value="{{it.isRow}}" hint-placeholder-val="{{true}}"><dc-import name="PListRow" label="{{it.label}}" sub="{{it.sub}}" glyph="{{it.glyph}}" trail="{{it.trail}}" value="{{it.value}}" tone="{{it.tone}}" state="{{it.state}}" width="358" hint-size="358px,64px"></dc-import></sc-if>
+</sc-for>
+</div>
+<div style="position: absolute; bottom: 16px; right: 0"><dc-import name="PNavBar" current="settings" hint-size="390px,72px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"youtube":{"editor":"enum","options":["connected","reconnect","none"],"default":"connected"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Settings › חשבון on the phone, as on the television (TvSettingsAccount): Shidur's account, then the
+    // YouTube one. "החלפת חשבון", "חיבור מחדש" and "חיבור חשבון YouTube" open Google's account picker;
+    // "ניתוק" opens the confirmation of PYouTubeAccount.
+    const yt = this.props.youtube || 'connected';
+    const H = (label, first) => ({ isHead: true, label: label, pad: first ? '0 4px 2px' : '14px 4px 2px' });
+    const R = (label, o) => Object.assign({ isRow: true, label: label, sub: '', glyph: '', trail: 'none', value: '', tone: 'muted', state: 'rest' }, o || {});
+    const items = [
+      H('שידור', true), R('[השם בחשבון Google]', { sub: '[כתובת הדוא״ל]', glyph: 'account' }),
+      R('התנתקות', { sub: 'רק במכשיר הזה' }),
+      R('מחיקת החשבון', { sub: 'מוחק את כל מה שנשמר בשרת, בכל המכשירים', state: 'danger' }),
+      H('YouTube')
+    ];
+    if (yt === 'none') {
+      items.push(R('חיבור חשבון YouTube', { sub: 'בשביל המנויים, הפלייליסטים והשירים שאהבת', glyph: 'plus', trail: 'chevron' }));
+    } else {
+      const re = yt === 'reconnect';
+      items.push(R('[שם הערוץ]', { sub: re ? 'לייקים נשמרים רק בשידור' : 'לייקים נשלחים גם ל־YouTube', glyph: 'account', trail: 'status', tone: re ? 'muted' : 'ok', value: re ? 'קריאה בלבד' : 'מחובר' }));
+      items.push(R(re ? 'חיבור מחדש' : 'החלפת חשבון', { sub: re ? 'כדי לאשר לשידור לסמן לייקים ב־YouTube' : 'חשבון YouTube אחר במקום הזה', glyph: re ? 'link' : 'swap', trail: 'chevron' }));
+      items.push(R('ניתוק', { sub: 'בכל המכשירים. החשבון ב־YouTube לא משתנה.', state: 'danger' }));
+    }
+    return { items: items };
+  }
+}
+</script>
+</body>
+</html>

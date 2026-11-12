@@ -22,10 +22,11 @@
 <button aria-label="ספורט" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="sport" size="22" hint-size="22px,22px"></dc-import></button>
 </sc-if>
 <sc-if value="{{search}}" hint-placeholder-val="{{true}}"><button aria-label="חיפוש" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="search" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
+<sc-if value="{{hasAccount}}" hint-placeholder-val="{{false}}"><button aria-label="{{accAria}}" style="position: relative; width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; padding: 0; border-radius: 50%; background: {{accBg}}; color: {{accFg}}; box-shadow: var(--st-edge); display: flex; align-items: center; justify-content: center; font-family: var(--st-font-ui); font-size: 17px; font-weight: 800; cursor: pointer"><sc-if value="{{accSigned}}" hint-placeholder-val="{{true}}"><span aria-hidden="true">[א]</span></sc-if><sc-if value="{{accNone}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="account" size="22" hint-size="22px,22px"></dc-import></sc-if><sc-if value="{{accWarn}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="position: absolute; top: 0; left: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--st-cue); box-shadow: 0 0 0 2px var(--st-ground)"></span></sc-if></button></sc-if>
 <sc-if value="{{settings}}" hint-placeholder-val="{{false}}"><button aria-label="הגדרות" class="st-glass-thin" style="width: var(--st-touch); height: var(--st-touch); flex: 0 0 var(--st-touch); border: 0; border-radius: 50%; color: var(--st-ink); display: flex; align-items: center; justify-content: center; cursor: pointer"><dc-import name="Icon" glyph="settings" size="22" hint-size="22px,22px"></dc-import></button></sc-if>
 </header>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"ערוצים"},"back":{"editor":"boolean","default":false},"search":{"editor":"boolean","default":true},"panels":{"editor":"boolean","default":false},"settings":{"editor":"boolean","default":false},"menu":{"editor":"boolean","default":false},"$preview":{"width":390,"height":56}}'>
+<script type="text/x-dc" data-dc-script data-props='{"title":{"editor":"text","default":"ערוצים"},"back":{"editor":"boolean","default":false},"search":{"editor":"boolean","default":true},"panels":{"editor":"boolean","default":false},"settings":{"editor":"boolean","default":false},"menu":{"editor":"boolean","default":false},"account":{"editor":"enum","options":["","connected","reconnect","none"],"default":""},"$preview":{"width":390,"height":56}}'>
 class Component extends DCLogic {
   renderVals() {
     // כותרת גדולה (32) במסכי הלשוניות, 26 כשיש חזרה. כפתורי אייקון בזכוכית דקה, 44 לפחות.
@@ -39,7 +40,14 @@ class Component extends DCLogic {
       // settings, menu (11/11): only in the alternatives to the seven-tab bar — a gear after search
       // ("הגדרות למעלה"), or a menu button before the title that opens the drawer ("מגירה").
       settings: yes(this.props.settings), menu: yes(this.props.menu),
-      tfs: back ? '26px' : '32px'
+      tfs: back ? '26px' : '32px',
+      // account (12/11): only on YouTube's tab, after search — the connected channel's picture (here its
+      // initial), with an amber dot when it is read only; the person glyph when none is connected.
+      hasAccount: !!this.props.account, accSigned: this.props.account === 'connected' || this.props.account === 'reconnect',
+      accNone: this.props.account === 'none', accWarn: this.props.account === 'reconnect',
+      accBg: this.props.account === 'none' ? 'var(--st-card)' : '#4A5878',
+      accFg: this.props.account === 'none' ? 'var(--st-ink)' : '#F4F6FB',
+      accAria: this.props.account === 'none' ? 'חיבור חשבון YouTube' : 'חשבון YouTube'
     };
   }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,6 +52,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -64,11 +67,15 @@ import com.idanck.shidur.data.account.AccountState
 import com.idanck.shidur.data.youtube.LibraryFilter
 import com.idanck.shidur.data.youtube.MusicSection
 import com.idanck.shidur.data.youtube.PlayedSong
+import com.idanck.shidur.data.youtube.YtChannelHit
+import com.idanck.shidur.data.youtube.YtLinkStatus
 import com.idanck.shidur.data.youtube.YtMusicList
 import com.idanck.shidur.data.youtube.YtSong
 import com.idanck.shidur.data.youtube.YtSubsState
 import com.idanck.shidur.data.youtube.mergeLiked
 import com.idanck.shidur.data.youtube.quickPicks
+import com.idanck.shidur.ui.account.YouTubeAvatar
+import com.idanck.shidur.ui.account.youTubeAccountName
 import com.idanck.shidur.ui.common.FocusFill
 import com.idanck.shidur.ui.common.StudioButton
 import com.idanck.shidur.ui.common.StudioButtonSize
@@ -77,6 +84,7 @@ import com.idanck.shidur.ui.common.StudioChip
 import com.idanck.shidur.ui.common.StudioIcons
 import com.idanck.shidur.ui.common.YouTubePlayerController
 import com.idanck.shidur.ui.common.claim
+import com.idanck.shidur.ui.common.filledContentColour
 import com.idanck.shidur.ui.common.focusLift
 import com.idanck.shidur.ui.common.focusSurface
 import com.idanck.shidur.ui.theme.StudioTheme
@@ -101,7 +109,13 @@ import java.time.ZoneId
 
 /** The switch at the top of YouTube's screen, and the music tab's parts after it. */
 @Composable
-internal fun YtModeSwitch(session: YouTubeSession, gutter: Dp, modifier: Modifier = Modifier) {
+internal fun YtModeSwitch(
+    session: YouTubeSession,
+    gutter: Dp,
+    modifier: Modifier = Modifier,
+    account: YtLinkStatus? = null,
+    onAccount: () -> Unit = {},
+) {
     val studio = StudioTheme.colors
     Row(
         modifier = modifier.fillMaxWidth().padding(start = gutter, end = YT_SAFE_X, top = 2.dp, bottom = 8.dp).focusGroup(),
@@ -132,6 +146,52 @@ internal fun YtModeSwitch(session: YouTubeSession, gutter: Dp, modifier: Modifie
                 )
             }
         }
+        if (account != null) {
+            Spacer(Modifier.weight(1f))
+            YtAccountChip(account, onClick = onAccount)
+        }
+    }
+}
+
+/**
+ * The YouTube account at the end of the top row (`canvas/YtAccountChip`): the channel's picture
+ * and name, an amber dot when the connection cannot give likes, or "חיבור YouTube" with none.
+ */
+@Composable
+private fun YtAccountChip(link: YtLinkStatus, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val shape = CircleShape
+    Row(
+        modifier = Modifier
+            .height(32.dp)
+            .focusLift(focused, shape = shape)
+            .focusSurface(focused = focused, shape = shape, fill = FocusFill.FILLED)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(start = 5.dp, end = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Box {
+            YouTubeAvatar(if (link.linked) link.channel ?: YtChannelHit("", "", null) else null, size = 22.dp)
+            if (link.linked && !link.canRate) {
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(StudioTheme.colors.current),
+                )
+            }
+        }
+        Text(
+            text = if (link.linked) youTubeAccountName(link) else stringResource(R.string.yt_account_connect),
+            style = StudioTheme.type.meta.copy(fontWeight = if (focused) FontWeight.Bold else FontWeight.SemiBold),
+            color = filledContentColour(focused = focused),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 160.dp),
+        )
     }
 }
 
@@ -304,7 +364,7 @@ private fun MusicNowPlaying(
                     active = liked,
                 )
             }
-            ReconnectNote()
+            ReconnectNote(session)
         } else if (last != null) {
             Text(stringResource(R.string.ytm_continue), style = type.meta, color = studio.ink2)
             Text(last.song.title, style = type.title, color = studio.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -377,11 +437,25 @@ private fun SongProgress(state: YouTubePlayerController.State, modifier: Modifie
 
 /** A like that could not reach YouTube: the connection was made without the scope for it (ADR-069). */
 @Composable
-private fun ReconnectNote() {
+private fun ReconnectNote(session: YouTubeSession) {
     val music = ServiceLocator.music
     val reconnect by music.reconnect.collectAsState()
     if (reconnect) {
-        Text(stringResource(R.string.ytm_reconnect), style = StudioTheme.type.caption, color = StudioTheme.colors.ink3, maxLines = 2)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                stringResource(R.string.ytm_reconnect),
+                style = StudioTheme.type.caption,
+                color = StudioTheme.colors.ink3,
+                maxLines = 2,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            StudioButton(
+                label = stringResource(R.string.yt_account_reconnect),
+                onClick = { session.connectAsked = true },
+                icon = StudioIcons.Link,
+                size = StudioButtonSize.MEDIUM,
+            )
+        }
     }
 }
 
@@ -912,7 +986,7 @@ private fun MusicPlayerPage(session: YouTubeSession) {
                         active = session.repeat,
                     )
                 }
-                ReconnectNote()
+                ReconnectNote(session)
                 Spacer(Modifier.height(4.dp))
                 Text(stringResource(R.string.ytm_queue), style = type.h1, color = studio.ink)
                 val upNext = session.queue.dropWhile { it.id != song.id }.drop(1)

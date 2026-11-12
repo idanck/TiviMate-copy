@@ -90,6 +90,14 @@ class YouTubeParseTest {
         val status = YtParse.linkStatus(mapOf("linked" to false, "tvReady" to true, "phoneReady" to true))
         assertFalse(status.linked)
         assertTrue(status.tvReady)
+        assertNull(status.channel)
+        val connected = YtParse.linkStatus(
+            mapOf("linked" to true, "canRate" to false, "channel" to mapOf("id" to "UCabc", "title" to "Idan", "thumb" to "https://yt3/x")),
+        )
+        assertTrue(connected.linked)
+        assertFalse(connected.canRate)
+        assertEquals("Idan", connected.channel?.title)
+        assertEquals("https://yt3/x", connected.channel?.thumb)
 
         val code = YtParse.linkCode(mapOf("userCode" to "ABCD-EFGH", "verificationUrl" to "https://www.google.com/device", "interval" to 5, "expiresIn" to 1800))!!
         assertEquals("ABCD-EFGH", code.userCode)

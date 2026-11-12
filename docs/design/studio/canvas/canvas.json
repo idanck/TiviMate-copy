@@ -1360,6 +1360,49 @@
    "title": "מוזיקה — עמוד אלבום",
    "page": "phone-ytmusic",
    "is_interactive": true
+  },
+  "YtAccountChip.dc.html": {
+   "x": 4000,
+   "y": 4100,
+   "w": 360,
+   "h": 64,
+   "title": "רכיב — חשבון YouTube · YtAccountChip",
+   "page": "tv-ytmusic"
+  },
+  "TvYouTubeAccount.dc.html": {
+   "x": 0,
+   "y": 4100,
+   "w": 1920,
+   "h": 1080,
+   "title": "YouTube — חשבון YouTube: החשבון המחובר, חיבור מחדש וניתוק",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "TvSettingsAccount.dc.html": {
+   "x": 2000,
+   "y": 4100,
+   "w": 1920,
+   "h": 1080,
+   "title": "הגדרות — חשבון: שידור ו־YouTube",
+   "page": "tv-ytmusic",
+   "is_interactive": true
+  },
+  "PYouTubeAccount.dc.html": {
+   "x": 0,
+   "y": 2200,
+   "w": 390,
+   "h": 844,
+   "title": "YouTube — חשבון YouTube (גיליון)",
+   "page": "phone-ytmusic",
+   "is_interactive": true
+  },
+  "PSettingsAccount.dc.html": {
+   "x": 470,
+   "y": 2200,
+   "w": 390,
+   "h": 844,
+   "title": "הגדרות — חשבון: שידור ו־YouTube",
+   "page": "phone-ytmusic"
   }
  },
  "order": [
@@ -1519,7 +1562,12 @@
   "TvYtMusicAlbum.dc.html",
   "PYtMusicLiked.dc.html",
   "PYtMusicHistory.dc.html",
-  "PYtMusicAlbum.dc.html"
+  "PYtMusicAlbum.dc.html",
+  "YtAccountChip.dc.html",
+  "TvYouTubeAccount.dc.html",
+  "TvSettingsAccount.dc.html",
+  "PYouTubeAccount.dc.html",
+  "PSettingsAccount.dc.html"
  ],
  "notes": {
   "ytmTitle": {
@@ -1582,6 +1630,38 @@
    "fill": "orange",
    "size": "m",
    "text": "מקורות הספרייה כמו בטלוויזיה (12/11): פלייליסטים ואמנים מ־YouTube · שירים שאהבתי — YouTube + שידור יחד · אלבומים — שמורים בשידור · נשמע לאחרונה — היסטוריה של שידור. שורת הסבר קטנה מתחת לפילטרים אומרת מאיפה כל רשימה."
+  },
+  "ytAccTitle": {
+   "x": 0,
+   "y": 3840,
+   "text": "חשבון YouTube — חיבור, החלפה וניתוק",
+   "kind": "title1",
+   "maxW": 4360,
+   "page": "tv-ytmusic"
+  },
+  "ytAccRules": {
+   "x": -620,
+   "y": 4100,
+   "w": 540,
+   "page": "tv-ytmusic",
+   "fill": "blue",
+   "text": "חשבון YouTube (12/11): מגיעים אליו משני מקומות — כפתור החשבון בקצה השורה העליונה של מסך YouTube (וידאו ומוזיקה), והגדרות › חשבון, מתחת לחשבון שידור.\n\nשלושה מצבים: מחובר (שם הערוץ ותמונתו), קריאה בלבד (חיבור ישן בלי הרשאת לייקים — נקודה ענברית ו\"חיבור מחדש\"), ולא מחובר (\"חיבור YouTube\" פותח את חלון החיבור).\n\nהחלפת חשבון וחיבור מחדש = אותו תהליך חיבור של Google; החשבון החדש מחליף את הקודם. ניתוק שואל קודם, מבטל את הגישה אצל Google ומוחק את הטוקן בשרת — בכל המכשירים של חשבון שידור.\n\nכל חלון נפתח רק כשהנגן מושהה ומוסתר. גם הערת \"חיבור מחדש\" בלשונית המוזיקה מקבלת כפתור שפותח את החיבור."
+  },
+  "ytAccPhoneTitle": {
+   "x": 0,
+   "y": 1940,
+   "text": "חשבון YouTube — טלפון",
+   "kind": "title1",
+   "maxW": 860,
+   "page": "phone-ytmusic"
+  },
+  "ytAccPhoneRules": {
+   "x": -620,
+   "y": 2200,
+   "w": 540,
+   "page": "phone-ytmusic",
+   "fill": "blue",
+   "text": "בטלפון: כפתור עגול בשורה העליונה של לשונית YouTube, אחרי החיפוש — תמונת הערוץ, נקודה ענברית כשהחיבור לקריאה בלבד, ואייקון אדם כשאין חיבור. הוא פותח גיליון חשבון, או את גיליון החיבור.\n\nהחלפת חשבון וחיבור מחדש פותחים שוב את בוחר החשבונות של Google. ניתוק שואל קודם. אותן שורות גם בהגדרות › חשבון."
   }
  },
  "designSystems": []

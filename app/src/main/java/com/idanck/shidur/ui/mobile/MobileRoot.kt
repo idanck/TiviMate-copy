@@ -352,6 +352,8 @@ fun MobileRoot(
                         },
                         onSport = if (sportable) ({ openPanels(SportSession.Mode.SPORT) }) else null,
                         onNews = if (sportable) ({ openPanels(SportSession.Mode.NEWS) }) else null,
+                        // YouTube's account button (ADR-069), on the tab's own shelves.
+                        youtubeAccount = !showAddSource && !searching && tab == MobileTab.YOUTUBE && ytSession?.page == null,
                     )
                 }
             },

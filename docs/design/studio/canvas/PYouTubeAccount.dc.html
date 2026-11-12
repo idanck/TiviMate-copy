@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>שידור טלפון — חשבון YouTube</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+<link rel="stylesheet" href="studio-phone.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="PYouTube" account="true" hint-size="390px,844px"></dc-import></div>
+<div class="st-dim"></div>
+
+<sc-if value="{{sheet}}" hint-placeholder-val="{{true}}">
+<section role="dialog" aria-label="חשבון YouTube" class="st-glass-thick" style="position: absolute; right: 0; left: 0; bottom: 0; box-sizing: border-box; padding: 20px var(--st-safe-x) 32px; border-radius: var(--st-r-sheet) var(--st-r-sheet) 0 0; display: flex; flex-direction: column; gap: 14px">
+<span aria-hidden="true" style="align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--st-hairline)"></span>
+<div style="display: flex; align-items: center; gap: 14px; margin-top: 6px">
+<span aria-hidden="true" style="flex: 0 0 64px; width: 64px; height: 64px; border-radius: 50%; background: #4A5878; color: #F4F6FB; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800">[א]</span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<span class="st-t-caption">חשבון YouTube המחובר</span>
+<h1 class="st-t-title-s" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הערוץ]</h1>
+<span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: {{statusColor}}"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: {{statusColor}}"></span>{{status}}</span>
+</div>
+</div>
+<p class="st-t-body" style="margin: 0; color: var(--st-ink-2)">{{body}}</p>
+<span class="st-t-caption">החיבור שייך לחשבון שידור שלך, ולכן חל על כל המכשירים שמחוברים אליו.</span>
+<sc-for list="{{actions}}" as="a" hint-placeholder-count="3">
+<dc-import name="PButton" label="{{a.label}}" glyph="{{a.glyph}}" variant="{{a.variant}}" size="l" hint-size="358px,52px"></dc-import>
+</sc-for>
+</section>
+</sc-if>
+
+<sc-if value="{{confirm}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; top: 250px; right: 24px"><dc-import name="PDialog" title="לנתק את חשבון YouTube?" glyph="alert" body="יוסרו &quot;חדש מהמנויים שלך&quot;, הפלייליסטים והשירים שאהבת ב־YouTube, בכל המכשירים של חשבון שידור. הערוצים השמורים, והלייקים, האלבומים וההיסטוריה ששמורים בשידור, נשארים." primary="ניתוק" secondary="ביטול" tone="danger" note="החשבון עצמו ב־YouTube לא משתנה." hint-size="342px,320px"></dc-import></div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["connected","reconnect"],"default":"connected"},"step":{"editor":"enum","options":["sheet","confirm"],"default":"sheet"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The account button in the top bar of the phone's YouTube tab (video or music) opens this sheet; with
+    // none connected it opens the connect sheet (PYouTubeConnect). Nothing plays under it: the tab has no
+    // player of its own, and the music mini player pauses while a sheet is open.
+    // "החלפת חשבון" and "חיבור מחדש" open Google's own account picker again, asking for both scopes; the new
+    // account replaces the old. "ניתוק" asks first, then revokes the access at Google and deletes the
+    // token on the server (ytUnlink); the button turns into the person glyph.
+    const re = this.props.state === 'reconnect';
+    const step = this.props.step || 'sheet';
+    const A = (label, glyph, variant) => ({ label: label, glyph: glyph, variant: variant });
+    return {
+      sheet: step === 'sheet', confirm: step === 'confirm',
+      status: re ? 'קריאה בלבד · לייקים נשמרים רק בשידור' : 'מחובר · לייקים נשלחים גם ל־YouTube',
+      statusColor: re ? 'var(--st-cue)' : 'var(--st-ok)',
+      body: re
+        ? 'החיבור הזה נעשה לפני ששידור ביקש רשות לסמן לייקים. כדי שלייק שנותנים כאן יגיע גם ל־YouTube, מחברים מחדש ומאשרים את ההרשאה החדשה.'
+        : 'מכאן מגיעים "חדש מהמנויים שלך", הפלייליסטים והשירים שאהבת ב־YouTube. לייק שנותנים בשידור נשמר בשידור וגם ב־YouTube.',
+      actions: re
+        ? [A('חיבור מחדש', 'link', 'primary'), A('ניתוק', '', 'danger'), A('סגירה', '', 'ghost')]
+        : [A('החלפת חשבון', 'swap', 'secondary'), A('ניתוק', '', 'danger'), A('סגירה', '', 'ghost')]
+    };
+  }
+}
+</script>
+</body>
+</html>

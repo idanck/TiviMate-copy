@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube — חשבון YouTube</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="TvYtMusic" playing="false" focus="{{baseFocus}}" account="{{chip}}" hint-size="1920px,1080px"></dc-import></div>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+<div class="st-dim"></div>
+</sc-if>
+
+<sc-if value="{{sheet}}" hint-placeholder-val="{{true}}">
+<section role="dialog" aria-label="חשבון YouTube" class="st-panel" style="position: absolute; top: 190px; left: 410px; width: 1100px; box-sizing: border-box; padding: 60px 72px; display: flex; flex-direction: column; gap: 30px">
+<div style="display: flex; align-items: center; gap: 28px">
+<span aria-hidden="true" style="flex: 0 0 120px; width: 120px; height: 120px; border-radius: 50%; background: #4A5878; color: #F4F6FB; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 800">[א]</span>
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<span class="st-t-caption">חשבון YouTube המחובר</span>
+<h1 class="st-t-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">[שם הערוץ]</h1>
+<span style="display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 600; color: {{statusColor}}"><span aria-hidden="true" style="width: 12px; height: 12px; border-radius: 50%; background: {{statusColor}}"></span>{{status}}</span>
+</div>
+</div>
+<p class="st-t-body" style="margin: 0; color: var(--st-ink-2)">{{body}}</p>
+<span class="st-t-meta">החיבור שייך לחשבון שידור שלך, ולכן חל על כל המכשירים שמחוברים אליו.</span>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px">
+<sc-for list="{{actions}}" as="a" hint-placeholder-count="3">
+<dc-import name="Button" label="{{a.label}}" glyph="{{a.glyph}}" variant="{{a.variant}}" focused="{{a.focused}}" size="m" hint-size="220px,64px"></dc-import>
+</sc-for>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{confirm}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; top: 300px; left: 485px"><dc-import name="Dialog" title="לנתק את חשבון YouTube?" body="{{confirmBody}}" note="החשבון עצמו ב־YouTube לא משתנה, ואפשר לחבר אותו שוב בכל רגע." glyph="alert" tone="danger" primary="ניתוק" secondary="ביטול" focus="secondary" width="950" hint-size="950px,420px"></dc-import></div>
+</sc-if>
+
+<sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+<div class="st-glass-thick" style="position: absolute; top: 470px; left: 710px; width: 500px; height: 140px; box-sizing: border-box; border-radius: var(--st-r-panel); display: flex; align-items: center; justify-content: center; gap: 20px">
+<dc-import name="Loader" hint-size="40px,40px"></dc-import>
+<span style="font-size: 26px; font-weight: 600">מנתק את החשבון…</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["connected","reconnect","none"],"default":"connected"},"step":{"editor":"enum","options":["closed","sheet","confirm","busy"],"default":"sheet"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The YouTube account, from YouTube's screen (video or music: the chip sits at the end of the same top
+    // row as וידאו | מוזיקה). ▲ from the first row reaches the switch; ◀ walks to the chip.
+    // closed — the chip has the remote. With none connected, OK opens the connect window (TvYouTubeConnect).
+    // sheet — the account window. Like every window here it opens only with the player paused and its frame
+    //   hidden: nothing may sit in front of a YouTube player.
+    //   connected: Back or "סגירה" closes; "החלפת חשבון" runs the same Google flow as connecting (a code at
+    //   google.com/device) and the new account replaces the old; "ניתוק" asks first.
+    //   reconnect: an account connected before the like scope (or one that declined it): read only, so likes
+    //   stay in Shidur. "חיבור מחדש" leads, with the remote on it.
+    // confirm — disconnecting: the remote starts on "ביטול". Disconnecting revokes Shidur's access at Google
+    //   and deletes the token on the server (ytUnlink), for every device of the Shidur account.
+    // busy — while ytUnlink runs. After it the window closes and the chip reads "חיבור YouTube".
+    const p = this.props;
+    const st = p.state || 'connected';
+    const step = p.step || 'sheet';
+    const re = st === 'reconnect';
+    const A = (label, glyph, variant, focused) => ({ label: label, glyph: glyph, variant: variant, focused: focused });
+    const actions = re
+      ? [A('חיבור מחדש', 'link', 'primary', true), A('ניתוק', '', 'danger', false), A('סגירה', '', 'ghost', false)]
+      : [A('סגירה', '', 'secondary', true), A('החלפת חשבון', 'swap', 'secondary', false), A('ניתוק', '', 'danger', false)];
+    const sheet = step === 'sheet' && st !== 'none';
+    return {
+      chip: st, baseFocus: step === 'closed' ? 'account' : 'none',
+      open: step !== 'closed' && !(step === 'sheet' && st === 'none'),
+      sheet: sheet, confirm: step === 'confirm', busy: step === 'busy',
+      status: re ? 'קריאה בלבד · לייקים נשמרים רק בשידור' : 'מחובר · לייקים נשלחים גם ל־YouTube',
+      statusColor: re ? 'var(--st-current)' : 'var(--st-ok)',
+      body: re
+        ? 'החיבור הזה נעשה לפני ששידור ביקש רשות לסמן לייקים. כדי שלייק שנותנים כאן יגיע גם ל־YouTube, מחברים את החשבון מחדש ומאשרים את ההרשאה החדשה.'
+        : 'מכאן מגיעים "חדש מהמנויים שלך", הפלייליסטים שלך והשירים שאהבת ב־YouTube. לייק שנותנים בשידור נשמר בשידור וגם ב־YouTube.',
+      confirmBody: 'יוסרו מכאן "חדש מהמנויים שלך", הפלייליסטים והשירים שאהבת ב־YouTube, בכל המכשירים של חשבון שידור. הערוצים השמורים, והלייקים, האלבומים וההיסטוריה ששמורים בשידור, נשארים.',
+      actions: actions
+    };
+  }
+}
+</script>
+</body>
+</html>

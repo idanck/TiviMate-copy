@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>רכיב — חשבון YouTube</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<button aria-label="{{aria}}" class="st-anim" style="height: 64px; box-sizing: border-box; padding: 0 22px 0 10px; border: 0; border-radius: 32px; background: {{bg}}; -webkit-backdrop-filter: {{blur}}; backdrop-filter: {{blur}}; box-shadow: {{sh}}; transform: {{tf}}; color: {{fg}}; display: inline-flex; align-items: center; gap: 14px; font-family: var(--st-font-ui); font-size: 24px; font-weight: {{fw}}; white-space: nowrap; cursor: pointer">
+<span aria-hidden="true" style="position: relative; flex: 0 0 44px; width: 44px; height: 44px; border-radius: 50%; background: {{avBg}}; color: {{avFg}}; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800">
+<sc-if value="{{hasAccount}}" hint-placeholder-val="{{true}}"><span>{{initial}}</span></sc-if>
+<sc-if value="{{noAccount}}" hint-placeholder-val="{{false}}"><dc-import name="Icon" glyph="account" size="26" hint-size="26px,26px"></dc-import></sc-if>
+<sc-if value="{{warn}}" hint-placeholder-val="{{false}}"><span style="position: absolute; top: -2px; left: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--st-current); box-shadow: 0 0 0 3px {{ring}}"></span></sc-if>
+</span>
+<span>{{label}}</span>
+</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["connected","reconnect","none"],"default":"connected"},"name":{"editor":"text","default":"[שם הערוץ]"},"initial":{"editor":"text","default":"[א]"},"focused":{"editor":"boolean","default":false},"$preview":{"width":360,"height":64}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // The YouTube account, at the end of the top row of YouTube's screen (the start of the row holds
+    // וידאו | מוזיקה). Connected: the channel's picture (here its initial) and its name. Connected without
+    // the right to like on YouTube (an old connection, read only): an amber dot on the picture. None
+    // connected: the person glyph and "חיבור YouTube". OK opens the account window, or the connect window.
+    const p = this.props;
+    const st = p.state || 'connected';
+    const f = p.focused === true || p.focused === 'true';
+    const has = st !== 'none';
+    const name = p.name ?? '[שם הערוץ]';
+    return {
+      hasAccount: has, noAccount: !has, warn: st === 'reconnect',
+      initial: p.initial ?? '[א]',
+      label: has ? name : 'חיבור YouTube',
+      aria: has ? 'חשבון YouTube: ' + name : 'חיבור חשבון YouTube',
+      bg: f ? 'var(--st-cue)' : 'var(--st-control)',
+      blur: f ? 'none' : 'var(--st-blur)',
+      sh: f ? 'var(--st-lift)' : 'var(--st-edge)',
+      tf: f ? 'scale(var(--st-focus-scale))' : 'none',
+      fg: f ? 'var(--st-on-cue)' : 'var(--st-ink)',
+      fw: f ? '700' : '600',
+      avBg: has ? '#4A5878' : (f ? 'rgba(10, 15, 28, 0.12)' : 'var(--st-card)'),
+      avFg: has ? '#F4F6FB' : (f ? 'var(--st-on-cue)' : 'var(--st-ink-2)'),
+      ring: f ? 'var(--st-cue)' : 'var(--st-ground)'
+    };
+  }
+}
+</script>
+</body>
+</html>
