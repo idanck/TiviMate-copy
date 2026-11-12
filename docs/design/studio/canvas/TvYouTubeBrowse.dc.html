@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube — רפרוף במדפים על כל המסך</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen st-browse" dir="rtl">
+
+<section aria-label="YouTube" style="position: absolute; top: 140px; left: 856px; right: 0; bottom: 0; overflow: hidden">
+<div class="st-anim" style="transform: translateY({{shift}}); display: flex; flex-direction: column">
+
+<div style="height: 88px; padding: 0 var(--st-inset-start) 0 0; display: flex; align-items: flex-start; opacity: {{headOpacity}}">
+<dc-import name="YtSwitch" mode="video" section="home" focus="" hint-size="400px,64px"></dc-import>
+</div>
+
+<sc-for list="{{rails}}" as="rail" hint-placeholder-count="4">
+<div style="height: 296px; box-sizing: border-box; display: flex; flex-direction: column">
+<div style="padding: 0 var(--st-inset-start) 0 0; margin-bottom: 14px; display: flex; align-items: baseline; gap: 16px">
+<h2 class="st-t-h1">{{rail.title}}</h2>
+<span class="st-t-caption">{{rail.caption}}</span>
+</div>
+<div style="display: flex; align-items: flex-start; gap: var(--st-gap-rail); padding: 20px var(--st-inset-start) 20px 0; margin-top: -20px; overflow: hidden">
+<sc-if value="{{rail.isVideos}}" hint-placeholder-val="{{true}}">
+<sc-for list="{{rail.cards}}" as="c" hint-placeholder-count="6">
+<div style="flex: 0 0 256px"><dc-import name="YtCard" item="{{c}}" state="{{c.state}}" width="256" hint-size="256px,226px"></dc-import></div>
+</sc-for>
+</sc-if>
+<sc-if value="{{rail.isChannels}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{rail.cards}}" as="c" hint-placeholder-count="10">
+<div style="flex: 0 0 140px; display: flex; justify-content: center"><dc-import name="StationDisc" label="{{c.label}}" state="{{c.state}}" size="120" hint-size="120px,170px"></dc-import></div>
+</sc-for>
+</sc-if>
+</div>
+</div>
+</sc-for>
+
+</div>
+</section>
+
+<section aria-label="מתנגן עכשיו" style="position: absolute; top: 140px; left: var(--st-safe-x); width: 712px; display: flex; flex-direction: column; gap: 14px">
+<div style="width: 712px; height: 400px; border-radius: var(--st-r-card); overflow: hidden; box-shadow: var(--st-depth-2)">
+<sc-if value="{{playing}}" hint-placeholder-val="{{true}}"><dc-import name="Picture" scene="studio" width="712" height="400" label="[נגן YouTube · 356×200dp · לא מכוסה]" hint-size="712px,400px"></dc-import></sc-if>
+<sc-if value="{{idle}}" hint-placeholder-val="{{false}}"><div style="width: 712px; height: 400px; background: var(--st-surface); display: flex; align-items: center; justify-content: center"><span class="st-t-meta">שום דבר לא מתנגן</span></div></sc-if>
+</div>
+<sc-if value="{{playing}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 6px">
+<span style="display: flex; align-items: center; gap: 14px"><dc-import name="LiveBadge" size="s" hint-size="140px,34px"></dc-import><dc-import name="StationDisc" label="כאן חדשות" size="48" caption="false" hint-size="48px,48px"></dc-import><span style="font-size: 26px; font-weight: 700">כאן חדשות</span></span>
+<span style="font-size: 40px; font-weight: 800; line-height: 1.15; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden">[כותרת השידור החי]</span>
+<span class="st-t-meta">[מספר צופים כעת] · התחיל ב־18:00</span>
+<div style="display: flex; align-items: center; gap: 12px; margin-top: 6px">
+<dc-import name="Button" label="מסך מלא" glyph="fullscreen" size="m" focused="{{fsFocus}}" hint-size="200px,64px"></dc-import>
+<dc-import name="Button" label="לערוץ" glyph="stream" size="m" hint-size="160px,64px"></dc-import>
+<dc-import name="Button" label="הערוץ שמור אצלך" glyph="star" size="m" icon-only="true" active="true" hint-size="64px,64px"></dc-import>
+<dc-import name="Button" label="חיפוש ב־YouTube" glyph="search" size="m" icon-only="true" hint-size="64px,64px"></dc-import>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{idle}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 12px; margin-top: 6px"><span style="font-size: 40px; font-weight: 800">שום דבר לא מתנגן</span><dc-import name="Button" label="חיפוש ב־YouTube" glyph="search" size="m" hint-size="240px,64px"></dc-import></div>
+</sc-if>
+</section>
+
+<div style="position: absolute; inset: 0; pointer-events: none"><dc-import name="TvShell" current="youtube" topbar="true" menu="closed" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"playing":{"editor":"boolean","default":true},"scroll":{"editor":"enum","options":["top","second","third"],"default":"top"},"account":{"editor":"boolean","default":true},"focus":{"editor":"enum","options":["card","column"],"default":"card"},"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // Browsing alternative for YouTube's video side (12/11), same build as TvYtMusicBrowse: no player hero.
+    // Rails on the whole height beside a column at the end edge; the whole list scrolls, the switch row
+    // first. The column holds the player's own frame, 712×400 (356×200dp — YouTube's player is at least
+    // 200×200 in dp), and the channel, title and buttons under it, never over it (YouTube's terms). ◀ from
+    // a rail's last card reaches the column; OK on "מסך מלא" opens TvYouTubeFull. The video tab keeps the
+    // column with nothing playing (search and what went wrong are said there).
+    const p = this.props;
+    const playing = !(p.playing === false || p.playing === 'false');
+    const account = !(p.account === false || p.account === 'false');
+    const step = p.scroll === 'third' ? 2 : (p.scroll === 'second' ? 1 : 0);
+    const v = (title, meta, o) => Object.assign({ title: title, meta: meta, scene: 'studio', state: 'rest' }, o || {});
+    const live = { title: 'בשידור חי עכשיו', caption: 'מהערוצים ששמרת', isVideos: true, cards: [
+      v('[כותרת השידור החי]', 'כאן חדשות · התחיל ב־18:00', { live: true, state: playing ? 'onscreen' : 'rest' }),
+      v('[כותרת השידור החי]', 'i24NEWS עברית · התחיל ב־19:30', { live: true, scene: 'talk' }),
+      v('[כותרת השידור החי]', 'N12 · התחיל ב־20:00', { live: true }),
+      v('[כותרת השידור החי]', 'גלי צה״ל · התחיל ב־17:00', { live: true, scene: 'neutral' }),
+      v('[כותרת השידור החי]', 'ערוץ הכנסת · התחיל ב־11:00', { live: true, scene: 'talk' }),
+      v('[כותרת השידור החי]', 'כאן 11 · התחיל ב־20:00', { live: true })
+    ] };
+    const subs = { title: 'חדש מהמנויים שלך', caption: 'מחשבון YouTube שחיברת', isVideos: true, cards: [
+      v('[כותרת הסרטון]', 'כאן 11 · לפני שעה', { dur: '24:10' }),
+      v('[כותרת הסרטון]', 'N12 · לפני 3 שעות', { dur: '08:42', scene: 'talk' }),
+      v('[כותרת הסרטון]', 'כאן חדשות · לפני 5 שעות', { dur: '15:03', scene: 'neutral' }),
+      v('[כותרת הסרטון]', 'i24NEWS עברית · אתמול', { dur: '41:27' }),
+      v('[כותרת הסרטון]', 'ערוץ 14 · אתמול', { dur: '06:55', scene: 'talk' }),
+      v('[כותרת הסרטון]', 'כאן 11 · אתמול', { dur: '12:30' })
+    ] };
+    const cont = { title: 'המשך צפייה', caption: '', isVideos: true, cards: [
+      v('[כותרת הסרטון]', 'כאן 11 · נצפה אתמול', { dur: '52:00', pct: 40 }),
+      v('[כותרת הסרטון]', 'N12 · נצפה לפני יומיים', { dur: '18:20', pct: 75, scene: 'talk' }),
+      v('[כותרת הסרטון]', 'כאן חדשות · נצפה השבוע', { dur: '09:12', pct: 20, scene: 'neutral' })
+    ] };
+    const channels = { title: 'הערוצים שלך', caption: 'שמורים בשידור, גם בלי חשבון YouTube', isChannels: true, cards: [
+      { label: 'כאן חדשות', state: playing ? 'onscreen' : 'rest' }, { label: 'i24NEWS עברית' }, { label: 'N12' }, { label: 'גלי צה״ל' },
+      { label: 'ערוץ הכנסת' }, { label: 'כאן 11' }, { label: 'ערוץ 14' }, { label: 'הוספת ערוץ' }
+    ].map((c) => Object.assign({ state: 'rest' }, c)) };
+    const rails = account ? [live, subs, cont, channels] : [live, cont, channels];
+    const strip = p.focus === 'column';
+    if (!strip) {
+      const r = rails[step];
+      const at = step === 0 && playing ? 1 : 0;
+      rails[step] = Object.assign({}, r, { cards: r.cards.map((c, i) => (i === at ? Object.assign({}, c, { state: 'focus' }) : c)) });
+    }
+    return {
+      playing: playing,
+      idle: !playing,
+      shift: step === 0 ? '0px' : '-' + (88 + (step - 1) * 296) + 'px',
+      headOpacity: step === 0 ? '1' : '0',
+      fsFocus: strip,
+      rails: rails
+    };
+  }
+}
+</script>
+</body>
+</html>

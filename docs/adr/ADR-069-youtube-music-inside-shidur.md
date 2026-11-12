@@ -126,6 +126,15 @@ Callables in `me-west1`, beside the video tab's, with the same key, tokens and q
   player as a 356×200 frame at 1080p — 178×100dp — and a YouTube player must be at least 200×200;
   in the player's page CSS pixels are dp. So on the library and a list's page the frame is 356×200dp
   at the top of a column at the end edge, with the song and its buttons under it.
+- **Browsing, 12/11 (0.35.1).** The owner found the home screen's build — a hero over two thirds
+  of the screen and one rail in an opaque bottom third — wrong for YouTube and YouTube Music, and
+  chose rails on the whole height (the canvas's `TvYouTubeBrowse`, `TvYtMusicBrowse`). The whole
+  list scrolls, and the switch above gives its row to the rails once they pass the first one
+  (`YouTubeSession.railsScrolled`). The player is the same column at the end edge as on the
+  library, 356×200dp: on the video tab always (search and problems are said there), on
+  "בשבילך" only while something is in the player — with nothing in it there is no player and no
+  column, and "המשך האזנה" (the history, newest first) is the first rail instead of a hero. Cards
+  are smaller on these rails (128dp videos, 80dp music), and the remote lands on the first card.
 - The likes, saved albums and history are kept on the device and, while signed in, in the account
   (`MusicRepository`): listened to, the first answer after sign-in joining what the device kept
   signed out; the history keeps the newest 300.

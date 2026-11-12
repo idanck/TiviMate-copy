@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>YouTube · מוזיקה — רפרוף: עוד לא מתנגן</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="st-screen" dir="rtl">
+<div style="position: absolute; inset: 0"><dc-import name="TvYtMusicBrowse" playing="false" scroll="top" focus="card" hint-size="1920px,1080px"></dc-import></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+  // Entering music with nothing playing (the case in the photo from the TV, 12/11): no "שום דבר לא מתנגן" hero
+  // and no player. The rails run to the bottom edge, and "המשך האזנה" is the first rail — OK on a card starts
+  // it, and only then the mini player strip appears at the foot.
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
