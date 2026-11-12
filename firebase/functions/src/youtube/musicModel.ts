@@ -38,6 +38,8 @@ export interface YtMusicList {
   count: number | null;
   /** "public", "unlisted" or "private", when YouTube says. */
   privacy: string | null;
+  /** An album rather than a playlist, by [isAlbumId]. */
+  album: boolean;
 }
 
 /** An artist: a channel, as search finds it. */
@@ -90,7 +92,17 @@ export function listFrom(item: Json): YtMusicList | null {
     thumb: bestThumb(sn),
     count: typeof count === 'number' && Number.isFinite(count) ? count : null,
     privacy: typeof item.status?.privacyStatus === 'string' ? item.status.privacyStatus : null,
+    album: isAlbumId(id),
   };
+}
+
+/**
+ * Whether a playlist id is an album's. The API does not say; this is a rule of thumb, chosen by the
+ * owner (ADR-069): the playlists YouTube makes for an artist's albums have ids that begin with
+ * "OLAK5uy_", as seen on YouTube and YouTube Music — not documented anywhere, so it can be wrong.
+ */
+export function isAlbumId(id: string): boolean {
+  return id.startsWith('OLAK5uy_');
 }
 
 /** A search hit for a channel. */
@@ -152,10 +164,17 @@ export function playlistId(raw: unknown): string | null {
   return typeof raw === 'string' && PLAYLIST_ID.test(raw) ? raw : null;
 }
 
-export type MusicSearchKind = 'all' | 'songs' | 'artists' | 'playlists';
+export type MusicSearchKind = 'all' | 'songs' | 'artists' | 'albums' | 'playlists';
 
 export function musicSearchKind(raw: unknown): MusicSearchKind {
-  return raw === 'songs' || raw === 'artists' || raw === 'playlists' ? raw : 'all';
+  return raw === 'songs' || raw === 'artists' || raw === 'albums' || raw === 'playlists' ? raw : 'all';
+}
+
+/** The lists of a search kept to the kind asked for: albums alone, or playlists alone, by [isAlbumId]. */
+export function listsOfKind(lists: YtMusicList[], kind: MusicSearchKind): YtMusicList[] {
+  if (kind === 'albums') return lists.filter((l) => l.album);
+  if (kind === 'playlists') return lists.filter((l) => !l.album);
+  return lists;
 }
 
 /**
@@ -168,8 +187,13 @@ export function musicSearchParams(q: string, kind: MusicSearchKind, category: st
   const base: Record<string, string> = { part: 'snippet', q, maxResults: '25', regionCode: 'IL', safeSearch: 'moderate' };
   if (kind === 'songs') return category ? { ...base, type: 'video', videoCategoryId: category } : { ...base, type: 'video' };
   if (kind === 'artists') return { ...base, type: 'channel', maxResults: '15' };
-  if (kind === 'playlists') return { ...base, type: 'playlist', maxResults: '20' };
+  if (kind === 'albums' || kind === 'playlists') return { ...base, type: 'playlist', maxResults: '25' };
   return { ...base, type: 'video,channel,playlist' };
+}
+
+/** A video id the app may rate: YouTube's eleven characters. */
+export function videoId(raw: unknown): string | null {
+  return typeof raw === 'string' && /^[A-Za-z0-9_-]{11}$/.test(raw) ? raw : null;
 }
 
 /** What a library request may ask for: the account's own playlists, or its liked songs. */

@@ -86,7 +86,10 @@ import com.idanck.shidur.R
 import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.core.TimeModel
 import com.idanck.shidur.data.account.AccountState
+import com.idanck.shidur.data.youtube.LibraryFilter
+import com.idanck.shidur.data.youtube.MusicSection
 import com.idanck.shidur.data.youtube.YouTubeRepository
+import com.idanck.shidur.data.youtube.YtSong
 import com.idanck.shidur.data.youtube.YtSearchKind
 import com.idanck.shidur.data.youtube.YtSearchResult
 import com.idanck.shidur.data.youtube.YtSubsState
@@ -130,6 +133,14 @@ import kotlin.math.roundToInt
  * at one place in [TvRoot] over both overlays, and only moved and resized as the frame does: it is
  * never re-created between the screen and full screen, so the stream does not start again.
  */
+
+/** A page of the music tab over its parts (ADR-069), over which Back steps. */
+internal sealed interface MusicPage {
+    /** A playlist or an album and its songs. */
+    data class Songs(val id: String) : MusicPage
+    /** The player screen, with what plays and what comes next. */
+    data object Player : MusicPage
+}
 
 /** A page of YouTube's screen shown in place of its home view, over which Back steps. */
 internal sealed interface YtPage {
@@ -225,14 +236,109 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
         offAir = null
         heldPlaying = false
         noteCurrent()
+        playingMusic = false
         player.load(video, repo.positionOf(video.id))
     }
 
-    /** Writes down where the video playing got to, for "continue watching". */
+    /** Writes down where the video playing got to, for "continue watching" — never a song (ADR-069). */
     fun noteCurrent() {
+        if (playingMusic) return
         val s = player.state.value
         val v = s.video ?: return
         if (s.position > 0) repo.noteWatched(v, s.position)
+    }
+
+    // ---- The music tab (ADR-069) ----
+
+    /** "מוזיקה" is chosen in the switch at the top of YouTube's screen. */
+    var music by mutableStateOf(false)
+
+    var musicSection by mutableStateOf(MusicSection.HOME)
+    var libraryFilter by mutableStateOf(LibraryFilter.PLAYLISTS)
+
+    /** The music tab's pages over its parts (a playlist or album, the player screen), the last on top. */
+    var musicPages by mutableStateOf<List<MusicPage>>(emptyList())
+        private set
+
+    val musicPage: MusicPage? get() = musicPages.lastOrNull()
+
+    fun openMusic(page: MusicPage) {
+        musicPages = musicPages + page
+    }
+
+    /** One music page back; false when there is none. */
+    fun backMusic(): Boolean {
+        if (musicPages.isEmpty()) return false
+        musicPages = musicPages.dropLast(1)
+        return true
+    }
+
+    /** The songs playing in order, and where they came from (a playlist or album id), for the history. */
+    var queue by mutableStateOf<List<YtSong>>(emptyList())
+        private set
+    var queueContext by mutableStateOf<String?>(null)
+        private set
+    var queueTitle by mutableStateOf<String?>(null)
+        private set
+    var repeat by mutableStateOf(false)
+
+    /** The player holds a song from [queue], not a video. */
+    var playingMusic by mutableStateOf(false)
+        private set
+
+    /** The song playing, when the player holds one. */
+    val currentSong: YtSong?
+        get() = if (playingMusic) player.state.value.video?.id?.let { id -> queue.firstOrNull { it.id == id } } else null
+
+    /** Plays [songs] in order from [start] (the first when null), as one queue. */
+    fun playSongs(songs: List<YtSong>, start: YtSong?, context: String?, title: String?, shuffle: Boolean = false) {
+        if (songs.isEmpty()) return
+        val ordered = if (shuffle) {
+            val first = start ?: songs.random()
+            listOf(first) + songs.filterNot { it.id == first.id }.shuffled()
+        } else {
+            songs
+        }
+        queue = ordered
+        queueContext = context
+        queueTitle = title
+        playSong(if (shuffle) ordered.first() else start ?: ordered.first())
+    }
+
+    /** Plays [song] from the start, as a song: noted in the music history, not in "continue watching". */
+    fun playSong(song: YtSong) {
+        started = true
+        offAir = null
+        heldPlaying = false
+        noteCurrent()
+        playingMusic = true
+        if (queue.none { it.id == song.id }) queue = queue + song
+        ServiceLocator.music.notePlayed(song, queueContext)
+        player.load(song.asVideo(), 0)
+    }
+
+    fun nextSong() {
+        com.idanck.shidur.data.youtube.nextSong(queue, player.state.value.video?.id, repeat)?.let { playSong(it) }
+    }
+
+    fun previousSong() {
+        // Into the song, the first press goes back to its start, as music players do.
+        if (player.state.value.position > RESTART_WITHIN_S) {
+            player.seekBy(-player.state.value.position)
+            return
+        }
+        com.idanck.shidur.data.youtube.previousSong(queue, player.state.value.video?.id)?.let { playSong(it) }
+    }
+
+    /** The queue in a new random order, the song playing first. */
+    fun shuffleQueue() {
+        val current = currentSong ?: return
+        queue = listOf(current) + queue.filterNot { it.id == current.id }.shuffled()
+    }
+
+    /** A song came to its end: the next one in the queue plays, or the queue starts again with [repeat]. */
+    fun onEnded() {
+        if (playingMusic) nextSong()
     }
 
     fun release() {
@@ -262,6 +368,10 @@ internal fun openInYouTube(context: Context, video: YtVideo) {
 @Composable
 internal fun YouTubePlayerLayer(session: YouTubeSession, full: Boolean, modifier: Modifier = Modifier) {
     val state by session.player.state.collectAsState()
+    // A song that ends gives way to the next in the queue (ADR-069), wherever the player is drawn.
+    LaunchedEffect(state.phase, state.video?.id) {
+        if (state.phase == YouTubePlayerController.Phase.ENDED) session.onEnded()
+    }
     var origin by remember { mutableStateOf(Offset.Zero) }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
     BoxWithConstraints(modifier = modifier.fillMaxSize().onGloballyPositioned { origin = it.positionInRoot() }) {
@@ -353,7 +463,8 @@ internal fun TvYouTubeScreen(
     // The first live stream starts by itself, once a visit: one player playing on the screen.
     LaunchedEffect(live.firstOrNull()?.id) {
         val first = live.firstOrNull()
-        if (!session.started && first != null) session.play(first)
+        // Not on the music tab, where a stream starting by itself would stand in for the songs (ADR-069).
+        if (!session.started && !session.music && first != null) session.play(first)
     }
     // The player keeps its place in "continue watching" as it goes.
     LaunchedEffect(session) {
@@ -409,7 +520,16 @@ internal fun TvYouTubeScreen(
                 },
             )
 
-            null -> {
+            null -> Column(modifier = Modifier.fillMaxSize()) {
+                // "וידאו | מוזיקה" (ADR-069): the video tab as it was, or the music tab.
+                YtModeSwitch(session = session, gutter = sideMenuInset())
+                if (session.music) {
+                    TvMusicScreen(
+                        session = session,
+                        onConnect = { connecting = true },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
                 YouTubeHome(
                     session = session,
                     playerState = playerState,
@@ -427,6 +547,7 @@ internal fun TvYouTubeScreen(
                     onConnect = { connecting = true },
                     onOpenInApp = { video -> openInYouTube(context, video) },
                 )
+                }
             }
         }
     }
@@ -1464,6 +1585,8 @@ private const val NOTE_EVERY_MS = 30_000L
 
 private const val RECENT_RAIL_SIZE = 20
 private const val SEEK_STEP_S = 10
+/** Previous goes back to a song's start when it is further in than this, as music players do. */
+private const val RESTART_WITHIN_S = 3
 private const val SIDE_LIST_IDLE_MS = 4_000L
 
 /** The shrunk player beside full screen's list: 1344×756 at 1080p, 162px from the top, 48px from the end edge. */

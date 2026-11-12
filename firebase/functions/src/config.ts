@@ -48,6 +48,8 @@ export const YT_LIMITS = {
   musicPlaylist: { max: 120, windowMs: 10 * 60 * 1000 },
   /** The account's playlists and liked songs, read when the library opens. */
   musicLibrary: { max: 60, windowMs: 10 * 60 * 1000 },
+  /** Likes sent to YouTube: 50 units each, so a person's share is kept small. */
+  musicRate: { max: 60, windowMs: 60 * 60 * 1000 },
 } as const;
 
 /**

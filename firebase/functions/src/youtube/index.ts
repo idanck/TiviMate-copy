@@ -6,11 +6,11 @@ import { MAX_INSTANCES, REGION, YT_LIMITS } from '../config';
 import { clientIp, enforce } from '../limits';
 import { QuotaError, YtApiError, ytGetAsUser } from './api';
 import { channelIdForHandle, channelStates, SAVED_TTL_MS, SUBSCRIBED_TTL_MS } from './channels';
-import { accessTokenFor, configured, exchangeServerCode, isLinked, pollDeviceLink, startDeviceLink, unlink, type OAuthClient } from './link';
+import { accessTokenFor, configured, exchangeServerCode, isLinked, linkCanRate, pollDeviceLink, startDeviceLink, unlink, type OAuthClient } from './link';
 import { channelIds, mergeFeed, normalizeQuery, parseChannelInput, searchKind, searchParams } from './model';
 import { search } from './search';
-import { chart, library, musicCategory, musicSearch, NotFound, playlist } from './music';
-import { libraryPart, musicSearchKind, musicSearchParams, playlistId } from './musicModel';
+import { chart, library, musicCategory, musicSearch, NotFound, playlist, rate } from './music';
+import { libraryPart, musicSearchKind, musicSearchParams, playlistId, videoId } from './musicModel';
 
 /**
  * The YouTube callables (ADR-061). Every one runs in me-west1 like the rest, and none hands the
@@ -99,7 +99,8 @@ export const ytSearch = onCall({ ...base, secrets: [API_KEY] }, async (request) 
 /** Whether this account has YouTube connected, and whether each route can be offered at all. */
 export const ytLinkStatus = onCall({ ...base, secrets: [TV_ID, TV_SECRET, WEB_ID, WEB_SECRET] }, async (request) => {
   const uid = signedIn(request);
-  return { linked: await isLinked(uid), tvReady: configured(tv()), phoneReady: configured(web()) };
+  const linked = await isLinked(uid);
+  return { linked, canRate: linked && (await linkCanRate(uid)), tvReady: configured(tv()), phoneReady: configured(web()) };
 });
 
 /** The television starts connecting: `{}` → `{ userCode, verificationUrl, interval, expiresIn }`. */
@@ -226,7 +227,7 @@ export const ytmLibrary = onCall({ ...base, secrets: [API_KEY, TV_ID, TV_SECRET,
 });
 
 /**
- * Music search: `{ q, kind: 'all' | 'songs' | 'artists' | 'playlists' }` → `{ songs, artists, lists,
+ * Music search: `{ q, kind: 'all' | 'songs' | 'artists' | 'albums' | 'playlists' }` → `{ songs, artists, lists,
  * cached }`. It spends from the same daily searches, and the same per-account share, as the video
  * tab's search.
  */
@@ -239,6 +240,31 @@ export const ytmSearch = onCall({ ...base, secrets: [API_KEY] }, async (request)
     const category = await musicCategory(API_KEY.value());
     return await musicSearch(q, kind, musicSearchParams(q, kind, category), category, API_KEY.value());
   } catch (e) {
+    translate(e);
+  }
+});
+
+/**
+ * A like given or taken back in Shidur, sent to YouTube too (ADR-069): `{ id, like }` →
+ * `{ rated }`. `{ rated: false, reason: 'not-linked' | 'reconnect' }` when the account is not
+ * connected, or was connected without the scope that gives likes; the like stays in Shidur either way.
+ */
+export const ytmRate = onCall({ ...base, secrets: [TV_ID, TV_SECRET, WEB_ID, WEB_SECRET] }, async (request) => {
+  const uid = signedIn(request);
+  const id = videoId(request.data?.id);
+  if (!id) throw new HttpsError('invalid-argument', 'Not a video.');
+  const like = request.data?.like === true;
+  await enforce('ytm_rate', uid, YT_LIMITS.musicRate.max, YT_LIMITS.musicRate.windowMs);
+  try {
+    if (!(await isLinked(uid))) return { rated: false, reason: 'not-linked' };
+    if (!(await linkCanRate(uid))) return { rated: false, reason: 'reconnect' };
+    const token = await accessTokenFor(uid, { tv: tv(), web: web() });
+    if (!token) return { rated: false, reason: 'not-linked' };
+    await rate(uid, id, like, token);
+    return { rated: true };
+  } catch (e) {
+    if (e instanceof HttpsError) throw e;
+    if (e instanceof YtApiError && (e.reason === 'insufficientPermissions' || e.status === 401)) return { rated: false, reason: 'reconnect' };
     translate(e);
   }
 });

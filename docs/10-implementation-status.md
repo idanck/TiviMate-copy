@@ -292,9 +292,10 @@ and the phone, from the official YouTube Data API only.
 |---|---|---|
 | Server | Done | `ytmChart`, `ytmPlaylist`, `ytmLibrary`, `ytmSearch`, cached on the server (stage 1). |
 | Account documents | Done | Likes, saved albums and history in `users/{uid}/music…`, written by the app under `firestore.rules`. |
-| Television | Not built | Stage 2 and 3: the switch, "בשבילך", the library, an album's page, the player and mini player, search. |
+| Television | Partial | 0.34.0: the switch, "בשבילך", the library, a list's page, the player screen and the mini player (a column, ADR-069). Search is stage 3. |
 | Phone | Not built | Stage 4. |
-| Liking on YouTube | Open | Needs a scope that writes; the owner decides (ADR-069, *Open*). |
+| Liking on YouTube | Done | `ytmRate`, with the write scope asked for on connecting; an older connection is asked to connect again. |
+| Albums | Done | Told from playlists by their id (`OLAK5uy_`), a rule of thumb; saved in the Shidur account. |
 
 ## WEB — Shidur for the computer (ADR-044)
 
