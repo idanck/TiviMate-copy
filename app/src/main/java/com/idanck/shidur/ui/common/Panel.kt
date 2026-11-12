@@ -309,7 +309,12 @@ fun StudioSheet(
     val tv = StudioTheme.television
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        // The window is laid out edge to edge, under the bars, and the sheet keeps clear of them
+        // with insets of its own. With the platform fitting it instead, Compose sizes a full-width
+        // dialog to `screenHeightDp`, which from Android 15 counts the bars too, while the platform
+        // still places it below the status bar: the window ran off the foot of the screen by the
+        // status bar's height and took the bottom of a phone sheet with it ("עוד", 0.33.1).
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         // A drawer is never blurred behind; a panel or a sheet is glass, and is where it can be.
         val blurred = if (tv && drawer) false else rememberWindowBlurBehind()
@@ -413,36 +418,41 @@ fun StudioSheet(
                     // `PChannelMenu`: thick glass floating 8dp off the edges, every corner the sheet's.
                     val shape = MaterialTheme.shapes.extraLarge
                     val settings by ServiceLocator.settings.state.collectAsState()
-                    Column(
-                        modifier = modifier
-                            .navigationBarsPadding()
-                            .fillMaxWidth()
-                            .padding(start = 8.dp, end = 8.dp, top = 64.dp, bottom = 8.dp)
-                            .panelSurface(
-                                opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
-                                shape = shape,
-                                material = GlassMaterial.THICK,
-                            )
-                            // The sheet keeps its own taps: only the space above it closes it.
-                            .pointerInput(Unit) { detectTapGestures { } }
-                            .semantics { paneTitle = title }
-                            .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.CenterHorizontally)
-                                .size(width = 36.dp, height = 5.dp)
-                                .clip(CircleShape)
-                                .background(studio.track),
-                        )
-                        SheetHeader(title = title, number = number, caption = caption, tv = false)
+                    // The sheet takes the near-opaque fallback even where the window blurs behind it:
+                    // it lands on the tab bar, and through the translucent tint the tabs' labels read
+                    // as a second row of the sheet's own (0.33.1).
+                    CompositionLocalProvider(LocalGlassBlur provides false) {
                         Column(
-                            modifier = Modifier.weight(1f, fill = false),
-                            verticalArrangement = Arrangement.spacedBy(2.dp),
-                            content = content,
-                        )
-                        if (buttons != null) SheetButtons(buttons)
+                            modifier = modifier
+                                .navigationBarsPadding()
+                                .fillMaxWidth()
+                                .padding(start = 8.dp, end = 8.dp, top = 64.dp, bottom = 8.dp)
+                                .panelSurface(
+                                    opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
+                                    shape = shape,
+                                    material = GlassMaterial.THICK,
+                                )
+                                // The sheet keeps its own taps: only the space above it closes it.
+                                .pointerInput(Unit) { detectTapGestures { } }
+                                .semantics { paneTitle = title }
+                                .padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.CenterHorizontally)
+                                    .size(width = 36.dp, height = 5.dp)
+                                    .clip(CircleShape)
+                                    .background(studio.track),
+                            )
+                            SheetHeader(title = title, number = number, caption = caption, tv = false)
+                            Column(
+                                modifier = Modifier.weight(1f, fill = false),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                content = content,
+                            )
+                            if (buttons != null) SheetButtons(buttons)
+                        }
                     }
                 }
             }
