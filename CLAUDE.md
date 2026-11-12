@@ -44,10 +44,11 @@ app and hands it the data through a signature-guarded provider (`data/handover/`
 - A change to the user's tables, to `Settings`' keys or to what a backup carries is also a change to
   what the hand-over moves: check `HandoverSnapshot.TABLES`, `importable()` and ADR-060's tables.
 
-## One APK and one QA run per batch of changes, at the end
+## One APK per batch of changes; QA only when the owner asks
 
-The owner's rule (2026-10-16): a series of related changes publishes **one** update and gets
-**one** emulator QA run, after its last change has landed on `main` — not one of each per PR.
+The owner's rule (2026-10-16): a series of related changes publishes **one** update, after its last
+change has landed on `main` — not one per PR. Since 2026-11-12 the emulator QA run is his call too:
+it runs only when he asks for it or approves it explicitly (below).
 
 - **APK.** CI on a feature branch runs the unit tests and lint only (`SHIPS` in
   `.github/workflows/android.yml`); a release APK is assembled, signed and kept only on `main`,
@@ -55,9 +56,11 @@ The owner's rule (2026-10-16): a series of related changes publishes **one** upd
   cancel any earlier `main` run of **Android build** before it reaches "Publish the update
   manifest", so only the last merge publishes. Every PR still bumps `versionCode` as above — a
   `main` build that does reach the publish step with an already-published code fails loudly.
-- **QA.** `.github/workflows/qa.yml` runs on pushes to `main` that touch `qa/`, and by hand. Run
-  it once, on `main`, after the batch's last merge, dispatching it by hand if that merge changed
-  nothing under `qa/`.
+- **QA.** Never dispatch `.github/workflows/qa.yml` on your own: run it only when the owner asks
+  for a QA run or approves one explicitly (owner's rule, 2026-11-12). When a batch's last merge is
+  in, say that a QA run is available and wait for his answer. The workflow also starts by itself on
+  pushes to `main` that touch `qa/`; when a change under `qa/` lands on `main` without his approval
+  for a run, cancel that run and tell him.
 
 A `main` run that sits in `queued` with no jobs and refuses both cancel ("completed" / "not
 queued yet") and re-run ("already running") is stuck on GitHub's side (it happened to 0.33.0's
