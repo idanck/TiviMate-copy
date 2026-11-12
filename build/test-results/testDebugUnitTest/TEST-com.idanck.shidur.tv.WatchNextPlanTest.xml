@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.tv.WatchNextPlanTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.003">
+  <properties/>
+  <testcase name="what is on now becomes the row's description" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.002"/>
+  <testcase name="a deep link round-trips" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="anything else is refused" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="rows the plan no longer wants are named for deletion" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="a query string or fragment is ignored" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="the row is capped" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.001"/>
+  <testcase name="a row carries the channel identity and its own deep link" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="a channel not watched for a month drops out" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="a channel with no guide still gets a row" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="nothing is deleted when the plan still wants everything" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="never-watched and hidden channels are left out" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <testcase name="rows come back newest first" classname="com.idanck.shidur.tv.WatchNextPlanTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

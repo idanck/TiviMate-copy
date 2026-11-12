@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.TvMetricsTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.007">
+  <properties/>
+  <testcase name="row height stays inside a legible band whatever the viewport" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.005"/>
+  <testcase name="scaling is bounded, so an enormous panel does not simply double everything" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="the banner height survives an absurd viewport" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="chips are pills and the television takes the canvas corners and focus" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="row height follows the height available, so a set number of rows fits" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a home card on a 1080p television is a fifth smaller than it was" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a rail always has room for more than one card" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.001"/>
+  <testcase name="home dimensions scale with the panel and stay clamped" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a logo never scales away to nothing" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="the banner always leaves a slice of the first rail on screen" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a narrow viewport does not shrink the layout without limit" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a guide row never grows past the panel row's own ceiling" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="the rails' panel is the bottom third of a 1080p television" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a guide row never falls below the height its two lines of type need" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="the guide over the picture fits eight rows on a 1080p panel" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="the collapsed rail is narrower than the expanded one and still fits an icon" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a wider panel buys wider hours, not the same hours repeated" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <testcase name="a 1080p panel keeps the widths the layout was written for" classname="com.idanck.shidur.ui.TvMetricsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <long name="previous_channel" value="123" />
+    <long name="active_playlist" value="7" />
+    <string name="update_last_manifest">{
+  "versionCode": 162,
+  "versionName": "0.33.3",
+  "apkUrl": "https://updates.idanck.com/apk/shidur-0.33.3-release-90874aa7.apk",
+  "sha256": "61aff517036d9697118a2e992c738157b8c14939eecf9b724c1c9d0525537e4d",
+  "sizeBytes": 16375871,
+  "minSdk": 23,
+  "notes": {
+    "he": "fix(mobile): \"עוד\" opens above the bar, as the canvas draws it (0.33.3) (#191)",
+    "en": "fix(mobile): \"עוד\" opens above the bar, as the canvas draws it (0.33.3) (#191)"
+  }
+}
+    </string>
+    <string name="refresh_worker_class">com.idanck.shidur.work.RefreshWorker</string>
+    <long name="last_channel" value="124" />
+    <long name="update_last_check" value="1794468910169" />
+<string name="rec_folder">/data/user/0/com.idanck.shidur.debug/files/qa-rec</string><boolean name="pip_on_home" value="true" /></map>

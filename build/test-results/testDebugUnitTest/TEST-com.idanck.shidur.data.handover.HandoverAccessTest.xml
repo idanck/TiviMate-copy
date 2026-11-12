@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.handover.HandoverAccessTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.002">
+  <properties/>
+  <testcase name="the new app, holding the permission and signed with the same key, is let in" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.001"/>
+  <testcase name="a package signed with another key is refused" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.0"/>
+  <testcase name="a package without the permission is refused" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.0"/>
+  <testcase name="any other package is refused, even signed with the same key" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.001"/>
+  <testcase name="a caller the platform could not name is refused" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.0"/>
+  <testcase name="the signature is asked about the caller itself" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.0"/>
+  <testcase name="debug builds pair with each other only" classname="com.idanck.shidur.data.handover.HandoverAccessTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

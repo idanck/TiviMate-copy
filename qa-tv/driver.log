@@ -1,0 +1,24 @@
+[tv] QA-01 PASS  Install the debug APK — Performing Streamed Install
+Success · APK 22882 KB · uid 10122
+[tv] QA-02 PASS  Cold and warm start time — cold [2459, 1767, 1484] ms (budget 4000 on an emulator), warm 393 ms
+[tv] QA-03 PASS  First run: built-in Israeli channels and radio bootstrap — ערוצים פתוחים בישראל: 12 channels, ok=1 ; רדיו ישראלי: 97 channels, ok=1 
+[tv] QA-04 PASS  Every top-level destination opens — opened 7/7: ['Home', 'Live', 'Guide', 'Radio', 'DVR', 'Search', 'Settings']; missing []
+[tv] QA-26 PASS  Home: from the side menu, the arrow towards the content returns the remote to where it left from (ADR-035) — down:כאן 88 · along:רדיו תשעים · to_menu:כאן 88 · to_menu:Settings (menu) · in_menu:Settings (menu) · back:כאן 88 · to_menu_again:Settings (menu) · up:Search (menu) · up:DVR (menu) · up:Podcasts · up:YouTube (menu) · up:News (menu) · up:Sport (menu) · up:Radio (menu) · up:Guide (menu) · up:Live (menu) · up:Home (menu) · ok_on_home:כאן 88 · next:רדיו תשעים · after_ok:רדיו תשעים
+[tv] QA-05 FAIL  Bad playlist addresses fail cleanly — QA Malformed: saved=True alive=False row=[] || QA Missing: could not reach Add a playlist || QA Empty: could not reach Add a playlist
+[tv] QA-07 FAIL  Add the mock Xtream account (live, VOD, series) — could not reach Add a playlist
+[tv] QA-06 FAIL  Add the mock M3U playlist with its XMLTV guide through the UI — could not reach Settings > Playlists and guide > Add a playlist
+[tv] QA-08 FAIL  Live playback starts from the shidur:// deep link (HLS, TS) — HLS: channel not in DB; MPEG-TS: channel not in DB
+[tv] QA-09 SKIP  Zapping: channel up/down, number entry, last channel — mock playlist missing
+[tv] QA-10 FAIL  Broken stream, failover and slow start are handled — broken: not in DB || failover: not in DB || slow: not in DB
+[tv] QA-11 FAIL  D-pad: focus is always visible and never lost — no focused node after 18/18 keys; path: DPAD_DOWN:∅ DPAD_DOWN:∅ DPAD_DOWN:∅ DPAD_DOWN:∅ DPAD_RIGHT:∅ DPAD_RIGHT:∅ DPAD_RIGHT:∅ DPAD_UP:∅ DPAD_UP:∅ DPAD_LEFT:∅ DPAD_LEFT:∅ DPAD_LEFT:∅ DPAD_LEFT:∅ DPAD_CENTER:∅ DPAD_DOWN:∅ DPAD_DOWN:∅ BACK:∅ DPAD_UP:∅
+[tv] QA-12 FAIL  Guide shows mock programmes; search finds a channel and a programme — guide cells seen: []; search hits: []
+[tv] QA-24 SKIP  Back from a screen opened from the video returns to the video (ADR-036) — mock playlist missing
+[tv] QA-25 SKIP  The guide opened from the video lands on what the playing channel is airing — mock playlist missing
+[tv] QA-27 FAIL  Settings by remote: a slider shows focus and moves with left and right; a text field brings the keyboard up only on OK — could not reach Settings > Network || 
+[tv] QA-29 SKIP  Live TV pauses, rewinds and returns to live from the timeshift buffer (ADR-065) — mock MPEG-TS channel missing
+[tv] QA-13 FAIL  Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP — process death -> relaunch None ms alive=False
+[tv] QA-14 SKIP  Network drops for 20 s during playback and comes back — mock playlist missing
+[tv] QA-15 FAIL  Malformed and hostile deep links are ignored — 7 links, crashes on: ['shidur://channel/999999', 'shidur://channel/abc', 'shidur://channel/', 'shidur://channel/-1', 'shidur://channel/1%27%20OR%201=1', 'shidur://channel/9999999999999999999999999999999999999999', 'shidur://other/1']
+[tv] QA-23 SKIP  A scheduled recording starts from its alarm with the app closed — mock playlist missing
+[tv] QA-21 FAIL  A refresh that gets an HTML error page keeps the existing channels — could not reach Add a playlist
+driver exit: 124

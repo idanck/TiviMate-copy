@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:42" hostname="runnervmwuk1x" time="0.26">
+  <properties/>
+  <testcase name="callers racing each other still insert exactly one radio playlist" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.054"/>
+  <testcase name="an unrelated playlist is left untouched and a fresh row is inserted beside it" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.027"/>
+  <testcase name="deleting it is undone by the next cold start" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.028"/>
+  <testcase name="both bundled bootstraps racing each other insert exactly one row each" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.039"/>
+  <testcase name="it coexists with the TV built-in playlist without interfering" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.035"/>
+  <testcase name="first cold start inserts exactly one radio playlist" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.037"/>
+  <testcase name="a second cold start does not duplicate it" classname="com.idanck.shidur.data.IsraelRadioStationsBootstrapTest" time="0.04"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

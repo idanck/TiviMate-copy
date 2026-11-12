@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.UpdatedNoticeTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:44" hostname="runnervmwuk1x" time="0.102">
+  <properties/>
+  <testcase name="an older build than the one expected is not the update" classname="com.idanck.shidur.data.UpdatedNoticeTest" time="0.024"/>
+  <testcase name="a failed install forgets the mark" classname="com.idanck.shidur.data.UpdatedNoticeTest" time="0.025"/>
+  <testcase name="a mark older than the hand-off window has lapsed" classname="com.idanck.shidur.data.UpdatedNoticeTest" time="0.018"/>
+  <testcase name="the expected update announces itself once" classname="com.idanck.shidur.data.UpdatedNoticeTest" time="0.016"/>
+  <testcase name="a replacement with no mark is a sideload and stays quiet" classname="com.idanck.shidur.data.UpdatedNoticeTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

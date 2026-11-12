@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:42" hostname="runnervmwuk1x" time="0.374">
+  <properties/>
+  <testcase name="a playlist seeded at a legacy url is corrected in place" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.1"/>
+  <testcase name="deleting it is undone by the next cold start" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.048"/>
+  <testcase name="first cold start inserts exactly one built-in playlist" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.039"/>
+  <testcase name="a legacy row is corrected only once, not on every start" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.039"/>
+  <testcase name="removing it from Settings keeps it away until it is restored" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.096"/>
+  <testcase name="a second cold start does not duplicate it" classname="com.idanck.shidur.data.IsraelPublicChannelsBootstrapTest" time="0.051"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

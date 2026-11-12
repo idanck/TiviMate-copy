@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.VodQueriesTest" tests="12" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.322">
+  <properties/>
+  <testcase name="a successful fetch prunes the episodes the panel stopped listing" classname="com.idanck.shidur.data.VodQueriesTest" time="0.035"/>
+  <testcase name="re-fetching a series keeps the favourite and the resume position" classname="com.idanck.shidur.data.VodQueriesTest" time="0.025"/>
+  <testcase name="a film and an episode sharing a provider id stay separate rows" classname="com.idanck.shidur.data.VodQueriesTest" time="0.023"/>
+  <testcase name="episodes are scoped to their own series and playlist" classname="com.idanck.shidur.data.VodQueriesTest" time="0.024"/>
+  <testcase name="a saved position puts the episode in continue-watching" classname="com.idanck.shidur.data.VodQueriesTest" time="0.025"/>
+  <testcase name="episodes come back in the order a viewer meets them" classname="com.idanck.shidur.data.VodQueriesTest" time="0.026"/>
+  <testcase name="asking for series gets containers, never episodes" classname="com.idanck.shidur.data.VodQueriesTest" time="0.026"/>
+  <testcase name="the stored resume mark is the authority, not the tile's snapshot" classname="com.idanck.shidur.data.VodQueriesTest" time="0.023"/>
+  <testcase name="the grid shows films and series but not the episodes underneath them" classname="com.idanck.shidur.data.VodQueriesTest" time="0.03"/>
+  <testcase name="a search answers with the series, not with sixty of its episodes" classname="com.idanck.shidur.data.VodQueriesTest" time="0.028"/>
+  <testcase name="a starred episode is findable under favourites" classname="com.idanck.shidur.data.VodQueriesTest" time="0.028"/>
+  <testcase name="clearing the position takes the episode out of continue-watching" classname="com.idanck.shidur.data.VodQueriesTest" time="0.027"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

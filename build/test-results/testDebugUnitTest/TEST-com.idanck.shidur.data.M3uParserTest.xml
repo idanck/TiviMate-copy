@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.M3uParserTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:42" hostname="runnervmwuk1x" time="0.015">
+  <properties/>
+  <testcase name="preserves attributes it does not understand" classname="com.idanck.shidur.data.M3uParserTest" time="0.009"/>
+  <testcase name="reads EXTVLCOPT and KODIPROP into headers and licence hints" classname="com.idanck.shidur.data.M3uParserTest" time="0.001"/>
+  <testcase name="survives an EXTINF with no URL" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="parses fractional and signed tvg-shift as minutes" classname="com.idanck.shidur.data.M3uParserTest" time="0.001"/>
+  <testcase name="handles a byte order mark and CRLF endings" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="treats an archive window with no explicit mode as the default mode" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="derives catch-up mode and window" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="keeps a comma inside the display name" classname="com.idanck.shidur.data.M3uParserTest" time="0.001"/>
+  <testcase name="accepts a bare URL with no EXTINF" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="an HTML error page is not a playlist" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="reads a built-in-playlist-shaped entry with Hebrew name and hosted logo" classname="com.idanck.shidur.data.M3uParserTest" time="0.001"/>
+  <testcase name="accepts a bare absolute path" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="reads the documented attributes" classname="com.idanck.shidur.data.M3uParserTest" time="0.0"/>
+  <testcase name="identity prefers tvg-id then stream id then name" classname="com.idanck.shidur.data.M3uParserTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

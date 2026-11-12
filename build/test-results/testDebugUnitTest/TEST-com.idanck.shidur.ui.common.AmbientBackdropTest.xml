@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.common.AmbientBackdropTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:51" hostname="runnervmwuk1x" time="0.009">
+  <properties/>
+  <testcase name="the pool does not retrace its path after one period of either axis" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.001"/>
+  <testcase name="the ground is each tone at its quarter of the cycle, and back to the first at the end" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.0"/>
+  <testcase name="between two tones the ground is neither" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.0"/>
+  <testcase name="the pool of light stays on screen" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.005"/>
+  <testcase name="a song announced as artist and title is split, anything else is all title" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.003"/>
+  <testcase name="the pool's hue stays within its swing" classname="com.idanck.shidur.ui.common.AmbientBackdropTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

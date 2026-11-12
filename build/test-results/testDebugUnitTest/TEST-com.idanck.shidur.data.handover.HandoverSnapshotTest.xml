@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.handover.HandoverSnapshotTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.35">
+  <properties/>
+  <testcase name="settings keep their own types, the PIN included" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.059"/>
+  <testcase name="a snapshot of another format is refused and nothing changes" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.032"/>
+  <testcase name="a credential the bridge cannot unseal is counted, not sent sealed" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.041"/>
+  <testcase name="the update record and a picked recording folder stay behind" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.044"/>
+  <testcase name="the bridge's snapshot round-trips, credentials in the clear only on the way" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.05"/>
+  <testcase name="every preference type is written and read back as itself" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.018"/>
+  <testcase name="credentials are sealed again and every playlist is due at once" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.029"/>
+  <testcase name="a format-1 snapshot is taken in whole, ids and user state included" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.04"/>
+  <testcase name="counts that do not match roll the whole import back" classname="com.idanck.shidur.data.handover.HandoverSnapshotTest" time="0.035"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

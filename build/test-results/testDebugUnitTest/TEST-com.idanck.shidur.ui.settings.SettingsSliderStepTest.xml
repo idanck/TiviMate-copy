@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.settings.SettingsSliderStepTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:51" hostname="runnervmwuk1x" time="0.002">
+  <properties/>
+  <testcase name="a held key moves five steps at a time, but only across a long range" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.001"/>
+  <testcase name="a whole-number setting moves one whole step each way" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.0"/>
+  <testcase name="fractional steps walk the whole range without drifting off it" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.001"/>
+  <testcase name="the default step is one of the slider's own steps" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.0"/>
+  <testcase name="a value between grid points goes to the next one that way" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.0"/>
+  <testcase name="it stops at either end" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.0"/>
+  <testcase name="every press raises a whole-number setting by one once it is stored as an int" classname="com.idanck.shidur.ui.settings.SettingsSliderStepTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

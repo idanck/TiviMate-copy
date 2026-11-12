@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.ChannelQueriesTest" tests="25" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:39" hostname="runnervmwuk1x" time="2.711">
+  <properties/>
+  <testcase name="inside a selected group the filter still narrows by channel name" classname="com.idanck.shidur.data.ChannelQueriesTest" time="1.479"/>
+  <testcase name="a guide entry resolves back to the channel that carries it" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.056"/>
+  <testcase name="binding a channel to a guide entry leaves the provider's fields alone" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.052"/>
+  <testcase name="recents can be scoped to, or away from, one playlist" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.114"/>
+  <testcase name="a playlist cannot hold two groups with the same name" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.059"/>
+  <testcase name="a group of your own can be made, renamed and deleted without taking its channels" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.054"/>
+  <testcase name="the favourites view returns only what was marked" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.048"/>
+  <testcase name="moving a channel swaps two positions and leaves the rest alone" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.055"/>
+  <testcase name="the recently watched filter matches group names" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.046"/>
+  <testcase name="a group-name match does not resurrect a hidden group" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.045"/>
+  <testcase name="hiding a group hides the channels inside it" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.046"/>
+  <testcase name="a playlist turned off leaves the views that span playlists" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.046"/>
+  <testcase name="each sort preset orders the list its own way" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.049"/>
+  <testcase name="a percent sign in a query is matched literally" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.034"/>
+  <testcase name="a refresh keeps the favourite, the name, the number and the hidden flag" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.063"/>
+  <testcase name="the filter finds a channel by the name of its group" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.045"/>
+  <testcase name="a scoped recents list still honours the search filter" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.042"/>
+  <testcase name="a percent sign in a group name is matched literally" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.047"/>
+  <testcase name="upserting a group by name updates the existing one instead of doing nothing" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.061"/>
+  <testcase name="a renamed channel sorts under the name the user gave it" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.052"/>
+  <testcase name="an edit made against a stale snapshot does not undo a refresh" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.05"/>
+  <testcase name="a hidden channel leaves every list and is found again by the hidden view" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.044"/>
+  <testcase name="search inside a group stays inside that group" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.037"/>
+  <testcase name="search matches the provider name and the name the user gave it" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.039"/>
+  <testcase name="a new group is created hidden when the setting says so" classname="com.idanck.shidur.data.ChannelQueriesTest" time="0.039"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

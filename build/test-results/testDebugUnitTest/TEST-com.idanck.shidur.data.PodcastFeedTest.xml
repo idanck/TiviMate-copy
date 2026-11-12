@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.PodcastFeedTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:43" hostname="runnervmwuk1x" time="0.113">
+  <properties/>
+  <testcase name="an HTML page or Atom is not a podcast feed" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.017"/>
+  <testcase name="reads the show from its channel" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.02"/>
+  <testcase name="an item without a guid is keyed by its audio address" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.017"/>
+  <testcase name="a channel without a title is refused" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.017"/>
+  <testcase name="durations in every form feeds write them" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.017"/>
+  <testcase name="keeps only items with audio, with their details" classname="com.idanck.shidur.data.PodcastFeedTest" time="0.023"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

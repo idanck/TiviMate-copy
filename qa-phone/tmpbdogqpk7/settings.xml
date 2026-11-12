@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <long name="previous_channel" value="15" />
+    <string name="app_language">ENGLISH</string>
+    <string name="news_slots">5,-1,,</string>
+    <string name="rec_folder">/data/user/0/com.idanck.shidur.debug/files/qa-rec</string>
+    <string name="pin_hash">Eg5X4T38EoPyGmmphGPxDg6MHycLVZ0No011KwU+NI4=</string>
+    <string name="refresh_worker_class">com.idanck.shidur.work.RefreshWorker</string>
+    <long name="last_channel" value="122" />
+    <boolean name="lock_settings" value="true" />
+    <boolean name="pip_on_home" value="true" />
+    <string name="pin_salt">OmjBOFEGr8poGcgKsU7QaQ==</string>
+    <long name="active_playlist" value="9" />
+    <string name="update_last_manifest">{&#10;  &quot;versionCode&quot;: 162,&#10;  &quot;versionName&quot;: &quot;0.33.3&quot;,&#10;  &quot;apkUrl&quot;: &quot;https://updates.idanck.com/apk/shidur-0.33.3-release-90874aa7.apk&quot;,&#10;  &quot;sha256&quot;: &quot;61aff517036d9697118a2e992c738157b8c14939eecf9b724c1c9d0525537e4d&quot;,&#10;  &quot;sizeBytes&quot;: 16375871,&#10;  &quot;minSdk&quot;: 23,&#10;  &quot;notes&quot;: {&#10;    &quot;he&quot;: &quot;fix(mobile): \&quot;עוד\&quot; opens above the bar, as the canvas draws it (0.33.3) (#191)&quot;,&#10;    &quot;en&quot;: &quot;fix(mobile): \&quot;עוד\&quot; opens above the bar, as the canvas draws it (0.33.3) (#191)&quot;&#10;  }&#10;}&#10;    </string>
+    <long name="update_last_check" value="1794468910169" />
+</map>

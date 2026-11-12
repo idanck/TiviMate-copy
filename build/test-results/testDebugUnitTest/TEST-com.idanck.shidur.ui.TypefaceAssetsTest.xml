@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.TypefaceAssetsTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.003">
+  <properties/>
+  <testcase name="no bundled weight is a variable font" classname="com.idanck.shidur.ui.TypefaceAssetsTest" time="0.001"/>
+  <testcase name="each bundled weight is the weight its filename promises" classname="com.idanck.shidur.ui.TypefaceAssetsTest" time="0.001"/>
+  <testcase name="each font licence ships with the app" classname="com.idanck.shidur.ui.TypefaceAssetsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

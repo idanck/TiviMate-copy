@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.common.ScreensaverTest" tests="36" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:51" hostname="runnervmwuk1x" time="0.042">
+  <properties/>
+  <testcase name="there are always enough copies of a round to fill the column" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.012"/>
+  <testcase name="the delay is minutes, with a floor and a ceiling" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="the channel's screensaver answers to both switches, the clock's to the master one alone" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the scene clock moves only when the kind of screen changes" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the ring fills up to the current second" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="each screensaver waits its own idle period" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="only the bare video and its passthrough overlays leave the picture as the screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a paused station is a paused stream, not now playing" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="a paused film is a still screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the home screen is a still screen, with a channel playing behind its banner" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="nothing playing, or a failed stream, is the clock alone" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a screen that turned still after the last key press is left alone for the idle period" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the headlines are still where they should be after a night" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a channel playing under a guide or a menu is a still screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the drift does not repeat after one cycle" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a station playing on its own screen is a still screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="a station playing behind the screensaver is now playing" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the programme's bar runs from its start to its end and no further" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="a live channel under a menu, paused, failed or with no picture is still" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a channel that fails after a long watch is given the clock's full wait" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a paused channel names itself and its programme" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the ambient hue never leaves its swing" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.002"/>
+  <testcase name="a film playing full screen is left alone" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a failed stream is a still screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the shift stays in its box and moves on every step" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.003"/>
+  <testcase name="the drift reaches the edges of its travel on both axes" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="today's headline shows the clock, an older one the date as well" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.001"/>
+  <testcase name="the drift stays inside the box it is given" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.005"/>
+  <testcase name="the headlines move down continuously and wrap without a jump" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.011"/>
+  <testcase name="a key press on a still screen restarts the countdown" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the shift does not return to where it was" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="nothing playing is a still screen" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the ambient hue swings around the station's own colour and stays on the wheel" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.002"/>
+  <testcase name="a stall does not restart the channel's hour" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="the guard is off when the setting is off, in picture-in-picture, and over a film being watched" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <testcase name="a live channel playing full screen is watched, and goes to the channel's screensaver" classname="com.idanck.shidur.ui.common.ScreensaverTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

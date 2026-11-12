@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.YouTubeChannelsTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.003">
+  <properties/>
+  <testcase name="rows carry their number, a negative id and the YouTube scheme" classname="com.idanck.shidur.data.YouTubeChannelsTest" time="0.002"/>
+  <testcase name="the guide shows the live stream, then what is announced, and nothing off air" classname="com.idanck.shidur.data.YouTubeChannelsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.auto.BrowsePageTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:33" hostname="runnervmwuk1x" time="0.024">
+  <properties/>
+  <testcase name="an empty list pages to nothing" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.013"/>
+  <testcase name="a page index far enough out to overflow Int arithmetic is still empty" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.0"/>
+  <testcase name="the browser asking for everything gets everything" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.001"/>
+  <testcase name="each page is a distinct window, and together they are the whole list" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.01"/>
+  <testcase name="nonsense paging is answered with the list rather than an exception" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.0"/>
+  <testcase name="a page past the end is empty, not the whole list again" classname="com.idanck.shidur.auto.BrowsePageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

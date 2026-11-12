@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.core.TextNormalizerTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:33" hostname="runnervmwuk1x" time="0.033">
+  <properties/>
+  <testcase name="an empty side never matches" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.018"/>
+  <testcase name="canonical form drops quality tokens and punctuation" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.001"/>
+  <testcase name="canonical form strips diacritics" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.001"/>
+  <testcase name="similar names score high and different ones do not" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.002"/>
+  <testcase name="a digit mismatch is never scored as a match" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.002"/>
+  <testcase name="redaction removes credentials from every shape a provider URL takes" classname="com.idanck.shidur.core.TextNormalizerTest" time="0.008"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

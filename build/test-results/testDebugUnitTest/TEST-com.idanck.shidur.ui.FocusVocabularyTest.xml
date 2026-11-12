@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.FocusVocabularyTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.118">
+  <properties/>
+  <testcase name="every menu is the app's menu" classname="com.idanck.shidur.ui.FocusVocabularyTest" time="0.05"/>
+  <testcase name="no ring rests on transparent" classname="com.idanck.shidur.ui.FocusVocabularyTest" time="0.035"/>
+  <testcase name="no ring widens on focus" classname="com.idanck.shidur.ui.FocusVocabularyTest" time="0.033"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

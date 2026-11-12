@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.AppLocaleTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:34" hostname="runnervmwuk1x" time="4.826">
+  <properties/>
+  <testcase name="following the device overrides nothing" classname="com.idanck.shidur.data.AppLocaleTest" time="4.328"/>
+  <testcase name="choosing English sets the locale and leaves the layout alone" classname="com.idanck.shidur.data.AppLocaleTest" time="0.052"/>
+  <testcase name="a stored choice becomes an activity override" classname="com.idanck.shidur.data.AppLocaleTest" time="0.052"/>
+  <testcase name="everything the configuration already carried survives" classname="com.idanck.shidur.data.AppLocaleTest" time="0.042"/>
+  <testcase name="choosing Hebrew sets the locale and mirrors the layout" classname="com.idanck.shidur.data.AppLocaleTest" time="0.038"/>
+  <testcase name="a stored choice reaches the wrapper as a different context" classname="com.idanck.shidur.data.AppLocaleTest" time="0.049"/>
+  <testcase name="the activity override carries the locale and nothing else" classname="com.idanck.shidur.data.AppLocaleTest" time="0.041"/>
+  <testcase name="wrapping does not move the process default locale" classname="com.idanck.shidur.data.AppLocaleTest" time="0.088"/>
+  <testcase name="an unreadable or unknown stored value falls back to the device language" classname="com.idanck.shidur.data.AppLocaleTest" time="0.047"/>
+  <testcase name="nothing is applied on top of the platform" classname="com.idanck.shidur.data.AppLocaleTest" time="0.047"/>
+  <testcase name="following the device hands back the same context" classname="com.idanck.shidur.data.AppLocaleTest" time="0.036"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

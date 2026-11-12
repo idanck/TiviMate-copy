@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.timeshift.TsSegmenterTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.018">
+  <properties/>
+  <testcase name="cutsAtTheFirstKeyFrameAfterTheTarget" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.005"/>
+  <testcase name="aClockThatJumpsBackIsADiscontinuity" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.001"/>
+  <testcase name="aReconnectIsADiscontinuityAndWaitsForFreshTables" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.001"/>
+  <testcase name="soundOnlyIsCutOnItsOwnClock" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.0"/>
+  <testcase name="recognisesTransportStreams" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.001"/>
+  <testcase name="nothingIsWrittenBeforeTheTablesAndAKeyFrame" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.0"/>
+  <testcase name="theClockWrappingIsNotADiscontinuity" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.001"/>
+  <testcase name="aKeyFrameIsFoundByItsNalUnitWithoutTheFlag" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.0"/>
+  <testcase name="everySegmentOpensWithThePatAndPmtThenItsKeyFrame" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.001"/>
+  <testcase name="rareKeyFramesStillMakeSegments" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.005"/>
+  <testcase name="theSameSegmentsWhateverTheChunks" classname="com.idanck.shidur.player.timeshift.TsSegmenterTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.auto.CarFoldersTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:33" hostname="runnervmwuk1x" time="0.005">
+  <properties/>
+  <testcase name="the regions folder runs north to south, then other regions" classname="com.idanck.shidur.auto.CarFoldersTest" time="0.004"/>
+  <testcase name="the genres folder is alphabetical by genre" classname="com.idanck.shidur.auto.CarFoldersTest" time="0.0"/>
+  <testcase name="national keeps the provider's order" classname="com.idanck.shidur.auto.CarFoldersTest" time="0.001"/>
+  <testcase name="a station's queue is its place's folder, never its genre's" classname="com.idanck.shidur.auto.CarFoldersTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

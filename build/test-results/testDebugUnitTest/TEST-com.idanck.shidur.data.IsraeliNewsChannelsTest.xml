@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.IsraeliNewsChannelsTest" tests="11" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:42" hostname="runnervmwuk1x" time="0.013">
+  <properties/>
+  <testcase name="a guide id of theirs is enough" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.003"/>
+  <testcase name="foreign news is not Israeli" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.0"/>
+  <testcase name="a panel's stream address names its Xtream account" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.002"/>
+  <testcase name="the owner's Hebrew names for them are news" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.002"/>
+  <testcase name="the bundled free-to-air playlist's news channels are news, with no group to go by" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.0"/>
+  <testcase name="the provider's own names for the news channels are news" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.001"/>
+  <testcase name="the rest of the Israeli group is not news" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.001"/>
+  <testcase name="the free playlist's copy and the provider's are the same station" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.0"/>
+  <testcase name="another feed of a station, or another station, is not it" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.001"/>
+  <testcase name="without the free playlist nothing is left out" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.001"/>
+  <testcase name="a station the free playlist carries is offered from there only" classname="com.idanck.shidur.data.IsraeliNewsChannelsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

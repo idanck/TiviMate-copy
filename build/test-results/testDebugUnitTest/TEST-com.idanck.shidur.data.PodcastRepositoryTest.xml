@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.PodcastRepositoryTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:43" hostname="runnervmwuk1x" time="0.26">
+  <properties/>
+  <testcase name="a favourite outlives the feed dropping it and the show leaving the library" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.07"/>
+  <testcase name="feed addresses as people paste them" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.019"/>
+  <testcase name="near the end counts as played and starts over" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.035"/>
+  <testcase name="clearing the history keeps the position" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.038"/>
+  <testcase name="new episodes are the recent ones not yet heard" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.036"/>
+  <testcase name="the newer mark wins a merge, whole" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.016"/>
+  <testcase name="the queue comes before the next episode of the show" classname="com.idanck.shidur.data.PodcastRepositoryTest" time="0.045"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.FeaturedFeedTest" tests="14" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:41" hostname="runnervmwuk1x" time="0.313">
+  <properties/>
+  <testcase name="an unknown reference resolves to nothing" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.026"/>
+  <testcase name="an empty feed is a valid answer, not a failure" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.026"/>
+  <testcase name="a well-formed feed parses" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.018"/>
+  <testcase name="duplicate ids collapse" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.019"/>
+  <testcase name="a runaway feed is truncated" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.023"/>
+  <testcase name="a reference matches the guide id first" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.023"/>
+  <testcase name="the version may be omitted" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.022"/>
+  <testcase name="a bare number matches the channel number" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.022"/>
+  <testcase name="a version this build does not know is refused outright" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.019"/>
+  <testcase name="a non-https image is dropped but the item is kept" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.02"/>
+  <testcase name="a reference matches the channel name" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.025"/>
+  <testcase name="text that is not JSON is refused" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.023"/>
+  <testcase name="an item with no title is dropped and its siblings survive" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.018"/>
+  <testcase name="an item without an id still gets a stable one" classname="com.idanck.shidur.data.FeaturedFeedTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

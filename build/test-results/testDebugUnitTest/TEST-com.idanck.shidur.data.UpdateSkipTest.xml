@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.UpdateSkipTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:44" hostname="runnervmwuk1x" time="0.147">
+  <properties/>
+  <testcase name="a check that found nothing drops the manifest it was holding" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.026"/>
+  <testcase name="a skip is forgotten once that version is what is running" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.027"/>
+  <testcase name="a skip survives while that version is still the newest one out there" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.028"/>
+  <testcase name="a check records when it happened" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.019"/>
+  <testcase name="a check keeps the manifest it read, for the next process to find" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.025"/>
+  <testcase name="a skipped version is remembered as a floor" classname="com.idanck.shidur.data.UpdateSkipTest" time="0.022"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

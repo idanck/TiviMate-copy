@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.account.AccountModelTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.002">
+  <properties/>
+  <testcase name="the sign-in screen shows only with the switch on and nobody signed in" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.001"/>
+  <testcase name="a pairing is read from the function's answer" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <testcase name="a pairing without a display code is shown in two halves" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <testcase name="an answer missing a field is not a pairing" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <testcase name="a claim is read with its token" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <testcase name="a build without a Firebase project never shows it" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <testcase name="the profile is checked once per sign-in, and again only after a failure" classname="com.idanck.shidur.data.account.AccountModelTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

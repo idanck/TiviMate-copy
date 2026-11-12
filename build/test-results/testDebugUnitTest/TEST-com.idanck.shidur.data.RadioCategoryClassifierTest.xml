@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.RadioCategoryClassifierTest" tests="18" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:43" hostname="runnervmwuk1x" time="0.01">
+  <properties/>
+  <testcase name="russian keyword is flagged regardless of group" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.002"/>
+  <testcase name="regional group-title classifies as regional" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <testcase name="unrecognised group falls back to other rather than being dropped" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="latin station names are placed too" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="the feed's regional stations land on their shelves" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <testcase name="national group-title classifies as national" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="an unplaceable station name falls back to unknown rather than a guess" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="each documented regional station lands in its own region" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="hebrew station name is not flagged as russian" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="a station's place on the menu comes from its name" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="the feed's own spellings of northern and central stations are placed" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="a station named after Greece is on the Greek shelf" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <testcase name="region order puts the north first and the unplaceable last" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="empty shelves are left out of the menu" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <testcase name="a station with a genre is on its place's shelf and its genre's" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <testcase name="cyrillic station name is flagged even without a keyword match" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="station name genre keyword wins over the group-title" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.0"/>
+  <testcase name="the menu lists national, the regions from the north, then the genres" classname="com.idanck.shidur.data.RadioCategoryClassifierTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.BufferDurationsTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:46" hostname="runnervmwuk1x" time="0.075">
+  <properties/>
+  <testcase name="a valid preset is passed through unchanged" classname="com.idanck.shidur.player.BufferDurationsTest" time="0.015"/>
+  <testcase name="every preset is a set of durations the load control accepts" classname="com.idanck.shidur.player.BufferDurationsTest" time="0.014"/>
+  <testcase name="a minimum below either threshold is raised to it" classname="com.idanck.shidur.player.BufferDurationsTest" time="0.015"/>
+  <testcase name="a maximum below the minimum is raised to it" classname="com.idanck.shidur.player.BufferDurationsTest" time="0.015"/>
+  <testcase name="nonsense stored by an older install still yields something buildable" classname="com.idanck.shidur.player.BufferDurationsTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.UpdateManifestTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:44" hostname="runnervmwuk1x" time="0.174">
+  <properties/>
+  <testcase name="notes fall back from a regional tag to the language, then to English" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.021"/>
+  <testcase name="refuses something that is not JSON at all" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.017"/>
+  <testcase name="reads every published field" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.016"/>
+  <testcase name="refuses plain http, so nothing on the path can swap the binary" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.013"/>
+  <testcase name="refuses a missing or nonsense version" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.013"/>
+  <testcase name="accepts an upper-case checksum by normalising it" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.014"/>
+  <testcase name="refuses a size that is absent, empty or absurd" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.017"/>
+  <testcase name="an absent notes block is simply absent" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.023"/>
+  <testcase name="only a higher version code counts as newer" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.024"/>
+  <testcase name="refuses a checksum that is not a sha-256" classname="com.idanck.shidur.data.UpdateManifestTest" time="0.016"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

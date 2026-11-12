@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.CatchupUrlBuilderTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:39" hostname="runnervmwuk1x" time="0.027">
+  <properties/>
+  <testcase name="the archive window is enforced" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.002"/>
+  <testcase name="template date tokens are formatted in UTC" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.01"/>
+  <testcase name="append mode keeps an existing query string" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.002"/>
+  <testcase name="a channel with no archive yields nothing" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="xtream builds the timeshift endpoint with a minute duration" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.007"/>
+  <testcase name="an explicit template wins over the declared mode" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="default mode appends the utc pair" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="flussonic handles an mpegts endpoint" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.001"/>
+  <testcase name="flussonic rewrites the manifest name" classname="com.idanck.shidur.data.CatchupUrlBuilderTest" time="0.002"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

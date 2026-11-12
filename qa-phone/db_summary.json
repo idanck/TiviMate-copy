@@ -1,0 +1,86 @@
+{
+ "playlists": [
+  [
+   1,
+   "ערוצים פתוחים בישראל",
+   "M3U_URL",
+   1,
+   null,
+   12
+  ],
+  [
+   2,
+   "רדיו ישראלי",
+   "M3U_URL",
+   1,
+   null,
+   97
+  ],
+  [
+   3,
+   "QA Malformed",
+   "M3U_URL",
+   0,
+   "ParseFailed",
+   0
+  ],
+  [
+   4,
+   "QA Missing",
+   "M3U_URL",
+   0,
+   "NotFound",
+   0
+  ],
+  [
+   5,
+   "QA Empty",
+   "M3U_URL",
+   0,
+   "empty",
+   0
+  ],
+  [
+   6,
+   "QA Xtream",
+   "XTREAM",
+   1,
+   null,
+   12
+  ],
+  [
+   7,
+   "QA M3U",
+   "M3U_URL",
+   1,
+   null,
+   30
+  ],
+  [
+   8,
+   "QA Switch",
+   "M3U_URL",
+   0,
+   "ParseFailed",
+   30
+  ],
+  [
+   9,
+   "QA Big",
+   "M3U_URL",
+   1,
+   null,
+   5000
+  ]
+ ],
+ "programmes": [
+  [
+   3937
+  ]
+ ],
+ "history": [
+  [
+   0
+  ]
+ ]
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.IsraeliSportChannelsTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:42" hostname="runnervmwuk1x" time="0.005">
+  <properties/>
+  <testcase name="the Israeli group's sports channels are offered" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.001"/>
+  <testcase name="decorated names are folded before they are read" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.001"/>
+  <testcase name="a country tag or a guide id makes a channel Israeli without a group" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.001"/>
+  <testcase name="foreign sports are not offered, however they are named" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.0"/>
+  <testcase name="every channel in an Israeli sports group is offered" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.0"/>
+  <testcase name="Sport 5's channels that leave the word out are sport" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.0"/>
+  <testcase name="ONE is sport, and ZONE and Channel One are not" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.001"/>
+  <testcase name="the provider's raw Israeli group counts as Israeli" classname="com.idanck.shidur.data.IsraeliSportChannelsTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

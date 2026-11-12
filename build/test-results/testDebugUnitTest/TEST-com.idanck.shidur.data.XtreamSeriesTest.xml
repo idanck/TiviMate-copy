@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.XtreamSeriesTest" tests="9" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.186">
+  <properties/>
+  <testcase name="a flat payload with no season still yields episodes with a season" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.022"/>
+  <testcase name="a series is stored as a container, not as something playable" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.018"/>
+  <testcase name="episodes carry a real provider id, extension and numbering" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.018"/>
+  <testcase name="a movie is still served from the movie endpoint" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.022"/>
+  <testcase name="an unparsable payload degrades to nothing" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.02"/>
+  <testcase name="an entry with no id is skipped rather than failing the series" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.02"/>
+  <testcase name="an id without the prefix is passed through untouched" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.018"/>
+  <testcase name="a season declared on the episode itself is used" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.027"/>
+  <testcase name="an episode is served from the series endpoint with the local prefix removed" classname="com.idanck.shidur.data.XtreamSeriesTest" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

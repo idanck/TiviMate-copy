@@ -1,0 +1,3 @@
+{"t": 0.48, "method": "GET", "path": "/health", "status": 200, "bytes": 2, "ua": "curl/8.18.0", "range": null}
+{"t": 235.62, "method": "GET", "path": "/malformed.m3u", "status": 200, "bytes": 52, "ua": "TiviCopy/1.0 (Android)", "range": null}
+{"t": 3112.45, "method": "GET", "path": "/admin/restore", "status": 200, "bytes": 8, "ua": "Python-urllib/3.14", "range": null}

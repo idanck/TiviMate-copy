@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.ui.AppIconResourcesTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.018">
+  <properties/>
+  <testcase name="the TV banner is 160 by 90dp, at mdpi and xhdpi" classname="com.idanck.shidur.ui.AppIconResourcesTest" time="0.001"/>
+  <testcase name="the manifest uses these files" classname="com.idanck.shidur.ui.AppIconResourcesTest" time="0.003"/>
+  <testcase name="the adaptive icon has a background, a mark and a monochrome layer, all of them real" classname="com.idanck.shidur.ui.AppIconResourcesTest" time="0.011"/>
+  <testcase name="the mark and the monochrome layer are drawn on the 108dp adaptive canvas" classname="com.idanck.shidur.ui.AppIconResourcesTest" time="0.003"/>
+  <testcase name="the legacy launcher icons are 48dp at every density" classname="com.idanck.shidur.ui.AppIconResourcesTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,410 @@
+[phone] QA-01 PASS  Install the debug APK — Performing Streamed Install
+Success · APK 22882 KB · uid 10192
+[phone] QA-02 WARN  Cold and warm start time — cold [4850, 3274, 2872] ms (budget 4000 on an emulator), warm 485 ms
+[phone] QA-03 PASS  First run: built-in Israeli channels and radio bootstrap — ערוצים פתוחים בישראל: 12 channels, ok=1 ; רדיו ישראלי: 97 channels, ok=1 
+[phone] QA-04 FAIL  Every top-level destination opens — opened 3/5: ['Live', 'Guide', 'Radio', 'Recordings', 'Settings']; missing ['Guide', 'Recordings']
+[phone] QA-26 SKIP  Home: from the side menu, the arrow towards the content returns the remote to where it left from (ADR-035) — television only: the phone has no side menu
+[phone] QA-05 PASS  Bad playlist addresses fail cleanly — QA Malformed: saved=True alive=True row=[(3, 0, 'ParseFailed', 0)] || QA Missing: saved=True alive=True row=[(4, 0, 'NotFound', 0)] || QA Empty: saved=True alive=True row=[(5, 0, 'empty', 0)]
+[phone] QA-07 PASS  Add the mock Xtream account (live, VOD, series) — test ok shown=True; 12 live (expect 12), 8 VOD rows (expect 6 films + 2 series), refresh ok=1 ; password not stored in clear; xmltv.php requested 1 times in the 30+ s after Save; password in 0 channel URLs and not the guide address; an Xtream channel requested /live/qa/qa123/
+[phone]   go_settings #0: 59 nodes, settings=False player=True foreground=True
+[phone]   go_settings #1: 68 nodes, settings=True player=False foreground=True
+[phone] QA-06 PASS  Add the mock M3U playlist with its XMLTV guide through the UI — fields typed ok=[True, True, True]; 30 channels (expect 30), 3 groups, refresh ok=1 , 0.2s; failover urls=[('["http:\\/\\/10.0.2.2:8080\\/hls\\/gone\\/live.m3u8","http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8"]',)]
+[phone] QA-06b PASS  Guide loads by itself after a playlist is added — 1 guide requests and 3853 programmes in the 60+ s after Save, with no user action
+[phone] QA-06c PASS  Update guide now loads and matches the mock XMLTV — pressed=True; 3853 programmes, 30/30 channels matched in 0.1 s
+[phone] QA-08 PASS  Live playback starts from the shidur:// deep link (HLS, TS) — HLS: motion=0.029 audio=True; MPEG-TS: motion=0.024 audio=True
+[phone] QA-09 PASS  Zapping: channel up/down, number entry, last channel — CHANNEL_UP->QA Sport 02 · CHANNEL_DOWN->QA News 01 · digits 1 2->QA Kids 12 · LAST_CHANNEL->QA News 01
+[phone] QA-10 PASS  Broken stream, failover and slow start are handled — broken: alive=True motion=0.0 audio=False text@4s=['Connecting…', 'QA Broken 404', 'Minimise the player', 'Live', 'QA Broken 404', 'Channel 27'] text@18s=['The server has no stream at that address any more.', 'Retry', 'Retry', 'Minimise the player', 'Live', 'QA Broken 404'] || failover: alive=True motion=0.024 audio=True text@4s=['QA Failover', 'Minimise the player', 'Live', 'QA Failover', 'Channel 28', 'qa.failover show 25'] text@18s=['Minimise the player', 'Live', 'QA Failover', 'Channel 28', 'qa.failover show 25', '\u206607:30 – 08:00\u2069'] || slow: alive=True motion=0.031 audio=True text@4s=['Connecting…', 'QA Slow Start', 'Minimise the player', 'Live', 'QA Slow Start', 'Channel 30'] text@18s=['Minimise the player', 'Live', 'QA Slow Start', 'Channel 30', 'qa.slow show 25', '\u206607:30 – 08:00\u2069']
+[phone] QA-11 WARN  D-pad: focus is always visible and never lost — no focused node after 1/18 keys; path: DPAD_DOWN:QA Empty, Last ref DPAD_DOWN:QA Xtream, Last re DPAD_DOWN:QA M3U, Last refre DPAD_DOWN:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_UP:QA M3U, Last refre DPAD_UP:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_CENTER:∅ DPAD_DOWN:QA M3U, Last refre DPAD_DOWN:Add a playlist, Xt BACK:Back DPAD_UP:Back
+[phone] QA-12 WARN  Guide shows mock programmes; search finds a channel and a programme — guide cells seen: ['Now playing · QA Slow Start', 'qa.slow show 25']; search hits: []
+[phone] QA-24 SKIP  Back from a screen opened from the video returns to the video (ADR-036) — television only: the phone's MobileRoot handles Back itself
+[phone] QA-25 SKIP  The guide opened from the video lands on what the playing channel is airing — television only: the phone's guide is a tab of its own
+[phone] QA-27 SKIP  Settings by remote: a slider shows focus and moves with left and right; a text field brings the keyboard up only on OK — television only: on a phone a finger picks the field and drags the slider
+[phone] QA-29 SKIP  Live TV pauses, rewinds and returns to live from the timeshift buffer (ADR-065) — television only for now: the phone's player has the same buffer
+[phone] QA-13 PASS  Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP — Home: pip=True audio=True; return: motion=0.029 audio=True; Back x3: left the app=True audio=False; process death -> relaunch 0 ms alive=True; rotation x4 alive=True
+[phone] QA-14 PASS  Network drops for 20 s during playback and comes back — alive=True; on-screen while down: ['Connecting…', 'QA Kids 03', 'Minimise the player', 'Live', 'QA Kids 03', 'Channel 3', 'qa.ch03 show 25', '\u206607:30 – 08:00\u2069']; picture back after 47.9 s (budget 45 s, no user action)
+[phone] QA-15 PASS  Malformed and hostile deep links are ignored — 7 links, crashes on: []
+[phone] QA-23 PASS  A scheduled recording starts from its alarm with the app closed — process killed=True; alarm entries=1; 35 s after the start: process=True row=('RECORDING', 0, None) stream requests=0; after the end: row=('COMPLETED', 3142856, None)
+[phone]   go_settings #0: 59 nodes, settings=False player=True foreground=True
+[phone]   go_settings #1: 118 nodes, settings=True player=False foreground=True
+[phone] QA-21 PASS  A refresh that gets an HTML error page keeps the existing channels — before 30 channels; provider switched to an HTML 'Account suspended' page; Refresh now tapped=True; switchable.m3u requests=2; after: [(30, 0, 'ParseFailed')] sample=[('QA News 01', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=01"]'), ('QA News 04', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=04"]'), ('QA News 07', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=07"]')]
+[phone] QA-16 PASS  Hebrew UI is complete and right-to-left — 22 Hebrew labels; untranslated-looking labels: []
+[phone]   go_settings #0: 38 nodes, settings=False player=True foreground=True
+[phone]   go_settings #1: 113 nodes, settings=True player=False foreground=True
+[phone] QA-17 PASS  Scale: a 5,000-channel playlist loads and scrolls — 5000 channels in 8.5 s; alive=True; {'channels': 5000, 'load_s': 8.5, 'jank': 'Janky frames: 348 (98.58%)', 'frames': '353', 'p90': '150'}
+[phone]   go_settings #0: 38 nodes, settings=False player=True foreground=True
+[phone]   go_settings #1: 100 nodes, settings=True player=False foreground=True
+[phone]   QA-22 try 1: settings=True parental=True screen=['Parental controls', 'Set a PIN', '4 to 6 digits', 'Save', 'Save', 'Require the PIN to open Settings', 'Require the PIN to open Settings', 'Require the PIN for locked channels', 'Require the PIN for locked channels', 'Hide locked channels instead of blocking them', 'Hide locked channels instead of blocking them', 'The PIN is stored only as a salted hash and cannot be recovered. Removing it here clears every channel and group lock, so a forgotten PIN can never make content permanently unreachable.']
+[phone]   go_settings #0: 100 nodes, settings=True player=False foreground=True
+[phone] QA-22 PASS  Parental PIN: a locked channel and Settings wait for it — try 1: settings=True parental=True; PIN saved=True; settings switch tapped=True; qa.ch05 locked rows=1; deep link to the locked channel: prompt=True locked stream requests behind it=0; wrong PIN refused=True (field=yes typed=4 ok=yes; screen=['QA Sport 05', 'Enter your PIN', '4 to 6 digits', 'That PIN is not correct.', 'OK', 'OK', 'Cancel', 'Cancel']); right PIN typed (field=yes typed=4 ok=yes); right PIN: prompt closed=True locked stream requests=8 sound=True; Settings after leaving the app: PIN asked=True settings shown=False; Settings after the PIN: open=True
+[phone] QA-18 PASS  Monkey: 4,000 random events with a fixed seed — injected 4000; crash=False anr=False 
+[phone] QA-19 PASS  Memory and storage after the run — PSS 198 MB while playing (budget 450); java 42828 KB native 76812 KB; storage: 2496	databases
+620	cache
+3100	files
+[phone] QA-20 INFO  Log audit: crashes, ANRs, error volume — FATAL=0 ANR=0 StrictMode=0 (the app's own); top error tags: [('AudioMediaPlayerWrapper', 153), ('ExoPlayerImplInternal', 140), ('MediaControllerCompat', 69), ('InputConnectionWrapper', 57), ('FrameTracker', 55), ('EGL_emulation', 54), ('AppOps', 34), ('TaskPersister', 18), ('WifiStaIfaceAidlImpl', 13), ('system_server', 12), ('SupplicantStaIfaceHalAidlImpl', 10), ('BpTransactionCompletedListener', 9)]
+[phone] QA-28 PASS  The bridge hands everything to a fresh install of the new app (ADR-060) — sent {'playlists': [(9,)], 'favourites': [(0,)], 'hidden': [(0,)], 'history': [(0,)], 'recordings': [(1,)]} · got {'playlists': [(9,)], 'favourites': [(0,)], 'hidden': [(0,)], 'history': [(0,)], 'recordings': [(1,)]} · bridge told True · removal prompt True
+# Shidur QA — phone
+
+Device: `{'model': 'sdk_gphone64_x86_64', 'sdk': '34', 'features_leanback': False, 'screen': 'Physical size: 1080x2400', 'density': 'Physical density: 420'}`
+
+Counts: FAIL 1, INFO 1, PASS 21, SKIP 5, WARN 3
+
+| ID | Status | Scenario | Detail |
+|---|---|---|---|
+| QA-01 | PASS | Install the debug APK | Performing Streamed Install Success · APK 22882 KB · uid 10192 |
+| QA-02 | WARN | Cold and warm start time | cold [4850, 3274, 2872] ms (budget 4000 on an emulator), warm 485 ms |
+| QA-03 | PASS | First run: built-in Israeli channels and radio bootstrap | ערוצים פתוחים בישראל: 12 channels, ok=1 ; רדיו ישראלי: 97 channels, ok=1  |
+| QA-04 | FAIL | Every top-level destination opens | opened 3/5: ['Live', 'Guide', 'Radio', 'Recordings', 'Settings']; missing ['Guide', 'Recordings'] |
+| QA-26 | SKIP | Home: from the side menu, the arrow towards the content returns the remote to where it left from (ADR-035) | television only: the phone has no side menu |
+| QA-05 | PASS | Bad playlist addresses fail cleanly | QA Malformed: saved=True alive=True row=[(3, 0, 'ParseFailed', 0)] \|\| QA Missing: saved=True alive=True row=[(4, 0, 'NotFound', 0)] \|\| QA Empty: saved=True alive=True row=[(5, 0, 'empty', 0)] |
+| QA-07 | PASS | Add the mock Xtream account (live, VOD, series) | test ok shown=True; 12 live (expect 12), 8 VOD rows (expect 6 films + 2 series), refresh ok=1 ; password not stored in clear; xmltv.php requested 1 times in the 30+ s after Save; password in 0 channel URLs and not the guide address; an Xtream channel requested /live/qa/qa123/ |
+| QA-06 | PASS | Add the mock M3U playlist with its XMLTV guide through the UI | fields typed ok=[True, True, True]; 30 channels (expect 30), 3 groups, refresh ok=1 , 0.2s; failover urls=[('["http:\\/\\/10.0.2.2:8080\\/hls\\/gone\\/live.m3u8","http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8"]',)] |
+| QA-06b | PASS | Guide loads by itself after a playlist is added | 1 guide requests and 3853 programmes in the 60+ s after Save, with no user action |
+| QA-06c | PASS | Update guide now loads and matches the mock XMLTV | pressed=True; 3853 programmes, 30/30 channels matched in 0.1 s |
+| QA-08 | PASS | Live playback starts from the shidur:// deep link (HLS, TS) | HLS: motion=0.029 audio=True; MPEG-TS: motion=0.024 audio=True |
+| QA-09 | PASS | Zapping: channel up/down, number entry, last channel | CHANNEL_UP->QA Sport 02 · CHANNEL_DOWN->QA News 01 · digits 1 2->QA Kids 12 · LAST_CHANNEL->QA News 01 |
+| QA-10 | PASS | Broken stream, failover and slow start are handled | broken: alive=True motion=0.0 audio=False text@4s=['Connecting…', 'QA Broken 404', 'Minimise the player', 'Live', 'QA Broken 404', 'Channel 27'] text@18s=['The server has no stream at that address any more.', 'Retry', 'Retry', 'Minimise the player', 'Live', 'QA Broken 404'] \|\| failover: alive=True motion=0.024 audio=True text@4s=['QA Failover', 'Minimise the player', 'Live', 'QA Failover', 'Channel 28', 'qa.failover show 25'] text@18s=['Minimise the player', 'Live', 'QA Failover', 'Channel 28', 'qa.failover show 25', '\u206607:30 – 08:00\u2069'] \|\| slow: alive=True motion=0.031 audio=True  |
+| QA-11 | WARN | D-pad: focus is always visible and never lost | no focused node after 1/18 keys; path: DPAD_DOWN:QA Empty, Last ref DPAD_DOWN:QA Xtream, Last re DPAD_DOWN:QA M3U, Last refre DPAD_DOWN:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_RIGHT:Add a playlist, Xt DPAD_UP:QA M3U, Last refre DPAD_UP:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_LEFT:QA Xtream, Last re DPAD_CENTER:∅ DPAD_DOWN:QA M3U, Last refre DPAD_DOWN:Add a playlist, Xt BACK:Back DPAD_UP:Back |
+| QA-12 | WARN | Guide shows mock programmes; search finds a channel and a programme | guide cells seen: ['Now playing · QA Slow Start', 'qa.slow show 25']; search hits: [] |
+| QA-24 | SKIP | Back from a screen opened from the video returns to the video (ADR-036) | television only: the phone's MobileRoot handles Back itself |
+| QA-25 | SKIP | The guide opened from the video lands on what the playing channel is airing | television only: the phone's guide is a tab of its own |
+| QA-27 | SKIP | Settings by remote: a slider shows focus and moves with left and right; a text field brings the keyboard up only on OK | television only: on a phone a finger picks the field and drags the slider |
+| QA-29 | SKIP | Live TV pauses, rewinds and returns to live from the timeshift buffer (ADR-065) | television only for now: the phone's player has the same buffer |
+| QA-13 | PASS | Lifecycle: Home and back, Back to exit (sound stops), process death, rotation, PiP | Home: pip=True audio=True; return: motion=0.029 audio=True; Back x3: left the app=True audio=False; process death -> relaunch 0 ms alive=True; rotation x4 alive=True |
+| QA-14 | PASS | Network drops for 20 s during playback and comes back | alive=True; on-screen while down: ['Connecting…', 'QA Kids 03', 'Minimise the player', 'Live', 'QA Kids 03', 'Channel 3', 'qa.ch03 show 25', '\u206607:30 – 08:00\u2069']; picture back after 47.9 s (budget 45 s, no user action) |
+| QA-15 | PASS | Malformed and hostile deep links are ignored | 7 links, crashes on: [] |
+| QA-23 | PASS | A scheduled recording starts from its alarm with the app closed | process killed=True; alarm entries=1; 35 s after the start: process=True row=('RECORDING', 0, None) stream requests=0; after the end: row=('COMPLETED', 3142856, None) |
+| QA-21 | PASS | A refresh that gets an HTML error page keeps the existing channels | before 30 channels; provider switched to an HTML 'Account suspended' page; Refresh now tapped=True; switchable.m3u requests=2; after: [(30, 0, 'ParseFailed')] sample=[('QA News 01', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=01"]'), ('QA News 04', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=04"]'), ('QA News 07', '["http:\\/\\/10.0.2.2:8080\\/hls\\/a\\/live.m3u8?ch=07"]')] |
+| QA-16 | PASS | Hebrew UI is complete and right-to-left | 22 Hebrew labels; untranslated-looking labels: [] |
+| QA-17 | PASS | Scale: a 5,000-channel playlist loads and scrolls | 5000 channels in 8.5 s; alive=True; {'channels': 5000, 'load_s': 8.5, 'jank': 'Janky frames: 348 (98.58%)', 'frames': '353', 'p90': '150'} |
+| QA-22 | PASS | Parental PIN: a locked channel and Settings wait for it | try 1: settings=True parental=True; PIN saved=True; settings switch tapped=True; qa.ch05 locked rows=1; deep link to the locked channel: prompt=True locked stream requests behind it=0; wrong PIN refused=True (field=yes typed=4 ok=yes; screen=['QA Sport 05', 'Enter your PIN', '4 to 6 digits', 'That PIN is not correct.', 'OK', 'OK', 'Cancel', 'Cancel']); right PIN typed (field=yes typed=4 ok=yes); right PIN: prompt closed=True locked stream requests=8 sound=True; Settings after leaving the app: PIN asked=True settings shown=False; Settings after the PIN: open=True |
+| QA-18 | PASS | Monkey: 4,000 random events with a fixed seed | injected 4000; crash=False anr=False  |
+| QA-19 | PASS | Memory and storage after the run | PSS 198 MB while playing (budget 450); java 42828 KB native 76812 KB; storage: 2496	databases 620	cache 3100	files |
+| QA-20 | INFO | Log audit: crashes, ANRs, error volume | FATAL=0 ANR=0 StrictMode=0 (the app's own); top error tags: [('AudioMediaPlayerWrapper', 153), ('ExoPlayerImplInternal', 140), ('MediaControllerCompat', 69), ('InputConnectionWrapper', 57), ('FrameTracker', 55), ('EGL_emulation', 54), ('AppOps', 34), ('TaskPersister', 18), ('WifiStaIfaceAidlImpl', 13), ('system_server', 12), ('SupplicantStaIfaceHalAidlImpl', 10), ('BpTransactionCompletedListener', 9)] |
+| QA-28 | PASS | The bridge hands everything to a fresh install of the new app (ADR-060) | sent {'playlists': [(9,)], 'favourites': [(0,)], 'hidden': [(0,)], 'history': [(0,)], 'recordings': [(1,)]} · got {'playlists': [(9,)], 'favourites': [(0,)], 'hidden': [(0,)], 'history': [(0,)], 'recordings': [(1,)]} · bridge told True · removal prompt True |
+
+## Facts
+
+```json
+{
+ "device": {
+  "model": "sdk_gphone64_x86_64",
+  "sdk": "34",
+  "features_leanback": false,
+  "screen": "Physical size: 1080x2400",
+  "density": "Physical density: 420"
+ },
+ "durations": {
+  "QA-01": 12.8,
+  "QA-02": 32.1,
+  "QA-03": 6.4,
+  "QA-04": 37.4,
+  "QA-26": 2.2,
+  "QA-05": 135.0,
+  "QA-07": 106.2,
+  "QA-06": 157.9,
+  "QA-08": 33.5,
+  "QA-09": 37.8,
+  "QA-10": 92.8,
+  "QA-11": 57.5,
+  "QA-12": 29.7,
+  "QA-24": 2.6,
+  "QA-25": 2.5,
+  "QA-27": 2.6,
+  "QA-29": 2.9,
+  "QA-13": 68.1,
+  "QA-14": 85.7,
+  "QA-15": 21.6,
+  "QA-23": 192.6,
+  "QA-21": 82.2,
+  "QA-16": 33.2,
+  "QA-17": 100.1,
+  "QA-22": 229.6,
+  "QA-18": 191.4,
+  "QA-19": 13.1,
+  "QA-28": 59.2
+ },
+ "cold_start_ms": [
+  4850,
+  3274,
+  2872
+ ],
+ "warm_start_ms": 485,
+ "bootstrap_playlists": [
+  [
+   1,
+   "ערוצים פתוחים בישראל",
+   "https://il-epg.idanck.com/channels.m3u",
+   1,
+   null,
+   12
+  ],
+  [
+   2,
+   "רדיו ישראלי",
+   "https://il-epg.idanck.com/radio.m3u",
+   1,
+   null,
+   97
+  ]
+ ],
+ "bad_playlists": [
+  [
+   3,
+   0,
+   "ParseFailed",
+   0
+  ],
+  [
+   4,
+   0,
+   "NotFound",
+   0
+  ],
+  [
+   5,
+   0,
+   "empty",
+   0
+  ]
+ ],
+ "xtream_playlist_id": 6,
+ "xtream_password_at_rest": "password not stored in clear",
+ "m3u_refresh_seconds": 0.2,
+ "m3u_playlist_id": 7,
+ "guide_manual": {
+  "pressed": true,
+  "programmes": 3853,
+  "matched": 30,
+  "secs": 0.1
+ },
+ "play_HLS": {
+  "motion": 0.028923611111111112,
+  "audio": true,
+  "secs": 14.7
+ },
+ "play_MPEG-TS": {
+  "motion": 0.02355902777777778,
+  "audio": true,
+  "secs": 15.4
+ },
+ "process_restarts": [
+  "QA-23",
+  "QA-16",
+  "QA-22",
+  "QA-28"
+ ],
+ "scale": {
+  "channels": 5000,
+  "load_s": 8.5,
+  "jank": "Janky frames: 348 (98.58%)",
+  "frames": "353",
+  "p90": "150"
+ },
+ "memory": {
+  "pss_mb": 198,
+  "java_kb": "42828",
+  "native_kb": "76812",
+  "storage": "2496\tdatabases\n620\tcache\n3100\tfiles"
+ },
+ "log_errors_by_tag": [
+  [
+   "AudioMediaPlayerWrapper",
+   153
+  ],
+  [
+   "ExoPlayerImplInternal",
+   140
+  ],
+  [
+   "MediaControllerCompat",
+   69
+  ],
+  [
+   "InputConnectionWrapper",
+   57
+  ],
+  [
+   "FrameTracker",
+   55
+  ],
+  [
+   "EGL_emulation",
+   54
+  ],
+  [
+   "AppOps",
+   34
+  ],
+  [
+   "TaskPersister",
+   18
+  ],
+  [
+   "WifiStaIfaceAidlImpl",
+   13
+  ],
+  [
+   "system_server",
+   12
+  ],
+  [
+   "SupplicantStaIfaceHalAidlImpl",
+   10
+  ],
+  [
+   "BpTransactionCompletedListener",
+   9
+  ]
+ ],
+ "db_summary": {
+  "playlists": [
+   [
+    1,
+    "ערוצים פתוחים בישראל",
+    "M3U_URL",
+    1,
+    null,
+    12
+   ],
+   [
+    2,
+    "רדיו ישראלי",
+    "M3U_URL",
+    1,
+    null,
+    97
+   ],
+   [
+    3,
+    "QA Malformed",
+    "M3U_URL",
+    0,
+    "ParseFailed",
+    0
+   ],
+   [
+    4,
+    "QA Missing",
+    "M3U_URL",
+    0,
+    "NotFound",
+    0
+   ],
+   [
+    5,
+    "QA Empty",
+    "M3U_URL",
+    0,
+    "empty",
+    0
+   ],
+   [
+    6,
+    "QA Xtream",
+    "XTREAM",
+    1,
+    null,
+    12
+   ],
+   [
+    7,
+    "QA M3U",
+    "M3U_URL",
+    1,
+    null,
+    30
+   ],
+   [
+    8,
+    "QA Switch",
+    "M3U_URL",
+    0,
+    "ParseFailed",
+    30
+   ],
+   [
+    9,
+    "QA Big",
+    "M3U_URL",
+    1,
+    null,
+    5000
+   ]
+  ],
+  "programmes": [
+   [
+    3937
+   ]
+  ],
+  "history": [
+   [
+    0
+   ]
+  ]
+ },
+ "handover": {
+  "sent": {
+   "playlists": [
+    [
+     9
+    ]
+   ],
+   "favourites": [
+    [
+     0
+    ]
+   ],
+   "hidden": [
+    [
+     0
+    ]
+   ],
+   "history": [
+    [
+     0
+    ]
+   ],
+   "recordings": [
+    [
+     1
+    ]
+   ]
+  },
+  "got": {
+   "playlists": [
+    [
+     9
+    ]
+   ],
+   "favourites": [
+    [
+     0
+    ]
+   ],
+   "hidden": [
+    [
+     0
+    ]
+   ],
+   "history": [
+    [
+     0
+    ]
+   ],
+   "recordings": [
+    [
+     1
+    ]
+   ]
+  },
+  "credentials": [
+   [
+    1
+   ]
+  ],
+  "bridge_told": true,
+  "removal_prompt": true
+ }
+}
+```
+driver exit: 0

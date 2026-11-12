@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.TaskFeedTest" tests="17" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:44" hostname="runnervmwuk1x" time="0.371">
+  <properties/>
+  <testcase name="plain bullets are read as tasks when the document has no checkboxes" classname="com.idanck.shidur.data.TaskFeedTest" time="0.021"/>
+  <testcase name="a due date is lifted out of the line, marker and all" classname="com.idanck.shidur.data.TaskFeedTest" time="0.019"/>
+  <testcase name="plain bullets are ignored once the document uses checkboxes" classname="com.idanck.shidur.data.TaskFeedTest" time="0.022"/>
+  <testcase name="a document with nothing in it is an empty list rather than a failure" classname="com.idanck.shidur.data.TaskFeedTest" time="0.031"/>
+  <testcase name="a markdown checklist keeps what is open and drops what is done" classname="com.idanck.shidur.data.TaskFeedTest" time="0.024"/>
+  <testcase name="headings name the list and say where each task came from" classname="com.idanck.shidur.data.TaskFeedTest" time="0.022"/>
+  <testcase name="an empty box with nothing after it is not a task" classname="com.idanck.shidur.data.TaskFeedTest" time="0.019"/>
+  <testcase name="hebrew survives the trip intact" classname="com.idanck.shidur.data.TaskFeedTest" time="0.018"/>
+  <testcase name="markdown punctuation is not printed at the viewer" classname="com.idanck.shidur.data.TaskFeedTest" time="0.025"/>
+  <testcase name="a json document is read, and its finished items are dropped" classname="com.idanck.shidur.data.TaskFeedTest" time="0.021"/>
+  <testcase name="broken json and an unknown schema are refused" classname="com.idanck.shidur.data.TaskFeedTest" time="0.017"/>
+  <testcase name="a runaway document is capped" classname="com.idanck.shidur.data.TaskFeedTest" time="0.027"/>
+  <testcase name="a task with no date has no date" classname="com.idanck.shidur.data.TaskFeedTest" time="0.021"/>
+  <testcase name="a bare json array is a list too" classname="com.idanck.shidur.data.TaskFeedTest" time="0.019"/>
+  <testcase name="a link keeps its text and loses its address" classname="com.idanck.shidur.data.TaskFeedTest" time="0.02"/>
+  <testcase name="a list with everything ticked is finished, not a list of bullets" classname="com.idanck.shidur.data.TaskFeedTest" time="0.02"/>
+  <testcase name="a json document with no items is an empty list rather than a failure" classname="com.idanck.shidur.data.TaskFeedTest" time="0.021"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

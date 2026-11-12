@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.StreamTitleTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:46" hostname="runnervmwuk1x" time="0.005">
+  <properties/>
+  <testcase name="the station's own name is not a song" classname="com.idanck.shidur.player.StreamTitleTest" time="0.001"/>
+  <testcase name="whitespace and dangling dashes are tidied" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <testcase name="windows-1255 hebrew read as latin-1 is repaired" classname="com.idanck.shidur.player.StreamTitleTest" time="0.001"/>
+  <testcase name="windows-1255 read as windows-1252 is repaired, punctuation and all" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <testcase name="plain titles pass through" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <testcase name="icy title tells no title apart from an empty one" classname="com.idanck.shidur.player.StreamTitleTest" time="0.002"/>
+  <testcase name="latin titles with the odd accent are left alone" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <testcase name="placeholders and empties are not songs" classname="com.idanck.shidur.player.StreamTitleTest" time="0.001"/>
+  <testcase name="hebrew beside an english artist is repaired too" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <testcase name="bytes already lost upstream are dropped rather than shown" classname="com.idanck.shidur.player.StreamTitleTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

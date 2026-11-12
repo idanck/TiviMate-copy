@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.tv.HomeRowPlanTest" tests="10" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:50" hostname="runnervmwuk1x" time="0.005">
+  <properties/>
+  <testcase name="favourites lead, in their own order, then recents newest first" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.003"/>
+  <testcase name="nothing to show is an empty row, not a crash" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.001"/>
+  <testcase name="weights fall from first to last so the launcher keeps that order" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="a long favourites list still leaves room for recents" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="hidden channels and stale recents are left out, stale favourites are not" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="recents fill whatever favourites leave" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.001"/>
+  <testcase name="cards deep link to the channel they show" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="the programme on now is the title, and without one the channel name is" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="a favourite that was also watched recently is one card, in its favourite slot" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <testcase name="cards the plan no longer wants are taken out" classname="com.idanck.shidur.tv.HomeRowPlanTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

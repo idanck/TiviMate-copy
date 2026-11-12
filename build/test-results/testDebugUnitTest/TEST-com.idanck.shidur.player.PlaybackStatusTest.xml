@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.PlaybackStatusTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:46" hostname="runnervmwuk1x" time="0.001">
+  <properties/>
+  <testcase name="nothing playing yet is not a failure" classname="com.idanck.shidur.player.PlaybackStatusTest" time="0.0"/>
+  <testcase name="a stream its server closed is a failure" classname="com.idanck.shidur.player.PlaybackStatusTest" time="0.0"/>
+  <testcase name="an error once the player has stopped trying is a failure" classname="com.idanck.shidur.player.PlaybackStatusTest" time="0.001"/>
+  <testcase name="an error while retries remain is not yet a failure" classname="com.idanck.shidur.player.PlaybackStatusTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

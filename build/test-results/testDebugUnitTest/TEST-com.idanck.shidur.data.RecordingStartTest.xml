@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.RecordingStartTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:43" hostname="runnervmwuk1x" time="0.151">
+  <properties/>
+  <testcase name="a start Android refuses marks the recording failed instead of crashing" classname="com.idanck.shidur.data.RecordingStartTest" time="0.047"/>
+  <testcase name="a recording cancelled before its alarm starts nothing" classname="com.idanck.shidur.data.RecordingStartTest" time="0.029"/>
+  <testcase name="a scheduled recording starts the recorder" classname="com.idanck.shidur.data.RecordingStartTest" time="0.031"/>
+  <testcase name="re-arming at start-up survives a refusal" classname="com.idanck.shidur.data.RecordingStartTest" time="0.044"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

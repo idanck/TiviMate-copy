@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.BackgroundSessionPlayerTest" tests="8" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:46" hostname="runnervmwuk1x" time="0.163">
+  <properties/>
+  <testcase name="the card names the station, the song it announces and its logo" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.046"/>
+  <testcase name="the wrapper forwards every callback a listener has" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.019"/>
+  <testcase name="an episode is not a station" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.014"/>
+  <testcase name="a station's previous and next change station" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.017"/>
+  <testcase name="an episode's buttons stay the player's own" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.012"/>
+  <testcase name="the stream's own metadata is replaced by the card's" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.019"/>
+  <testcase name="a new card reaches the listeners, with the commands when they change" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.019"/>
+  <testcase name="stop asks the service and leaves the engine's player alone" classname="com.idanck.shidur.player.BackgroundSessionPlayerTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

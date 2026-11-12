@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.auto.LogoBoundsTest" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:33" hostname="runnervmwuk1x" time="0.004">
+  <properties/>
+  <testcase name="a square logo survives a head unit cropping the square to a wide card" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.002"/>
+  <testcase name="a square logo stops short of the canvas edge on every side" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.0"/>
+  <testcase name="a tall logo is scaled by its longer side too" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.0"/>
+  <testcase name="a wide banner is scaled by its longer side and keeps its shape" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.0"/>
+  <testcase name="a degenerate size still yields a rectangle inside the canvas" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.0"/>
+  <testcase name="a logo smaller than the safe area is still enlarged to it" classname="com.idanck.shidur.auto.LogoBoundsTest" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

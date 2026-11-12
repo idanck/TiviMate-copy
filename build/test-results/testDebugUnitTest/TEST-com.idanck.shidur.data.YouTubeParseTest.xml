@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.YouTubeParseTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:45" hostname="runnervmwuk1x" time="0.003">
+  <properties/>
+  <testcase name="a video with no id or no embeddable flag" classname="com.idanck.shidur.data.YouTubeParseTest" time="0.001"/>
+  <testcase name="a channel state with its videos is read whole" classname="com.idanck.shidur.data.YouTubeParseTest" time="0.0"/>
+  <testcase name="search results, link status, a link code and a poll" classname="com.idanck.shidur.data.YouTubeParseTest" time="0.002"/>
+  <testcase name="progress is the share of the length reached, and none for a live stream" classname="com.idanck.shidur.data.YouTubeParseTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

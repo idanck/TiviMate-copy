@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.AppLanguageTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:34" hostname="runnervmwuk1x" time="0.002">
+  <properties/>
+  <testcase name="a stored choice resolves to its language" classname="com.idanck.shidur.data.AppLanguageTest" time="0.001"/>
+  <testcase name="only a real choice carries a language tag" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <testcase name="no platform locale means follow the device" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <testcase name="a platform locale list resolves to its language" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <testcase name="nothing stored means follow the device" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <testcase name="the legacy Hebrew code is still Hebrew" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <testcase name="an unknown stored value falls back to the device language" classname="com.idanck.shidur.data.AppLanguageTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

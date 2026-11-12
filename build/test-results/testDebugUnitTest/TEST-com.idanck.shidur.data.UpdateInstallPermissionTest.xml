@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.data.UpdateInstallPermissionTest" tests="3" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:44" hostname="runnervmwuk1x" time="0.078">
+  <properties/>
+  <testcase name="the permission is published as state, not only read on demand" classname="com.idanck.shidur.data.UpdateInstallPermissionTest" time="0.026"/>
+  <testcase name="the refusal that names the permission republishes it" classname="com.idanck.shidur.data.UpdateInstallPermissionTest" time="0.033"/>
+  <testcase name="a refresh answers with what it published" classname="com.idanck.shidur.data.UpdateInstallPermissionTest" time="0.019"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" tests="5" skipped="0" failures="0" errors="0" timestamp="2026-11-12T07:26:46" hostname="runnervmwuk1x" time="3.623">
+  <properties/>
+  <testcase name="servesAPlaylistOfTheSegmentsItCut" classname="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" time="2.529"/>
+  <testcase name="stoppingLetsGoOfTheFiles" classname="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" time="0.039"/>
+  <testcase name="anAnswerFromTheServerFailsAtOnce" classname="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" time="0.019"/>
+  <testcase name="aDroppedConnectionIsOpenedAgainAndMarked" classname="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" time="1.021"/>
+  <testcase name="aStreamThatIsNotTransportStreamIsUnavailable" classname="com.idanck.shidur.player.timeshift.TimeshiftSessionTest" time="0.015"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
