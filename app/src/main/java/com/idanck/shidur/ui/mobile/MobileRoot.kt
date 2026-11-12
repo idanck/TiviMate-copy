@@ -30,6 +30,9 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.idanck.shidur.R
+import com.idanck.shidur.ui.common.YouTubePlayerController
+import com.idanck.shidur.ui.tv.MusicPage
+import com.idanck.shidur.data.youtube.MusicSection
 import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.ui.tv.YouTubeSession
 import com.idanck.shidur.ui.tv.YtPage
@@ -197,8 +200,17 @@ fun MobileRoot(
     val ytContext = LocalContext.current
     val ytSession = remember(ytActive) { if (ytActive) YouTubeSession(ytContext, ServiceLocator.youtube) else null }
     DisposableEffect(ytSession) { onDispose { ytSession?.release() } }
-    LaunchedEffect(ytPlayerOpen) {
-        if (ytPlayerOpen) vm.enterYouTube() else vm.leaveYouTube(restart = false)
+    // A song on the music tab (ADR-069) silences the other player as YouTube's player screen does.
+    val ytMusicPlaying = ytSession?.playingMusic == true
+    LaunchedEffect(ytPlayerOpen, ytMusicPlaying) {
+        if (ytPlayerOpen || ytMusicPlaying) vm.enterYouTube() else vm.leaveYouTube(restart = false)
+    }
+    // A song that ends gives way to the next in the queue, wherever the player is drawn.
+    ytSession?.let { session ->
+        val ytState by session.player.state.collectAsState()
+        LaunchedEffect(session, ytState.phase, ytState.video?.id) {
+            if (ytState.phase == YouTubePlayerController.Phase.ENDED) session.onEnded()
+        }
     }
     // The other players take over from it.
     LaunchedEffect(playerOpen, panelsOpen) {
@@ -347,6 +359,11 @@ fun MobileRoot(
                         onBack = if (canGoBack) goBack else null,
                         onSearch = when {
                             searchable -> ({ searching = true })
+                            // On the music tab, its own search (ADR-069 stage 4).
+                            youtubeSearch && ytSession?.music == true -> ({
+                                ytSession.closeMusicPages()
+                                ytSession.musicSection = MusicSection.SEARCH
+                            })
                             youtubeSearch -> ({ ytSession?.open(YtPage.Search) })
                             else -> null
                         },
@@ -362,7 +379,22 @@ fun MobileRoot(
                 // padding, so no list ever scrolls to an item the bar is covering.
                 Column {
                     val nowPlaying = state.nowPlaying
-                    if (nowPlaying != null && !showAddSource) {
+                    // The music tab's mini player (ADR-069): YouTube's player itself, so it takes the
+                    // place of the other mini player while a song is loaded, and gives way to the
+                    // player screen, where the one player then is.
+                    val musicMini = !showAddSource && tab == MobileTab.YOUTUBE && !ytPlayerOpen &&
+                        ytSession != null && ytSession.playingMusic &&
+                        !(ytSession.page == null && ytSession.music && ytSession.musicPage == MusicPage.Player)
+                    if (musicMini && ytSession != null) {
+                        PhoneMusicMini(
+                            session = ytSession,
+                            onOpen = {
+                                ytSession.music = true
+                                ytSession.home()
+                                ytSession.openMusic(MusicPage.Player)
+                            },
+                        )
+                    } else if (nowPlaying != null && !showAddSource) {
                         val radioPlaylistId = state.playlists.firstOrNull { it.url == IsraelRadioStations.M3U_URL }?.id
                         PhoneMiniPlayer(
                             nowPlaying = nowPlaying,

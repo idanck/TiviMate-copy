@@ -2,7 +2,7 @@
 
 **Status:** accepted 2026-11-12. Stage 1 (the server and the account's music documents) built;
 stage 2 (the television, 0.34.0) built; the account's button and settings (0.35.0) built; stage 3
-(search on the television, 0.36.0) built; the phone to come.
+(search on the television, 0.36.0) built; stage 4 (the phone, 0.37.0) built.
 
 ## Context
 
@@ -85,7 +85,7 @@ Callables in `me-west1`, beside the video tab's, with the same key, tokens and q
    albums, history), an album's page, the player screen and the mini player; the likes, albums and
    history synced.
 3. Television: search (songs, artists, albums, playlists). Built, 0.36.0.
-4. Phone: the same, for touch.
+4. Phone: the same, for touch. Built, 0.37.0.
 
 ### Two further choices (2026-11-12)
 
@@ -172,6 +172,24 @@ on the canvas first (`TvYouTubeAccount`, `TvSettingsAccount`, `YtAccountChip`, `
   sits above the results instead, with the song and its buttons beside it.
 - The canvas's "ערבוב" on an artist's top result is left out: the artist's songs are not read by
   the search, and reading them would cost a search of its own.
+
+### The phone (stage 4, 0.37.0)
+
+- "וידאו | מוזיקה" at the top of YouTube's tab (`PhoneYtSwitch`); on music, "בשבילך" and "ספרייה"
+  as chips (`PhoneYouTubeMusic.kt`). The top bar's magnifier opens the music search while the music
+  tab is up; Back steps out of a music page, then out of search (`YouTubeSession.back`).
+- "בשבילך": where the last song was left, quick picks, the account's playlists (or connecting),
+  its artists, Israel's chart and the saved albums. "ספרייה": the five filters as on the
+  television, the line on where each comes from, and the list.
+- A list's page, the player screen (the frame at the full width, 16:9, never covered; the song,
+  like, shuffle, previous / play / next, repeat; what comes next) and search (the system keyboard,
+  the kind chips, a top result, songs, lists and artists, the recent searches).
+- **The mini player** is YouTube's player itself: a card above the bottom bar with a 200×200 frame,
+  the song and play / next / open beside it. It takes the place of the other mini player while a
+  song is loaded, and gives way to the player screen, where the one player then is; a song on the
+  music tab silences the other player (`enterYouTube`), and leaving YouTube's tab stops it.
+- **As built, beside the canvas:** the player screen sits inside the tab, with the bottom bar under
+  it, rather than over the whole screen; the library's filters are the same chips as the parts.
 
 ## Rejected
 

@@ -172,9 +172,21 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
 
     /** One page back; false on the home view, where Back is the activity's. */
     fun back(): Boolean {
-        if (pages.isEmpty()) return false
-        pages = pages.dropLast(1)
-        return true
+        if (pages.isNotEmpty()) {
+            pages = pages.dropLast(1)
+            return true
+        }
+        // The phone's music tab (ADR-069 stage 4) steps back through its pages, then out of search;
+        // the television's has a back handler of its own for its pages.
+        if (music && musicPages.isNotEmpty()) {
+            musicPages = musicPages.dropLast(1)
+            return true
+        }
+        if (music && musicSection == MusicSection.SEARCH) {
+            musicSection = MusicSection.HOME
+            return true
+        }
+        return false
     }
 
     fun home() {

@@ -293,7 +293,7 @@ and the phone, from the official YouTube Data API only.
 | Server | Done | `ytmChart`, `ytmPlaylist`, `ytmLibrary`, `ytmSearch`, cached on the server (stage 1). |
 | Account documents | Done | Likes, saved albums and history in `users/{uid}/music…`, written by the app under `firestore.rules`. |
 | Television | Done | 0.34.0: the switch, "בשבילך", the library, a list's page, the player screen and the mini player (a column, ADR-069). 0.36.0: search (stage 3). |
-| Phone | Not built | Stage 4. |
+| Phone | Done | 0.37.0: the switch, "בשבילך", the library, a list's page, the player screen, the mini player (a card with a 200×200 frame) and search (stage 4). |
 | Liking on YouTube | Done | `ytmRate`, with the write scope asked for on connecting; an older connection is asked to connect again. |
 | Albums | Done | Told from playlists by their id (`OLAK5uy_`), a rule of thumb; saved in the Shidur account. |
 | The YouTube account | Done | 0.35.0: the account button on YouTube's screen (television and phone) and Settings › חשבון › YouTube — the connected channel, connecting again, replacing it, disconnecting (`ytUnlink`). |

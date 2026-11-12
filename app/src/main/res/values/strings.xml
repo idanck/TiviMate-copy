@@ -900,4 +900,5 @@
     <string name="ytm_search_song">Song</string>
     <string name="ytm_search_to_artist">To the artist</string>
     <string name="ytm_search_open">Open</string>
+    <string name="ytm_search_field">Search music</string>
 </resources>
