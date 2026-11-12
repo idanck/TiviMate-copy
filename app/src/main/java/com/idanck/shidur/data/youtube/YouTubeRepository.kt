@@ -61,6 +61,14 @@ class YouTubeRepository(
     /** The subscriptions rail: hidden, an invitation to connect, or the feed. */
     val subs: StateFlow<YtSubsState> = _subs
 
+    private val _subChannels = MutableStateFlow<List<YtChannelHit>>(emptyList())
+    /** The channels the connected account subscribes to, once the subscriptions were read: the music tab's artists. */
+    val subChannels: StateFlow<List<YtChannelHit>> = _subChannels
+
+    private val _canRate = MutableStateFlow(false)
+    /** The connection can give likes on YouTube (ADR-069). */
+    val canRate: StateFlow<Boolean> = _canRate
+
     private val refreshing = Mutex()
     @Volatile private var refreshedAt = 0L
 
@@ -146,13 +154,17 @@ class YouTubeRepository(
     suspend fun refreshSubscriptions(signedIn: Boolean, phone: Boolean = false) {
         if (!signedIn) {
             _subs.value = YtSubsState.Hidden
+            _subChannels.value = emptyList()
+            _canRate.value = false
             return
         }
         var linkedNow = false
         try {
             val status = YtParse.linkStatus(call("ytLinkStatus"))
             linkedNow = status.linked
+            _canRate.value = status.canRate
             if (!status.linked) {
+                _subChannels.value = emptyList()
                 // Each shell connects its own way: the television by a code, the phone by Google's
                 // account picker. The rail invites only where that way is set up on the server.
                 val ready = if (phone) status.phoneReady else status.tvReady
@@ -166,6 +178,7 @@ class YouTubeRepository(
             }
             prefs.edit().putBoolean(K_WAS_LINKED, true).apply()
             if (subs.stale) _stale.value = true
+            _subChannels.value = subs.channels
             _subs.value = YtSubsState.Feed(subs.feed)
         } catch (e: CancellationException) {
             throw e
@@ -336,7 +349,7 @@ class YouTubeRepository(
         }
     }.toString()
 
-    private fun problemOf(e: Exception): YtProblem {
+    internal fun problemOf(e: Exception): YtProblem {
         val f = e as? FirebaseFunctionsException ?: return YtProblem.OFFLINE
         val reason = (f.details as? Map<*, *>)?.get("reason") as? String
         return when {

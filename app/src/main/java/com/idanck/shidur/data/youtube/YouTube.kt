@@ -147,7 +147,12 @@ internal object YtParse {
 
     fun linkStatus(raw: Any?): YtLinkStatus {
         val m = raw as? Map<*, *>
-        return YtLinkStatus(m?.bool("linked") ?: false, m?.bool("tvReady") ?: false, m?.bool("phoneReady") ?: false)
+        return YtLinkStatus(
+            linked = m?.bool("linked") ?: false,
+            tvReady = m?.bool("tvReady") ?: false,
+            phoneReady = m?.bool("phoneReady") ?: false,
+            canRate = m?.bool("canRate") ?: false,
+        )
     }
 
     fun linkCode(raw: Any?): YtLinkCode? {
@@ -165,7 +170,12 @@ internal object YtParse {
 
     fun subscriptions(raw: Any?): YtSubscriptions {
         val m = raw as? Map<*, *>
-        return YtSubscriptions(m?.bool("linked") ?: false, videos(m?.get("feed")), m?.bool("stale") ?: false)
+        return YtSubscriptions(
+            linked = m?.bool("linked") ?: false,
+            feed = videos(m?.get("feed")),
+            stale = m?.bool("stale") ?: false,
+            channels = (m?.get("channels") as? List<*>).orEmpty().mapNotNull(::hit),
+        )
     }
 }
 
@@ -178,7 +188,13 @@ data class YtSearchResult(val channels: List<YtChannelHit>, val videos: List<YtV
 enum class YtSearchKind(val wire: String) { ALL("all"), CHANNEL("channel"), LIVE("live"), VIDEO("video") }
 
 /** Whether this account has YouTube connected, and whether the television's route exists at all. */
-data class YtLinkStatus(val linked: Boolean, val tvReady: Boolean, val phoneReady: Boolean)
+data class YtLinkStatus(
+    val linked: Boolean,
+    val tvReady: Boolean,
+    val phoneReady: Boolean,
+    /** Connected with the scope that gives likes on YouTube (ADR-069); false for a connection made before it. */
+    val canRate: Boolean = false,
+)
 
 /** The code the television shows while a phone or a computer approves it at Google's address. */
 data class YtLinkCode(val userCode: String, val verificationUrl: String, val intervalSeconds: Int, val expiresInSeconds: Int)
@@ -186,7 +202,13 @@ data class YtLinkCode(val userCode: String, val verificationUrl: String, val int
 enum class YtLinkPoll { PENDING, LINKED, DENIED, EXPIRED }
 
 /** The account's subscriptions rail: the newest videos of the channels it subscribes to. */
-data class YtSubscriptions(val linked: Boolean, val feed: List<YtVideo>, val stale: Boolean)
+data class YtSubscriptions(
+    val linked: Boolean,
+    val feed: List<YtVideo>,
+    val stale: Boolean,
+    /** The channels subscribed to: the music tab's artists (ADR-069). */
+    val channels: List<YtChannelHit> = emptyList(),
+)
 
 /**
  * Where the subscriptions rail stands on this device.

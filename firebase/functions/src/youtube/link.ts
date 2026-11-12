@@ -3,8 +3,10 @@ import { logger } from 'firebase-functions/v2';
 import { HttpsError } from 'firebase-functions/v2/https';
 
 /**
- * Connecting a YouTube account (ADR-061), for the subscriptions rail only: read-only access
- * (`youtube.readonly`), and the account's refresh token kept on the server alone, in
+ * Connecting a YouTube account (ADR-061): read access (`youtube.readonly`) for the subscriptions,
+ * playlists and likes, and, since ADR-069, `youtube.force-ssl` for the one thing Shidur writes —
+ * a like given to a song in the music tab (`videos.rate`). The account's refresh token is kept on
+ * the server alone, in
  * `ytTokens/{uid}`, which no client can read (firestore.rules). The app never holds a YouTube
  * token.
  *
@@ -17,6 +19,21 @@ import { HttpsError } from 'firebase-functions/v2/https';
  */
 
 export const SCOPE = 'https://www.googleapis.com/auth/youtube.readonly';
+/** The scope `videos.rate` needs (ADR-069): asked for with [SCOPE], and optional — without it likes stay in Shidur. */
+export const RATE_SCOPE = 'https://www.googleapis.com/auth/youtube.force-ssl';
+/** What a new connection asks Google for. */
+export const SCOPES = `${SCOPE} ${RATE_SCOPE}`;
+
+/** Whether a granted scope list lets Shidur give a like on the account's behalf. */
+export function canRate(scope: string): boolean {
+  return scope.split(' ').includes(RATE_SCOPE);
+}
+
+/** Whether a granted scope list lets Shidur read the account (either scope does). */
+export function canRead(scope: string): boolean {
+  const granted = scope.split(' ');
+  return granted.includes(SCOPE) || granted.includes(RATE_SCOPE);
+}
 const DEVICE_URL = 'https://oauth2.googleapis.com/device/code';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -45,7 +62,7 @@ async function post(url: string, form: Record<string, string>): Promise<{ status
 
 /** The television asks for a code to show. */
 export async function startDeviceLink(uid: string, tv: OAuthClient) {
-  const { status, body } = await post(DEVICE_URL, { client_id: tv.id, scope: SCOPE });
+  const { status, body } = await post(DEVICE_URL, { client_id: tv.id, scope: SCOPES });
   if (status !== 200 || typeof body.device_code !== 'string') {
     logger.error('device code refused', { status, error: body.error });
     throw new HttpsError('unavailable', 'Google did not give a code. Try again.');
@@ -113,14 +130,22 @@ export async function exchangeServerCode(uid: string, code: string, web: OAuthCl
 }
 
 async function saveToken(uid: string, refreshToken: string, client: 'tv' | 'web', scope: string): Promise<void> {
-  if (scope && !scope.split(' ').includes(SCOPE)) {
+  if (scope && !canRead(scope)) {
     throw new HttpsError('permission-denied', 'Read access to YouTube was not granted.');
   }
-  await tokens().doc(uid).set({ refreshToken, client, linkedAt: Timestamp.now() });
+  // The scope is kept so a connection made before ADR-069, or one that declined the write scope,
+  // is known to be unable to give likes, and the app can offer to connect again.
+  await tokens().doc(uid).set({ refreshToken, client, scope, linkedAt: Timestamp.now() });
 }
 
 export async function isLinked(uid: string): Promise<boolean> {
   return (await tokens().doc(uid).get()).exists;
+}
+
+/** Whether the account is connected with the scope that gives likes. */
+export async function linkCanRate(uid: string): Promise<boolean> {
+  const t = (await tokens().doc(uid).get()).data() as { scope?: string } | undefined;
+  return !!t && canRate(String(t.scope ?? ''));
 }
 
 /** A fresh access token for the account, or null when the link was revoked (the token is then forgotten). */

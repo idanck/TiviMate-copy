@@ -86,3 +86,19 @@ export async function ytGetAsUser(path: string, params: Record<string, string>, 
   if (res.status === 403 && reason === 'quotaExceeded') throw new QuotaError('units');
   throw new YtApiError(res.status, reason);
 }
+
+/**
+ * A POST with the account's own access token: `videos.rate`, the one write (ADR-069). [units] is
+ * what YouTube charges for it (50 for a rating).
+ */
+export async function ytPostAsUser(path: string, params: Record<string, string>, accessToken: string, units: number): Promise<void> {
+  const url = new URL(`${BASE}/${path}`);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const res = await fetch(url, { method: 'POST', headers: { Accept: 'application/json', Authorization: `Bearer ${accessToken}` } });
+  await spend('units', units);
+  if (res.ok) return;
+  const body = (await res.json().catch(() => ({}))) as { error?: { errors?: { reason?: string }[] } };
+  const reason = body.error?.errors?.[0]?.reason ?? 'unknown';
+  if (res.status === 403 && reason === 'quotaExceeded') throw new QuotaError('units');
+  throw new YtApiError(res.status, reason);
+}

@@ -13,6 +13,7 @@ export {
   ytmChart,
   ytmLibrary,
   ytmPlaylist,
+  ytmRate,
   ytmSearch,
   ytResolve,
   ytSearch,

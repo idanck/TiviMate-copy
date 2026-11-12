@@ -301,7 +301,7 @@ private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
     val connect: () -> Unit = {
         failed = null
         val request = AuthorizationRequest.builder()
-            .setRequestedScopes(listOf(Scope(YOUTUBE_READONLY)))
+            .setRequestedScopes(listOf(Scope(YOUTUBE_READONLY), Scope(YOUTUBE_RATE)))
             .requestOfflineAccess(FirebaseSetup.webClientId, true)
             .build()
         Identity.getAuthorizationClient(context).authorize(request)
@@ -639,6 +639,9 @@ private fun PhoneYouTubeSearch(session: YouTubeSession, onOpenChannel: (String) 
 }
 
 private const val YOUTUBE_READONLY = "https://www.googleapis.com/auth/youtube.readonly"
+
+/** Giving a like on YouTube from the music tab (ADR-069, `videos.rate`). */
+private const val YOUTUBE_RATE = "https://www.googleapis.com/auth/youtube.force-ssl"
 private const val REFRESH_MS = 5 * 60 * 1000L
 private const val SUBS_REFRESH_MS = 10 * 60 * 1000L
 private const val NOTE_EVERY_MS = 30_000L

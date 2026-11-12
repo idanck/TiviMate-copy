@@ -656,7 +656,7 @@
     <string name="yt_problem_signed_out">צריך קודם להיכנס לחשבון Shidur בהגדרות</string>
     <string name="yt_problem_not_configured">חיבור חשבון עוד לא הוגדר בשרת</string>
     <string name="yt_connect_card_title">הסרטונים החדשים מהערוצים שנרשמת אליהם</string>
-    <string name="yt_connect_card_body">מחברים פעם אחת את חשבון YouTube, בקריאה בלבד, ומופיעים כאן</string>
+    <string name="yt_connect_card_body">מחברים פעם אחת את חשבון YouTube, ומופיעים כאן</string>
     <string name="yt_connect_action">חיבור החשבון</string>
     <string name="yt_connect_revoked_title">החיבור לחשבון YouTube בוטל</string>
     <string name="yt_connect_revoked_body">הגישה של Shidur לחשבון בוטלה, או שפג תוקפה. הערוצים השמורים נשארו; רק שורת המנויים מחכה לחיבור מחדש.</string>
@@ -665,7 +665,7 @@
     <string name="yt_connect_body">כדי לראות כאן את הסרטונים החדשים מהערוצים שנרשמת אליהם. Shidur יקרא רק את רשימת המנויים שלך. הוא לא יכול לפרסם, להגיב, להירשם או לשנות דבר בחשבון.</string>
     <string name="yt_connect_step1">1. בטלפון או במחשב נכנסים ל־%1$s (או סורקים את הקוד)</string>
     <string name="yt_connect_step2">2. מקלידים את הקוד</string>
-    <string name="yt_connect_step3">3. בוחרים את החשבון ומאשרים גישת קריאה בלבד</string>
+    <string name="yt_connect_step3">3. בוחרים את החשבון ומאשרים את הגישה</string>
     <string name="yt_connect_waiting">מחכה לאישור · הקוד יפוג בעוד %1$d דק׳</string>
     <string name="yt_connect_starting">מבקש קוד מ־Google…</string>
     <string name="yt_connect_denied">הגישה לא אושרה</string>
@@ -678,7 +678,7 @@
     <string name="yt_remove_from_list">ברשימת הערוצים</string>
     <string name="yt_subs_failed">לא הצלחנו לטעון את המנויים כרגע</string>
     <string name="yt_connect_phone_action">המשך עם חשבון Google</string>
-    <string name="yt_connect_phone_body">Google תבקש גישת קריאה בלבד למנויים שלך ב־YouTube. Shidur לא יכול לפרסם, להגיב, להירשם או לשנות דבר בחשבון.</string>
+    <string name="yt_connect_phone_body">Google תבקש גישה לחשבון YouTube שלך. Shidur קורא את המנויים, הפלייליסטים והלייקים, וכותב רק לייק שנתת לשיר בשידור. הוא לא מפרסם, לא מגיב ולא נרשם.</string>
     <string name="yt_connect_failed">החיבור לא הושלם. אפשר לנסות שוב.</string>
     <!-- Timeshift: עצירה וחזרה אחורה בשידור חי (ADR-065) -->
     <string name="settings_timeshift">עצירת שידור חי</string>
@@ -772,4 +772,59 @@
     <string name="pod_slept">טיימר השינה עצר את הניגון</string>
     <string name="pod_minutes_short">%1$d דק׳</string>
     <string name="pod_hours_short">%1$d:%2$02d ש׳</string>
+
+    <!-- YouTube Music (ADR-069) -->
+    <string name="ytm_mode_video">וידאו</string>
+    <string name="ytm_mode_music">מוזיקה</string>
+    <string name="ytm_section_home">בשבילך</string>
+    <string name="ytm_section_library">הספרייה שלי</string>
+    <string name="ytm_filter_playlists">פלייליסטים</string>
+    <string name="ytm_filter_liked">שירים שאהבתי</string>
+    <string name="ytm_filter_artists">אמנים</string>
+    <string name="ytm_filter_albums">אלבומים</string>
+    <string name="ytm_filter_history">נשמע לאחרונה</string>
+    <string name="ytm_src_playlists">מחשבון YouTube שחיברת</string>
+    <string name="ytm_src_liked">לייקים מ־YouTube ומשידור, יחד · לייק כאן נשמר בשניהם</string>
+    <string name="ytm_src_liked_local">לייקים ששמרת בשידור · חיבור YouTube יוסיף את הלייקים משם</string>
+    <string name="ytm_src_artists">ערוצי האמנים שנרשמת אליהם ב־YouTube</string>
+    <string name="ytm_src_albums">אלבומים ששמרת בשידור · נשמרים בחשבון שידור</string>
+    <string name="ytm_src_history">מה שהתנגן בשידור, בכל המכשירים בחשבון</string>
+    <string name="ytm_rail_quick">בחירה מהירה</string>
+    <string name="ytm_rail_quick_caption">מההיסטוריה שלך בשידור ומהלייקים</string>
+    <string name="ytm_rail_playlists">הפלייליסטים שלך</string>
+    <string name="ytm_rail_artists">האמנים שלך</string>
+    <string name="ytm_rail_popular">פופולרי עכשיו</string>
+    <string name="ytm_rail_popular_caption">מוזיקה · ישראל</string>
+    <string name="ytm_rail_albums">אלבומים ששמרת</string>
+    <string name="ytm_now_playing">מתנגן עכשיו</string>
+    <string name="ytm_from_list">מתוך %1$s</string>
+    <string name="ytm_continue">המשך האזנה</string>
+    <string name="ytm_continue_action">המשך</string>
+    <string name="ytm_pick_hint">בוחרים שיר מהמדפים למטה</string>
+    <string name="ytm_nothing_playing">שום דבר לא מתנגן</string>
+    <string name="ytm_prev">השיר הקודם</string>
+    <string name="ytm_next">השיר הבא</string>
+    <string name="ytm_play">נגן</string>
+    <string name="ytm_pause">השהיה</string>
+    <string name="ytm_queue">הבא בתור</string>
+    <string name="ytm_queue_end">אין שירים אחרי השיר הזה</string>
+    <string name="ytm_open_player">למסך הנגן</string>
+    <string name="ytm_like">אהבתי</string>
+    <string name="ytm_liked">השיר באהבתי</string>
+    <string name="ytm_shuffle">ערבוב</string>
+    <string name="ytm_repeat">חזרה על הרשימה</string>
+    <string name="ytm_album">אלבום</string>
+    <string name="ytm_playlist">פלייליסט</string>
+    <string name="ytm_song_count">%1$d שירים</string>
+    <string name="ytm_save_album">שמירה בספרייה</string>
+    <string name="ytm_saved_album">שמור בספרייה</string>
+    <string name="ytm_saved_where">נשמר בחשבון שידור, בכל המכשירים — לא ב־YouTube Music</string>
+    <string name="ytm_empty_list">עוד אין כאן כלום</string>
+    <string name="ytm_list_failed">לא ניתן לקרוא את הרשימה הזו</string>
+    <string name="ytm_loading">טוען…</string>
+    <string name="ytm_reconnect">כדי שלייק יגיע גם ל־YouTube, מחברים את החשבון מחדש</string>
+    <string name="ytm_today">היום</string>
+    <string name="ytm_yesterday">אתמול</string>
+    <string name="ytm_on_tv">בטלוויזיה</string>
+    <string name="ytm_on_phone">בטלפון</string>
 </resources>

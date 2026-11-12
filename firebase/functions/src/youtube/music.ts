@@ -1,10 +1,11 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
-import { QuotaError, quotaLeft, YtApiError, ytGet, ytGetAsUser } from './api';
+import { QuotaError, quotaLeft, YtApiError, ytGet, ytGetAsUser, ytPostAsUser } from './api';
 import { chunks } from './model';
 import {
   artistFrom,
   LIKED_MAX,
   listFrom,
+  listsOfKind,
   musicCategoryId,
   onlyMusic,
   PLAYLIST_MAX,
@@ -215,7 +216,19 @@ export async function musicSearch(q: string, kind: MusicSearchKind, params: Reco
     }
   }
   const songs = onlyMusic(await songsFor(videoIds, (p, qs) => ytGet(p, qs, key)), category);
-  const result = { songs, artists, lists };
+  const result = { songs, artists, lists: listsOfKind(lists, kind) };
   await ref.set({ result, at: Date.now(), expiresAt: expires(MUSIC_SEARCH_TTL_MS) });
   return { ...result, cached: false };
+}
+
+/** What `videos.rate` costs, in units. */
+export const RATE_UNITS = 50;
+
+/**
+ * Gives or takes back a like on YouTube for the account (ADR-069, `videos.rate`), and forgets the
+ * account's cached liked songs so the library reads them again.
+ */
+export async function rate(uid: string, id: string, like: boolean, token: string): Promise<void> {
+  await ytPostAsUser('videos/rate', { id, rating: like ? 'like' : 'none' }, token, RATE_UNITS);
+  await db().collection('ytmLib').doc(uid).set({ liked: null }, { merge: true });
 }

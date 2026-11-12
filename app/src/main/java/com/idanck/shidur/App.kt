@@ -24,6 +24,7 @@ import com.idanck.shidur.data.repo.EpgRepository
 import com.idanck.shidur.data.repo.SourceRepository
 import com.idanck.shidur.data.tasks.TaskRepository
 import com.idanck.shidur.data.update.UpdateManager
+import com.idanck.shidur.data.youtube.MusicRepository
 import com.idanck.shidur.data.youtube.YouTubeRepository
 import com.idanck.shidur.data.podcast.PodcastDao
 import com.idanck.shidur.data.podcast.PodcastDirectory
@@ -65,6 +66,7 @@ object ServiceLocator {
     lateinit var news: NewsRepository private set
     lateinit var account: AccountRepository private set
     lateinit var youtube: YouTubeRepository private set
+    lateinit var music: MusicRepository private set
     lateinit var podcasts: PodcastRepository private set
     lateinit var podcastDirectory: PodcastDirectory private set
     lateinit var podcastSync: PodcastSync private set
@@ -139,6 +141,11 @@ object ServiceLocator {
         // throws in Application.onCreate, so every launch crashed (0.32.5).
         // The library, marks and queue follow the account between devices (ADR-067).
         podcastSync = PodcastSync(podcasts, account.state, { account.firestore() }, appScope).also { it.start() }
+        // YouTube Music (ADR-069): the likes, saved albums and history Shidur keeps follow the account.
+        music = MusicRepository(appContext, { account.functions() }, { account.firestore() }, account.state, appScope, device = {
+            val ui = appContext.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+            if (ui?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) "tv" else "phone"
+        }).also { it.start() }
         handoverImporter = HandoverImporter(appContext, database, settings)
         if (Handover.isBridge) {
             handover = UpdateManager(
