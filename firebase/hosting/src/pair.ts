@@ -20,6 +20,16 @@ async function main() {
   const fromLink = new URLSearchParams(location.search).get('code');
   if (fromLink) input.value = format(normalize(fromLink));
 
+  // Approving signs a device in to the whole account, and the code may have come in a link somebody
+  // sent: the button works only once the person says the code is on their own television.
+  const mine = $('mine') as HTMLInputElement;
+  const approve = $('approve') as HTMLButtonElement;
+  const ready = () => {
+    approve.disabled = !mine.checked;
+  };
+  mine.addEventListener('change', ready);
+  ready();
+
   const message = (text: string, tone: 'error' | 'ok' | '' = '') => {
     const el = $('message');
     el.textContent = text;
@@ -53,13 +63,33 @@ async function main() {
       message('זה לא נראה כמו קוד. הקוד בטלוויזיה בנוי משמונה תווים.', 'error');
       return;
     }
-    const button = $('approve') as HTMLButtonElement;
-    button.disabled = true;
+    if (!mine.checked) {
+      message('סמן שהקוד מופיע עכשיו על הטלוויזיה שלך.', 'error');
+      return;
+    }
+    approve.disabled = true;
     message('מאשר…');
     try {
       await call(session, 'approvePairing', { code });
       show('approve-form', false);
       message('אושר. הטלוויזיה תתחבר בעוד כמה שניות, ואפשר לסגור את הדף.', 'ok');
+    } catch (e) {
+      message(describeError(e), 'error');
+    } finally {
+      ready();
+    }
+  });
+
+  // The way back for someone who approved a code that was not their television's.
+  $('sign-out-all').addEventListener('click', async () => {
+    if (!confirm('לנתק את כל הטלוויזיות והמכשירים מהחשבון? בכל אחד מהם יהיה צריך להתחבר מחדש.')) return;
+    const button = $('sign-out-all') as HTMLButtonElement;
+    button.disabled = true;
+    message('מנתק…');
+    try {
+      await call(session, 'signOutEverywhere', {});
+      await leave(session);
+      message('כל המכשירים נותקו. מכשיר שכבר מחובר יתנתק בתוך שעה לכל היותר.', 'ok');
     } catch (e) {
       message(describeError(e), 'error');
     } finally {

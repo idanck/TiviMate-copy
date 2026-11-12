@@ -1,11 +1,12 @@
 // @ts-check
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Auth, COOKIE } from './auth.mjs';
 import { FirebaseGate, relayAuthPage } from './firebase.mjs';
-import { Proxy, sendJson } from './proxy.mjs';
+import { INTERNAL_HEADER, Proxy, sendJson } from './proxy.mjs';
 import { redactUrl } from './redact.mjs';
 
 /**
@@ -49,6 +50,15 @@ const proxy = new Proxy({
   allowPrivate: process.env.SHIDUR_WEB_ALLOW_PRIVATE === '1',
   userAgent: process.env.SHIDUR_WEB_USER_AGENT,
 });
+// ffmpeg, started by /api/remux, reads the stream back through /api/stream on this server; it has
+// no session, so it carries a key made at each start and known to nobody else.
+const internalKey = randomBytes(32).toString('hex');
+/** @param {import('node:http').IncomingMessage} req */
+const internal = (req) => {
+  const given = req.headers[INTERNAL_HEADER];
+  return typeof given === 'string' && given.length === internalKey.length &&
+    timingSafeEqual(Buffer.from(given), Buffer.from(internalKey));
+};
 const version = readVersion();
 
 const TYPES = {
@@ -114,6 +124,11 @@ const server = createServer(async (req, res) => {
  */
 async function api(req, res, url) {
   const path = url.pathname;
+  // ffmpeg's own way in (/api/remux): /api/stream/<name>, with the key.
+  if (path.startsWith('/api/stream/')) {
+    if (!internal(req)) return sendJson(res, 401, { error: 'auth' });
+    return await proxy.stream(req, res, url.searchParams, { named: true });
+  }
   if (!PUBLIC_API.has(path) && !authenticated(req)) return sendJson(res, 401, { error: 'auth' });
 
   switch (path) {
@@ -287,6 +302,14 @@ function readVersion() {
 }
 
 server.listen(config.port, config.host, () => {
+  const bound = server.address();
+  if (bound && typeof bound === 'object') {
+    // The address ffmpeg reaches this server at: the one it listens on, or loopback when it
+    // listens on all of them.
+    const any = bound.address === '0.0.0.0' || bound.address === '::';
+    const host = any ? '127.0.0.1' : bound.family === 'IPv6' ? `[${bound.address}]` : bound.address;
+    proxy.internal = { origin: `http://${host}:${bound.port}`, key: internalKey };
+  }
   const access = mode === 'firebase' ? `Google sign-in (${firebase?.projectId})` : mode === 'password' ? 'password' : 'open';
   console.log(`Shidur web ${version} on http://${config.host}:${config.port}` +
     ` · access ${access} · remux ${proxy.ffmpeg ? 'on' : 'off (no ffmpeg)'}`);

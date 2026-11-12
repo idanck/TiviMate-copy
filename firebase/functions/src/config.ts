@@ -21,6 +21,8 @@ export const LIMITS = {
   /** Profile checks by one account: the app makes one after each sign-in, and again at the next
    * start only if that one failed. */
   profilePerUser: { max: 20, windowMs: 10 * 60 * 1000 },
+  /** Signing every device out: something a person does once, when a device is lost or not theirs. */
+  revokePerUser: { max: 5, windowMs: 60 * 60 * 1000 },
 } as const;
 
 /**

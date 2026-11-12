@@ -8,7 +8,7 @@ Setting the project up is a manual job: `docs/12-firebase-setup.md`.
 |---|---|
 | `firestore.rules` | Who reads and writes what. No client writes anything. |
 | `firestore.indexes.json` | TTL on `expiresAt` of `pairings`, `rateLimits` and the YouTube collections. |
-| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`; and YouTube (ADR-061): `ytChannels`, `ytResolve`, `ytSearch`, `ytSubscriptions`, `ytLinkStatus`, `ytLinkStart`, `ytLinkPoll`, `ytLinkCode`, `ytUnlink`. All second-generation callables. Node 22, TypeScript. |
+| `functions/` | `createPairing`, `approvePairing`, `claimPairing`, `ensureProfile`, `deleteAccount`, `signOutEverywhere`; and YouTube (ADR-061): `ytChannels`, `ytResolve`, `ytSearch`, `ytSubscriptions`, `ytLinkStatus`, `ytLinkStart`, `ytLinkPoll`, `ytLinkCode`, `ytUnlink`. All second-generation callables. Node 22, TypeScript. |
 | `hosting/` | The approval and deletion pages, bundled with esbuild into `hosting/dist`. |
 | `test/` | Rules and the whole pairing, against the emulators. |
 
@@ -45,3 +45,20 @@ Environment, read by the Functions at deploy time from `functions/.env` (not in 
 
 - `PAIR_BASE_URL` — the approval page's origin, when Hosting has a domain of its own. Defaults to
   `https://<project-id>.web.app`.
+
+## Approving a television is handing over the account
+
+Anyone can ask for a pairing code (`createPairing` needs no account), and whoever holds a code's
+secret is signed in as the person who approves it. A stranger can therefore send somebody the real
+`/pair?code=…` link and wait. Two things stand against that:
+
+- `/pair` says what approving means, and its button works only once the person ticks that the code
+  is on their own television now.
+- `signOutEverywhere` (the "לנתק את כל המכשירים מהחשבון" button on `/pair`) revokes every session of
+  the account, for a caller signed in with Google only. A device that is already signed in keeps
+  its current ID token until it runs out, an hour at most. The Auth emulator records a revocation
+  but does not enforce it, so `test/pairing.test.ts` checks the record.
+
+`deleteAccount` still answers a paired television: Google Play wants deletion from inside the app,
+and a television has no other sign-in (ADR-059).
+

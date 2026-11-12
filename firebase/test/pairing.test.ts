@@ -115,6 +115,53 @@ describe('television pairing', () => {
   });
 });
 
+describe('signing out everywhere', () => {
+  // An account and a television of their own, so the tests around these keep their sessions.
+  const phone2 = client('phone2');
+  const tv2 = client('tv2');
+
+  beforeAll(async () => {
+    const google = GoogleAuthProvider.credential(
+      JSON.stringify({ sub: 'google-sub-2', email: 'other@example.com', email_verified: true, name: 'Other' }),
+    );
+    await signInWithCredential(phone2.auth, google);
+    const pairing = await call<Pairing>(tv2, 'createPairing', {});
+    await call(phone2, 'approvePairing', { code: pairing.code });
+    const claimed = await call<{ token?: string }>(tv2, 'claimPairing', { code: pairing.code, secret: pairing.secret });
+    await signInWithCustomToken(tv2.auth, claimed.token!);
+  });
+
+  afterAll(async () => {
+    await deleteApp(tv2.app);
+    await deleteApp(phone2.app);
+  });
+
+  it('is for a person signed in with Google, not for a paired television', async () => {
+    expect(await code(call(tv2, 'signOutEverywhere', {}))).toBe('functions/permission-denied');
+    expect(await tv2.auth.currentUser!.getIdToken(true)).toBeTruthy();
+  });
+
+  // The Auth emulator records a revocation but goes on refreshing revoked tokens, so what is
+  // checked here is the record: the account's sessions are valid only from now on.
+  it('revokes every session of the account', async () => {
+    const uid = phone2.auth.currentUser!.uid;
+    const validSince = async () => {
+      const lookup = await fetch(
+        `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:lookup`,
+        { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' }, body: JSON.stringify({ localId: [uid] }) },
+      );
+      return Number((await lookup.json()).users?.[0]?.validSince ?? 0);
+    };
+    const before = await validSince();
+    await new Promise((done) => setTimeout(done, 1100));
+    const asked = Math.floor(Date.now() / 1000);
+    expect(await call(phone2, 'signOutEverywhere', {})).toEqual({ ok: true });
+    const after = await validSince();
+    expect(after).toBeGreaterThan(before);
+    expect(after).toBeGreaterThanOrEqual(asked);
+  });
+});
+
 describe('the account', () => {
   // Read and written as the emulators' owner, which neither the rules nor a signed-in user limit.
   const owner = { Authorization: 'Bearer owner', 'Content-Type': 'application/json' };
