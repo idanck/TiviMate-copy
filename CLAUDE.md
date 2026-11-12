@@ -59,6 +59,11 @@ The owner's rule (2026-10-16): a series of related changes publishes **one** upd
   it once, on `main`, after the batch's last merge, dispatching it by hand if that merge changed
   nothing under `qa/`.
 
+A `main` run that sits in `queued` with no jobs and refuses both cancel ("completed" / "not
+queued yet") and re-run ("already running") is stuck on GitHub's side (it happened to 0.33.0's
+run, 2026-11-11). A re-run cannot replace it, and an empty commit is skipped by `paths-ignore`:
+land a small change outside `web/` and `webos/` (a note like this one) to start a fresh `push` run.
+
 ## This session's environment cannot build the app
 
 The Claude Code on the web / Claude Code Remote sandbox this repo is usually
