@@ -309,12 +309,11 @@ fun StudioSheet(
     val tv = StudioTheme.television
     Dialog(
         onDismissRequest = onDismissRequest,
-        // The window is laid out edge to edge, under the bars, and the sheet keeps clear of them
-        // with insets of its own. With the platform fitting it instead, Compose sizes a full-width
-        // dialog to `screenHeightDp`, which from Android 15 counts the bars too, while the platform
-        // still places it below the status bar: the window ran off the foot of the screen by the
-        // status bar's height and took the bottom of a phone sheet with it ("עוד", 0.33.1).
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+        // On a phone the window covers the whole screen, under the bars, and the sheet or page
+        // keeps clear of them with insets of its own; from Compose 1.8 that makes it a full-screen,
+        // non-floating window (0.33.2: on 1.7.5 a sheet ran off the foot of the screen). A
+        // television keeps the platform's floating window, whose own dim its centred panel uses.
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = tv),
     ) {
         // A drawer is never blurred behind; a panel or a sheet is glass, and is where it can be.
         val blurred = if (tv && drawer) false else rememberWindowBlurBehind()
@@ -417,10 +416,9 @@ fun StudioSheet(
                     ClearWindowDim()
                     // `PChannelMenu`: thick glass floating 8dp off the edges, every corner the sheet's.
                     val shape = MaterialTheme.shapes.extraLarge
-                    val settings by ServiceLocator.settings.state.collectAsState()
-                    // The sheet takes the near-opaque fallback even where the window blurs behind it:
-                    // it lands on the tab bar, and through the translucent tint the tabs' labels read
-                    // as a second row of the sheet's own (0.33.1).
+                    // The sheet is solid even where the window blurs behind it: it lands on the tab
+                    // bar, and through any tint at all the tabs' labels read as a second row of the
+                    // sheet's own (0.33.2).
                     CompositionLocalProvider(LocalGlassBlur provides false) {
                         Column(
                             modifier = modifier
@@ -428,7 +426,7 @@ fun StudioSheet(
                                 .fillMaxWidth()
                                 .padding(start = 8.dp, end = 8.dp, top = 64.dp, bottom = 8.dp)
                                 .panelSurface(
-                                    opacity = settings.overlayOpacity.coerceAtLeast(MENU_MIN_OPACITY),
+                                    opacity = 1f,
                                     shape = shape,
                                     material = GlassMaterial.THICK,
                                 )
