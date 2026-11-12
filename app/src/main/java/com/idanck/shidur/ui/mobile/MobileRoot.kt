@@ -16,6 +16,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -24,6 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.idanck.shidur.R
@@ -299,6 +302,15 @@ fun MobileRoot(
     // handlers; composed after this one, they win while it is open.
     BackHandler(enabled = canGoBack, onBack = goBack)
 
+    // "עוד" (ADR-066): open above the bar, and how tall the bar is, so the panel stops at it.
+    var moreOpen by remember { mutableStateOf(false) }
+    var navBarHeightPx by remember { mutableIntStateOf(0) }
+    val moreTabs = listOf(
+        PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
+        PhoneTab(MobileTab.YOUTUBE, stringResource(R.string.nav_youtube), StudioIcons.Stream),
+        PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
+    )
+
     Box(modifier = modifier) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -381,13 +393,12 @@ fun MobileRoot(
                             PhoneTab(MobileTab.PODCASTS, stringResource(R.string.nav_podcasts), StudioIcons.Podcast),
                             PhoneTab(MobileTab.SETTINGS, stringResource(R.string.nav_settings), StudioIcons.Settings),
                         ),
-                        more = listOf(
-                            PhoneTab(MobileTab.GUIDE, stringResource(R.string.nav_guide), StudioIcons.Guide),
-                            PhoneTab(MobileTab.YOUTUBE, stringResource(R.string.nav_youtube), StudioIcons.Stream),
-                            PhoneTab(MobileTab.RECORDINGS, stringResource(R.string.rec_title), StudioIcons.Record),
-                        ),
+                        more = moreTabs,
+                        moreOpen = moreOpen,
+                        onMoreOpenChange = { moreOpen = it },
                         selected = tab.takeIf { !showAddSource && it != MobileTab.VOD },
                         onSelect = selectTab,
+                        modifier = Modifier.onSizeChanged { navBarHeightPx = it.height },
                     )
                 }
             },
@@ -492,6 +503,17 @@ fun MobileRoot(
                 }
             }
         }
+
+        // `PNavOptMoreSheet`: over the screen and the mini player, under the tab bar, which stays
+        // in view and in reach.
+        PhoneMorePanel(
+            open = moreOpen && !playerOpen && panelsOpen == null && !ytPlayerOpen,
+            items = moreTabs,
+            selected = tab,
+            barHeight = with(LocalDensity.current) { navBarHeightPx.toDp() },
+            onSelect = { moreOpen = false; selectTab(it) },
+            onDismiss = { moreOpen = false },
+        )
 
         if (playerOpen) {
             PlayerScreen(
