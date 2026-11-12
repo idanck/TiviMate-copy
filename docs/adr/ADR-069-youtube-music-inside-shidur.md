@@ -1,7 +1,8 @@
 # ADR-069 — YouTube Music inside Shidur
 
 **Status:** accepted 2026-11-12. Stage 1 (the server and the account's music documents) built;
-stage 2 (the television, 0.34.0) built; search and the phone to come.
+stage 2 (the television, 0.34.0) built; the account's button and settings (0.35.0) built; search and
+the phone to come.
 
 ## Context
 
@@ -124,6 +125,30 @@ Callables in `me-west1`, beside the video tab's, with the same key, tokens and q
 - The likes, saved albums and history are kept on the device and, while signed in, in the account
   (`MusicRepository`): listened to, the first answer after sign-in joining what the device kept
   signed out; the history keeps the newest 300.
+
+### The YouTube account (0.35.0)
+
+Asked for by the owner (2026-11-12): connecting again — so an older connection gains the scope for
+likes — needed a way in once an account was connected, and there was none to disconnect. Designed
+on the canvas first (`TvYouTubeAccount`, `TvSettingsAccount`, `YtAccountChip`, `PYouTubeAccount`,
+`PSettingsAccount`), in the two places the owner chose:
+
+- **On YouTube's screen:** a button at the end of the top row (television: after the switch's row,
+  `YtAccountChip`; phone: after search in the top bar) — the channel's picture and name, an amber dot
+  when the connection cannot give likes, "חיבור YouTube" with none. It opens the account window
+  (a dialog on the television, a sheet on the phone) or the connect window.
+- **Settings › חשבון,** under Shidur's account: the channel and a status, "חיבור מחדש" or
+  "החלפת חשבון", and "ניתוק".
+- **The window:** who is connected (`ytLinkStatus` now answers the channel: `channels.list mine=true`,
+  one unit, read when connecting and once for a connection made before); a read-only connection
+  leads with "חיבור מחדש". "החלפת חשבון" and "חיבור מחדש" run the shell's own way of connecting and
+  the new token replaces the old one; what was kept for the old one (`ytSubs`, `ytmLib`) is
+  forgotten, and its token revoked when it is surely another grant (another client or another
+  channel — revoking a grant of the same account and client would revoke the new token too).
+- **Disconnecting** asks first, with the remote on "ביטול", and calls `ytUnlink`: the token is
+  revoked at Google and forgotten, with the same caches, for every device of the Shidur account.
+  Shidur's own likes, albums and history stay.
+- The music tab's note that a like stayed in Shidur carries a "חיבור מחדש" button.
 
 ## Rejected
 

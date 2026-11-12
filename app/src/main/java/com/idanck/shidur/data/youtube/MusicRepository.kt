@@ -175,6 +175,18 @@ class MusicRepository(
         }
     }
 
+    /**
+     * The connected YouTube account changed (connected, replaced or disconnected): what was read for
+     * the one before is dropped and read again.
+     */
+    fun accountChanged() {
+        _playlists.value = emptyList()
+        _youtubeLiked.value = emptyList()
+        _reconnect.value = false
+        lists.clear()
+        scope.launch { refreshLibrary() }
+    }
+
     fun dismissReconnect() {
         _reconnect.value = false
     }

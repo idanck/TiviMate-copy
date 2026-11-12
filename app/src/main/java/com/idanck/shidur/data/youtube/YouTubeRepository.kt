@@ -69,6 +69,19 @@ class YouTubeRepository(
     /** The connection can give likes on YouTube (ADR-069). */
     val canRate: StateFlow<Boolean> = _canRate
 
+    private val _link = MutableStateFlow<YtLinkStatus?>(null)
+    /**
+     * The connection as the server last told it (ADR-069: the account button and Settings ›
+     * חשבון), or null before it was asked or with no Shidur account signed in.
+     */
+    val link: StateFlow<YtLinkStatus?> = _link
+
+    /**
+     * Called when the connected YouTube account changed — connected, replaced or disconnected — so
+     * what was read for the one before (the music tab's playlists and likes) is read again.
+     */
+    @Volatile var onAccountChanged: () -> Unit = {}
+
     private val refreshing = Mutex()
     @Volatile private var refreshedAt = 0L
 
@@ -156,12 +169,14 @@ class YouTubeRepository(
             _subs.value = YtSubsState.Hidden
             _subChannels.value = emptyList()
             _canRate.value = false
+            _link.value = null
             return
         }
         var linkedNow = false
         try {
             val status = YtParse.linkStatus(call("ytLinkStatus"))
             linkedNow = status.linked
+            _link.value = status
             _canRate.value = status.canRate
             if (!status.linked) {
                 _subChannels.value = emptyList()
@@ -194,6 +209,14 @@ class YouTubeRepository(
         }
     }
 
+    /** Asks only whether a YouTube account is connected, and which (Settings › חשבון): one cheap call. */
+    suspend fun refreshLink() {
+        runCall { YtParse.linkStatus(call("ytLinkStatus")) }.onSuccess {
+            _link.value = it
+            _canRate.value = it.canRate
+        }
+    }
+
     /** The television asks Google for a code to show (the flow for TVs and limited-input devices). */
     suspend fun linkStart(): Result<YtLinkCode> = runCall {
         YtParse.linkCode(call("ytLinkStart")) ?: throw YtException(YtProblem.OTHER)
@@ -201,13 +224,35 @@ class YouTubeRepository(
 
     /** One poll: has the code been approved yet? */
     suspend fun linkPoll(): Result<YtLinkPoll> = runCall {
-        YtParse.linkPoll(call("ytLinkPoll")).also { if (it == YtLinkPoll.LINKED) prefs.edit().putBoolean(K_WAS_LINKED, true).apply() }
+        YtParse.linkPoll(call("ytLinkPoll")).also {
+            if (it == YtLinkPoll.LINKED) {
+                prefs.edit().putBoolean(K_WAS_LINKED, true).apply()
+                onAccountChanged()
+            }
+        }
     }
 
     /** The phone hands over the one-time code Google's authorization returned for the web client. */
     suspend fun linkWithCode(code: String): Result<Unit> = runCall {
         call("ytLinkCode", mapOf("code" to code))
         prefs.edit().putBoolean(K_WAS_LINKED, true).apply()
+        onAccountChanged()
+        Unit
+    }
+
+    /**
+     * Disconnects the YouTube account (`ytUnlink`): the server revokes Shidur's access at Google and
+     * forgets the token, for every device of the Shidur account. The subscriptions rail turns back
+     * into the invitation to connect — not the "connection lost" one, since this was asked for.
+     */
+    suspend fun unlink(): Result<Unit> = runCall {
+        call("ytUnlink")
+        prefs.edit().putBoolean(K_WAS_LINKED, false).apply()
+        _link.value = _link.value?.copy(linked = false, canRate = false, channel = null)
+        _canRate.value = false
+        _subChannels.value = emptyList()
+        if (_subs.value !is YtSubsState.Hidden) _subs.value = YtSubsState.Invite(revoked = false)
+        onAccountChanged()
         Unit
     }
 

@@ -146,6 +146,8 @@ object ServiceLocator {
             val ui = appContext.getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
             if (ui?.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) "tv" else "phone"
         }).also { it.start() }
+        // Another YouTube account, or none: the music tab reads its library again (ADR-069).
+        youtube.onAccountChanged = { music.accountChanged() }
         handoverImporter = HandoverImporter(appContext, database, settings)
         if (Handover.isBridge) {
             handover = UpdateManager(

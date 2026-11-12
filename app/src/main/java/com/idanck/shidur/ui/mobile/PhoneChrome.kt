@@ -100,6 +100,8 @@ internal fun PhoneTopBar(
     modifier: Modifier = Modifier,
     onSport: (() -> Unit)? = null,
     onNews: (() -> Unit)? = null,
+    /** After search: YouTube's account button (ADR-069, `PTopBar` account). */
+    youtubeAccount: Boolean = false,
 ) {
     val studio = StudioTheme.colors
     val type = StudioTheme.type
@@ -137,6 +139,7 @@ internal fun PhoneTopBar(
         if (onSearch != null) {
             GlassIconButton(icon = StudioIcons.Search, description = stringResource(R.string.nav_search), onClick = onSearch)
         }
+        if (youtubeAccount) PhoneYouTubeAccountButton()
     }
 }
 

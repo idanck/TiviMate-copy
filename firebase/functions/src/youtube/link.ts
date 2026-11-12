@@ -1,6 +1,7 @@
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { logger } from 'firebase-functions/v2';
 import { HttpsError } from 'firebase-functions/v2/https';
+import { ytGetAsUser } from './api';
 
 /**
  * Connecting a YouTube account (ADR-061): read access (`youtube.readonly`) for the subscriptions,
@@ -101,7 +102,7 @@ export async function pollDeviceLink(uid: string, tv: OAuthClient): Promise<Poll
     grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
   });
   if (status === 200 && typeof body.refresh_token === 'string') {
-    await saveToken(uid, body.refresh_token, 'tv', String(body.scope ?? ''));
+    await saveToken(uid, body.refresh_token, 'tv', String(body.scope ?? ''), typeof body.access_token === 'string' ? body.access_token : null);
     await ref.delete();
     return 'linked';
   }
@@ -126,16 +127,70 @@ export async function exchangeServerCode(uid: string, code: string, web: OAuthCl
     logger.warn('server code refused', { status, error: body.error });
     throw new HttpsError('invalid-argument', 'The authorization could not be completed. Try again.');
   }
-  await saveToken(uid, body.refresh_token, 'web', String(body.scope ?? ''));
+  await saveToken(uid, body.refresh_token, 'web', String(body.scope ?? ''), typeof body.access_token === 'string' ? body.access_token : null);
 }
 
-async function saveToken(uid: string, refreshToken: string, client: 'tv' | 'web', scope: string): Promise<void> {
+/** The YouTube channel a connection belongs to, shown as "connected as …" (ADR-069). */
+export interface LinkedChannel {
+  id: string;
+  title: string;
+  thumb: string | null;
+}
+
+/** The channel in a `channels.list mine=true` answer, or null when the Google account has none. */
+export function channelOf(body: unknown): LinkedChannel | null {
+  const item = (body as { items?: unknown[] } | null)?.items?.[0] as
+    | { id?: unknown; snippet?: { title?: unknown; thumbnails?: Record<string, { url?: unknown } | undefined> } }
+    | undefined;
+  if (!item || typeof item.id !== 'string' || !item.id) return null;
+  const t = item.snippet?.thumbnails ?? {};
+  const thumb = [t.medium, t.default, t.high].map((x) => x?.url).find((u): u is string => typeof u === 'string' && u.startsWith('https://'));
+  const title = typeof item.snippet?.title === 'string' ? item.snippet.title.slice(0, 200) : '';
+  return { id: item.id, title, thumb: thumb ?? null };
+}
+
+/** Reads the connected channel with the connection's own access token (1 unit); null when it cannot. */
+async function identify(accessToken: string): Promise<LinkedChannel | null> {
+  try {
+    return channelOf(await ytGetAsUser('channels', { part: 'snippet', mine: 'true', maxResults: '1' }, accessToken));
+  } catch (e) {
+    logger.warn('linked channel not read', { error: String(e) });
+    return null;
+  }
+}
+
+/** What is kept per account from a connection that is no longer the one in use. */
+async function forgetCaches(uid: string): Promise<void> {
+  const db = getFirestore();
+  await Promise.all([db.collection('ytSubs').doc(uid).delete(), db.collection('ytmLib').doc(uid).delete()]);
+}
+
+/**
+ * Whether connecting again should revoke the connection it replaces. Google's grant is one per
+ * account and client, and revoking a refresh token revokes that grant, so the old token is revoked
+ * only when it is surely another grant: another client, or another channel.
+ */
+export function revokesOld(old: { client?: string; channel?: { id?: string } | null }, client: string, channel: LinkedChannel | null): boolean {
+  if (old.client && old.client !== client) return true;
+  return !!old.channel?.id && !!channel?.id && old.channel.id !== channel.id;
+}
+
+async function saveToken(uid: string, refreshToken: string, client: 'tv' | 'web', scope: string, accessToken: string | null): Promise<void> {
   if (scope && !canRead(scope)) {
     throw new HttpsError('permission-denied', 'Read access to YouTube was not granted.');
   }
+  const ref = tokens().doc(uid);
+  const old = (await ref.get()).data() as { refreshToken?: string; client?: string; channel?: LinkedChannel | null } | undefined;
+  const channel = accessToken ? await identify(accessToken) : null;
+  // Connecting again replaces the connection ("החלפת חשבון", "חיבור מחדש"): what was kept for the
+  // one before is forgotten, and its token revoked when it is another grant.
+  if (old?.refreshToken && old.refreshToken !== refreshToken) {
+    if (revokesOld(old, client, channel)) await post(REVOKE_URL, { token: old.refreshToken }).catch(() => undefined);
+    await forgetCaches(uid);
+  }
   // The scope is kept so a connection made before ADR-069, or one that declined the write scope,
   // is known to be unable to give likes, and the app can offer to connect again.
-  await tokens().doc(uid).set({ refreshToken, client, scope, linkedAt: Timestamp.now() });
+  await ref.set({ refreshToken, client, scope, channel, channelReadAt: Timestamp.now(), linkedAt: Timestamp.now() });
 }
 
 export async function isLinked(uid: string): Promise<boolean> {
@@ -146,6 +201,27 @@ export async function isLinked(uid: string): Promise<boolean> {
 export async function linkCanRate(uid: string): Promise<boolean> {
   const t = (await tokens().doc(uid).get()).data() as { scope?: string } | undefined;
   return !!t && canRate(String(t.scope ?? ''));
+}
+
+/**
+ * The connection as the app shows it: whether there is one, whether it gives likes, and the
+ * channel it belongs to. A connection made before the channel was kept is read once, here.
+ */
+export async function linkInfo(uid: string, clients: { tv: OAuthClient; web: OAuthClient }): Promise<{ linked: boolean; canRate: boolean; channel: LinkedChannel | null }> {
+  const ref = tokens().doc(uid);
+  const t = (await ref.get()).data() as { scope?: string; channel?: LinkedChannel | null; channelReadAt?: Timestamp } | undefined;
+  if (!t) return { linked: false, canRate: false, channel: null };
+  let channel = t.channel ?? null;
+  if (!t.channelReadAt) {
+    const token = await accessTokenFor(uid, clients).catch(() => null);
+    if (token) {
+      channel = await identify(token);
+      await ref.set({ channel, channelReadAt: Timestamp.now() }, { merge: true });
+    } else if (!(await ref.get()).exists) {
+      return { linked: false, canRate: false, channel: null };
+    }
+  }
+  return { linked: true, canRate: canRate(String(t.scope ?? '')), channel };
 }
 
 /** A fresh access token for the account, or null when the link was revoked (the token is then forgotten). */
@@ -170,6 +246,6 @@ export async function unlink(uid: string): Promise<void> {
   const t = snap.data() as { refreshToken?: string } | undefined;
   if (t?.refreshToken) await post(REVOKE_URL, { token: t.refreshToken }).catch(() => undefined);
   await tokens().doc(uid).delete();
-  await getFirestore().collection('ytSubs').doc(uid).delete();
+  await forgetCaches(uid);
   await links().doc(uid).delete().catch(() => undefined);
 }

@@ -1,6 +1,7 @@
 package com.idanck.shidur.ui.mobile
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -19,12 +20,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -33,10 +36,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +51,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -58,19 +66,22 @@ import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.data.account.AccountState
 import com.idanck.shidur.data.account.FirebaseSetup
 import com.idanck.shidur.data.youtube.YouTubeRepository
+import com.idanck.shidur.data.youtube.YtChannelHit
 import com.idanck.shidur.data.youtube.YtChannelState
 import com.idanck.shidur.data.youtube.YtProblem
 import com.idanck.shidur.data.youtube.YtSearchKind
 import com.idanck.shidur.data.youtube.YtSubsState
 import com.idanck.shidur.data.youtube.YtVideo
+import com.idanck.shidur.ui.account.YouTubeAccountWindow
+import com.idanck.shidur.ui.account.YouTubeAvatar
+import com.idanck.shidur.ui.common.LiveBadge
+import com.idanck.shidur.ui.common.LiveBadgeSize
 import com.idanck.shidur.ui.common.StudioButton
 import com.idanck.shidur.ui.common.StudioButtonSize
 import com.idanck.shidur.ui.common.StudioButtonVariant
 import com.idanck.shidur.ui.common.StudioChip
 import com.idanck.shidur.ui.common.StudioField
 import com.idanck.shidur.ui.common.StudioIcons
-import com.idanck.shidur.ui.common.LiveBadge
-import com.idanck.shidur.ui.common.LiveBadgeSize
 import com.idanck.shidur.ui.common.YouTubePlayerView
 import com.idanck.shidur.ui.common.claim
 import com.idanck.shidur.ui.theme.StudioTheme
@@ -271,16 +282,26 @@ private fun VideoPairs(videos: List<YtVideo>, onPlay: (YtVideo) -> Unit) {
  * own picker asks for read-only YouTube access, and the one-time code it returns for the project's
  * web client goes to the server, which keeps the token (`ytLinkCode`). The phone holds no token.
  */
+/** Connecting on a phone, from wherever it is offered: [start] runs it, [busy] and [failed] tell how it went. */
+internal class PhoneYouTubeConnect(val start: () -> Unit, readBusy: () -> Boolean, readFailed: () -> String?) {
+    val busy: Boolean by derivedStateOf(readBusy)
+    val failed: String? by derivedStateOf(readFailed)
+}
+
+/**
+ * Google's own account picker, asking for both YouTube scopes, and the one-time code it returns for
+ * the project's web client handed to the server (`ytLinkCode`). Connecting again with another
+ * account replaces the one connected (ADR-069). [onLinked] follows a connection that went through.
+ */
 @Composable
-private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
-    val studio = StudioTheme.colors
-    val type = StudioTheme.type
+internal fun rememberPhoneYouTubeConnect(onLinked: suspend () -> Unit): PhoneYouTubeConnect {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val repo = ServiceLocator.youtube
     var busy by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf<String?>(null) }
     val failedText = stringResource(R.string.yt_connect_failed)
+    val linked by rememberUpdatedState(onLinked)
 
     val link: (String) -> Unit = { code ->
         scope.launch {
@@ -288,7 +309,7 @@ private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
             repo.linkWithCode(code)
                 .onSuccess {
                     failed = null
-                    repo.refreshSubscriptions(signedIn = signedIn, phone = true)
+                    linked()
                 }
                 .onFailure { failed = failedText }
             busy = false
@@ -298,7 +319,7 @@ private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
         val code = res.data?.let { data -> runCatching { Identity.getAuthorizationClient(context).getAuthorizationResultFromIntent(data).serverAuthCode }.getOrNull() }
         if (code != null) link(code) else failed = failedText
     }
-    val connect: () -> Unit = {
+    val start: () -> Unit = {
         failed = null
         val request = AuthorizationRequest.builder()
             .setRequestedScopes(listOf(Scope(YOUTUBE_READONLY), Scope(YOUTUBE_RATE)))
@@ -316,6 +337,69 @@ private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
             }
             .addOnFailureListener { failed = failedText }
     }
+    return remember { PhoneYouTubeConnect(start = { start() }, readBusy = { busy }, readFailed = { failed }) }
+}
+
+/**
+ * YouTube's account button at the end of the tab's top bar (`PTopBar` account): the connected
+ * channel's picture, an amber dot when the connection cannot give likes, the person glyph when
+ * none is connected. It opens the account sheet (`PYouTubeAccount`), or Google's account picker.
+ */
+@Composable
+internal fun PhoneYouTubeAccountButton() {
+    val repo = ServiceLocator.youtube
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val link by repo.link.collectAsState()
+    var open by remember { mutableStateOf(false) }
+    val connect = rememberPhoneYouTubeConnect { repo.refreshSubscriptions(signedIn = true, phone = true) }
+    LaunchedEffect(connect.failed) { connect.failed?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() } }
+    val current = link ?: return
+    if (!current.linked && !current.phoneReady) return
+    val description = if (current.linked) stringResource(R.string.yt_account_title) else stringResource(R.string.yt_account_connect)
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clickable(role = Role.Button, enabled = !connect.busy) { if (current.linked) open = true else connect.start() }
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        YouTubeAvatar(if (current.linked) current.channel ?: YtChannelHit("", "", null) else null, size = 44.dp)
+        if (current.linked && !current.canRate) {
+            Box(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .size(13.dp)
+                    .clip(CircleShape)
+                    .background(StudioTheme.colors.ground)
+                    .padding(2.dp)
+                    .clip(CircleShape)
+                    .background(StudioTheme.colors.cue),
+            )
+        }
+    }
+    if (open && current.linked) {
+        YouTubeAccountWindow(
+            link = current,
+            onDismiss = { open = false },
+            onConnectAgain = {
+                open = false
+                connect.start()
+            },
+            onDisconnected = {
+                open = false
+                scope.launch { repo.refreshSubscriptions(signedIn = true, phone = true) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
+    val studio = StudioTheme.colors
+    val type = StudioTheme.type
+    val repo = ServiceLocator.youtube
+    val connect = rememberPhoneYouTubeConnect { repo.refreshSubscriptions(signedIn = signedIn, phone = true) }
 
     Column(
         modifier = Modifier
@@ -336,13 +420,13 @@ private fun PhoneConnectCard(revoked: Boolean, signedIn: Boolean) {
             style = type.meta,
             color = studio.ink2,
         )
-        failed?.let { Text(it, style = type.meta, color = studio.error) }
+        connect.failed?.let { Text(it, style = type.meta, color = studio.error) }
         StudioButton(
             label = stringResource(R.string.yt_connect_phone_action),
-            onClick = connect,
+            onClick = connect.start,
             icon = StudioIcons.Account,
             variant = StudioButtonVariant.PRIMARY,
-            enabled = !busy,
+            enabled = !connect.busy,
         )
     }
 }

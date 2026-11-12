@@ -6,7 +6,7 @@ import { MAX_INSTANCES, REGION, YT_LIMITS } from '../config';
 import { clientIp, enforce } from '../limits';
 import { QuotaError, YtApiError, ytGetAsUser } from './api';
 import { channelIdForHandle, channelStates, SAVED_TTL_MS, SUBSCRIBED_TTL_MS } from './channels';
-import { accessTokenFor, configured, exchangeServerCode, isLinked, linkCanRate, pollDeviceLink, startDeviceLink, unlink, type OAuthClient } from './link';
+import { accessTokenFor, configured, exchangeServerCode, isLinked, linkCanRate, linkInfo, pollDeviceLink, startDeviceLink, unlink, type OAuthClient } from './link';
 import { channelIds, mergeFeed, normalizeQuery, parseChannelInput, searchKind, searchParams } from './model';
 import { search } from './search';
 import { chart, library, musicCategory, musicSearch, NotFound, playlist, rate } from './music';
@@ -96,11 +96,14 @@ export const ytSearch = onCall({ ...base, secrets: [API_KEY] }, async (request) 
   }
 });
 
-/** Whether this account has YouTube connected, and whether each route can be offered at all. */
+/**
+ * Whether this account has YouTube connected, whether it gives likes, the channel it belongs to
+ * (`{ id, title, thumb }` or null), and whether each route can be offered at all.
+ */
 export const ytLinkStatus = onCall({ ...base, secrets: [TV_ID, TV_SECRET, WEB_ID, WEB_SECRET] }, async (request) => {
   const uid = signedIn(request);
-  const linked = await isLinked(uid);
-  return { linked, canRate: linked && (await linkCanRate(uid)), tvReady: configured(tv()), phoneReady: configured(web()) };
+  const info = await linkInfo(uid, { tv: tv(), web: web() });
+  return { ...info, tvReady: configured(tv()), phoneReady: configured(web()) };
 });
 
 /** The television starts connecting: `{}` → `{ userCode, verificationUrl, interval, expiresIn }`. */

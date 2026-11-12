@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRate, canRead, RATE_SCOPE, SCOPE, SCOPES } from '../src/youtube/link';
+import { canRate, canRead, channelOf, RATE_SCOPE, revokesOld, SCOPE, SCOPES } from '../src/youtube/link';
 import {
   artistFrom,
   isAlbumId,
@@ -147,5 +147,28 @@ describe('likes sent to YouTube', () => {
     expect(videoId('dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ');
     expect(videoId('short')).toBeNull();
     expect(videoId(42)).toBeNull();
+  });
+});
+
+describe('the connected account', () => {
+  it('is the channel channels.list returns, its picture over https', () => {
+    expect(
+      channelOf({
+        items: [{ id: 'UCabc', snippet: { title: 'Idan', thumbnails: { default: { url: 'https://yt3/x88' }, medium: { url: 'https://yt3/x240' } } } }],
+      }),
+    ).toEqual({ id: 'UCabc', title: 'Idan', thumb: 'https://yt3/x240' });
+    expect(channelOf({ items: [{ id: 'UCabc', snippet: { thumbnails: { default: { url: 'http://insecure' } } } }] })).toEqual({ id: 'UCabc', title: '', thumb: null });
+  });
+  it('is none when the Google account has no channel', () => {
+    expect(channelOf({ items: [] })).toBeNull();
+    expect(channelOf(null)).toBeNull();
+  });
+  it('revokes the connection it replaces only when that is surely another grant', () => {
+    const ch = (id: string) => ({ id, title: '', thumb: null });
+    expect(revokesOld({ client: 'tv', channel: ch('A') }, 'web', ch('A'))).toBe(true);
+    expect(revokesOld({ client: 'tv', channel: ch('A') }, 'tv', ch('B'))).toBe(true);
+    expect(revokesOld({ client: 'tv', channel: ch('A') }, 'tv', ch('A'))).toBe(false);
+    expect(revokesOld({ client: 'tv', channel: null }, 'tv', ch('A'))).toBe(false);
+    expect(revokesOld({ client: 'tv', channel: ch('A') }, 'tv', null)).toBe(false);
   });
 });

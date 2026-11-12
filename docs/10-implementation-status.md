@@ -296,6 +296,7 @@ and the phone, from the official YouTube Data API only.
 | Phone | Not built | Stage 4. |
 | Liking on YouTube | Done | `ytmRate`, with the write scope asked for on connecting; an older connection is asked to connect again. |
 | Albums | Done | Told from playlists by their id (`OLAK5uy_`), a rule of thumb; saved in the Shidur account. |
+| The YouTube account | Done | 0.35.0: the account button on YouTube's screen (television and phone) and Settings › חשבון › YouTube — the connected channel, connecting again, replacing it, disconnecting (`ytUnlink`). |
 
 ## WEB — Shidur for the computer (ADR-044)
 

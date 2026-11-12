@@ -152,6 +152,7 @@ internal object YtParse {
             tvReady = m?.bool("tvReady") ?: false,
             phoneReady = m?.bool("phoneReady") ?: false,
             canRate = m?.bool("canRate") ?: false,
+            channel = hit(m?.get("channel")),
         )
     }
 
@@ -194,6 +195,8 @@ data class YtLinkStatus(
     val phoneReady: Boolean,
     /** Connected with the scope that gives likes on YouTube (ADR-069); false for a connection made before it. */
     val canRate: Boolean = false,
+    /** The YouTube channel the connection belongs to, when the server could read it. */
+    val channel: YtChannelHit? = null,
 )
 
 /** The code the television shows while a phone or a computer approves it at Google's address. */

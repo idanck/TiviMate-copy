@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.idanck.shidur.R
+import com.idanck.shidur.ui.account.YouTubeAccountWindow
 import com.idanck.shidur.ServiceLocator
 import com.idanck.shidur.core.TimeModel
 import com.idanck.shidur.data.account.AccountState
@@ -252,6 +253,9 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
 
     /** "מוזיקה" is chosen in the switch at the top of YouTube's screen. */
     var music by mutableStateOf(false)
+
+    /** Something on the screen asked to connect YouTube again (the music tab's note, ADR-069); the screen opens the window. */
+    var connectAsked by mutableStateOf(false)
 
     var musicSection by mutableStateOf(MusicSection.HOME)
     var libraryFilter by mutableStateOf(LibraryFilter.PLAYLISTS)
@@ -437,6 +441,14 @@ internal fun TvYouTubeScreen(
     val scope = rememberCoroutineScope()
     var adding by remember { mutableStateOf(false) }
     var connecting by remember { mutableStateOf(false) }
+    var accountOpen by remember { mutableStateOf(false) }
+    val link by repo.link.collectAsState()
+    LaunchedEffect(session.connectAsked) {
+        if (session.connectAsked) {
+            session.connectAsked = false
+            connecting = true
+        }
+    }
 
     // The subscriptions rail: whether there is one, and its feed. The server keeps the list of
     // subscriptions for six hours and their videos for an hour, so asking often costs YouTube little.
@@ -475,8 +487,8 @@ internal fun TvYouTubeScreen(
     }
     // A dialog may not sit in front of a YouTube player, and a channel page has no frame for it:
     // either way it waits, paused, and carries on after.
-    LaunchedEffect(adding, connecting) { session.dialog = adding || connecting }
-    val covered = adding || connecting || session.page != null
+    LaunchedEffect(adding, connecting, accountOpen) { session.dialog = adding || connecting || accountOpen }
+    val covered = adding || connecting || accountOpen || session.page != null
     LaunchedEffect(covered) { if (covered) session.hold() else session.resumeHeld() }
     DisposableEffect(Unit) { onDispose { session.dialog = false } }
     BackHandler(enabled = session.page != null) { session.back() }
@@ -522,7 +534,14 @@ internal fun TvYouTubeScreen(
 
             null -> Column(modifier = Modifier.fillMaxSize()) {
                 // "וידאו | מוזיקה" (ADR-069): the video tab as it was, or the music tab.
-                YtModeSwitch(session = session, gutter = sideMenuInset())
+                YtModeSwitch(
+                    session = session,
+                    gutter = sideMenuInset(),
+                    // The YouTube account, at the end of the row (ADR-069): once signed in, and once
+                    // there is a connection or a way to make one.
+                    account = link?.takeIf { signedIn && (it.linked || it.tvReady) },
+                    onAccount = { if (link?.linked == true) accountOpen = true else connecting = true },
+                )
                 if (session.music) {
                     TvMusicScreen(
                         session = session,
@@ -550,6 +569,22 @@ internal fun TvYouTubeScreen(
                 }
             }
         }
+    }
+
+    val current = link
+    if (accountOpen && current != null && current.linked) {
+        YouTubeAccountWindow(
+            link = current,
+            onDismiss = { accountOpen = false },
+            onConnectAgain = {
+                accountOpen = false
+                connecting = true
+            },
+            onDisconnected = {
+                accountOpen = false
+                scope.launch { repo.refreshSubscriptions(signedIn = true) }
+            },
+        )
     }
 
     if (connecting) {
