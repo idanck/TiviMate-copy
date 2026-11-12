@@ -90,8 +90,12 @@ Callables in `me-west1`, beside the video tab's, with the same key, tokens and q
 ### Two further choices (2026-11-12)
 
 - **Liking on YouTube from Shidur: yes.** `videos.rate` needs a scope that writes, so a connection
-  now asks for `youtube.force-ssl` beside `youtube.readonly` (`link.ts`, the phone's
-  `PhoneYouTube.kt`), and the scope granted is kept with the token. `ytmRate` sends the like; an
+  now asks for one beside `youtube.readonly` (`link.ts`, the phone's `PhoneYouTube.kt`), and the
+  scope granted is kept with the token. The phone asks for `youtube.force-ssl`; the television asks
+  for `youtube`, since Google's flow for TVs accepts only `youtube` and `youtube.readonly` of
+  YouTube's scopes — 0.34.0 asked it for `youtube.force-ssl`, Google refused to give a code, and
+  connecting on a television failed until the server was fixed on 2026-11-12 (the owner's choice, 2026-11-12: `youtube` on the
+  television rather than read-only there). `ytmRate` sends the like; an
   account connected before this, or one that declined the write scope, answers `reconnect`, the
   like stays in Shidur and the tab says to connect again. A rating costs 50 units of the day's
   10,000. The owner adds the scope on the consent screen (`docs/13-youtube-setup.md`, step 5), and

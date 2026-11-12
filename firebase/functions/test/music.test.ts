@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canRate, canRead, channelOf, RATE_SCOPE, revokesOld, SCOPE, SCOPES } from '../src/youtube/link';
+import { canRate, canRead, channelOf, MANAGE_SCOPE, RATE_SCOPE, revokesOld, SCOPE, SCOPES, TV_SCOPES } from '../src/youtube/link';
 import {
   artistFrom,
   isAlbumId,
@@ -135,6 +135,12 @@ describe('albums and playlists told apart', () => {
 describe('likes sent to YouTube', () => {
   it('ask for the write scope beside the read one', () => {
     expect(SCOPES.split(' ')).toEqual([SCOPE, RATE_SCOPE]);
+  });
+  it('ask a television only for scopes Google allows its device flow (youtube, youtube.readonly)', () => {
+    expect(TV_SCOPES.split(' ')).toEqual([SCOPE, MANAGE_SCOPE]);
+    expect(TV_SCOPES).not.toContain('force-ssl');
+    expect(canRate(TV_SCOPES)).toBe(true);
+    expect(canRead(MANAGE_SCOPE)).toBe(true);
   });
   it('need the write scope; either scope reads', () => {
     expect(canRate(`${SCOPE} ${RATE_SCOPE}`)).toBe(true);
