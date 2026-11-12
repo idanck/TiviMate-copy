@@ -1,8 +1,8 @@
 // @ts-check
 import { describe, expect, it } from 'vitest';
 import { Auth } from '../server/auth.mjs';
-import { isPrivateAddress } from '../server/guard.mjs';
-import { decodeHeaders, rewritePlaylist, sniffKind } from '../server/proxy.mjs';
+import { assertReachable, isPrivateAddress } from '../server/guard.mjs';
+import { decodeHeaders, mediaType, rewritePlaylist, sniffKind } from '../server/proxy.mjs';
 import { redactUrl } from '../server/redact.mjs';
 
 const b64 = (/** @type {object} */ o) => Buffer.from(JSON.stringify(o)).toString('base64url');
@@ -26,6 +26,11 @@ describe('rewritePlaylist', () => {
     expect(out[6]).toBe(`/api/stream?u=${encodeURIComponent('https://cdn.example.com/abs/seg2.ts?token=1')}&h=HDR`);
   });
 
+  it('names each address after its file for ffmpeg', () => {
+    const out = rewritePlaylist('#EXTM3U\nseg1.ts?t=1\nchunk', 'http://a.example/live/x.m3u8', null, true).split('\n');
+    expect(out[1]).toBe(`/api/stream/x.ts?u=${encodeURIComponent('http://a.example/live/seg1.ts?t=1')}`);
+    expect(out[2]).toBe(`/api/stream/x?u=${encodeURIComponent('http://a.example/live/chunk')}`);
+  });
   it('leaves data: and skd: key URIs alone', () => {
     const out = rewritePlaylist('#EXT-X-KEY:METHOD=SAMPLE-AES,URI="skd://abc"', 'http://x/a.m3u8', null);
     expect(out).toBe('#EXT-X-KEY:METHOD=SAMPLE-AES,URI="skd://abc"');
@@ -56,9 +61,33 @@ describe('decodeHeaders', () => {
     const h = decodeHeaders(b64({ 'User-Agent': 'VLC', Referer: 'https://a', Host: 'evil', 'Content-Length': '1' }));
     expect(h).toEqual({ 'user-agent': 'VLC', referer: 'https://a' });
   });
+  it('drops a value with a line break in it', () => {
+    const h = Buffer.from(JSON.stringify({ Referer: 'http://a/\r\nX-Evil: 1', Origin: 'http://a' })).toString('base64url');
+    expect(decodeHeaders(h)).toEqual({ origin: 'http://a' });
+  });
   it('treats garbage as no headers', () => {
     expect(decodeHeaders('!!!')).toEqual({});
     expect(decodeHeaders(null)).toEqual({});
+  });
+});
+
+describe('mediaType', () => {
+  it('keeps media and images, and turns a page or a script into bytes', () => {
+    expect(mediaType('video/mp2t')).toBe('video/mp2t');
+    expect(mediaType('Audio/MPEG; charset=x')).toBe('audio/mpeg');
+    expect(mediaType('image/svg+xml')).toBe('image/svg+xml');
+    expect(mediaType('application/vnd.apple.mpegurl')).toBe('application/vnd.apple.mpegurl');
+    for (const type of ['text/html', 'text/javascript', 'application/xhtml+xml', 'application/xml', 'application/dash+xml', '', null]) {
+      expect(mediaType(type)).toBe('application/octet-stream');
+    }
+  });
+});
+
+describe('assertReachable', () => {
+  it('refuses a private address written as IPv6 in a URL', async () => {
+    for (const url of ['http://[::ffff:127.0.0.1]/', 'http://[::ffff:169.254.169.254]/', 'http://[::127.0.0.1]/', 'http://127.0.0.1/']) {
+      await expect(assertReachable(new URL(url), { allowPrivate: false })).rejects.toThrow('private address');
+    }
   });
 });
 
@@ -67,6 +96,10 @@ describe('isPrivateAddress', () => {
     ['10.0.0.1', true], ['192.168.1.20', true], ['172.20.0.1', true], ['127.0.0.1', true],
     ['100.100.1.1', true], ['169.254.1.1', true], ['::1', true], ['fd00::1', true],
     ['::ffff:192.168.1.1', true], ['8.8.8.8', false], ['172.32.0.1', false], ['2606:4700::1', false],
+    // An IPv4 address inside an IPv6 one, as a URL carries it (`[::ffff:127.0.0.1]` → `::ffff:7f00:1`).
+    ['::ffff:7f00:1', true], ['::ffff:c0a8:101', true], ['::ffff:a9fe:a9fe', true], ['::7f00:1', true],
+    ['64:ff9b::7f00:1', true], ['2002:c0a8:101::1', true], ['2001:0:1::1', true], ['::', true],
+    ['fe80::1%eth0', true], ['::ffff:808:808', false], ['2002:808:808::1', false], ['64:ff9b::808:808', false],
   ])('%s → %s', (ip, expected) => {
     expect(isPrivateAddress(ip)).toBe(expected);
   });

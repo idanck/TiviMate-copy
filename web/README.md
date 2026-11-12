@@ -100,3 +100,18 @@ Alt+1…5 switch screens. The list is in Settings too.
 - Video the browser cannot decode is not converted — H.265 plays only where the browser and the
   graphics hardware support it. Audio is converted when ffmpeg is present.
 - `localStorage['shidur.debug'] = '1'` writes what the player's decoders report to the console.
+
+## What the proxy guards against
+
+Everything the proxy returns comes from a provider, a playlist or whoever wrote the link, and it is
+served from this site's own origin. So:
+
+- `/api/fetch` always answers `text/plain`, and `/api/stream` keeps only media and image types;
+  anything else is `application/octet-stream`. Every proxied answer carries
+  `Content-Security-Policy: sandbox`, so one opened as a page runs no script and has no origin.
+- The address guard (`server/guard.mjs`) reads an IPv6 address as numbers and judges an IPv4
+  address inside it (`::ffff:…`, `::a.b.c.d`, NAT64, 6to4) as that IPv4 address. It does not pin the
+  connection to the address it checked, so a DNS answer that changes in between is not caught.
+- ffmpeg (`/api/remux`) never talks to a provider: it reads this server's own `/api/stream/<name>`
+  with a key made at each start, so redirects and an HLS playlist's segments pass the guard too.
+

@@ -22,9 +22,15 @@
       <label for="code">הקוד שעל הטלוויזיה</label>
       <input id="code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
              spellcheck="false" maxlength="9" placeholder="ABCD-EFGH">
-      <button id="approve" type="submit">לאשר את הטלוויזיה</button>
+      <p id="warning">אישור הקוד מחבר מכשיר לחשבון שלך, עם גישה מלאה אליו. אשר רק קוד שמופיע עכשיו על מסך הטלוויזיה שלך. אם קיבלת את הקוד או את הקישור בהודעה, אל תאשר.</p>
+      <label class="check" for="mine">
+        <input id="mine" type="checkbox">
+        <span>הקוד הזה מופיע עכשיו על הטלוויזיה שלי</span>
+      </label>
+      <button id="approve" type="submit" disabled>לאשר את הטלוויזיה</button>
     </form>
     <button id="switch" type="button" class="secondary">התחברות עם חשבון אחר</button>
+    <button id="sign-out-all" type="button" class="secondary">לנתק את כל המכשירים מהחשבון</button>
   </section>
 
   <div id="message" role="status" aria-live="polite"></div>

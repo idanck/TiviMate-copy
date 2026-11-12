@@ -23,6 +23,9 @@ import { redactUrl } from './redact.mjs';
 /** The Android app's own default (data/net/Http.kt): providers filter on it (ADR-018). */
 export const DEFAULT_USER_AGENT = 'TiviCopy/1.0 (Android)';
 
+/** The request header by which ffmpeg, started by /api/remux, is let in to /api/stream. */
+export const INTERNAL_HEADER = 'x-shidur-internal';
+
 const REDIRECTS = [301, 302, 303, 307, 308];
 const MAX_HOPS = 5;
 const PLAYLIST_LIMIT = 8 * 1024 * 1024;
@@ -48,7 +51,8 @@ export function decodeHeaders(h) {
     const out = {};
     for (const [k, v] of Object.entries(parsed ?? {})) {
       const name = k.trim().toLowerCase();
-      if (typeof v === 'string' && v && /^[a-z0-9-]+$/.test(name) && !NOT_FORWARDED.has(name)) out[name] = v;
+      // A value with a line break in it would be more than one header.
+      if (typeof v === 'string' && v && !/[\r\n\0]/.test(v) && /^[a-z0-9-]+$/.test(name) && !NOT_FORWARDED.has(name)) out[name] = v;
     }
     return out;
   } catch {
@@ -63,8 +67,10 @@ export function decodeHeaders(h) {
  * @param {string} text
  * @param {string} baseUrl
  * @param {string | null} h the encoded headers, carried on to every rewritten URI
+ * @param {boolean} [named] for ffmpeg (/api/remux): each address keeps its file's extension in the
+ *   path, since newer ffmpeg builds refuse an HLS segment whose address has no media extension
  */
-export function rewritePlaylist(text, baseUrl, h) {
+export function rewritePlaylist(text, baseUrl, h, named = false) {
   /** @param {string} uri */
   const through = (uri) => {
     let absolute;
@@ -74,7 +80,7 @@ export function rewritePlaylist(text, baseUrl, h) {
       return uri;
     }
     if (absolute.protocol !== 'http:' && absolute.protocol !== 'https:') return uri;
-    return `/api/stream?u=${encodeURIComponent(absolute.href)}${h ? `&h=${h}` : ''}`;
+    return `${named ? namedStream(absolute) : '/api/stream'}?u=${encodeURIComponent(absolute.href)}${h ? `&h=${h}` : ''}`;
   };
   return text
     .split(/\r?\n/)
@@ -85,6 +91,16 @@ export function rewritePlaylist(text, baseUrl, h) {
       return through(t);
     })
     .join('\n');
+}
+
+/**
+ * /api/stream under a name with [target]'s own extension: `/api/stream/x.ts`.
+ *
+ * @param {URL} target
+ */
+export function namedStream(target) {
+  const extension = target.pathname.match(/\.[A-Za-z0-9]{1,5}$/)?.[0] ?? '';
+  return `/api/stream/x${extension}`;
 }
 
 /**
@@ -107,6 +123,31 @@ export function sniffKind(contentType, head) {
   return 'unknown';
 }
 
+/**
+ * What an upstream's content type may be when it is handed to the browser from this site's own
+ * origin. Everything the proxy returns is a provider's, a playlist's or a stranger's: a page or a
+ * script among it would run as Shidur, with its storage and its session. Media and images keep
+ * their type; anything else is bytes.
+ *
+ * @param {string | null} contentType
+ */
+export function mediaType(contentType) {
+  const type = (contentType || '').split(';')[0].trim().toLowerCase();
+  if (/^(video|audio|image)\/[a-z0-9.+-]+$/.test(type)) return type;
+  if (/^application\/(x-mpegurl|vnd\.apple\.mpegurl|mp4|ogg)$/.test(type)) return type;
+  return 'application/octet-stream';
+}
+
+/**
+ * Every proxied answer is fenced off: opened as a page of its own (a link somebody sent), it runs
+ * no script and belongs to no origin, whatever it is — an SVG logo included.
+ *
+ * @param {import('node:http').ServerResponse} res
+ */
+function fence(res) {
+  res.setHeader('content-security-policy', "sandbox; default-src 'none'");
+}
+
 export class Proxy {
   /**
    * @param {{ allowPrivate: boolean, userAgent?: string, connectTimeoutMs?: number }} options
@@ -116,6 +157,13 @@ export class Proxy {
     this.userAgent = userAgent || DEFAULT_USER_AGENT;
     this.connectTimeoutMs = connectTimeoutMs ?? 20_000;
     this.ffmpeg = spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' }).status === 0;
+    /**
+     * Where ffmpeg reaches this server's own /api/stream, and the key that lets it in (index.mjs
+     * sets both once the server listens).
+     *
+     * @type {{ origin: string, key: string } | null}
+     */
+    this.internal = null;
   }
 
   /**
@@ -181,7 +229,10 @@ export class Proxy {
   async fetchText(req, res, params) {
     const { res: up } = await this.open(req, res, params, { media: false });
     res.statusCode = up.status;
-    res.setHeader('content-type', up.headers.get('content-type') || 'text/plain; charset=utf-8');
+    // Always plain text, whatever the upstream calls it: the page reads it with `text()`, and a
+    // browser sent here by a link must not be handed a page or a script from this origin.
+    fence(res);
+    res.setHeader('content-type', 'text/plain; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
     if (!up.body) return void res.end();
     const reader = up.body.getReader();
@@ -189,7 +240,6 @@ export class Proxy {
     const head = first.done ? new Uint8Array() : first.value;
     const body = Readable.from(chunks(reader, head));
     if (head[0] === 0x1f && head[1] === 0x8b) {
-      res.setHeader('content-type', 'application/xml; charset=utf-8');
       await pipeline(body, createGunzip(), res);
     } else {
       await pipeline(body, res);
@@ -203,11 +253,13 @@ export class Proxy {
    * @param {import('node:http').IncomingMessage} req
    * @param {import('node:http').ServerResponse} res
    * @param {URLSearchParams} params
+   * @param {{ named?: boolean }} [options] for ffmpeg: see [rewritePlaylist]
    */
-  async stream(req, res, params) {
+  async stream(req, res, params, { named = false } = {}) {
     const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
     const { res: up, finalUrl, h } = await this.open(req, res, params, { media: true, range });
     const contentType = up.headers.get('content-type') || '';
+    fence(res);
     const reader = up.body?.getReader();
     if (!reader) {
       res.statusCode = up.status;
@@ -224,7 +276,7 @@ export class Proxy {
         res.statusCode = 200;
         res.setHeader('content-type', 'application/vnd.apple.mpegurl');
         res.setHeader('cache-control', 'no-store');
-        return void res.end(rewritePlaylist(text, finalUrl.href, h));
+        return void res.end(rewritePlaylist(text, finalUrl.href, h, named));
       }
       copyMediaHeaders(up, res);
       return void (await pipeline(Readable.from(chunks(reader, head)), res));
@@ -267,18 +319,20 @@ export class Proxy {
    */
   async remux(req, res, params) {
     if (!this.ffmpeg) return sendJson(res, 501, { error: 'no-ffmpeg' });
+    if (!this.internal) return sendJson(res, 503, { error: 'starting' });
     const target = parseTarget(params.get('u'));
     await assertReachable(target, { allowPrivate: this.allowPrivate });
-    const headers = decodeHeaders(params.get('h'));
-    const ua = headers['user-agent'] || this.userAgent;
-    delete headers['user-agent'];
-    const extra = Object.entries(headers).map(([k, v]) => `${k}: ${v}\r\n`).join('');
+    // ffmpeg follows redirects and fetches an HLS playlist's variants, segments and keys by itself,
+    // past the address guard. So it never talks to the provider: it reads this server's own
+    // /api/stream, where every hop is checked and a playlist comes back rewritten to do the same.
+    const h = params.get('h');
+    const input = `${this.internal.origin}${namedStream(target)}?u=${encodeURIComponent(target.href)}${h ? `&h=${encodeURIComponent(h)}` : ''}`;
     const args = [
       '-hide_banner', '-loglevel', 'error', '-nostdin',
-      '-user_agent', ua,
-      ...(extra ? ['-headers', extra] : []),
+      '-protocol_whitelist', 'http,tcp,crypto,data',
+      '-headers', `${INTERNAL_HEADER}: ${this.internal.key}\r\n`,
       '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4',
-      '-i', target.href,
+      '-i', input,
       '-map', '0:v:0?', '-map', '0:a:0?',
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ac', '2',
       '-f', 'mpegts', 'pipe:1',
@@ -293,6 +347,7 @@ export class Proxy {
     child.stdout.once('data', () => {
       started = true;
       res.statusCode = 200;
+      fence(res);
       res.setHeader('content-type', 'video/mp2t');
       res.setHeader('cache-control', 'no-store');
     });
@@ -356,7 +411,8 @@ async function readAll(reader, first, limit) {
  */
 function copyMediaHeaders(up, res) {
   res.statusCode = up.status;
-  for (const name of ['content-type', 'content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
+  res.setHeader('content-type', mediaType(up.headers.get('content-type')));
+  for (const name of ['content-length', 'content-range', 'accept-ranges', 'last-modified', 'etag']) {
     const v = up.headers.get(name);
     if (v) res.setHeader(name, v);
   }

@@ -29,7 +29,8 @@ button.danger { background: var(--error); color: #fff; }
 button:disabled { opacity: .6; cursor: progress; }
 button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .who { direction: ltr; unicode-bidi: plaintext; color: var(--ink); font-weight: 600; }
-.check { display: flex; gap: .5rem; align-items: flex-start; font-weight: 400; color: var(--ink2); }
+.check input { flex: none; margin-top: .3rem; }
+.check { margin: 0 0 1rem; display: flex; gap: .5rem; align-items: flex-start; font-weight: 400; color: var(--ink2); }
 #message { min-height: 1.5rem; margin-top: 1rem; font-weight: 600; }
 #message.error { color: var(--error); }
 #message.ok { color: var(--ok); }

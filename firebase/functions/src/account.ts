@@ -55,6 +55,27 @@ export const ensureProfile = onCall({ region: REGION, maxInstances: MAX_INSTANCE
   return { created: true };
 });
 
+/**
+ * Signs the account out of every device: each television that was paired, each phone, this one
+ * included. A pairing's approval cannot be seen or taken back one device at a time, so this is how
+ * a person who approved a code that was not their television's gets the account back.
+ *
+ * Only for a caller signed in with Google, as approving is: a paired television cannot throw the
+ * owner's own devices out. A device already signed in keeps working until its current ID token
+ * runs out, an hour at most; after that it cannot get another.
+ */
+export const signOutEverywhere = onCall({ region: REGION, maxInstances: MAX_INSTANCES }, async (request) => {
+  const auth = request.auth;
+  if (!auth) throw new HttpsError('unauthenticated', 'Sign in first.');
+  if (auth.token.firebase?.sign_in_provider !== 'google.com') {
+    throw new HttpsError('permission-denied', 'Sign in with Google to sign devices out.');
+  }
+  await enforce('revoke', auth.uid, LIMITS.revokePerUser.max, LIMITS.revokePerUser.windowMs);
+  await getAuth().revokeRefreshTokens(auth.uid);
+  logger.info('signed out everywhere', { uid: auth.uid });
+  return { ok: true };
+});
+
 /** Everything an account owns. */
 async function deleteData(uid: string): Promise<void> {
   const db = getFirestore();
