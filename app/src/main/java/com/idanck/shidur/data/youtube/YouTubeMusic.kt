@@ -75,6 +75,40 @@ enum class MusicSection { HOME, LIBRARY, SEARCH }
 /** What the library shows: the canvas's filter chips. */
 enum class LibraryFilter { PLAYLISTS, LIKED, ARTISTS, ALBUMS, HISTORY }
 
+/** What a music search asks for (`ytmSearch`'s `kind`): the canvas's chips. */
+enum class MusicSearchKind(val wire: String) { ALL("all"), SONGS("songs"), ALBUMS("albums"), ARTISTS("artists"), PLAYLISTS("playlists") }
+
+/** A music search's answer: songs, artists (channels), and playlists or albums. */
+data class MusicSearchResult(val songs: List<YtSong>, val artists: List<YtArtist>, val lists: List<YtMusicList>) {
+    val isEmpty: Boolean get() = songs.isEmpty() && artists.isEmpty() && lists.isEmpty()
+}
+
+/** The result shown first, on its own card (`TvYtMusicSearch`). */
+sealed interface MusicTop {
+    data class OfArtist(val artist: YtArtist) : MusicTop
+    data class OfSong(val song: YtSong) : MusicTop
+    data class OfList(val list: YtMusicList) : MusicTop
+}
+
+/**
+ * The top result: an artist whose name is what was typed, else the first song, else the first list,
+ * else the first artist. YouTube's own order decides within each.
+ */
+fun topResult(result: MusicSearchResult, query: String): MusicTop? {
+    val q = query.trim()
+    result.artists.firstOrNull { it.title.removeSuffix(" - Topic").trim().equals(q, ignoreCase = true) }?.let { return MusicTop.OfArtist(it) }
+    result.songs.firstOrNull()?.let { return MusicTop.OfSong(it) }
+    result.lists.firstOrNull()?.let { return MusicTop.OfList(it) }
+    return result.artists.firstOrNull()?.let { MusicTop.OfArtist(it) }
+}
+
+/** The recent searches with [query] first: trimmed, once each whatever its case, at most [max]. */
+fun addRecent(recent: List<String>, query: String, max: Int = 8): List<String> {
+    val q = query.trim().replace(Regex("\\s+"), " ")
+    if (q.isEmpty()) return recent
+    return (listOf(q) + recent.filterNot { it.equals(q, ignoreCase = true) }).take(max)
+}
+
 /** Reading the music callables' answers: plain maps, lists, strings, numbers and booleans. */
 internal object YtMusicParse {
 
@@ -119,7 +153,12 @@ internal object YtMusicParse {
         return YtArtist(id, m.str("title").orEmpty(), m.str("thumb"))
     }
 
-    fun artists(raw: Any?): List<YtArtist> = (raw as? List<*>).orEmpty().mapNotNull(::artist)
+    fun artists(raw: Any?): List<YtArtist> = (raw as? List<*>).orEmpty().mapNotNull(::artist).distinctBy { it.id }
+
+    fun search(raw: Any?): MusicSearchResult {
+        val m = raw as? Map<*, *>
+        return MusicSearchResult(songs(m?.get("songs")), artists(m?.get("artists")), lists(m?.get("lists")).distinctBy { it.id })
+    }
 }
 
 /**

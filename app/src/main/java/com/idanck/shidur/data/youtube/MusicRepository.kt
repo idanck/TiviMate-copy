@@ -81,6 +81,10 @@ class MusicRepository(
     /** A like could not reach YouTube: the connection lacks the scope that gives likes (ADR-069). */
     val reconnect: StateFlow<Boolean> = _reconnect
 
+    private val _recentSearches = MutableStateFlow(readRecent())
+    /** What was searched for on this device, newest first (`TvYtMusicSearch`). */
+    val recentSearches: StateFlow<List<String>> = _recentSearches
+
     /** Playlists and albums opened on this visit, so going back and forth costs nothing. */
     private val lists = HashMap<String, Pair<YtMusicList, List<YtSong>>>()
 
@@ -134,6 +138,32 @@ class MusicRepository(
             else _youtubeLiked.value = YtMusicParse.songs(data["songs"])
         }
     }
+
+    /**
+     * A music search (`ytmSearch`): from the server's six-hour cache where anybody asked the same,
+     * from YouTube otherwise, out of the same searches a day as the video tab's.
+     */
+    suspend fun search(query: String, kind: MusicSearchKind): Result<MusicSearchResult> = runCatching {
+        YtMusicParse.search(call("ytmSearch", mapOf("q" to query.trim(), "kind" to kind.wire)))
+    }
+
+    /** Keeps [query] among the recent searches, on this device only. */
+    fun noteSearch(query: String) {
+        val next = addRecent(_recentSearches.value, query, MAX_RECENT)
+        if (next == _recentSearches.value) return
+        _recentSearches.value = next
+        prefs.edit().putString(K_RECENT, JSONArray(next).toString()).apply()
+    }
+
+    fun clearRecentSearches() {
+        _recentSearches.value = emptyList()
+        prefs.edit().remove(K_RECENT).apply()
+    }
+
+    private fun readRecent(): List<String> = runCatching {
+        val array = JSONArray(prefs.getString(K_RECENT, null) ?: return emptyList())
+        (0 until array.length()).mapNotNull { i -> array.optString(i).takeIf { it.isNotBlank() } }
+    }.getOrDefault(emptyList())
 
     /** A playlist or an album and its songs, from this visit's cache or the server's. */
     suspend fun list(id: String): Result<Pair<YtMusicList, List<YtSong>>> {
@@ -354,6 +384,8 @@ class MusicRepository(
         private const val K_LIKES = "likes"
         private const val K_ALBUMS = "albums"
         private const val K_HISTORY = "history"
+        private const val K_RECENT = "recentSearches"
+        private const val MAX_RECENT = 8
 
         /** The history's length, on the device and in the account. */
         const val MAX_HISTORY = 300

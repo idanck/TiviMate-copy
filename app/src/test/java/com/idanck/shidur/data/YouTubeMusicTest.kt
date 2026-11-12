@@ -1,6 +1,11 @@
 package com.idanck.shidur.data
 
 import com.idanck.shidur.data.youtube.LikedSong
+import com.idanck.shidur.data.youtube.MusicSearchResult
+import com.idanck.shidur.data.youtube.MusicTop
+import com.idanck.shidur.data.youtube.YtArtist
+import com.idanck.shidur.data.youtube.addRecent
+import com.idanck.shidur.data.youtube.topResult
 import com.idanck.shidur.data.youtube.MusicRepository
 import com.idanck.shidur.data.youtube.PlayedSong
 import com.idanck.shidur.data.youtube.SavedAlbum
@@ -83,5 +88,40 @@ class YouTubeMusicTest {
             setOf("videoId", "title", "artist", "channelId", "thumb", "duration", "playedUtc", "device", "context", "updatedUtc"),
             played.keys,
         )
+    }
+
+    @Test
+    fun `a search answer is read, each item once`() {
+        val result = YtMusicParse.search(
+            mapOf(
+                "songs" to listOf(mapOf("id" to "s1", "title" to "Song"), mapOf("id" to "s1", "title" to "again")),
+                "artists" to listOf(mapOf("id" to "UCa", "title" to "Artist"), "junk"),
+                "lists" to listOf(mapOf("id" to "OLAK5uy_a", "title" to "Album", "album" to true)),
+            ),
+        )
+        assertEquals(listOf("s1"), result.songs.map { it.id })
+        assertEquals(listOf("UCa"), result.artists.map { it.id })
+        assertTrue(result.lists.single().album)
+        assertTrue(YtMusicParse.search(null).isEmpty)
+    }
+
+    @Test
+    fun `the top result is the artist named, else the first song, list or artist`() {
+        val artist = YtArtist("UCa", "Dynoro - Topic", null)
+        val list = YtMusicList("PLx", "Mix", "", null, 3, false)
+        val full = MusicSearchResult(listOf(song("s1")), listOf(artist), listOf(list))
+        assertEquals(MusicTop.OfArtist(artist), topResult(full, " dynoro "))
+        assertEquals(MusicTop.OfSong(song("s1")), topResult(full, "in my mind"))
+        assertEquals(MusicTop.OfList(list), topResult(full.copy(songs = emptyList()), "mix"))
+        assertEquals(MusicTop.OfArtist(artist), topResult(MusicSearchResult(emptyList(), listOf(artist), emptyList()), "x"))
+        assertNull(topResult(MusicSearchResult(emptyList(), emptyList(), emptyList()), "x"))
+    }
+
+    @Test
+    fun `recent searches put the newest first, once each, and keep a few`() {
+        val recent = addRecent(listOf("Dynoro", "omer adam"), "  Omer   Adam ")
+        assertEquals(listOf("Omer Adam", "Dynoro"), recent)
+        assertEquals(recent, addRecent(recent, "   "))
+        assertEquals(3, addRecent(listOf("a", "b", "c"), "d", max = 3).size)
     }
 }

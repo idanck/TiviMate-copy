@@ -854,4 +854,18 @@
     <string name="yt_settings_disconnect_sub">בכל המכשירים של חשבון שידור. החשבון ב־YouTube לא משתנה.</string>
     <string name="yt_settings_signed_out">חשבון YouTube מתחבר לחשבון שידור. אחרי הכניסה לשידור אפשר לחבר אותו כאן או במסך YouTube.</string>
     <string name="yt_settings_unavailable">חיבור YouTube עוד לא הוגדר בשרת.</string>
+    <string name="ytm_section_search">חיפוש</string>
+    <string name="ytm_search_all">הכול</string>
+    <string name="ytm_search_songs">שירים</string>
+    <string name="ytm_search_albums">אלבומים</string>
+    <string name="ytm_search_artists">אמנים</string>
+    <string name="ytm_search_playlists">פלייליסטים</string>
+    <string name="ytm_search_lists">אלבומים ופלייליסטים</string>
+    <string name="ytm_search_recent">חיפושים אחרונים</string>
+    <string name="ytm_search_clear">ניקוי</string>
+    <string name="ytm_search_top">התוצאה המובילה</string>
+    <string name="ytm_search_artist_meta">אמן · ערוץ YouTube</string>
+    <string name="ytm_search_song">שיר</string>
+    <string name="ytm_search_to_artist">לעמוד האמן</string>
+    <string name="ytm_search_open">פתיחה</string>
 </resources>

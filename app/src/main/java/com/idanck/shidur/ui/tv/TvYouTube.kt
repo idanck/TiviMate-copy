@@ -89,6 +89,8 @@ import com.idanck.shidur.core.TimeModel
 import com.idanck.shidur.data.account.AccountState
 import com.idanck.shidur.data.youtube.LibraryFilter
 import com.idanck.shidur.data.youtube.MusicSection
+import com.idanck.shidur.data.youtube.MusicSearchResult
+import com.idanck.shidur.data.youtube.MusicSearchKind
 import com.idanck.shidur.data.youtube.YouTubeRepository
 import com.idanck.shidur.data.youtube.YtSong
 import com.idanck.shidur.data.youtube.YtSearchKind
@@ -269,6 +271,18 @@ internal class YouTubeSession(context: Context, private val repo: YouTubeReposit
     fun openMusic(page: MusicPage) {
         musicPages = musicPages + page
     }
+
+    /** Back to the music tab's parts, whatever pages were open over them. */
+    fun closeMusicPages() {
+        musicPages = emptyList()
+    }
+
+    /** The music search (stage 3): what is typed, the kind asked for, and the last answer. */
+    var musicQuery by mutableStateOf("")
+    var musicSearchKind by mutableStateOf(MusicSearchKind.ALL)
+    var musicResult by mutableStateOf<MusicSearchResult?>(null)
+    /** What [musicResult] answers, so coming back from an album or an artist asks nothing again. */
+    var musicSearchedFor by mutableStateOf<Pair<String, MusicSearchKind>?>(null)
 
     /** One music page back; false when there is none. */
     fun backMusic(): Boolean {
@@ -506,7 +520,15 @@ internal fun TvYouTubeScreen(
                 if (media && e.type == KeyEventType.KeyDown && session.page == null && !session.dialog) session.player.toggle()
                 // The remote's search key searches YouTube while its screen is up.
                 val search = e.key == Key.Search
-                if (search && e.type == KeyEventType.KeyDown && session.page != YtPage.Search) session.open(YtPage.Search)
+                if (search && e.type == KeyEventType.KeyDown) {
+                    // On the music tab, its own search (ADR-069 stage 3); otherwise YouTube's.
+                    if (session.music && session.page == null) {
+                        session.closeMusicPages()
+                        session.musicSection = MusicSection.SEARCH
+                    } else if (session.page != YtPage.Search) {
+                        session.open(YtPage.Search)
+                    }
+                }
                 media || search
             },
     ) {
