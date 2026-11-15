@@ -339,7 +339,9 @@ fun FocusableRow(
                 if (it.hasFocus) onFocused()
             }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .focusable(interactionSource = interaction)
+            // No `focusable()` here: `combinedClickable` below is the row's one focus target. A
+            // second one beside it put the remote on the outer target, so the first OK only
+            // entered the row (DPAD_CENTER is FocusDirection.Enter) and every row took two (0.37.1).
             // The activity binds Menu to Settings, but `dispatchKeyEvent` offers the view
             // hierarchy the key first, so a focused row claims it before that ever runs.
             .onKeyEvent { event ->
